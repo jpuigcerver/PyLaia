@@ -15,11 +15,11 @@ class TextImageFromTextTableDataset(TextImageDataset):
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
             txt_table, imgs_dir, valid_extensions)
         # Prepare dataset using the previous image filenames and transcripts.
-        super(TextImageFromTextTableDataset, super).__init__(
+        super(TextImageFromTextTableDataset, self).__init__(
             imgs, txts, img_transform, txt_transform)
 
     def __getitem__(self, index):
-        img, txt = super(TextImageFromTextTableDataset, super).__getitem__(index)
+        img, txt = super(TextImageFromTextTableDataset, self).__getitem__(index)
         return self._ids[index], img, txt
 
 def _get_valid_image_filenames_from_dir(imgs_dir, valid_extensions):
@@ -33,22 +33,22 @@ def _get_valid_image_filenames_from_dir(imgs_dir, valid_extensions):
     return valid_image_filenames
 
 def _load_text_table_from_file(table_file):
-    if isinstance(txt_table, (str, unicode)):
-        txt_table = open(txt_table, 'r')
+    if isinstance(table_file, (str, unicode)):
+        table_file = open(table_file, 'r')
 
-    for n, line in enumerate(txt_table, 1):
+    for n, line in enumerate(table_file, 1):
         line = line.split()
         # Skip empty lines and lines starting with #
         if len(line) == 0 or line[0][0] == '#':
             continue
         yield n, line[0], line[1:]
 
-    txt_table.close()
+    table_file.close()
 
 def _get_images_and_texts_from_text_table(table_file, imgs_dir, valid_exts):
     imgid2fname = _get_valid_image_filenames_from_dir(imgs_dir, valid_exts)
     ids, imgs, txts = [], [], []
-    for _, imgid, txt in _load_text_table_from_file(table_table):
+    for _, imgid, txt in _load_text_table_from_file(table_file):
         fname = imgid2fname.get(imgid)
         if fname is None:
             logging.warning('No image file was found in folder "%s" for image '
@@ -60,5 +60,3 @@ def _get_images_and_texts_from_text_table(table_file, imgs_dir, valid_exts):
             txts.append(txt)
 
     return ids, imgs, txts
-
-
