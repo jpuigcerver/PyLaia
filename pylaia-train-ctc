@@ -1,0 +1,135 @@
+#!/usr/bin/env python
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import argparse
+import collections
+import laia.data
+import numpy as np
+import torch
+
+from collections import OrderedDict
+from operator import mul
+from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import default_collate
+
+
+
+class PaddingCollater(object):
+    def __init__(self, use_shared_memory=False):
+        self._use_shared_memory = use_shared_memory
+
+    def _collate(self, batch):
+        error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
+        elem_type = type(batch[0])
+        if torch.is_tensor(batch[0]):
+            assert all(map(lambda x: x.dim() == batch[0].dim(), batch))
+            max_sizes = [len(batch)] # Outer dimension is the batch size
+            for d in xrange(batch[0].dim()):
+                max_sizes.append(
+                    reduce(lambda m, x: m if m >= x.size()[d] else x.size()[d],
+                           batch))
+            out = batch[0].new(size=max_sizes)
+            return out
+        elif (elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_'
+              and elem_type.__name__ != 'string_'):
+            elem = batch[0]
+            if elem_type.__name__ == 'ndarray':
+                # array of string classes and object
+                if re.search('[SaUO]', elem.dtype.str) is not None:
+                    raise TypeError(error_msg.format(elem.dtype))
+
+                return torch.stack([torch.from_numpy(b) for b in batch], 0)
+            if elem.shape == ():  # scalars
+                py_type = float if elem.dtype.name.startswith('float') else int
+                return numpy_type_map[elem.dtype.name](list(map(py_type, batch)))
+        elif isinstance(batch[0], int):
+            return torch.LongTensor(batch)
+        elif isinstance(batch[0], float):
+            return torch.DoubleTensor(batch)
+        elif isinstance(batch[0], string_classes):
+            return batch
+        elif isinstance(batch[0], collections.Mapping):
+            return {key: self._collate([d[key] for d in batch]) for key in batch[0]}
+        elif isinstance(batch[0], collections.Sequence):
+            transposed = zip(*batch)
+            return [self._collate(samples) for samples in transposed]
+
+        raise TypeError((error_msg.format(type(batch[0]))))
+
+    def __call__(self, batch):
+        elem_type = type(batch[0])
+        print (batch)
+        print ('=================')
+        if torch.is_tensor(batch[0]):
+            pass
+        elif (elem_type.__module__ == 'numpy' and
+              elem_type.__name__ == 'ndarray'):
+            shapes = np.vstack(map(lambda x: x.shape, batch))
+            # Check that all elements in the batch have the same # of dimensions
+            assert all(lambda x: len(x.size) == len(shapes[0].size), shapes)
+            num_dims = len(shapes[0].size)
+            max_sizes = [0] * num_dims
+            for d in xrange(num_dims):
+                max_sizes[d] = reduce(lambda x, y: x if x >= y[d] else y[d], shapes, 0)
+
+            print(max_sizes)
+            return None
+        else:
+            return default_collate(batch)
+
+class TextToTensor(object):
+    def __init__(self, sym2int):
+        assert isinstance(sym2int, dict)
+        self._sym2int = sym2int
+
+    def __call__(self, x):
+        return np.asarray([self._sym2int[c] for c in x], dtype=np.int32)
+
+class ImageToTensor(object):
+    def __init__(self, mode='F'):
+        assert mode in ('F', 'L', 'RGB', 'RGBA')
+        self._mode = mode
+
+    def __call__(self, x):
+        x = x.convert(self._mode)
+        x = np.asarray(x, dtype=np.float32)
+        return (255.0 - x) / 255.0
+
+def LoadSymbolsTable(f):
+    if isinstance(f, (str, unicode)):
+        f = open(f, 'r')
+    sym2int, int2sym = OrderedDict(), OrderedDict()
+    for n, line in enumerate(f, 1):
+        line = line.split()
+        s, v = line[0], int(line[1])
+        sym2int[s] = v
+        int2sym[v] = s
+    f.close()
+    assert len(sym2int) == len(int2sym), (
+        'Repeated symbols or IDs in symbols table "%s"' % f.name)
+    return sym2int, int2sym
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batch_size', type=int, default=3,
+                        help='Batch size')
+    parser.add_argument('syms')
+    parser.add_argument('tr_img_dir')
+    parser.add_argument('tr_txt_table')
+
+    args = parser.parse_args()
+
+    sym2int, int2sym = LoadSymbolsTable(args.syms)
+
+    tr_ds = laia.data.TextImageFromTextTableDataset(
+        args.tr_txt_table, args.tr_img_dir,
+        img_transform=ImageToTensor(),
+        txt_transform=TextToTensor(sym2int))
+    tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=4,
+                              collate_fn=PaddingCollater())
+
+    for batch in tr_ds_loader:
+        pass
