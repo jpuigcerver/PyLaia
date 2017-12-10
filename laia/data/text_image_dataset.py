@@ -14,15 +14,15 @@ class TextImageDataset(ImageDataset):
           index (int): Index of the item to return.
 
         Returns:
-          tuple: Tuple (image, text). text is a list of tokens representing
-            the transcript of the image.
+          dict: Dictionary containing the image ('img') and the transcript
+            ('txt') of the image.
         """
         # Get image
-        img = super(TextImageDataset, self).__getitem__(index)
+        out = super(TextImageDataset, self).__getitem__(index)
         # Get transcript
         txt = self._txts[index]
         if self._txt_transform:
             txt = self._txt_transform(txt)
         # Return image and transcript
-        return img, txt
-
+        out['txt'] = txt
+        return out

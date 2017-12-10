@@ -1,84 +1,24 @@
 #!/usr/bin/env python
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import argparse
 import collections
+import editdistance
+import itertools
 import laia.data
+import laia.models.htr
 import numpy as np
 import torch
 
 from collections import OrderedDict
 from operator import mul
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from torch.utils.data.dataloader import default_collate
-
-
-
-class PaddingCollater(object):
-    def __init__(self, use_shared_memory=False):
-        self._use_shared_memory = use_shared_memory
-
-    def _collate(self, batch):
-        error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
-        elem_type = type(batch[0])
-        if torch.is_tensor(batch[0]):
-            assert all(map(lambda x: x.dim() == batch[0].dim(), batch))
-            max_sizes = [len(batch)] # Outer dimension is the batch size
-            for d in xrange(batch[0].dim()):
-                max_sizes.append(
-                    reduce(lambda m, x: m if m >= x.size()[d] else x.size()[d],
-                           batch))
-            out = batch[0].new(size=max_sizes)
-            return out
-        elif (elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_'
-              and elem_type.__name__ != 'string_'):
-            elem = batch[0]
-            if elem_type.__name__ == 'ndarray':
-                # array of string classes and object
-                if re.search('[SaUO]', elem.dtype.str) is not None:
-                    raise TypeError(error_msg.format(elem.dtype))
-
-                return torch.stack([torch.from_numpy(b) for b in batch], 0)
-            if elem.shape == ():  # scalars
-                py_type = float if elem.dtype.name.startswith('float') else int
-                return numpy_type_map[elem.dtype.name](list(map(py_type, batch)))
-        elif isinstance(batch[0], int):
-            return torch.LongTensor(batch)
-        elif isinstance(batch[0], float):
-            return torch.DoubleTensor(batch)
-        elif isinstance(batch[0], string_classes):
-            return batch
-        elif isinstance(batch[0], collections.Mapping):
-            return {key: self._collate([d[key] for d in batch]) for key in batch[0]}
-        elif isinstance(batch[0], collections.Sequence):
-            transposed = zip(*batch)
-            return [self._collate(samples) for samples in transposed]
-
-        raise TypeError((error_msg.format(type(batch[0]))))
-
-    def __call__(self, batch):
-        elem_type = type(batch[0])
-        print (batch)
-        print ('=================')
-        if torch.is_tensor(batch[0]):
-            pass
-        elif (elem_type.__module__ == 'numpy' and
-              elem_type.__name__ == 'ndarray'):
-            shapes = np.vstack(map(lambda x: x.shape, batch))
-            # Check that all elements in the batch have the same # of dimensions
-            assert all(lambda x: len(x.size) == len(shapes[0].size), shapes)
-            num_dims = len(shapes[0].size)
-            max_sizes = [0] * num_dims
-            for d in xrange(num_dims):
-                max_sizes[d] = reduce(lambda x, y: x if x >= y[d] else y[d], shapes, 0)
-
-            print(max_sizes)
-            return None
-        else:
-            return default_collate(batch)
+import torch.nn as nn
+from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence, pack_padded_sequence
+from warpctc_pytorch import CTCLoss
 
 class TextToTensor(object):
     def __init__(self, sym2int):
@@ -86,17 +26,24 @@ class TextToTensor(object):
         self._sym2int = sym2int
 
     def __call__(self, x):
-        return np.asarray([self._sym2int[c] for c in x], dtype=np.int32)
+        x = [self._sym2int[c] for c in x]
+        return x
 
 class ImageToTensor(object):
-    def __init__(self, mode='F'):
+    def __init__(self, invert=False, mode='F'):
         assert mode in ('F', 'L', 'RGB', 'RGBA')
+        self._invert = invert
         self._mode = mode
 
     def __call__(self, x):
         x = x.convert(self._mode)
+        if self._invert:
+            x = x.invert()
         x = np.asarray(x, dtype=np.float32)
-        return (255.0 - x) / 255.0
+        if len(x.shape) != 3:
+            x = np.expand_dims(x, axis=-1)
+        x = np.transpose(x, (2, 0, 1))
+        return torch.from_numpy(x / 255.0)
 
 def LoadSymbolsTable(f):
     if isinstance(f, (str, unicode)):
@@ -112,13 +59,42 @@ def LoadSymbolsTable(f):
         'Repeated symbols or IDs in symbols table "%s"' % f.name)
     return sym2int, int2sym
 
+def GreedyDecoder(y, ys):
+    # Shape y: T x N x L
+    _, idx = y.max(dim=2)
+    idx = idx.t().tolist()
+    y = [idx_n[:int(ys[n])] for n, idx_n in enumerate(idx)]
+    y = [reduce(lambda z, x: z if z[-1] == x else z + [x], y_n[1:], [y_n[0]])
+         for y_n in y]
+    y = [filter(lambda x: x != 0, y_n) for y_n in y]
+    return y
+
+
+def ComputeBatchErrorRate(batch_txt_ref, batch_txt_hyp):
+    nerr, tlen = 0, 0
+    for tr, th in zip(batch_txt_ref, batch_txt_hyp):
+        nerr += editdistance.eval(tr, th)
+        tlen += len(tr)
+    return float(nerr) / float(tlen)
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=3,
+    parser.add_argument('--batch_size', type=int, default=8,
                         help='Batch size')
+    parser.add_argument('--learning_rate', type=float, default=0.0005,
+                        help='Learning rate')
+    parser.add_argument('--momentum', type=float, default=None,
+                        help='Momentum')
+    parser.add_argument('--max_updates', type=int, default=None,
+                        help='Maximum number of training updates (iterations)')
+    parser.add_argument('--gpu', type=int, default=1,
+                        help='Use this GPU (starting from 1)')
     parser.add_argument('syms')
     parser.add_argument('tr_img_dir')
     parser.add_argument('tr_txt_table')
+    parser.add_argument('va_txt_table')
 
     args = parser.parse_args()
 
@@ -128,8 +104,101 @@ if __name__ == '__main__':
         args.tr_txt_table, args.tr_img_dir,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(sym2int))
-    tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=4,
-                              collate_fn=PaddingCollater())
+    tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=8,
+                              collate_fn=laia.data.PaddingCollater({
+                                  'img': [1, None, None]
+                              }, sort_key=lambda x: -x['img'].size(2)),
+                              shuffle=True)
 
-    for batch in tr_ds_loader:
-        pass
+    va_ds = laia.data.TextImageFromTextTableDataset(
+        args.va_txt_table, args.tr_img_dir,
+        img_transform=ImageToTensor(),
+        txt_transform=TextToTensor(sym2int))
+    va_ds_loader = DataLoader(va_ds, args.batch_size, num_workers=8,
+                              collate_fn=laia.data.PaddingCollater({
+                                  'img': [1, None, None]
+                              }, sort_key=lambda x: -x['img'].size(2)))
+
+
+    model = laia.models.htr.CnnRnn(1, 84, [16, 16, 32, 32],
+                                   [3] * 4,
+                                   [1] * 4,
+                                   [nn.LeakyReLU] * 4,
+                                   [2, 2, 2, 0],
+                                   [0.0] * 4,
+                                   [False] * 4,
+                                   256, 3, 0.5, 0.5, collapse='adaptive_max-8')
+
+    if args.gpu:
+        model.cuda(args.gpu - 1)
+
+    ctc = CTCLoss()
+    parameters = model.parameters()
+    optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
+                                    momentum=args.momentum)
+
+    it, epoch = 0, 0
+    training_done = False
+    while not training_done:
+        epoch = epoch + 1
+        model.train()
+        for batch in tr_ds_loader:
+            it = it + 1
+            if args.max_updates and it > args.max_updates:
+                training_done = True
+                break
+
+            x = Variable(batch['img'].data)
+            xs = batch['img'].sizes[:,1:]
+            if args.gpu:
+                x = x.cuda(args.gpu - 1)
+                #xs = xs.cuda(args.gpu - 1)
+
+            y = model(laia.data.PaddedTensor(x, xs))
+            y, ys = pad_packed_sequence(y)
+
+            targets = list(itertools.chain.from_iterable(batch['txt']))
+            targets_size = map(lambda x: len(x), batch['txt'])
+
+            targets = Variable(torch.IntTensor(targets), requires_grad=False)
+            targets_size = Variable(torch.IntTensor(targets_size),
+                                    requires_grad=False)
+            ys = Variable(torch.IntTensor(ys), requires_grad=False)
+
+            loss = ctc(y, targets, ys, targets_size)
+            loss = (loss / ys.type(torch.FloatTensor)).mean()
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        va_ref = []
+        va_hyp = []
+        for batch in va_ds_loader:
+            x = Variable(batch['img'].data)
+            xs = batch['img'].sizes[:,1:]
+            if args.gpu:
+                x = x.cuda(args.gpu - 1)
+
+            y = model(laia.data.PaddedTensor(x, xs))
+            y, ys = pad_packed_sequence(y)
+            va_ref.extend(batch['txt'])
+            va_hyp.extend(GreedyDecoder(y.data, ys))
+        va_cer = ComputeBatchErrorRate(va_ref, va_hyp)
+
+        tr_ref = []
+        tr_hyp = []
+        for batch in tr_ds_loader:
+            x = Variable(batch['img'].data)
+            xs = batch['img'].sizes[:,1:]
+            if args.gpu:
+                x = x.cuda(args.gpu - 1)
+
+            y = model(laia.data.PaddedTensor(x, xs))
+            y, ys = pad_packed_sequence(y)
+            tr_ref.extend(batch['txt'])
+            tr_hyp.extend(GreedyDecoder(y.data, ys))
+
+        tr_cer = ComputeBatchErrorRate(tr_ref, tr_hyp)
+        print('EPOCH %d %6.2f %6.2f' % (epoch, tr_cer * 100, va_cer * 100))

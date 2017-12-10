@@ -15,7 +15,8 @@ class TestImageDataset(unittest.TestCase):
         mock_Image_open.return_value = expected_image
         dataset = ImageDataset(['filename.jpg'])
         self.assertEqual(1, len(dataset))
-        np.testing.assert_almost_equal(expected_image, dataset[0])
+        np.testing.assert_equal(len(dataset[0]), 2)
+        np.testing.assert_almost_equal(expected_image, dataset[0]['img'])
 
 
 if __name__ == '__main__':
