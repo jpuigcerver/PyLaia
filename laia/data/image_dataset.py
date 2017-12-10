@@ -9,11 +9,12 @@ class ImageDataset(data.Dataset):
         self._transform = transform
 
     def __getitem__(self, index):
-        """Returns an image from the dataset."""
+        """Returns a dictionary contaning the given image from the dataset.
+        The image is associated with the key 'img'."""
         img = Image.open(self._imgs[index])
         if self._transform:
             img = self._transform(img)
-        return img
+        return {'img': img}
 
     def __len__(self):
         return len(self._imgs)
