@@ -151,8 +151,23 @@ if __name__ == '__main__':
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
                                     momentum=args.momentum)
 
+    def batch_input_fn(batch):
+        if isinstance(batch['img'], laia.data.PaddedTensor):
+            return laia.data.PaddedTensor(data=Variable(batch['img'].data),
+                                          sizes=batch['img'].sizes[:,1:])
+        else:
+            return Variable(batch['img'])
+
     ctc = CTCLoss()
-    trainer = laia.Trainer(model=model, criterion=ctc, optimizer=optimizer, dataset=tr_ds_loader)
+    trainer = laia.Trainer(model=model,
+                           criterion=ctc,
+                           optimizer=optimizer,
+                           dataset=tr_ds_loader,
+                           batch_input_fn=batch_input_fn)
+    trainer.train()
+
+
+
 
 
     """
