@@ -58,7 +58,8 @@ class ConvBlock(nn.Module):
             x = x.data
             assert xs.dim() == 2, 'PaddedTensor.sizes must be a matrix'
             assert xs.size(1) == 2, (
-                'PaddedTensor.sizes must have 2 colums: Height and Width')
+                'PaddedTensor.sizes must have 2 colums: Height and Width, '
+                '%d columns given instead.' % xs.size(1))
         # Forward the input through all the modules in the conv block
         for module in self._modules.values():
             x = module(x)
