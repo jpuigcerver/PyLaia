@@ -1,1 +1,3 @@
-__all__ = ['data']
+from trainer import Trainer
+
+__all__ = ['data', 'models']
