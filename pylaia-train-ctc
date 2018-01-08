@@ -18,7 +18,8 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence, pack_padded_sequence
-from warpctc_pytorch import CTCLoss
+from warpctc_pytorch import CTCLoss as _CTCLoss
+
 
 class TextToTensor(object):
     def __init__(self, sym2int):
@@ -78,6 +79,19 @@ def ComputeBatchErrorRate(batch_txt_ref, batch_txt_hyp):
     return float(nerr) / float(tlen)
 
 
+class CTCLoss(object):
+    def __init__(self):
+        self._ctc = _CTCLoss()
+
+    def __call__(self, output, target):
+        output = output.data if isinstance(output, Variable) else output
+        x, xs = pad_packed_sequence(output)
+        y, ys = target
+        loss = self._ctc(x, y, xs, ys)
+        loss = (loss / xs.type(torch.FloatTensor)).mean()
+        return loss
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -120,23 +134,28 @@ if __name__ == '__main__':
                               }, sort_key=lambda x: -x['img'].size(2)))
 
 
-    model = laia.models.htr.CnnRnn(1, 84, [16, 16, 32, 32],
+    model = laia.models.htr.VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
                                    [3] * 4,
                                    [1] * 4,
                                    [nn.LeakyReLU] * 4,
                                    [2, 2, 2, 0],
                                    [0.0] * 4,
                                    [False] * 4,
-                                   256, 3, 0.5, 0.5, collapse='adaptive_max-8')
+                                   256, 3, 0.5, 0.5)
 
     if args.gpu:
         model.cuda(args.gpu - 1)
 
-    ctc = CTCLoss()
+
     parameters = model.parameters()
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
                                     momentum=args.momentum)
 
+    ctc = CTCLoss()
+    trainer = laia.Trainer(model=model, criterion=ctc, optimizer=optimizer, dataset=tr_ds_loader)
+
+
+    """
     it, epoch = 0, 0
     training_done = False
     while not training_done:
@@ -187,6 +206,7 @@ if __name__ == '__main__':
             va_hyp.extend(GreedyDecoder(y.data, ys))
         va_cer = ComputeBatchErrorRate(va_ref, va_hyp)
 
+
         tr_ref = []
         tr_hyp = []
         for batch in tr_ds_loader:
@@ -199,6 +219,7 @@ if __name__ == '__main__':
             y, ys = pad_packed_sequence(y)
             tr_ref.extend(batch['txt'])
             tr_hyp.extend(GreedyDecoder(y.data, ys))
-
         tr_cer = ComputeBatchErrorRate(tr_ref, tr_hyp)
+
         print('EPOCH %d %6.2f %6.2f' % (epoch, tr_cer * 100, va_cer * 100))
+    """

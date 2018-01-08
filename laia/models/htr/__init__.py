@@ -1,2 +1,3 @@
 from conv_block import ConvBlock
-from cnn_rnn import CnnRnn
+from vgg_rnn import VggRnn
+from vgg_rnn_fixed_height import VggRnnFixedHeight
