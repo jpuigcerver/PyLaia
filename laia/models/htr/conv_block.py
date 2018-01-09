@@ -18,13 +18,15 @@ class ConvBlock(nn.Module):
         if poolsize and not isinstance(poolsize, (list, tuple)):
             poolsize = (poolsize, poolsize)
 
-        # This is a torch tensor used to divide the input sizes in the forward()
-        # method, when using a PaddedTensor as an input.
+        # This is a torch tensor used to divide the input sizes in the
+        # forward() method, when using a PaddedTensor as an input.
         # If no padding is effectively used, then this is set to None.
-        self._poolsize = (torch.LongTensor(poolsize)
-                          if poolsize and poolsize[0] > 0 and poolsize[1] > 0
-                          and (poolsize[0] > 1 or poolsize[1] > 1)
-                          else None)
+        self.register_buffer(
+            'poolsize',
+            (torch.LongTensor(poolsize)
+             if poolsize and poolsize[0] > 0 and poolsize[1] > 0
+             and (poolsize[0] > 1 or poolsize[1] > 1)
+             else None))
 
         # First, add dropout module (optionally)
         if dropout and dropout > 0.0:
@@ -48,7 +50,7 @@ class ConvBlock(nn.Module):
             self.add_module('activation', activation())
 
         # Add maxpool layer
-        if self._poolsize is not None:
+        if self.poolsize is not None:
             self.add_module('pooling', nn.MaxPool2d(poolsize))
 
     def forward(self, x):
@@ -64,20 +66,8 @@ class ConvBlock(nn.Module):
         for module in self._modules.values():
             x = module(x)
         if is_padded:
-            if self._poolsize is not None:
-                xs = xs / self._poolsize
+            if self.poolsize is not None:
+                xs = xs / self.poolsize
             return PaddedTensor(data=x, sizes=xs)
         else:
             return x
-
-    def cpu(self):
-        super(ConvBlock, self).cpu()
-        if self._poolsize is not None:
-            self._poolsize = self._poolsize.cpu()
-        return self
-
-    def cuda(self):
-        super(ConvBlock, self).cuda()
-        if self._poolsize is not None:
-            self._poolsize = self._poolsize.cuda()
-        return self

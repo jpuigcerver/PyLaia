@@ -5,10 +5,11 @@ from __future__ import print_function
 
 import argparse
 import collections
-import editdistance
-import itertools
-import laia.data
+
+
+import laia
 import laia.models.htr
+
 import numpy as np
 import torch
 
@@ -18,7 +19,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence, pack_padded_sequence
-from warpctc_pytorch import CTCLoss as _CTCLoss
+
 
 
 class TextToTensor(object):
@@ -60,36 +61,8 @@ def LoadSymbolsTable(f):
         'Repeated symbols or IDs in symbols table "%s"' % f.name)
     return sym2int, int2sym
 
-def GreedyDecoder(y, ys):
-    # Shape y: T x N x L
-    _, idx = y.max(dim=2)
-    idx = idx.t().tolist()
-    y = [idx_n[:int(ys[n])] for n, idx_n in enumerate(idx)]
-    y = [reduce(lambda z, x: z if z[-1] == x else z + [x], y_n[1:], [y_n[0]])
-         for y_n in y]
-    y = [filter(lambda x: x != 0, y_n) for y_n in y]
-    return y
 
 
-def ComputeBatchErrorRate(batch_txt_ref, batch_txt_hyp):
-    nerr, tlen = 0, 0
-    for tr, th in zip(batch_txt_ref, batch_txt_hyp):
-        nerr += editdistance.eval(tr, th)
-        tlen += len(tr)
-    return float(nerr) / float(tlen)
-
-
-class CTCLoss(object):
-    def __init__(self):
-        self._ctc = _CTCLoss()
-
-    def __call__(self, output, target):
-        output = output.data if isinstance(output, Variable) else output
-        x, xs = pad_packed_sequence(output)
-        y, ys = target
-        loss = self._ctc(x, y, xs, ys)
-        loss = (loss / xs.type(torch.FloatTensor)).mean()
-        return loss
 
 
 
@@ -134,7 +107,8 @@ if __name__ == '__main__':
                               }, sort_key=lambda x: -x['img'].size(2)))
 
 
-    model = laia.models.htr.VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
+    """
+    model = laia.models.htr.VggRnnFixedHeight(128, 1, 84, [16, 16, 32, 32],
                                    [3] * 4,
                                    [1] * 4,
                                    [nn.LeakyReLU] * 4,
@@ -142,109 +116,76 @@ if __name__ == '__main__':
                                    [0.0] * 4,
                                    [False] * 4,
                                    256, 3, 0.5, 0.5)
+    """
+    model = laia.models.htr.VggRnnFixedHeight(
+        128, 1, 80, [16, 32, 48, 64, 80],
+        [3] * 5,
+        [1] * 5,
+        [nn.LeakyReLU] * 5,
+        [2, 2, 2, 0, 0],
+        [0.0, 0.0, 0.2, 0.2, 0.2],
+        [True] * 5,
+        256, 5, 0.5, 0.5)
 
-    if args.gpu:
-        model.cuda(args.gpu - 1)
+    if args.gpu > 0:
+        model = model.cuda(args.gpu - 1)
+    else:
+        model = model.cpu()
 
+    ctc_decoder = laia.decoders.CTCDecoder()
+    seq_err_meter = laia.meters.SequenceErrorMeter()
+    epoch_timer = laia.meters.TimeMeter()
 
     parameters = model.parameters()
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
                                     momentum=args.momentum)
 
     def batch_input_fn(batch):
+        assert (isinstance(batch['img'], laia.data.PaddedTensor) or
+                torch.is_tensor(batch['img']))
         if isinstance(batch['img'], laia.data.PaddedTensor):
-            return laia.data.PaddedTensor(data=Variable(batch['img'].data),
-                                          sizes=batch['img'].sizes[:,1:])
+            x = batch['img'].data
+            xs = batch['img'].sizes[:, 1:]
+            if args.gpu > 0:
+                x, xs = x.cuda(args.gpu - 1), xs.cuda(args.gpu - 1)
+            else:
+                x, xs = x.cpu(), xs.cpu()
+            return laia.data.PaddedTensor(data=Variable(x), sizes=xs)
         else:
-            return Variable(batch['img'])
+            if args.gpu > 0:
+                x = batch['img'].cuda(args.gpu - 1)
+            else:
+                x = batch['img'].cpu()
+            return Variable(x)
 
     def batch_target_fn(batch):
         return batch['txt']
-        #targets = list(itertools.chain.from_iterable(batch['txt']))
-        #targets_size = map(lambda x: len(x), batch['txt'])
 
-        #    targets = Variable(torch.IntTensor(targets), requires_grad=False)
-        #    targets_size = Variable(torch.IntTensor(targets_size),
-        #                            requires_grad=False)
+    def on_start_epoch(**kwargs):
+        epoch_timer.reset()
 
-    ctc = CTCLoss()
-    trainer = laia.Trainer(model=model,
-                           criterion=ctc,
-                           optimizer=optimizer,
-                           dataset=tr_ds_loader,
-                           batch_input_fn=batch_input_fn,
-                           batch_target_fn=batch_target_fn)
-    trainer.train()
+    def on_start_batch(**kwargs):
+        seq_err_meter.reset()
 
+    def on_end_batch(**kwargs):
+        batch_decode = ctc_decoder(kwargs['batch_output'])
+        seq_err_meter.add(kwargs['batch_target'], batch_decode)
+
+    def on_end_epoch(**kwargs):
+        print('Epoch %05d, train error rate = %3.2f, elapsed time = %.2fs' % (
+            kwargs['epoch'], seq_err_meter.value * 100, epoch_timer.value))
 
 
+    ctc = laia.losses.CTCLoss()
+    trainer = laia.trainer.Trainer(model=model,
+                                   criterion=ctc,
+                                   optimizer=optimizer,
+                                   dataset=tr_ds_loader,
+                                   batch_input_fn=batch_input_fn,
+                                   batch_target_fn=batch_target_fn)
+    trainer.register_hook('on_start_epoch', on_start_epoch)
+    trainer.register_hook('on_start_batch', on_start_batch)
+    trainer.register_hook('on_end_batch', on_end_batch)
+    trainer.register_hook('on_end_epoch', on_end_epoch)
 
-
-    """
-    it, epoch = 0, 0
-    training_done = False
-    while not training_done:
-        epoch = epoch + 1
-        model.train()
-        for batch in tr_ds_loader:
-            it = it + 1
-            if args.max_updates and it > args.max_updates:
-                training_done = True
-                break
-
-            x = Variable(batch['img'].data)
-            xs = batch['img'].sizes[:,1:]
-            if args.gpu:
-                x = x.cuda(args.gpu - 1)
-                #xs = xs.cuda(args.gpu - 1)
-
-            y = model(laia.data.PaddedTensor(x, xs))
-            y, ys = pad_packed_sequence(y)
-
-            targets = list(itertools.chain.from_iterable(batch['txt']))
-            targets_size = map(lambda x: len(x), batch['txt'])
-
-            targets = Variable(torch.IntTensor(targets), requires_grad=False)
-            targets_size = Variable(torch.IntTensor(targets_size),
-                                    requires_grad=False)
-            ys = Variable(torch.IntTensor(ys), requires_grad=False)
-
-            loss = ctc(y, targets, ys, targets_size)
-            loss = (loss / ys.type(torch.FloatTensor)).mean()
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        model.eval()
-        va_ref = []
-        va_hyp = []
-        for batch in va_ds_loader:
-            x = Variable(batch['img'].data)
-            xs = batch['img'].sizes[:,1:]
-            if args.gpu:
-                x = x.cuda(args.gpu - 1)
-
-            y = model(laia.data.PaddedTensor(x, xs))
-            y, ys = pad_packed_sequence(y)
-            va_ref.extend(batch['txt'])
-            va_hyp.extend(GreedyDecoder(y.data, ys))
-        va_cer = ComputeBatchErrorRate(va_ref, va_hyp)
-
-
-        tr_ref = []
-        tr_hyp = []
-        for batch in tr_ds_loader:
-            x = Variable(batch['img'].data)
-            xs = batch['img'].sizes[:,1:]
-            if args.gpu:
-                x = x.cuda(args.gpu - 1)
-
-            y = model(laia.data.PaddedTensor(x, xs))
-            y, ys = pad_packed_sequence(y)
-            tr_ref.extend(batch['txt'])
-            tr_hyp.extend(GreedyDecoder(y.data, ys))
-        tr_cer = ComputeBatchErrorRate(tr_ref, tr_hyp)
-
-        print('EPOCH %d %6.2f %6.2f' % (epoch, tr_cer * 100, va_cer * 100))
-    """
+    trainer.run()

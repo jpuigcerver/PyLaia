@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from tqdm import tqdm
+
 class Trainer(object):
     def __init__(self, model, criterion, optimizer, dataset,
                  batch_input_fn=None, batch_target_fn=None,
@@ -57,16 +59,17 @@ class Trainer(object):
     def __call_hooks(self, when, **kwargs):
         assert when in self._hooks, '"%s" is not a valid hook event' % when
         for hook in self._hooks[when]:
-            hook(self, **kwargs)
+            hook(trainer=self, **kwargs)
 
-    def train(self):
+    def run(self):
         while not self._early_stop_fn(self):
             self._epochs += 1
             self.__call_hooks('on_start_epoch', epoch=self._epochs)
-            for it, data in enumerate(self._dataset, self._iterations + 1):
+            for it, data in enumerate(tqdm(self._dataset),
+                                      self._iterations + 1):
                 batch_input = self._batch_input_fn(data)
                 batch_target = self._batch_target_fn(data)
-                batch_loss, batch_output = None, None
+                loss_and_output = [None, None]
                 self.__call_hooks('on_start_batch',
                                   epoch=self._epochs,
                                   iteration=it,
@@ -75,19 +78,21 @@ class Trainer(object):
 
                 def closure():
                     batch_output = self._model(batch_input)
-                    loss = self._criterion(batch_output, batch_target)
-                    loss.backward()
-                    batch_loss = loss
-                    return loss
+                    batch_loss = self._criterion(batch_output, batch_target)
+                    batch_loss.backward()
+                    loss_and_output[0] = batch_loss
+                    loss_and_output[1] = batch_output
+                    return batch_loss
 
-                self.optimizer.zero_grad()
-                self.optimizer.step(closure)
+                self._optimizer.zero_grad()
+                self._optimizer.step(closure)
                 self.__call_hooks('on_end_batch',
                                   epoch=self._epochs,
                                   iteration=it,
-                                  batch_loss=batch_loss,
                                   batch_input=batch_input,
-                                  batch_target=batch_target)
+                                  batch_target=batch_target,
+                                  batch_loss=loss_and_output[0],
+                                  batch_output=loss_and_output[1])
 
-            self.iterations += it
+            self._iterations += it
             self.__call_hooks('on_end_epoch', epoch=self._epochs)
