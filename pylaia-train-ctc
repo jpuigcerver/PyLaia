@@ -158,12 +158,22 @@ if __name__ == '__main__':
         else:
             return Variable(batch['img'])
 
+    def batch_target_fn(batch):
+        return batch['txt']
+        #targets = list(itertools.chain.from_iterable(batch['txt']))
+        #targets_size = map(lambda x: len(x), batch['txt'])
+
+        #    targets = Variable(torch.IntTensor(targets), requires_grad=False)
+        #    targets_size = Variable(torch.IntTensor(targets_size),
+        #                            requires_grad=False)
+
     ctc = CTCLoss()
     trainer = laia.Trainer(model=model,
                            criterion=ctc,
                            optimizer=optimizer,
                            dataset=tr_ds_loader,
-                           batch_input_fn=batch_input_fn)
+                           batch_input_fn=batch_input_fn,
+                           batch_target_fn=batch_target_fn)
     trainer.train()
 
 
