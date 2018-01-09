@@ -1,3 +1,8 @@
-from trainer import Trainer
+__all__ = ['data', 'decoders', 'losses', 'models', 'meters', 'trainer']
 
-__all__ = ['data', 'models']
+import laia.data
+import laia.decoders
+import laia.losses
+import laia.models
+import laia.meters
+import laia.trainer
