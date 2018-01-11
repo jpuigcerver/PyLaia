@@ -12,15 +12,17 @@ import laia.models.htr
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 from collections import OrderedDict
-from operator import mul
+
+from laia.distorter import ImageDistorter
+
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-import torch.nn as nn
-from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence, pack_padded_sequence
+from laia.utils import image_collage
 
-
+from PIL import ImageOps
 
 class TextToTensor(object):
     def __init__(self, sym2int):
@@ -32,15 +34,15 @@ class TextToTensor(object):
         return x
 
 class ImageToTensor(object):
-    def __init__(self, invert=False, mode='F'):
-        assert mode in ('F', 'L', 'RGB', 'RGBA')
+    def __init__(self, invert=True, mode='L'):
+        assert mode in ('L', 'RGB', 'RGBA')
         self._invert = invert
         self._mode = mode
 
     def __call__(self, x):
         x = x.convert(self._mode)
         if self._invert:
-            x = x.invert()
+            x = ImageOps.invert(x)
         x = np.asarray(x, dtype=np.float32)
         if len(x.shape) != 3:
             x = np.expand_dims(x, axis=-1)
@@ -108,7 +110,7 @@ if __name__ == '__main__':
 
 
     """
-    model = laia.models.htr.VggRnnFixedHeight(128, 1, 84, [16, 16, 32, 32],
+    model = laia.models.htr.VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
                                    [3] * 4,
                                    [1] * 4,
                                    [nn.LeakyReLU] * 4,
@@ -117,6 +119,8 @@ if __name__ == '__main__':
                                    [False] * 4,
                                    256, 3, 0.5, 0.5)
     """
+
+    # SOTA model for IAM/Rimes
     model = laia.models.htr.VggRnnFixedHeight(
         128, 1, 80, [16, 32, 48, 64, 80],
         [3] * 5,
@@ -140,12 +144,14 @@ if __name__ == '__main__':
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
                                     momentum=args.momentum)
 
+    distorter = ImageDistorter()
+
     def batch_input_fn(batch):
         assert (isinstance(batch['img'], laia.data.PaddedTensor) or
                 torch.is_tensor(batch['img']))
         if isinstance(batch['img'], laia.data.PaddedTensor):
             x = batch['img'].data
-            xs = batch['img'].sizes[:, 1:]
+            xs = batch['img'].sizes[:, 1:].contiguous()
             if args.gpu > 0:
                 x, xs = x.cuda(args.gpu - 1), xs.cuda(args.gpu - 1)
             else:
@@ -161,6 +167,17 @@ if __name__ == '__main__':
     def batch_target_fn(batch):
         return batch['txt']
 
+    def distort_input_fn(batch):
+        x = batch_input_fn(batch)
+        if isinstance(x, laia.data.PaddedTensor):
+            x, xs = x.data, x.sizes
+            x = x.data if isinstance(x, Variable) else x
+            xs = xs.data if isinstance(xs, Variable) else xs
+            return laia.data.PaddedTensor(data=Variable(distorter(x)), sizes=xs)
+        else:
+            x = x.data if isinstance(x, Variable) else x
+            return Variable(x)
+
     def on_start_epoch(**kwargs):
         epoch_timer.reset()
 
@@ -172,20 +189,34 @@ if __name__ == '__main__':
         seq_err_meter.add(kwargs['batch_target'], batch_decode)
 
     def on_end_epoch(**kwargs):
-        print('Epoch %05d, train error rate = %3.2f, elapsed time = %.2fs' % (
+        print('Epoch %05d, train error rate = %3.2f%%, elapsed time = %.2fs' % (
             kwargs['epoch'], seq_err_meter.value * 100, epoch_timer.value))
 
 
     ctc = laia.losses.CTCLoss()
-    trainer = laia.trainer.Trainer(model=model,
-                                   criterion=ctc,
-                                   optimizer=optimizer,
-                                   dataset=tr_ds_loader,
-                                   batch_input_fn=batch_input_fn,
-                                   batch_target_fn=batch_target_fn)
+    trainer = laia.engine.Trainer(model=model,
+                                  criterion=ctc,
+                                  optimizer=optimizer,
+                                  dataset=tr_ds_loader,
+                                  batch_input_fn=distort_input_fn,
+                                  batch_target_fn=batch_target_fn)
     trainer.register_hook('on_start_epoch', on_start_epoch)
     trainer.register_hook('on_start_batch', on_start_batch)
     trainer.register_hook('on_end_batch', on_end_batch)
     trainer.register_hook('on_end_epoch', on_end_epoch)
+
+    evaluator = laia.engine.Evaluator(model=model,
+                                      dataset=va_ds_loader,
+                                      batch_input_fn=batch_input_fn,
+                                      batch_target_fn=batch_target_fn)
+    evaluator.register_hook('on_start_batch', on_start_batch)
+    evaluator.register_hook('on_end_batch', on_end_batch)
+
+    def evaluate_valid_end_epoch(**kwargs):
+        evaluator.run()
+        print('Epoch %05d, valid error rate = %3.2f%%' % (
+            kwargs['epoch'], seq_err_meter.value * 100))
+
+    trainer.register_hook('on_end_epoch', evaluate_valid_end_epoch)
 
     trainer.run()

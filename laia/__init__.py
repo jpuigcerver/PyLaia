@@ -1,8 +1,16 @@
-__all__ = ['data', 'decoders', 'losses', 'models', 'meters', 'trainer']
+__all__ = ['data', 'decoders', 'distorter', 'engine', 'losses', 'manual_seed',
+           'meters', 'utils']
+
+import numpy as np
+import torch
 
 import laia.data
 import laia.decoders
+import laia.engine
 import laia.losses
-import laia.models
 import laia.meters
-import laia.trainer
+import laia.utils
+
+def manual_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)

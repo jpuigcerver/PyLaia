@@ -8,9 +8,42 @@ import torch
 
 from .distorter import Distorter
 from ..data import PaddedTensor
+from ..utils import image_collage
 from imgdistort_pytorch import affine, dilate, erode
 
 class ImageDistorter(Distorter):
+    DEFAULT_SCALE_PROB = 0.5
+    DEFAULT_SCALE_MEAN = 0.0
+    DEFAULT_SCALE_PREC = 120.0
+
+    DEFAULT_HSHEAR_PROB = 0.5
+    DEFAULT_HSHEAR_MEAN = 0.0
+    DEFAULT_HSHEAR_PREC = 4.0
+
+    DEFAULT_VSHEAR_PROB = 0.0
+    DEFAULT_VSHEAR_MEAN = 0.0
+    DEFAULT_VSHEAR_PREC = 5.0
+
+    DEFAULT_ROTATE_PROB = 0.5
+    DEFAULT_ROTATE_MEAN = 0.0
+    DEFAULT_ROTATE_PREC = 120.0
+
+    DEFAULT_HTRANSLATE_PROB = 0.5
+    DEFAULT_HTRANSLATE_MEAN = 0.0
+    DEFAULT_HTRANSLATE_PREC = 2500
+
+    DEFAULT_VTRANSLATE_PROB = 0.5
+    DEFAULT_VTRANSLATE_MEAN = 0.0
+    DEFAULT_VTRANSLATE_PREC = 1000
+
+    DEFAULT_DILATE_PROB = 0.5
+    DEFAULT_DILATE_SRATE = 0.4
+    DEFAULT_DILATE_RRATE = 0.8
+
+    DEFAULT_ERODE_PROB = 0.5
+    DEFAULT_ERODE_SRATE = 0.4
+    DEFAULT_ERODE_RRATE = 0.8
+
     def __init__(self, **kwargs):
         super(ImageDistorter, self).__init__()
 
@@ -20,59 +53,70 @@ class ImageDistorter(Distorter):
 
         # Scale parameters. Scaling is applied at the center of the image.
         # Log-normal distribution with mean 0, precision = 1 / variance.
-        self._scale_prob = kwargs.get('scale_prob', 0.5)
-        self._scale_prec = kwargs.get('scale_prec', 100)
-        self._scale_mean = kwargs.get('scale_mean', 0.0)
+        self._scale_prob = kwargs.get('scale_prob', self.DEFAULT_SCALE_PROB)
+        self._scale_prec = kwargs.get('scale_prec', self.DEFAULT_SCALE_PREC)
+        self._scale_mean = kwargs.get('scale_mean', self.DEFAULT_SCALE_MEAN)
 
         # Horizontal shear parameters.
         # Normal distribution with mean 0, precision = 1 / variance.
-        self._hshear_prob = kwargs.get('hshear_prob', 0.5)
-        self._hshear_prec = kwargs.get('hshear_prec', 4.0)
-        self._hshear_mean = kwargs.get('hshear_mean', 0.0)
+        self._hshear_prob = kwargs.get('hshear_prob', self.DEFAULT_HSHEAR_PROB)
+        self._hshear_prec = kwargs.get('hshear_prec', self.DEFAULT_HSHEAR_PREC)
+        self._hshear_mean = kwargs.get('hshear_mean', self.DEFAULT_HSHEAR_MEAN)
 
         # Vertical shear parameters.
         # Normal distribution with mean 0, precision = 1 / variance.
-        self._vshear_prob = kwargs.get('vshear_prob', 0.0)
-        self._vshear_prec = kwargs.get('vshear_prec', 5)
-        self._vshear_mean = kwargs.get('vshear_mean', 0.0)
+        self._vshear_prob = kwargs.get('vshear_prob', self.DEFAULT_VSHEAR_PROB)
+        self._vshear_prec = kwargs.get('vshear_prec', self.DEFAULT_VSHEAR_PREC)
+        self._vshear_mean = kwargs.get('vshear_mean', self.DEFAULT_VSHEAR_MEAN)
 
         # Rotate parameters [relative to the maximum aspect ratio of the image].
         # von Mises distribution with mean 0, precision = 1 / variance.
-        self._rotate_prob = kwargs.get('rotate_prob', 0.5)
-        self._rotate_prec = kwargs.get('rotate_prec', 120)
-        self._rotate_mean = kwargs.get('rotate_mean', 0.0)
+        self._rotate_prob = kwargs.get('rotate_prob', self.DEFAULT_ROTATE_PROB)
+        self._rotate_prec = kwargs.get('rotate_prec', self.DEFAULT_ROTATE_PREC)
+        self._rotate_mean = kwargs.get('rotate_mean', self.DEFAULT_ROTATE_MEAN)
         # Map rotation angle to [-pi, pi]
         self._rotate_mean = (
             (self._rotate_mean + math.pi) % (2 * math.pi) - math.pi)
 
         # Translate parameters [relative to the size of each dimension].
         # Normal distribution with mean 0, precision = 1 / variance.
-        self._translate_prob = kwargs.get('translate_prob', 0.5)
-        self._translate_prec = kwargs.get('translate_prec', 2500)
-        self._translate_mean = kwargs.get('translate_mean', 0.0)
+        self._htranslate_prob = kwargs.get('htranslate_prob',
+                                           self.DEFAULT_HTRANSLATE_PROB)
+        self._htranslate_prec = kwargs.get('htranslate_prec',
+                                           self.DEFAULT_HTRANSLATE_PREC)
+        self._htranslate_mean = kwargs.get('htranslate_mean',
+                                           self.DEFAULT_HTRANSLATE_MEAN)
+
+        self._vtranslate_prob = kwargs.get('vtranslate_prob',
+                                           self.DEFAULT_VTRANSLATE_PROB)
+        self._vtranslate_prec = kwargs.get('vtranslate_prec',
+                                           self.DEFAULT_VTRANSLATE_PREC)
+        self._vtranslate_mean = kwargs.get('vtranslate_mean',
+                                           self.DEFAULT_VTRANSLATE_MEAN)
 
         # Dilate parameters.
         # Geometric (kernel size) and Bernoulli (kernel values) distributions.
         # In the Bernoulli distribution, p depends on the distance to the center
         # of the kernel.
-        self._dilate_prob = kwargs.get('dilate_prob', 0.5)
-        self._dilate_srate = kwargs.get('dilate_srate', 0.4)
-        self._dilate_rrate = kwargs.get('dilate_rrate', 1.0)
+        self._dilate_prob = kwargs.get('dilate_prob', self.DEFAULT_DILATE_PROB)
+        self._dilate_srate = kwargs.get('dilate_srate',
+                                        self.DEFAULT_DILATE_SRATE)
+        self._dilate_rrate = kwargs.get('dilate_rrate',
+                                        self.DEFAULT_DILATE_RRATE)
 
         # Erode parameters.
         # Geometric (kernel size) and Bernoulli (kernel values) distributions.
         # In the Bernoulli distribution, p depends on the distance to the center
         # of the kernel.
-        self._erode_prob = kwargs.get('erode_prob', 0.5)
-        self._erode_srate = kwargs.get('erode_srate', 0.8)
-        self._erode_rrate = kwargs.get('erode_rrate', 1.2)
+        self._erode_prob = kwargs.get('erode_prob', self.DEFAULT_ERODE_PROB)
+        self._erode_srate = kwargs.get('erode_srate', self.DEFAULT_ERODE_SRATE)
+        self._erode_rrate = kwargs.get('erode_rrate', self.DEFAULT_ERODE_RRATE)
 
-        self._M = None
 
-    def __call__(self, x, y=None):
+    def __call__(self, x, y=None, can_reuse_input=False):
         xs = None
         if isinstance(x, PaddedTensor):
-            xs = x.sizes
+            xs = x.sizes.cpu()  # Make sure that the sizes are in the CPU
             x = x.data
 
         assert torch.is_tensor(x)
@@ -82,28 +126,18 @@ class ImageDistorter(Distorter):
             'Batch size input must be a Nx2 tensor')
         assert y is None or torch.is_tensor(y)
 
-        # Prepare output
-        y = x.clone().zero_() if y is None else y
-        if xs is not None:
-            ys = xs.cpu()
-        else:
-            ys = None
-
         # Batch dimensions
         N, C, H, W = x.size()
 
         # Prepare affine transformations
-        if self._M is None:
-            self._M = torch.DoubleTensor(N, 2, 3)
-        else:
-            self._M.resize_(N, 2, 3)
+        M = torch.DoubleTensor(N, 2, 3)
         for n in xrange(N):
-            h = H if ys is None else ys[n, 0]
-            w = W if ys is None else ys[n, 1]
+            h = H if xs is None else xs[n, 0]
+            w = W if xs is None else xs[n, 1]
             cy = 0.5 * H if self._aligned_centers else h * 0.5
             cx = 0.5 * W if self._aligned_centers else w * 0.5
             m = self.__sample_affine_matrix(w, h, cx, cy)[:2, :]
-            self._M[n].copy_(m)
+            M[n].copy_(m)
 
         dilate_kernel = []
         erode_kernel = []
@@ -120,18 +154,28 @@ class ImageDistorter(Distorter):
             erode_kernel.append(se.view(se.numel()))
         dilate_kernel = torch.cat(dilate_kernel)
         erode_kernel = torch.cat(erode_kernel)
-        dilate_kernel_sizes = torch.IntTensor(dilate_kernel_sizes).cpu()
-        erode_kernel_sizes = torch.IntTensor(erode_kernel_sizes).cpu()
+        dilate_kernel_sizes = torch.IntTensor(dilate_kernel_sizes)
+        erode_kernel_sizes = torch.IntTensor(erode_kernel_sizes)
 
-        affine(x, self._M, y)
-        y2 = y.clone().zero_()
-        dilate(y, erode_kernel, erode_kernel_sizes, y2)
-        erode(y2, dilate_kernel, dilate_kernel_sizes, y)
+        # Copy affine and structure matrixes to the appropiate gpu, if necessary
+        if x.is_cuda:
+            M = M.cuda(x.get_device())
+            dilate_kernel = dilate_kernel.cuda(x.get_device())
+            erode_kernel = erode_kernel.cuda(x.get_device())
+
+        y = affine(x, M, y)
+
+        tmp = x if can_reuse_input else x.clone()
+        tmp = dilate(x, dilate_kernel, dilate_kernel_sizes, tmp)
+
+        y = erode(tmp, erode_kernel, erode_kernel_sizes, y)
 
         if xs is None:
             return y
         else:
-            return PaddedTensor(data=y, sizes=ys)
+            if y.is_cuda:
+                xs = xs.cuda(y.get_device())
+            return PaddedTensor(data=y, sizes=xs)
 
     def __sample_affine_matrix(self, w, h, cx=None, cy=None):
         if cx is None:
@@ -143,14 +187,20 @@ class ImageDistorter(Distorter):
         m = torch.eye(3).double()
 
         # 1. Translation (including centering the image)
-        if torch.rand(1)[0] < self._translate_prob:
-            d = self._translate_mean + (
-                torch.randn(2) / math.sqrt(self._translate_prec))
-            m[0, 2] = d[0] * w - cx
-            m[1, 2] = d[1] * h - cy
+        if torch.rand(1)[0] < self._htranslate_prob:
+            d = self._htranslate_mean + (
+                torch.randn(1)[0] / math.sqrt(self._htranslate_prec))
+            m[0, 2] = d * w - cx
         else:
             m[0, 2] = -cx
+
+        if torch.rand(1)[0] < self._vtranslate_prob:
+            d = self._vtranslate_mean + (
+                torch.randn(1)[0] / math.sqrt(self._vtranslate_prec))
+            m[1, 2] = d * h - cy
+        else:
             m[1, 2] = -cy
+
 
         # 2. Horizontal and vertical shearing.
         if self._hshear_prec > 0.0 or self._vshear_prob > 0.0:
@@ -226,23 +276,23 @@ if __name__ == '__main__':
     from PIL import Image, ImageOps
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--center_batch', action='store_true')
+    parser.add_argument('--draw_boundary', action='store_true')
+    parser.add_argument('--aligned_center', action='store_true')
     parser.add_argument('--seed', type=int, default=0x12345)
     parser.add_argument('--ncol', type=int, default=1)
     parser.add_argument('--scale', type=float, default=1.0)
+    parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('img', type=argparse.FileType('r'), nargs='*')
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(args.seed)
     np.random.seed(args.seed)
 
     xlist = []
     xsize = []
     for img in args.img:
         im = Image.open(img)
-        im = ImageOps.invert(im)
+        im = ImageOps.invert(im).convert('L')
 
         x = torch.from_numpy(np.asarray(im))
         if x.dim() != 3:
@@ -255,10 +305,13 @@ if __name__ == '__main__':
                 xsize, (0, 0))
     N, C, H, W = len(xlist), 1, bs[0], bs[1]
     batch = torch.Tensor().resize_(N, C, H, W)
-
     batch_size = torch.IntTensor(xsize)
 
-    if args.center_batch:
+    if args.gpu > 0:
+        batch = batch.cuda(args.gpu - 1)
+
+    # Copy all images to the batch tensor
+    if args.aligned_center:
         for i, (x, xs) in enumerate(zip(xlist, xsize)):
             dy = (H - xs[0]) // 2
             dx = (W - xs[1]) // 2
@@ -267,26 +320,11 @@ if __name__ == '__main__':
         for i, (x, xs) in enumerate(zip(xlist, xsize)):
             batch[i, :, :xs[0], :xs[1]].copy_(x)
 
-    dist = ImageDistorter()
-    batch2 = dist(PaddedTensor(data=batch, sizes=batch_size)).data
+    # Distort batch
+    distorter = ImageDistorter(erode_prob=1.0)
+    batch2 = distorter(PaddedTensor(data=batch, sizes=batch_size)).data
 
-    def collate(x):
-        N, C, H, W = x.size()
-        nrow = int(math.ceil(N / args.ncol))
-        im = torch.Tensor(H * nrow, W * args.ncol)
-        n = 0
-        for r in xrange(nrow):
-            for c in xrange(args.ncol):
-                im[(r * H):(r * H + H), (c * W):(c * W + W)].copy_(
-                    x[n, 0, :, :])
-                n = n + 1
-
-        im = Image.fromarray(im.numpy())
-        if args.scale != 1.0:
-            W = int(math.ceil(im.size[0] * args.scale))
-            H = int(math.ceil(im.size[1] * args.scale))
-            im = im.resize((H, W))
-        return im
-
-    collate(batch).show()
-    collate(batch2).show()
+    image_collage(batch, batch_size, scale=args.scale, ncol=args.ncol,
+                  draw_boundary=args.draw_boundary).show()
+    image_collage(batch2, batch_size, scale=args.scale, ncol=args.ncol,
+                  draw_boundary=args.draw_boundary).show()
