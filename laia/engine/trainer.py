@@ -1,8 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
 
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except:
+    tqdm = lambda x: x
 
 class Trainer(object):
     def __init__(self, model, criterion, optimizer, dataset,
@@ -76,7 +77,10 @@ class Trainer(object):
                                   batch_input=batch_input,
                                   batch_target=batch_target)
 
+
+
                 def closure():
+                    self._model.train()
                     batch_output = self._model(batch_input)
                     batch_loss = self._criterion(batch_output, batch_target)
                     batch_loss.backward()
