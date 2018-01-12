@@ -137,8 +137,14 @@ if __name__ == '__main__':
         model = model.cpu()
 
     ctc_decoder = laia.decoders.CTCDecoder()
-    seq_err_meter = laia.meters.SequenceErrorMeter()
-    epoch_timer = laia.meters.TimeMeter()
+    train_timer = laia.meters.TimeMeter()
+    valid_timer = laia.meters.TimeMeter()
+    train_running_loss_meter = laia.meters.RunningAverageMeter()
+    train_loss_meter = laia.meters.RunningAverageMeter()
+    valid_loss_meter = laia.meters.RunningAverageMeter()
+    train_cer_meter  = laia.meters.SequenceErrorMeter()
+    valid_cer_meter  = laia.meters.SequenceErrorMeter()
+
 
     parameters = model.parameters()
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
@@ -178,19 +184,59 @@ if __name__ == '__main__':
             x = x.data if isinstance(x, Variable) else x
             return Variable(x)
 
-    def on_start_epoch(**kwargs):
-        epoch_timer.reset()
+    def train_reset_meters(**kwargs):
+        train_timer.reset()
+        train_loss_meter.reset()
+        train_cer_meter.reset()
 
-    def on_start_batch(**kwargs):
-        seq_err_meter.reset()
+    def valid_reset_meters(**kwargs):
+        valid_timer.reset()
+        valid_loss_meter.reset()
+        valid_cer_meter.reset()
 
-    def on_end_batch(**kwargs):
+    def train_accumulate_loss(**kwargs):
+        train_loss_meter.add(kwargs['batch_loss'])
+        train_running_loss_meter.add(kwargs['batch_loss'])
+
+    def train_compute_cer(**kwargs):
         batch_decode = ctc_decoder(kwargs['batch_output'])
-        seq_err_meter.add(kwargs['batch_target'], batch_decode)
+        train_cer_meter.add(kwargs['batch_target'], batch_decode)
 
-    def on_end_epoch(**kwargs):
-        print('Epoch %05d, train error rate = %3.2f%%, elapsed time = %.2fs' % (
-            kwargs['epoch'], seq_err_meter.value * 100, epoch_timer.value))
+    def valid_compute_cer(**kwargs):
+        batch_decode = ctc_decoder(kwargs['batch_output'])
+        valid_cer_meter.add(kwargs['batch_target'], batch_decode)
+
+    def report_epoch_info(**kwargs):
+        # Average training loss since the start of training
+        tr_run_loss = train_running_loss_meter.value[0]
+        # Average training loss in the last EPOCH
+        tr_loss = train_loss_meter.value[0]
+        # Average training CER in the last EPOCH
+        tr_cer = train_cer_meter.value * 100
+        # Average validation CER in the last EPOCH
+        va_cer = valid_cer_meter.value * 100
+        print(('Epoch %4d, '
+               'TR Running Avg. Loss = %.3e, '
+               'TR Loss = %.3e, '
+               'TR CER = %3.2f%%, '
+               'TR Elapsed Time = %.2fs, '
+               'VA CER = %3.2f%%, '
+               'VA Elapsed Time = %.2fs') % (
+                   kwargs['epoch'],
+                   tr_run_loss,
+                   tr_loss,
+                   tr_cer,
+                   train_timer.value,
+                   va_cer,
+                   valid_timer.value))
+
+
+    evaluator = laia.engine.Evaluator(model=model,
+                                      dataset=va_ds_loader,
+                                      batch_input_fn=batch_input_fn,
+                                      batch_target_fn=batch_target_fn)
+    evaluator.add_hook('on_start_epoch', valid_reset_meters)
+    evaluator.add_hook('on_end_batch', valid_compute_cer)
 
 
     ctc = laia.losses.CTCLoss()
@@ -200,23 +246,15 @@ if __name__ == '__main__':
                                   dataset=tr_ds_loader,
                                   batch_input_fn=distort_input_fn,
                                   batch_target_fn=batch_target_fn)
-    trainer.register_hook('on_start_epoch', on_start_epoch)
-    trainer.register_hook('on_start_batch', on_start_batch)
-    trainer.register_hook('on_end_batch', on_end_batch)
-    trainer.register_hook('on_end_epoch', on_end_epoch)
+    trainer.add_hook('on_start_epoch', train_reset_meters)
 
-    evaluator = laia.engine.Evaluator(model=model,
-                                      dataset=va_ds_loader,
-                                      batch_input_fn=batch_input_fn,
-                                      batch_target_fn=batch_target_fn)
-    evaluator.register_hook('on_start_batch', on_start_batch)
-    evaluator.register_hook('on_end_batch', on_end_batch)
+    trainer.add_hook('on_end_batch', train_accumulate_loss)
+    trainer.add_hook('on_end_batch', train_compute_cer)
 
-    def evaluate_valid_end_epoch(**kwargs):
-        evaluator.run()
-        print('Epoch %05d, valid error rate = %3.2f%%' % (
-            kwargs['epoch'], seq_err_meter.value * 100))
+    # The evaluator should run BEFORE report_epoch_info()
+    trainer.add_evaluator(evaluator)
+    trainer.add_hook('on_end_epoch', report_epoch_info)
 
-    trainer.register_hook('on_end_epoch', evaluate_valid_end_epoch)
+
 
     trainer.run()
