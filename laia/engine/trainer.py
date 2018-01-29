@@ -55,7 +55,8 @@ class Trainer(object):
 
     def add_hook(self, when, func):
         assert when in self._hooks, '"%s" is not a valid hook event' % when
-        self._hooks[when].append(func)
+        if func is not None:
+            self._hooks[when].append(func)
 
     def __call_hooks(self, when, **kwargs):
         assert when in self._hooks, '"%s" is not a valid hook event' % when
@@ -65,7 +66,8 @@ class Trainer(object):
     def add_evaluator(self, evaluator):
         def run_eval(**kwargs):
             evaluator.run()
-        self.add_hook('on_end_epoch', run_eval)
+        if evaluator is not None:
+            self.add_hook('on_end_epoch', run_eval)
 
     def run(self):
         while not self._early_stop_fn(self):

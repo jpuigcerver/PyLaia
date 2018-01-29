@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import argparse
+import laia
+import torch
+
+class RectanglesToTensor(object):
+    def __call__(self, x):
+        assert len(x) % 6 == 0, ('Wrong number of fields in the text line '
+                                 '(got %d expected multiple of 6)') % len(x)
+        rects = []
+        for i in xrange(0, len(x), 6):
+            assert x[i + 5] == ';'  # safe-check the delimiter
+            x, y, w, h, r = x[i + 0], x[i + 1], x[i + 2], x[i + 3], x[i + 4]
+            x, y, w, h, r = float(x), float(y), float(w), float(h), float(r)
+            rects.append((x, y, w, h, r))
+        return torch.Tensor(rects)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batch_size', type=int, default=8,
+                        help='Batch size')
+    parser.add_argument('--learning_rate', type=float, default=0.0005,
+                        help='Learning rate')
+    parser.add_argument('--momentum', type=float, default=None,
+                        help='Momentum')
+    parser.add_argument('--max_updates', type=int, default=None,
+                        help='Maximum number of training updates (iterations)')
+    parser.add_argument('--gpu', type=int, default=1,
+                        help='Use this GPU (starting from 1)')
+    parser.add_argument('tr_img_dir')
+    parser.add_argument('tr_table')
+    parser.add_argument('va_table', nargs='?')
+    args = parser.parse_args()
+
+
+    # Build model!
+    model = None
+
+    if args.gpu > 0:
+        model = model.cuda(args.gpu - 1)
+    else:
+        model = model.cpu()
+
+    parameters = model.parameters()
+    optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
+                                    momentum=args.momentum)
+
+
+    tr_ds = laia.data.TextImageFromTextTableDataset(
+        args.tr_table, args.tr_img_dir,
+        img_transform=laia.util.ImageToTensor(mode='RGB'),
+        txt_transform=RectanglesToTensor())
+    tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=8,
+                              collate_fn=laia.data.PaddingCollater({
+                                  'img': [3, None, None]
+                              }, sort_key=lambda x: -x['img'].size(2)),
+                              shuffle=True)
+
+    if args.va_table:
+        va_ds = laia.data.TextImageFromTextTableDataset(
+            args.va_table, args.tr_img_dir,
+            img_transform=laia.util.ImageToTensor(),
+            txt_transform=RectanglesToTensor())
+        va_ds_loader = DataLoader(va_ds, args.batch_size, num_workers=8,
+                                  collate_fn=laia.data.PaddingCollater({
+                                      'img': [3, None, None]
+                                  }, sort_key=lambda x: -x['img'].size(2)))
+    else:
+        va_ds, va_ds_loader = None, None
+
+
+    def batch_input_fn(batch):
+        assert (isinstance(batch['img'], laia.data.PaddedTensor) or
+                torch.is_tensor(batch['img']))
+        if isinstance(batch['img'], laia.data.PaddedTensor):
+            x = batch['img'].data
+            xs = batch['img'].sizes[:, 1:].contiguous()
+            if args.gpu > 0:
+                x, xs = x.cuda(args.gpu - 1), xs.cuda(args.gpu - 1)
+            else:
+                x, xs = x.cpu(), xs.cpu()
+            return laia.data.PaddedTensor(data=Variable(x), sizes=xs)
+        else:
+            if args.gpu > 0:
+                x = batch['img'].cuda(args.gpu - 1)
+            else:
+                x = batch['img'].cpu()
+            return Variable(x)
+
+    def batch_target_fn(batch):
+        return batch['txt']
+
+    def distort_input_fn(batch):
+        x = batch_input_fn(batch)
+        if isinstance(x, laia.data.PaddedTensor):
+            x, xs = x.data, x.sizes
+            x = x.data if isinstance(x, Variable) else x
+            xs = xs.data if isinstance(xs, Variable) else xs
+            return laia.data.PaddedTensor(data=Variable(distorter(x)), sizes=xs)
+        else:
+            x = x.data if isinstance(x, Variable) else x
+            return Variable(x)
+
+
+    trainer = laia.engine.Trainer(model=model,
+                                  criterion=ctc,
+                                  optimizer=optimizer,
+                                  dataset=tr_ds_loader,
+                                  batch_input_fn=distort_input_fn,
+                                  batch_target_fn=batch_target_fn)
+
+    if va_ds_loader:
+        evaluator = laia.engine.Evaluator(model=model,
+                                          dataset=va_ds_loader,
+                                          batch_input_fn=batch_input_fn,
+                                          batch_target_fn=batch_target_fn)
+    else:
+        evaluator = None
