@@ -1,0 +1,7 @@
+[submodule "third_party/nnutils"]
+	path = third_party/nnutils
+	url = https://github.com/jpuigcerver/nnutils
+[submodule "third_party/imgdistort"]
+	path = third_party/imgdistort
+	url = https://github.com/jpuigcerver/imgdistort.git
+	branch = npp
