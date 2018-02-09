@@ -14,56 +14,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from collections import OrderedDict
 
 from laia.distorter import ImageDistorter
 
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from laia.utils import image_collage
-
-from PIL import ImageOps
-
-class TextToTensor(object):
-    def __init__(self, sym2int):
-        assert isinstance(sym2int, dict)
-        self._sym2int = sym2int
-
-    def __call__(self, x):
-        x = [self._sym2int[c] for c in x]
-        return x
-
-class ImageToTensor(object):
-    def __init__(self, invert=True, mode='L'):
-        assert mode in ('L', 'RGB', 'RGBA')
-        self._invert = invert
-        self._mode = mode
-
-    def __call__(self, x):
-        x = x.convert(self._mode)
-        if self._invert:
-            x = ImageOps.invert(x)
-        x = np.asarray(x, dtype=np.float32)
-        if len(x.shape) != 3:
-            x = np.expand_dims(x, axis=-1)
-        x = np.transpose(x, (2, 0, 1))
-        return torch.from_numpy(x / 255.0)
-
-def LoadSymbolsTable(f):
-    if isinstance(f, (str, unicode)):
-        f = open(f, 'r')
-    sym2int, int2sym = OrderedDict(), OrderedDict()
-    for n, line in enumerate(f, 1):
-        line = line.split()
-        s, v = line[0], int(line[1])
-        sym2int[s] = v
-        int2sym[v] = s
-    f.close()
-    assert len(sym2int) == len(int2sym), (
-        'Repeated symbols or IDs in symbols table "%s"' % f.name)
-    return sym2int, int2sym
-
-
 
 
 
@@ -87,12 +42,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    sym2int, int2sym = LoadSymbolsTable(args.syms)
+    syms = laia.utils.SymbolsTable(args.syms)
+
 
     tr_ds = laia.data.TextImageFromTextTableDataset(
         args.tr_txt_table, args.tr_img_dir,
-        img_transform=ImageToTensor(),
-        txt_transform=TextToTensor(sym2int))
+        img_transform=laia.utils.ImageToTensor(),
+        txt_transform=laia.utils.TextToTensor(syms))
     tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=8,
                               collate_fn=laia.data.PaddingCollater({
                                   'img': [1, None, None]
@@ -101,8 +57,8 @@ if __name__ == '__main__':
 
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
-        img_transform=ImageToTensor(),
-        txt_transform=TextToTensor(sym2int))
+        img_transform=laia.utils.ImageToTensor(),
+        txt_transform=laia.utils.TextToTensor(syms))
     va_ds_loader = DataLoader(va_ds, args.batch_size, num_workers=8,
                               collate_fn=laia.data.PaddingCollater({
                                   'img': [1, None, None]
@@ -135,15 +91,6 @@ if __name__ == '__main__':
         model = model.cuda(args.gpu - 1)
     else:
         model = model.cpu()
-
-    ctc_decoder = laia.decoders.CTCDecoder()
-    train_timer = laia.meters.TimeMeter()
-    valid_timer = laia.meters.TimeMeter()
-    train_running_loss_meter = laia.meters.RunningAverageMeter()
-    train_loss_meter = laia.meters.RunningAverageMeter()
-    valid_loss_meter = laia.meters.RunningAverageMeter()
-    train_cer_meter  = laia.meters.SequenceErrorMeter()
-    valid_cer_meter  = laia.meters.SequenceErrorMeter()
 
 
     parameters = model.parameters()
@@ -184,28 +131,6 @@ if __name__ == '__main__':
             x = x.data if isinstance(x, Variable) else x
             return Variable(x)
 
-    def train_reset_meters(**kwargs):
-        train_timer.reset()
-        train_loss_meter.reset()
-        train_cer_meter.reset()
-
-    def valid_reset_meters(**kwargs):
-        valid_timer.reset()
-        valid_loss_meter.reset()
-        valid_cer_meter.reset()
-
-    def train_accumulate_loss(**kwargs):
-        train_loss_meter.add(kwargs['batch_loss'])
-        train_running_loss_meter.add(kwargs['batch_loss'])
-
-    def train_compute_cer(**kwargs):
-        batch_decode = ctc_decoder(kwargs['batch_output'])
-        train_cer_meter.add(kwargs['batch_target'], batch_decode)
-
-    def valid_compute_cer(**kwargs):
-        batch_decode = ctc_decoder(kwargs['batch_output'])
-        valid_cer_meter.add(kwargs['batch_target'], batch_decode)
-
     def report_epoch_info(**kwargs):
         # Average training loss since the start of training
         tr_run_loss = train_running_loss_meter.value[0]
@@ -231,13 +156,6 @@ if __name__ == '__main__':
                    valid_timer.value))
 
 
-    evaluator = laia.engine.Evaluator(model=model,
-                                      dataset=va_ds_loader,
-                                      batch_input_fn=batch_input_fn,
-                                      batch_target_fn=batch_target_fn)
-    evaluator.add_hook('on_start_epoch', valid_reset_meters)
-    evaluator.add_hook('on_end_batch', valid_compute_cer)
-
 
     ctc = laia.losses.CTCLoss()
     trainer = laia.engine.Trainer(model=model,
@@ -246,15 +164,11 @@ if __name__ == '__main__':
                                   dataset=tr_ds_loader,
                                   batch_input_fn=distort_input_fn,
                                   batch_target_fn=batch_target_fn)
-    trainer.add_hook('on_start_epoch', train_reset_meters)
 
-    trainer.add_hook('on_end_batch', train_accumulate_loss)
-    trainer.add_hook('on_end_batch', train_compute_cer)
+    evaluator = laia.engine.Evaluator(model=model,
+                                      dataset=va_ds_loader,
+                                      batch_input_fn=batch_input_fn,
+                                      batch_target_fn=batch_target_fn)
 
-    # The evaluator should run BEFORE report_epoch_info()
-    trainer.add_evaluator(evaluator)
-    trainer.add_hook('on_end_epoch', report_epoch_info)
-
-
-
-    trainer.run()
+    engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
+    engine_wrapper.run()
