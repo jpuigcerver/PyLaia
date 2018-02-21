@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 class SymbolsTable(object):
     def __init__(self, f=None):
         self._sym2val, self._val2sym = dict(), dict()
@@ -8,7 +10,7 @@ class SymbolsTable(object):
         self._sym2val, self._val2sym = dict(), dict()
 
     def load(self, f):
-        if isinstance(f, (str, unicode)):
+        if isinstance(f, str):
             f = open(f, 'r')
         self.clear()
         try:
@@ -23,7 +25,7 @@ class SymbolsTable(object):
             f.close()
 
     def save(self, f):
-        if isinstance(f, (str, unicode)):
+        if isinstance(f, str):
             f = open(f, 'w')
         max_len = max([len(s) for s in self._sym2val])
         for v, s in self._val2sym.items():
@@ -36,7 +38,7 @@ class SymbolsTable(object):
     def __getitem__(self, x):
         if isinstance(x, int):
             return self._val2sym.get(x, None)
-        elif isinstance(x, (str, unicode)):
+        elif isinstance(x, str):
             return self._sym2val.get(x, None)
         else:
             return None
@@ -46,7 +48,7 @@ class SymbolsTable(object):
             yield s, v
 
     def add(self, symbol, value):
-        if not isinstance(symbol, (str, unicode)):
+        if not isinstance(symbol, str):
             raise KeyError(
                 'Symbol must be a string, but type %s was given' % type(symbol))
         if not isinstance(value, int):
