@@ -22,6 +22,6 @@ class CTCLoss(Loss):
             xs = Variable(torch.IntTensor(xs))
             y = Variable(
                 torch.IntTensor(list(itertools.chain.from_iterable(target))))
-            ys = Variable(torch.IntTensor(map(lambda x: len(x), target)))
+            ys = Variable(torch.IntTensor([len(x) for x in target]))
         self._loss = self._ctc(x, y, xs, ys)
         return (self._loss / xs.type(torch.FloatTensor)).mean()

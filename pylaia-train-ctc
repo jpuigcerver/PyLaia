@@ -20,7 +20,7 @@ if __name__ == '__main__':
                         help='Batch size')
     parser.add_argument('--learning_rate', type=float, default=0.0005,
                         help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=None,
+    parser.add_argument('--momentum', type=float, default=0,
                         help='Momentum')
     parser.add_argument('--max_updates', type=int, default=None,
                         help='Maximum number of training updates (iterations)')
@@ -98,7 +98,7 @@ if __name__ == '__main__':
                 x, xs = x.cuda(args.gpu - 1), xs.cuda(args.gpu - 1)
             else:
                 x, xs = x.cpu(), xs.cpu()
-            return laia.data.PaddedTensor(data=Variable(x), sizes=xs)
+            return laia.data.PaddedTensor(data=Variable(x), sizes=Variable(xs))
         else:
             if args.gpu > 0:
                 x = batch['img'].cuda(args.gpu - 1)

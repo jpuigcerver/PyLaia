@@ -27,7 +27,7 @@ class CTCDecoder(object):
         x = [idx_n[:int(xs[n])] for n, idx_n in enumerate(idx)]
         x = [reduce(lambda z, x: z if z[-1] == x else z + [x],
                     x_n[1:], [x_n[0]]) for x_n in x]
-        self._output = [filter(lambda x: x != 0, x_n) for x_n in x]
+        self._output = [[x for x in x_n if x != 0] for x_n in x]
         return self._output
 
     @property
