@@ -12,12 +12,10 @@ class TextImageDataset(ImageDataset):
         self._txt_transform = txt_transform
 
     def __getitem__(self, index):
-        """Returns an image and its transcript from the dataset.
-        Args:
-          index (int): Index of the item to return.
-
-        Returns:
-          dict: Dictionary containing the image ('img') and the transcript
+        """
+        Returns an image and its transcript from the dataset.
+        :param index: Index of the item to return.
+        :return: Dictionary containing the image ('img') and the transcript
             ('txt') of the image.
         """
         # Get image

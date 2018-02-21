@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from laia.models.htr.conv_block import ConvBlock
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 from laia.data import PaddedTensor
-from nnutils_pytorch import image_mask_from_size
+from nnutils_pytorch import mask_image_from_size
 
 
 class VggRnn(nn.Module):
@@ -87,22 +87,22 @@ class VggRnn(nn.Module):
 
     def _collapse_sum(self, x, xs):
         if xs is not None:
-            x = image_mask_from_size(mask_value=0, inplace=True)(x, xs)
+            x = mask_image_from_size(mask_value=0, inplace=True)(x, xs)
         return x.sum(dim=2, keepdim=True)
 
     def _collapse_mean(self, x, xs):
         if xs is None:
             return x.mean(dim=2, keepdim=True)
         else:
-            x = image_mask_from_size(mask_value=0, inplace=True)(x, xs)
+            x = mask_image_from_size(mask_value=0, inplace=True)(x, xs)
             return x.sum(dim=2, keepdim=True) / xs[:,0]
 
     def _collapse_max(self, x, xs):
         if xs is not None:
-            x = image_mask_from_size(mask_value=np.NINF, inplace=True)(x, xs)
+            x = mask_image_from_size(mask_value=np.NINF, inplace=True)(x, xs)
         return x.max(dim=2, keepdim=True)[0]
 
     def _collapse_min(self, x, xs):
         if xs is not None:
-            x = image_mask_from_size(mask_value=np.INF, inplace=True)(x, xs)
+            x = mask_image_from_size(mask_value=np.INF, inplace=True)(x, xs)
         return x.min(dim=2, keepdim=True)[0]
