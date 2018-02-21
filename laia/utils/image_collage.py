@@ -1,6 +1,7 @@
 from __future__ import division
 
 import math
+from builtins import range
 
 import numpy as np
 import torch
@@ -18,16 +19,16 @@ def image_collage(x, xs=None, scale=1.0, ncol=1, draw_boundary=False):
     nrow = int(math.ceil(N / ncol))
     im = x.new(3, H * nrow, W * ncol)
     n = 0
-    for r in xrange(nrow):
-        for c in xrange(ncol):
+    for r in range(nrow):
+        for c in range(ncol):
             im[:, (r * H):(r * H + H), (c * W):(c * W + W)].copy_(x[n, :, :, :])
             n = n + 1
 
     if draw_boundary and xs is not None:
         magenta = x.new([255, 0, 255])
         n = 0
-        for r in xrange(nrow):
-            for c in xrange(ncol):
+        for r in range(nrow):
+            for c in range(ncol):
                 h, w = xs[n, 0], xs[n, 1]
                 im[:, (r * H):(r * H + h), c * W].copy_(magenta.view(3, 1))
                 im[:, r * H, (c * W):(c * W + w)].copy_(magenta.view(3, 1))
