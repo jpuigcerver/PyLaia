@@ -55,8 +55,8 @@ class SymbolsTableTest(unittest.TestCase):
 
     def testIterator(self):
         st = SymbolsTable()
-        st.add('b', 2)
         st.add('a', 1)
+        st.add('b', 2)
         it = iter(st)
         self.assertEqual(next(it), ('a', 1))
         self.assertEqual(next(it), ('b', 2))

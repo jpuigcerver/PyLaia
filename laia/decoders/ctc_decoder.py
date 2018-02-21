@@ -16,7 +16,7 @@ class CTCDecoder(object):
         if isinstance(x, PackedSequence):
             x, xs = pad_packed_sequence(x)
         elif torch.is_tensor(x):
-            xs = [xs.size()[0]] * xs.size()[1]
+            xs = [x.size()[0]] * x.size()[1]
         else:
             raise NotImplementedError('Not implemented for type %s' % type(x))
         if isinstance(x, Variable):
