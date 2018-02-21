@@ -1,5 +1,4 @@
-from builtins import str
-
+from __future__ import absolute_import
 
 class SymbolsTable(object):
     def __init__(self, f=None):
