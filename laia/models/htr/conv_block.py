@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from collections import OrderedDict
 from laia.data import PaddedTensor
+from torch.autograd import Variable
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1,
@@ -67,7 +68,12 @@ class ConvBlock(nn.Module):
             x = module(x)
         if is_padded:
             if self.poolsize is not None:
-                xs = xs / self.poolsize
-            return PaddedTensor(data=x, sizes=xs)
+                ys = xs.data.clone()
+                ys[:, 0] /= self.poolsize[0]
+                ys[:, 1] /= self.poolsize[1]
+                ys = Variable(ys)
+            else:
+                ys = xs
+            return PaddedTensor(data=x, sizes=ys)
         else:
             return x

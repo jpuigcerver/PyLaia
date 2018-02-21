@@ -36,7 +36,7 @@ class VggRnnFixedHeight(nn.Module):
             ni = nh
             ps_h = ps[0] if isinstance(ps, (list, tuple)) else ps
             ps_h = ps_h if ps_h > 1 else 1
-            input_height = input_height / ps_h
+            input_height = input_height // ps_h
             self.add_module('conv_block%d' % i, layer)
             self._conv_blocks.append(layer)
 
@@ -66,7 +66,7 @@ class VggRnnFixedHeight(nn.Module):
         if self._rnn_dropout > 0.0:
             x = F.dropout(x, self._rnn_dropout, training=self.training)
         if is_padded:
-            x = pack_padded_sequence(x, list(xs[:,1]))
+            x = pack_padded_sequence(x, list(xs.data[:,1]))
         x, _ = self._rnn(x)
         # Output linear layer
         if is_padded:
