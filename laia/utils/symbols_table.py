@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+
 class SymbolsTable(object):
     def __init__(self, f=None):
         self._sym2val, self._val2sym = dict(), dict()
