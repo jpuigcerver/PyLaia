@@ -1,4 +1,7 @@
-from .image_dataset import ImageDataset
+from __future__ import absolute_import
+
+from laia.data.image_dataset import ImageDataset
+
 
 class TextImageDataset(ImageDataset):
     def __init__(self, imgs, txts, img_transform=None, txt_transform=None):

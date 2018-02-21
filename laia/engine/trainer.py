@@ -1,9 +1,11 @@
-from __future__ import print_function
+from __future__ import absolute_import
 
 try:
     from tqdm import tqdm
-except:
-    tqdm = lambda x: x
+except ImportError:
+    def tqdm(x):
+        return x
+
 
 class Trainer(object):
     def __init__(self, model, criterion, optimizer, dataset,
@@ -66,6 +68,7 @@ class Trainer(object):
     def add_evaluator(self, evaluator):
         def run_eval(**kwargs):
             evaluator.run()
+
         if evaluator is not None:
             self.add_hook('on_end_epoch', run_eval)
 
@@ -83,8 +86,6 @@ class Trainer(object):
                                   iteration=it,
                                   batch_input=batch_input,
                                   batch_target=batch_target)
-
-
 
                 def closure():
                     self._model.train()

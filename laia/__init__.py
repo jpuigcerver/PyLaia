@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 __all__ = ['data', 'decoders', 'distorter', 'engine', 'losses', 'manual_seed',
            'meters', 'utils']
 

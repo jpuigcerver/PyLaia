@@ -1,11 +1,14 @@
-import itertools
-import torch
+from __future__ import absolute_import
 
+import itertools
+
+import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 from warpctc_pytorch import CTCLoss as _CTCLoss
 
-from .loss import Loss
+from laia.losses.loss import Loss
+
 
 class CTCLoss(Loss):
     def __init__(self):

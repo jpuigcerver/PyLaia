@@ -1,6 +1,6 @@
 class SymbolsTable(object):
     def __init__(self, f=None):
-        self.clear()
+        self._sym2val, self._val2sym = dict(), dict()
         if f:
             self.load(f)
 
@@ -17,7 +17,7 @@ class SymbolsTable(object):
                 if len(line) == 0: continue
                 s, v = line[0], int(line[1])
                 self.add(s, v)
-        except Exception as e:
+        except Exception:
             raise
         finally:
             f.close()
@@ -26,7 +26,7 @@ class SymbolsTable(object):
         if isinstance(f, (str, unicode)):
             f = open(f, 'w')
         max_len = max([len(s) for s in self._sym2val])
-        for v, s in self._val2sym.iteritems():
+        for v, s in self._val2sym.items():
             f.write('%*s %d\n' % (max_len, s, v))
         f.close()
 
@@ -42,7 +42,7 @@ class SymbolsTable(object):
             return None
 
     def __iter__(self):
-        for v, s in self._val2sym.iteritems():
+        for v, s in self._val2sym.items():
             yield s, v
 
     def add(self, symbol, value):
@@ -57,7 +57,7 @@ class SymbolsTable(object):
         old_sym = self._val2sym.get(value, None)
         if old_val is None and old_sym is None:
             self._sym2val[symbol] = value
-            self._val2sym[value]  = symbol
+            self._val2sym[value] = symbol
         elif old_val == value and old_sym == symbol:
             # Nothing changes, so just ignore the add() operation
             pass

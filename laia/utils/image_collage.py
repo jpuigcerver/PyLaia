@@ -1,10 +1,11 @@
 from __future__ import division
 
 import math
+
 import numpy as np
 import torch
-
 from PIL import Image
+
 
 def image_collage(x, xs=None, scale=1.0, ncol=1, draw_boundary=False):
     assert torch.is_tensor(x)

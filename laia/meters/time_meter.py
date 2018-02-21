@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
+from laia.meters.meter import Meter
+
 import time
 
-from .meter import Meter
 
 class TimeMeter(Meter):
     def reset(self):

@@ -2,8 +2,10 @@ from __future__ import print_function
 
 try:
     from tqdm import tqdm
-except:
-    tqdm = lambda x: x
+except ImportError:
+    def tqdm(x):
+        return x
+
 
 class Evaluator(object):
     def __init__(self, model, dataset, batch_input_fn=None,

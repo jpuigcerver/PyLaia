@@ -1,6 +1,8 @@
-import math
+from __future__ import absolute_import
+
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 class ObjectCounter(nn.Module):
     def __init__(self, num_input_channels, pooling_size, lin_units,
@@ -18,7 +20,7 @@ class ObjectCounter(nn.Module):
 
         ni = num_input_channels
         for i, (nh, bn, dr, af) in enumerate(
-            zip(lin_units, lin_batch_norm, lin_dropout, lin_activation)):
+                zip(lin_units, lin_batch_norm, lin_dropout, lin_activation)):
             if dr and dr > 0.0:
                 self.add_module('dropout%d' % i, nn.Dropout(dr, inplace=inplace))
             self.add_module('linear%d' % i, nn.Linear(ni, nh))

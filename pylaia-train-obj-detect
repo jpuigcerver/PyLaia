@@ -4,8 +4,13 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import laia
+
 import torch
+from torch.autograd import Variable
+
+import laia
+from laia.distorter import ImageDistorter
+
 
 class RectanglesToTensor(object):
     def __call__(self, x):
@@ -18,6 +23,7 @@ class RectanglesToTensor(object):
             x, y, w, h, r = float(x), float(y), float(w), float(h), float(r)
             rects.append((x, y, w, h, r))
         return torch.Tensor(rects)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -36,7 +42,6 @@ if __name__ == '__main__':
     parser.add_argument('va_table', nargs='?')
     args = parser.parse_args()
 
-
     # Build model!
     model = None
 
@@ -49,28 +54,29 @@ if __name__ == '__main__':
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
                                     momentum=args.momentum)
 
-
     tr_ds = laia.data.TextImageFromTextTableDataset(
         args.tr_table, args.tr_img_dir,
         img_transform=laia.util.ImageToTensor(mode='RGB'),
         txt_transform=RectanglesToTensor())
-    tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=8,
-                              collate_fn=laia.data.PaddingCollater({
-                                  'img': [3, None, None]
-                              }, sort_key=lambda x: -x['img'].size(2)),
-                              shuffle=True)
+    tr_ds_loader = torch.DataLoader(tr_ds, args.batch_size, num_workers=8,
+                                    collate_fn=laia.data.PaddingCollater({
+                                        'img': [3, None, None]
+                                    }, sort_key=lambda x: -x['img'].size(2)),
+                                    shuffle=True)
 
     if args.va_table:
         va_ds = laia.data.TextImageFromTextTableDataset(
             args.va_table, args.tr_img_dir,
             img_transform=laia.util.ImageToTensor(),
             txt_transform=RectanglesToTensor())
-        va_ds_loader = DataLoader(va_ds, args.batch_size, num_workers=8,
-                                  collate_fn=laia.data.PaddingCollater({
-                                      'img': [3, None, None]
-                                  }, sort_key=lambda x: -x['img'].size(2)))
+        va_ds_loader = torch.DataLoader(va_ds, args.batch_size, num_workers=8,
+                                        collate_fn=laia.data.PaddingCollater({
+                                            'img': [3, None, None]
+                                        }, sort_key=lambda x: -x['img'].size(2)))
     else:
         va_ds, va_ds_loader = None, None
+
+    distorter = ImageDistorter()
 
 
     def batch_input_fn(batch):
@@ -91,8 +97,10 @@ if __name__ == '__main__':
                 x = batch['img'].cpu()
             return Variable(x)
 
+
     def batch_target_fn(batch):
         return batch['txt']
+
 
     def distort_input_fn(batch):
         x = batch_input_fn(batch)
@@ -105,7 +113,7 @@ if __name__ == '__main__':
             x = x.data if isinstance(x, Variable) else x
             return Variable(x)
 
-
+    """
     trainer = laia.engine.Trainer(model=model,
                                   criterion=ctc,
                                   optimizer=optimizer,
@@ -120,3 +128,4 @@ if __name__ == '__main__':
                                           batch_target_fn=batch_target_fn)
     else:
         evaluator = None
+    """

@@ -1,7 +1,11 @@
-import torch
+from __future__ import absolute_import
 
+from functools import reduce
+
+import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
+
 
 class CTCDecoder(object):
     def __init__(self):
