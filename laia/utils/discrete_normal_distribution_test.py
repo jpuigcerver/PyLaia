@@ -3,9 +3,11 @@ from __future__ import absolute_import
 import math
 import unittest
 
-from laia.utils.discrete_normal_distribution import DiscreteNormalDistribution
 from numpy import logaddexp
 from numpy.testing import assert_almost_equal
+
+from laia.utils.discrete_normal_distribution import DiscreteNormalDistribution
+
 
 class DiscreteNormalDistributionTest(unittest.TestCase):
     def testConstructor(self):

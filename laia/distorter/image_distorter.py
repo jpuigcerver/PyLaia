@@ -3,13 +3,15 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+
 import numpy as np
 import torch
-
-from .distorter import Distorter
-from ..data import PaddedTensor
-from ..utils import image_collage
 from imgdistort_pytorch import affine, dilate, erode
+
+from laia.data import PaddedTensor
+from laia.distorter.distorter import Distorter
+from laia.utils import image_collage
+
 
 class ImageDistorter(Distorter):
     DEFAULT_SCALE_PROB = 0.5
@@ -76,7 +78,7 @@ class ImageDistorter(Distorter):
         self._rotate_mean = kwargs.get('rotate_mean', self.DEFAULT_ROTATE_MEAN)
         # Map rotation angle to [-pi, pi]
         self._rotate_mean = (
-            (self._rotate_mean + math.pi) % (2 * math.pi) - math.pi)
+                (self._rotate_mean + math.pi) % (2 * math.pi) - math.pi)
 
         # Translate parameters [relative to the size of each dimension].
         # Normal distribution with mean 0, precision = 1 / variance.
@@ -112,15 +114,14 @@ class ImageDistorter(Distorter):
         self._erode_srate = kwargs.get('erode_srate', self.DEFAULT_ERODE_SRATE)
         self._erode_rrate = kwargs.get('erode_rrate', self.DEFAULT_ERODE_RRATE)
 
-
-    def __call__(self, x, y=None, can_reuse_input=False):
+    def __call__(self, x, y=None, destroy_input=False):
         xs = None
         if isinstance(x, PaddedTensor):
             xs = x.sizes.cpu()  # Make sure that the sizes are in the CPU
             x = x.data
 
         assert torch.is_tensor(x)
-        assert x.dim() == 4, ('Batch input must be a NxCxHxW tensor')
+        assert x.dim() == 4, 'Batch input must be a NxCxHxW tensor'
         assert xs is None or torch.is_tensor(xs)
         assert xs is None or (xs.dim() == 2 and xs.size()[1] == 2), (
             'Batch size input must be a Nx2 tensor')
@@ -131,7 +132,7 @@ class ImageDistorter(Distorter):
 
         # Prepare affine transformations
         M = torch.DoubleTensor(N, 2, 3)
-        for n in xrange(N):
+        for n in range(N):
             h = H if xs is None else xs[n, 0]
             w = W if xs is None else xs[n, 1]
             cy = 0.5 * H if self._aligned_centers else h * 0.5
@@ -141,34 +142,26 @@ class ImageDistorter(Distorter):
 
         dilate_kernel = []
         erode_kernel = []
-        dilate_kernel_sizes = []
-        erode_kernel_sizes = []
-        for n in xrange(N):
+        for n in range(N):
             sd = self.__sample_structuring_element(
                 self._dilate_prob, self._dilate_srate, self._dilate_rrate)
             se = self.__sample_structuring_element(
                 self._erode_prob, self._erode_srate, self._erode_rrate)
-            dilate_kernel_sizes.append(sd.size())
-            erode_kernel_sizes.append(se.size())
             dilate_kernel.append(sd.view(sd.numel()))
             erode_kernel.append(se.view(se.numel()))
-        dilate_kernel = torch.cat(dilate_kernel)
-        erode_kernel = torch.cat(erode_kernel)
-        dilate_kernel_sizes = torch.IntTensor(dilate_kernel_sizes)
-        erode_kernel_sizes = torch.IntTensor(erode_kernel_sizes)
 
-        # Copy affine and structure matrixes to the appropiate gpu, if necessary
+        # Copy affine and structure matrices to the appropriate gpu, if necessary
         if x.is_cuda:
             M = M.cuda(x.get_device())
-            dilate_kernel = dilate_kernel.cuda(x.get_device())
-            erode_kernel = erode_kernel.cuda(x.get_device())
+            dilate_kernel = [k.cuda(x.get_device()) for k in dilate_kernel]
+            erode_kernel = [k.cuda(x.get_device()) for k in erode_kernel]
 
         y = affine(x, M, y)
 
-        tmp = x if can_reuse_input else x.clone()
-        tmp = dilate(x, dilate_kernel, dilate_kernel_sizes, tmp)
+        tmp = x if destroy_input else x.clone()
+        tmp = dilate(x, dilate_kernel, tmp)
 
-        y = erode(tmp, erode_kernel, erode_kernel_sizes, y)
+        y = erode(tmp, erode_kernel, y)
 
         if xs is None:
             return y
@@ -189,52 +182,50 @@ class ImageDistorter(Distorter):
         # 1. Translation (including centering the image)
         if torch.rand(1)[0] < self._htranslate_prob:
             d = self._htranslate_mean + (
-                torch.randn(1)[0] / math.sqrt(self._htranslate_prec))
+                    torch.randn(1)[0] / math.sqrt(self._htranslate_prec))
             m[0, 2] = d * w - cx
         else:
             m[0, 2] = -cx
 
         if torch.rand(1)[0] < self._vtranslate_prob:
             d = self._vtranslate_mean + (
-                torch.randn(1)[0] / math.sqrt(self._vtranslate_prec))
+                    torch.randn(1)[0] / math.sqrt(self._vtranslate_prec))
             m[1, 2] = d * h - cy
         else:
             m[1, 2] = -cy
-
 
         # 2. Horizontal and vertical shearing.
         if self._hshear_prec > 0.0 or self._vshear_prob > 0.0:
             if torch.rand(1)[0] < self._hshear_prob:
                 hs = self._hshear_mean + (
-                    torch.randn(1)[0] / math.sqrt(self._hshear_prec))
+                        torch.randn(1)[0] / math.sqrt(self._hshear_prec))
             else:
                 hs = 0.0
             if torch.rand(1)[0] < self._vshear_prob:
                 vs = self._vshear_mean + (
-                    torch.randn(1)[0] / math.sqrt(self._vshear_prec))
+                        torch.randn(1)[0] / math.sqrt(self._vshear_prec))
             else:
                 vs = 0.0
-            d = torch.DoubleTensor([[1.0,  hs, 0.0],
-                                    [ vs, 1.0, 0.0],
+            d = torch.DoubleTensor([[1.0, hs, 0.0],
+                                    [vs, 1.0, 0.0],
                                     [0.0, 0.0, 1.0]])
             m = torch.mm(d, m)
-
 
         # 3. Rotation.
         if torch.rand(1)[0] < self._rotate_prob:
             R = max(w / h, h / w)
             a = np.random.vonmises(self._rotate_mean, self._rotate_prec * R)
             d = torch.DoubleTensor([[math.cos(a), -math.sin(a), 0.0],
-                                    [math.sin(a),  math.cos(a), 0.0],
-                                    [        0.0,          0.0, 1.0]])
+                                    [math.sin(a), math.cos(a), 0.0],
+                                    [0.0, 0.0, 1.0]])
             m = torch.mm(d, m)
 
         # 4. Scaling
         if torch.rand(1)[0] < self._scale_prob:
             s = math.exp(self._scale_mean + (
-                torch.randn(1)[0] / math.sqrt(self._scale_prec)))
-            d = torch.DoubleTensor([[  s, 0.0, 0.0],
-                                    [0.0,   s, 0.0],
+                    torch.randn(1)[0] / math.sqrt(self._scale_prec)))
+            d = torch.DoubleTensor([[s, 0.0, 0.0],
+                                    [0.0, s, 0.0],
                                     [0.0, 0.0, 1.0]])
             m = torch.mm(d, m)
 
@@ -245,7 +236,8 @@ class ImageDistorter(Distorter):
         m = torch.mm(d, m)
         return m
 
-    def __sample_structuring_element(self, p, srate, rrate):
+    @staticmethod
+    def __sample_structuring_element(p, srate, rrate):
         if torch.rand(1)[0] < p:
             # Sample size (height and width) of the structuring element.
             # Only the following height/width sizes are available.
@@ -272,7 +264,6 @@ class ImageDistorter(Distorter):
 
 if __name__ == '__main__':
     import argparse
-    import sys
     from PIL import Image, ImageOps
 
     parser = argparse.ArgumentParser()
@@ -315,7 +306,7 @@ if __name__ == '__main__':
         for i, (x, xs) in enumerate(zip(xlist, xsize)):
             dy = (H - xs[0]) // 2
             dx = (W - xs[1]) // 2
-            batch[i, :, dy:(dy+xs[0]), dx:(dx+xs[1])].copy_(x)
+            batch[i, :, dy:(dy + xs[0]), dx:(dx + xs[1])].copy_(x)
     else:
         for i, (x, xs) in enumerate(zip(xlist, xsize)):
             batch[i, :, :xs[0], :xs[1]].copy_(x)

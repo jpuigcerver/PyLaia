@@ -1,5 +1,8 @@
-from ..meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
-from ..decoders import CTCDecoder
+from __future__ import absolute_import
+
+from laia.decoders import CTCDecoder
+from laia.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
+
 
 class HtrEngineWrapper(object):
     def __init__(self, train_engine, valid_engine=None):
@@ -9,7 +12,7 @@ class HtrEngineWrapper(object):
         self._ctc_decoder = CTCDecoder()
         self._train_timer = TimeMeter()
         self._train_loss_meter = RunningAverageMeter()
-        self._train_cer_meter  = SequenceErrorMeter()
+        self._train_cer_meter = SequenceErrorMeter()
 
         self._tr_engine.add_hook('on_start_epoch', self.__train_reset_meters)
         self._tr_engine.add_hook('on_end_batch', self.__train_accumulate_loss)
@@ -18,7 +21,7 @@ class HtrEngineWrapper(object):
         if valid_engine:
             self._valid_timer = TimeMeter()
             self._valid_loss_meter = RunningAverageMeter()
-            self._valid_cer_meter  = SequenceErrorMeter()
+            self._valid_cer_meter = SequenceErrorMeter()
 
             self._va_engine.add_hook('on_start_epoch',
                                      self.__valid_reset_meters)

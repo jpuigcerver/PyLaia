@@ -1,5 +1,8 @@
-from torch.utils import data
+from __future__ import absolute_import
+
 from PIL import Image
+from torch.utils import data
+
 
 class ImageDataset(data.Dataset):
     def __init__(self, imgs, transform=None):

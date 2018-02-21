@@ -3,18 +3,20 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import torch
+from functools import reduce
 
-from torch.utils.data.dataloader import default_collate, numpy_type_map
+import torch
 from torch._six import string_classes, int_classes
+from torch.utils.data.dataloader import numpy_type_map
 
 PaddedTensor = collections.namedtuple('PaddedTensor', ['data', 'sizes'])
+
 
 def _get_max_size_and_check_batch_tensor(batch, expected_shape):
     # All tensors in the batch must have the same number of dimensions
     assert all(map(lambda x: x.dim() == batch[0].dim(), batch))
     max_sizes = [len(batch)]
-    for d in xrange(batch[0].dim()):
+    for d in range(batch[0].dim()):
         maxv, minv = reduce(
             lambda m, x: (
                 m[0] if m[0] >= x.size()[d] else x.size()[d],
@@ -51,9 +53,9 @@ class PaddingCollater(object):
                 if x.dim() == 1:
                     out[i][:x.size(0)] = x
                 elif x.dim() == 2:
-                    out[i][:x.size(0),:x.size(1)] = x
+                    out[i][:x.size(0), :x.size(1)] = x
                 elif x.dim() == 3:
-                    out[i][:x.size(0),:x.size(1),:x.size(2)] = x
+                    out[i][:x.size(0), :x.size(1), :x.size(2)] = x
                 else:
                     raise NotImplementedError('This is not implemented')
             return PaddedTensor(data=out,

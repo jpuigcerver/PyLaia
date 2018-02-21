@@ -1,4 +1,5 @@
-from .symbols_table import SymbolsTable
+from laia.utils.symbols_table import SymbolsTable
+
 
 class TextToTensor(object):
     def __init__(self, syms):

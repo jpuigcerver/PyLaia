@@ -7,4 +7,4 @@ class Loss(object):
 
     @property
     def loss(self):
-        self._loss
+        return self._loss

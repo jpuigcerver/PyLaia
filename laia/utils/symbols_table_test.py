@@ -1,10 +1,10 @@
 import os
 import unittest
-
-from tempfile import NamedTemporaryFile
 from StringIO import StringIO
+from tempfile import NamedTemporaryFile
 
-from .symbols_table import SymbolsTable
+from laia.utils.symbols_table import SymbolsTable
+
 
 class SymbolsTableTest(unittest.TestCase):
     def testEmpty(self):
@@ -86,6 +86,7 @@ class SymbolsTableTest(unittest.TestCase):
         table_content = open(table_file.name, 'r').read()
         self.assertEqual(table_content, 'a 1\nb 2\n')
         os.remove(table_file.name)
+
 
 if __name__ == '__main__':
     unittest.main()

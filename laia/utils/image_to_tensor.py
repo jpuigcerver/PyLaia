@@ -3,6 +3,7 @@ import torch
 
 from PIL import ImageOps
 
+
 class ImageToTensor(object):
     def __init__(self, invert=True, mode='L'):
         assert mode in ('L', 'RGB', 'RGBA')

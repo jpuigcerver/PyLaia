@@ -1,8 +1,10 @@
+from __future__ import absolute_import
 from __future__ import division
+
+from laia.meters.sequence_error_meter import SequenceErrorMeter
 
 import unittest
 
-from .sequence_error_meter import SequenceErrorMeter
 
 class SequenceErrorMeterTest(unittest.TestCase):
     def testSingleString(self):
@@ -36,7 +38,8 @@ class SequenceErrorMeterTest(unittest.TestCase):
                ['my', 'dog', 'is', 'not', 'black']]
         err.add(ref, hyp)
         err.add(['home'], ['house'])
-        self.assertEqual(err.value, (2 + 1 + 2)/ (4 + 4 + 4))
+        self.assertEqual(err.value, (2 + 1 + 2) / (4 + 4 + 4))
+
 
 if __name__ == '__main__':
     unittest.main()

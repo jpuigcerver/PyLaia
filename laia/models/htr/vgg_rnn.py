@@ -2,7 +2,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .conv_block import ConvBlock
+from laia.models.htr.conv_block import ConvBlock
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 from laia.data import PaddedTensor
 from nnutils_pytorch import image_mask_from_size

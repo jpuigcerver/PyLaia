@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
 import editdistance
 
-from .meter import Meter
+from laia.meters.meter import Meter
+
 
 class SequenceErrorMeter(Meter):
     def reset(self):

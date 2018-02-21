@@ -3,13 +3,14 @@ import math
 
 from numpy import logaddexp
 
+
 class DiscreteNormalDistribution(object):
     def __init__(self, mean, var, eps=1e-9, debug_compute_constant=False):
         assert mean >= 0, 'Mean must be a real value greater than or equal to 0'
-        assert var  > 0, 'Variance must be real value greater than 0'
+        assert var > 0, 'Variance must be real value greater than 0'
         self._mean = mean
-        self._var  = var
-        self._eps  = eps
+        self._var = var
+        self._eps = eps
         self._debug_compute_constant = debug_compute_constant
         self._log_z = self.__compute_constant(eps)
 
@@ -22,7 +23,7 @@ class DiscreteNormalDistribution(object):
         return self._var
 
     def __unorm_log_pdf(self, x):
-        return -0.5 * (x - self._mean)**2 / self._var
+        return -0.5 * (x - self._mean) ** 2 / self._var
 
     def __compute_constant(self, eps):
         p_acc = self.__unorm_log_pdf(0)

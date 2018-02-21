@@ -1,11 +1,13 @@
-import logging
+from __future__ import absolute_import
 
+import logging
 from os import listdir
 from os.path import isfile, join, splitext
 
-from .text_image_dataset import TextImageDataset
+from laia.data.text_image_dataset import TextImageDataset
 
 _IMAGE_EXTENSIONS = ('.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp')
+
 
 class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(self, txt_table, imgs_dir, img_transform=None,
@@ -32,6 +34,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
         out['id'] = self._ids[index]
         return out
 
+
 def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
     img_extensions = set(img_extensions)
     valid_image_filenames = {}
@@ -41,6 +44,7 @@ def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
         if isfile(fname) and ext.lower() in img_extensions:
             valid_image_filenames[bname] = fname
     return valid_image_filenames
+
 
 def _load_text_table_from_file(table_file):
     if isinstance(table_file, (str, unicode)):
@@ -54,6 +58,7 @@ def _load_text_table_from_file(table_file):
         yield n, line[0], line[1:]
 
     table_file.close()
+
 
 def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
     imgid2fname = _get_valid_image_filenames_from_dir(imgs_dir, img_extensions)
