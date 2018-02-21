@@ -47,7 +47,7 @@ def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
 
 
 def _load_text_table_from_file(table_file):
-    if isinstance(table_file, (str, unicode)):
+    if isinstance(table_file, str):
         table_file = open(table_file, 'r')
 
     for n, line in enumerate(table_file, 1):
