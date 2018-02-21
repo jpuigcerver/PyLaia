@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-from builtins import str
 from os import listdir
 from os.path import isfile, join, splitext
 
