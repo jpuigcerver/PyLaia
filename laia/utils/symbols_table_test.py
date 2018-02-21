@@ -1,6 +1,6 @@
 import os
 import unittest
-from StringIO import StringIO
+from io import StringIO
 from tempfile import NamedTemporaryFile
 
 from laia.utils.symbols_table import SymbolsTable

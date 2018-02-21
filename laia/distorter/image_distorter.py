@@ -3,6 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+from builtins import range
+from functools import reduce
 
 import numpy as np
 import torch
@@ -247,8 +249,8 @@ class ImageDistorter(Distorter):
             Sp = map(lambda x: x / SpSum, Sp)
             Mh, Mw = np.random.choice(Sv, size=2, p=Sp)
             S = torch.ByteTensor(Mh, Mw).zero_()
-            for y in xrange(Mh):
-                for x in xrange(Mw):
+            for y in range(Mh):
+                for x in range(Mw):
                     dy = y - Mh // 2
                     dx = x - Mw // 2
                     r = math.sqrt(dx * dx + dy * dy)

@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+from builtins import range
 
 import torch
 from torch.autograd import Variable
@@ -17,7 +18,7 @@ class RectanglesToTensor(object):
         assert len(x) % 6 == 0, ('Wrong number of fields in the text line '
                                  '(got %d expected multiple of 6)') % len(x)
         rects = []
-        for i in xrange(0, len(x), 6):
+        for i in range(0, len(x), 6):
             assert x[i + 5] == ';'  # safe-check the delimiter
             x, y, w, h, r = x[i + 0], x[i + 1], x[i + 2], x[i + 3], x[i + 4]
             x, y, w, h, r = float(x), float(y), float(w), float(h), float(r)
@@ -112,6 +113,7 @@ if __name__ == '__main__':
         else:
             x = x.data if isinstance(x, Variable) else x
             return Variable(x)
+
 
     """
     trainer = laia.engine.Trainer(model=model,
