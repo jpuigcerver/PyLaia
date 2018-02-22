@@ -12,6 +12,7 @@ class Evaluator(object):
                  batch_target_fn=None):
         self._model = model
         self._dataset = dataset
+        self._epochs = 0
         self._batch_input_fn = batch_input_fn
         self._batch_target_fn = batch_target_fn
         self._hooks = {
@@ -35,6 +36,10 @@ class Evaluator(object):
     def hooks(self):
         return self._hooks
 
+    @property
+    def epochs(self):
+        return self._epochs
+
     def add_hook(self, when, func):
         assert when in self._hooks, '"%s" is not a valid hook event' % when
         self._hooks[when].append(func)
@@ -45,6 +50,7 @@ class Evaluator(object):
             hook(trainer=self, **kwargs)
 
     def run(self):
+        self._epochs += 1
         self.__call_hooks('on_start_epoch')
         for it, data in enumerate(tqdm(self._dataset), 1):
             batch_input = self._batch_input_fn(data)

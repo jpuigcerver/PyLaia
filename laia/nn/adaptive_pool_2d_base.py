@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from laia.data import PaddedTensor
-
 import torch
+from torch.autograd import Variable
+
+from laia.data import PaddedTensor
 
 
 class AdaptivePool2dBase(torch.nn.Module):
@@ -18,7 +19,6 @@ class AdaptivePool2dBase(torch.nn.Module):
     def output_sizes(self):
         return self._output_sizes
 
-
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         y = self._func(batch_input=x, output_sizes=self.output_sizes,
@@ -26,11 +26,9 @@ class AdaptivePool2dBase(torch.nn.Module):
         if xs is None or self._fixed_size:
             return y
         else:
-            if self.output[0] is None:
-                ys = xs.clone()
-                ys[:,1] = self.output[1]
-                return PaddedTensor(data=y, sizes=ys)
+            ys = xs.clone()
+            if self.output_sizes[0] is not None:
+                ys[:, 0] = self.output_sizes[0]
             else:
-                ys = xs.clone()
-                ys[:,0] = self.output[0]
-                return PaddedTensor(data=y, sizes=ys)
+                ys[:, 1] = self.output_sizes[1]
+            return PaddedTensor(data=y, sizes=ys)

@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
-from laia.data import PaddedTensor
-
 import torch
 from torch.nn.utils.rnn import pack_padded_sequence
 
+from laia.data import PaddedTensor
+
+
 class ImageColumnsToSequence(torch.nn.Module):
-    def __init__(self, rows):
+    def __init__(self, rows, return_packed=False):
         super(ImageColumnsToSequence, self).__init__()
         self._rows = rows
+        self._return_packed = return_packed
 
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
@@ -23,4 +25,7 @@ class ImageColumnsToSequence(torch.nn.Module):
         if xs is None:
             return x
         else:
-            return pack_padded_sequence(x, list(xs[:, 1]))
+            if self._return_packed:
+                return pack_padded_sequence(x, list(xs[:, 1].data))
+            else:
+                return x, list(xs[:, 1].data)
