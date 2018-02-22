@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 from os import listdir
 from os.path import isfile, join, splitext
+from torch._six import string_classes
 
 from laia.data.text_image_dataset import TextImageDataset
 
@@ -47,7 +48,7 @@ def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
 
 
 def _load_text_table_from_file(table_file):
-    if isinstance(table_file, str):
+    if isinstance(table_file, string_classes):
         table_file = open(table_file, 'r')
 
     for n, line in enumerate(table_file, 1):

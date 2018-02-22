@@ -9,19 +9,22 @@ from warpctc_pytorch import CTCLoss as _CTCLoss
 
 from laia.losses.loss import Loss
 
-
 class CTCLoss(Loss):
-    def __init__(self):
+    def __init__(self, size_average=True):
         super(CTCLoss, self).__init__()
-        self._ctc = _CTCLoss()
+        self._ctc = _CTCLoss(size_average)
 
     def __call__(self, output, target):
         assert isinstance(output, PackedSequence)
         x, xs = pad_packed_sequence(output)
+        assert xs[0] == x.size(0), 'Maximum length does not match'
+        assert len(target) == x.size(1), 'Batch size does not match'
+
+        # Prepare tensors of the correct type
+        xs = torch.IntTensor(xs)
+        y = torch.IntTensor(list(itertools.chain.from_iterable(target)))
+        ys = torch.IntTensor([len(x) for x in target])
+
+        # Compute Loss
         with torch.cuda.device_of(x):
-            xs = Variable(torch.IntTensor(xs))
-            y = Variable(
-                torch.IntTensor(list(itertools.chain.from_iterable(target))))
-            ys = Variable(torch.IntTensor([len(x) for x in target]))
-        self._loss = self._ctc(x, y, xs, ys)
-        return (self._loss / xs.type(torch.FloatTensor)).mean()
+            return self._ctc(x, Variable(y), Variable(xs), Variable(ys))
