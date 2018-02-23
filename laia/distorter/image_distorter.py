@@ -244,11 +244,11 @@ class ImageDistorter(Distorter):
             # Sample size (height and width) of the structuring element.
             # Only the following height/width sizes are available.
             Sv = [3, 5, 7, 9, 11, 13, 15]
-            Sp = map(lambda x: srate * math.pow(1 - srate, x - Sv[0]), Sv)
+            Sp = [srate * math.pow(1 - srate, x - Sv[0]) for x in Sv]
             SpSum = sum(Sp)
-            Sp = map(lambda x: x / SpSum, Sp)
+            Sp = [x / SpSum for x in Sp]
             Mh, Mw = np.random.choice(Sv, size=2, p=Sp)
-            S = torch.ByteTensor(Mh, Mw).zero_()
+            S = torch.ByteTensor(int(Mh), int(Mw)).zero_()
             for y in range(Mh):
                 for x in range(Mw):
                     dy = y - Mh // 2
