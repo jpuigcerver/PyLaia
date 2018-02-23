@@ -105,26 +105,28 @@ class HtrEngineWrapper(object):
             tr_time))
 
     def __report_epoch_train_and_valid(self, **kwargs):
-        # Average training loss in the last EPOCH
+        # Average loss in the last EPOCH
         tr_loss, _ = self.train_loss.value
-        # Average training CER in the last EPOCH
+        va_loss, _ = self.valid_loss.value
+        # Average CER in the last EPOCH
         tr_cer = self.train_cer.value * 100
-        # Average validation CER in the last EPOCH
         va_cer = self.valid_cer.value * 100
         # Timers
         tr_time = self.train_timer.value
         va_time = self.valid_timer.value
         print('Epoch {:4d}, '
               'TR Loss = {:.3e}, '
+              'VA Loss = {:.3e}, '
               'TR CER = {:3.2f}%, '
-              'TR Elapsed Time = {:.2f}s, '
               'VA CER = {:3.2f}%, '
-              'VA Elapsed Time = {:.2f}s'.format(
+              'TR Time = {:.2f}s, '
+              'VA Time = {:.2f}s'.format(
             self._tr_engine.epochs,
             tr_loss,
+            va_loss,
             tr_cer,
-            tr_time,
             va_cer,
+            tr_time,
             va_time))
 
     def run(self):
