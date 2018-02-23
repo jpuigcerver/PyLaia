@@ -16,9 +16,9 @@ from laia.data import PaddedTensor
 
 
 from laia.losses.loss import Loss
-from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation
+from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
 
-from laia.savers.saver_trigger import SaverTrigger
+from laia.savers import SaverTrigger, SaverTriggerCollection
 
 
 class Model(torch.nn.Module):
@@ -52,20 +52,20 @@ class Model(torch.nn.Module):
             torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
             # conv3_5
-            #torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            #torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.ReLU(inplace=True),
             # conv3_6
-            #torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            #torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.ReLU(inplace=True),
             # conv4_1
             torch.nn.Conv2d(256, 512, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
             # conv4_2
-            #torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            #torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.ReLU(inplace=True),
             # conv4_3
-            #torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            #torch.nn.ReLU(inplace=True)
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.ReLU(inplace=True)
         )
 
         self._collapse = torch.nn.Sequential(
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
 
 
-    class MySaver(object):
+    class LastParametersSaver(object):
         def __init__(self, base_path, keep_checkpoints=5):
             self._base_path = base_path
             self._last_checkpoints = []
@@ -242,19 +242,36 @@ if __name__ == '__main__':
 
         def __call__(self, trainer):
             path = '{}-{}'.format(self._base_path, trainer.epochs)
+            print('Saving model parameters to {!r}'.format(path))
             ret = torch.save(trainer.model.state_dict(), path)
             if ret:
                 if len(self._last_checkpoints) < self._keep_checkpoints:
                     self._last_checkpoints.append(path)
                 else:
+                    print('Removing old parameters remove: {!r}'.format(
+                        self._last_checkpoints[self._nckpt]))
                     os.remove(self._last_checkpoints[self._nckpt])
                     self._last_checkpoints[self._nckpt] = path
                     self._nckpt = (self._nckpt + 1) % self._keep_checkpoints
             return ret
 
+    class ParametersSaver(object):
+        def __init__(self, path):
+            self._path = path
+
+        def __call__(self, trainer):
+            print('Saving model parameters to {!r}'.format(path))
+            ret = torch.save(trainer.model.state_dict(), path)
+            return ret
+
     trainer.set_epoch_saver_trigger(
-        SaverTrigger(EveryEpoch(trainer, 10),
-                     MySaver('./checkpoint')))
+        SaverTriggerCollection(
+            SaverTrigger(EveryEpoch(trainer, 10),
+                         LastParametersSaver('./checkpoint')),
+            SaverTrigger(MeterDecrease(engine_wrapper.valid_cer),
+                         ParametersSaver('./checkpoint-best-valid-cer')),
+            SaverTrigger(MeterDecrease(engine_wrapper.train_cer),
+                         ParametersSaver('./checkpoint-best-train-cer'))))
 
     # Start training
     engine_wrapper.run()
