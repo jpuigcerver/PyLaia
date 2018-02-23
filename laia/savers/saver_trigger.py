@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from laia.engine.savers.saver import Saver
+from laia.savers.saver import Saver
 
 
-class TriggerSaver(object):
+class SaverTrigger(object):
     def __init__(self, trigger, saver):
         assert trigger is not None
         assert saver is not None
@@ -12,6 +12,6 @@ class TriggerSaver(object):
 
     def __call__(self, obj):
         if self._trigger():
-            return saver(obj)
+            return self._saver(obj)
         else:
             return False

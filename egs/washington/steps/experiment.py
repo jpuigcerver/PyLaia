@@ -8,6 +8,7 @@ import laia.data
 import laia.engine
 import laia.nn
 import laia.utils
+import os
 import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
@@ -15,7 +16,9 @@ from laia.data import PaddedTensor
 
 
 from laia.losses.loss import Loss
-from laia.engine.triggers import Any, MaxEpochs, MeterStandardDeviation
+from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation
+
+from laia.savers.saver_trigger import SaverTrigger
 
 
 class Model(torch.nn.Module):
@@ -228,6 +231,30 @@ if __name__ == '__main__':
                 num_values_to_keep=args.cer_stddev_values))
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
+
+
+    class MySaver(object):
+        def __init__(self, base_path, keep_checkpoints=5):
+            self._base_path = base_path
+            self._last_checkpoints = []
+            self._keep_checkpoints = keep_checkpoints
+            self._nckpt = 0
+
+        def __call__(self, trainer):
+            path = '{}-{}'.format(self._base_path, trainer.epochs)
+            ret = torch.save(trainer.model.state_dict(), path)
+            if ret:
+                if len(self._last_checkpoints) < self._keep_checkpoints:
+                    self._last_checkpoints.append(path)
+                else:
+                    os.remove(self._last_checkpoints[self._nckpt])
+                    self._last_checkpoints[self._nckpt] = path
+                    self._nckpt = (self._nckpt + 1) % self._keep_checkpoints
+            return ret
+
+    trainer.set_epoch_saver_trigger(
+        SaverTrigger(EveryEpoch(trainer, 10),
+                     MySaver('./checkpoint')))
 
     # Start training
     engine_wrapper.run()
