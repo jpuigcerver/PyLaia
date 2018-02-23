@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import absolute_import
 
 try:
     from tqdm import tqdm
@@ -13,8 +13,8 @@ class Evaluator(object):
         self._model = model
         self._dataset = dataset
         self._epochs = 0
-        self._batch_input_fn = batch_input_fn
-        self._batch_target_fn = batch_target_fn
+        self._batch_input_fn = None
+        self._batch_target_fn = None
         self._hooks = {
             'on_start_batch': [],
             'on_start_epoch': [],
@@ -23,10 +23,8 @@ class Evaluator(object):
         }
 
         # Default functions
-        if batch_input_fn is None:
-            self._batch_input_fn = lambda x: x
-        if batch_target_fn is None:
-            self._batch_target_fn = lambda x: x
+        self.set_batch_input_fn(batch_input_fn)
+        self.set_batch_target_fn(batch_target_fn)
 
     @property
     def model(self):
@@ -39,6 +37,20 @@ class Evaluator(object):
     @property
     def epochs(self):
         return self._epochs
+
+    def set_batch_input_fn(self, fn):
+        if fn is None:
+            self._batch_input_fn = lambda x: x
+        else:
+            assert(callable(fn))
+            self._batch_input_fn = fn
+
+    def set_batch_target_fn(self, fn):
+        if fn is None:
+            self._batch_target_fn = lambda x: x
+        else:
+            assert(callable(fn))
+            self._batch_target_fn = fn
 
     def add_hook(self, when, func):
         assert when in self._hooks, '"%s" is not a valid hook event' % when

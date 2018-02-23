@@ -15,22 +15,11 @@ from laia.data import PaddedTensor
 
 
 from laia.losses.loss import Loss
+from laia.engine.triggers import Any, MaxEpochs, MeterStandardDeviation
 
-
-class DummyLoss(Loss):
-    def __init__(self):
-        super(DummyLoss, self).__init__()
-
-    def __call__(self, output, target):
-        if isinstance(output, PackedSequence):
-            return output.data.sum()
-        elif isinstance(output, PaddedTensor):
-            return output.data.sum()
-        else:
-            return output.sum()
 
 class Model(torch.nn.Module):
-    def __init__(self, num_output_symbols, fixed_rows=20):
+    def __init__(self, num_output_symbols, fixed_rows=1):
         super(Model, self).__init__()
         self._conv = torch.nn.Sequential(
             # conv1_1
@@ -60,24 +49,25 @@ class Model(torch.nn.Module):
             torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
             # conv3_5
-            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            torch.nn.ReLU(inplace=True),
+            #torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            #torch.nn.ReLU(inplace=True),
             # conv3_6
-            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            torch.nn.ReLU(inplace=True),
+            #torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            #torch.nn.ReLU(inplace=True),
             # conv4_1
             torch.nn.Conv2d(256, 512, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
             # conv4_2
-            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            torch.nn.ReLU(inplace=True),
+            #torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            #torch.nn.ReLU(inplace=True),
             # conv4_3
-            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            torch.nn.ReLU(inplace=True))
+            #torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            #torch.nn.ReLU(inplace=True)
+        )
 
         self._collapse = torch.nn.Sequential(
             # Transform colvolved images to have fixed height
-            laia.nn.AdaptiveMaxPool2d(output_sizes=(fixed_rows, None)),
+            laia.nn.AdaptiveAvgPool2d(output_sizes=(fixed_rows, None)),
             # Transform image into a sequence of columns
             laia.nn.ImageColumnsToSequence(rows=fixed_rows,
                                            return_packed=False))
@@ -95,7 +85,10 @@ class Model(torch.nn.Module):
         x = self._conv(x)
         xs = (xs / 2) / 2
 
-        x, xs = self._collapse(PaddedTensor(data=x, sizes=xs))
+        x = x.mean(dim=2).permute(2, 0, 1).contiguous()
+        xs = xs[:, 1].contiguous().data.tolist()
+
+        #x, xs = self._collapse(PaddedTensor(data=x, sizes=xs))
         # xs is the number of timestep of each sample.
 
         x = torch.nn.functional.dropout(x, p=0.5,
@@ -125,12 +118,22 @@ if __name__ == '__main__':
                         help='Seed for random number generators')
     parser.add_argument('--final_fixed_height', type=int, default=20,
                         help='Final height for the pseudo-images after the '
-                        'convolutions.')
+                        'convolutions')
+    parser.add_argument('--max_epochs', type=int, default=None,
+                        help='Maximum number of training epochs')
+    parser.add_argument('--cer_stddev_values', type=int, default=None,
+                        help='Compute the standard deviation of the CER over '
+                        'this number of epochs')
+    parser.add_argument('--cer_stddev_threshold', type=float, default=None,
+                        help='Stop training if the standard deviation of the '
+                        'CER falls below this threshold')
     parser.add_argument('syms')
     parser.add_argument('tr_img_dir')
     parser.add_argument('tr_txt_table')
     parser.add_argument('va_txt_table')
     args = parser.parse_args()
+
+    laia.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
 
@@ -204,4 +207,27 @@ if __name__ == '__main__':
                                       batch_target_fn=batch_target_fn)
 
     engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
+
+
+    # List of early stop triggers.
+    # If any of these returns True, training will stop.
+    early_stop_triggers = []
+
+    # Configure MaxEpochs trigger
+    if args.max_epochs and args.max_epochs > 0:
+        early_stop_triggers.append(
+            MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
+
+    # Configure MeterStandardDeviation trigger to monitor validation CER
+    if (args.cer_stddev_values and args.cer_stddev_values > 1 and
+        args.cer_stddev_threshold and args.cer_stddev_threshold > 0):
+        early_stop_triggers.append(
+            MeterStandardDeviation(
+                meter=engine_wrapper.valid_cer,
+                threshold=args.cer_stddev_threshold,
+                num_values_to_keep=args.cer_stddev_values))
+
+    trainer.set_early_stop_trigger(Any(*early_stop_triggers))
+
+    # Start training
     engine_wrapper.run()
