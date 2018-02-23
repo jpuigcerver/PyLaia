@@ -243,17 +243,26 @@ if __name__ == '__main__':
         def __call__(self, trainer):
             path = '{}-{}'.format(self._base_path, trainer.epochs)
             print('Saving model parameters to {!r}'.format(path))
-            ret = torch.save(trainer.model.state_dict(), path)
-            if ret:
-                if len(self._last_checkpoints) < self._keep_checkpoints:
-                    self._last_checkpoints.append(path)
-                else:
-                    print('Removing old parameters remove: {!r}'.format(
-                        self._last_checkpoints[self._nckpt]))
+            try:
+                torch.save(trainer.model.state_dict(), path)
+            except:
+                # TODO(jpuigcerver): Log error saving new checkpoint
+                return False
+
+            if len(self._last_checkpoints) < self._keep_checkpoints:
+                self._last_checkpoints.append(path)
+            else:
+                print('Removing old parameters remove: {!r}'.format(
+                    self._last_checkpoints[self._nckpt]))
+                try:
                     os.remove(self._last_checkpoints[self._nckpt])
-                    self._last_checkpoints[self._nckpt] = path
-                    self._nckpt = (self._nckpt + 1) % self._keep_checkpoints
-            return ret
+                except:
+                    # TODO(jpuigcerver): Log error deleting old checkpoint
+                    pass
+                self._last_checkpoints[self._nckpt] = path
+                self._nckpt = (self._nckpt + 1) % self._keep_checkpoints
+
+            return True
 
     class ParametersSaver(object):
         def __init__(self, path):
@@ -261,8 +270,12 @@ if __name__ == '__main__':
 
         def __call__(self, trainer):
             print('Saving model parameters to {!r}'.format(self._path))
-            ret = torch.save(trainer.model.state_dict(), self._path)
-            return ret
+            try:
+                torch.save(trainer.model.state_dict(), self._path)
+                return True
+            except:
+                # TODO(jpuigcerver): Log error saving checkpoint
+                return False
 
     trainer.set_epoch_saver_trigger(
         SaverTriggerCollection(
