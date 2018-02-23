@@ -122,31 +122,6 @@ if __name__ == '__main__':
             return Variable(x)
 
 
-    def report_epoch_info(**kwargs):
-        # Average training loss since the start of training
-        tr_run_loss = train_running_loss_meter.value[0]
-        # Average training loss in the last EPOCH
-        tr_loss = train_loss_meter.value[0]
-        # Average training CER in the last EPOCH
-        tr_cer = train_cer_meter.value * 100
-        # Average validation CER in the last EPOCH
-        va_cer = valid_cer_meter.value * 100
-        print(('Epoch %4d, '
-               'TR Running Avg. Loss = %.3e, '
-               'TR Loss = %.3e, '
-               'TR CER = %3.2f%%, '
-               'TR Elapsed Time = %.2fs, '
-               'VA CER = %3.2f%%, '
-               'VA Elapsed Time = %.2fs') % (
-                  kwargs['epoch'],
-                  tr_run_loss,
-                  tr_loss,
-                  tr_cer,
-                  train_timer.value,
-                  va_cer,
-                  valid_timer.value))
-
-
     ctc = laia.losses.CTCLoss()
     trainer = laia.engine.Trainer(model=model,
                                   criterion=ctc,
