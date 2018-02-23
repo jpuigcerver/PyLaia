@@ -260,8 +260,8 @@ if __name__ == '__main__':
             self._path = path
 
         def __call__(self, trainer):
-            print('Saving model parameters to {!r}'.format(path))
-            ret = torch.save(trainer.model.state_dict(), path)
+            print('Saving model parameters to {!r}'.format(self._path))
+            ret = torch.save(trainer.model.state_dict(), self._path)
             return ret
 
     trainer.set_epoch_saver_trigger(
