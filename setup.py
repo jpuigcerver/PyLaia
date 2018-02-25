@@ -3,6 +3,9 @@ from setuptools import setup, find_packages
 setup(name='laia', version='0.1', packages=find_packages(),
       scripts=[],
       install_requires=['editdistance', 'torch', 'numpy', 'Pillow'],
+      extras_require={
+          'progress_bar' : ['tqdm'],
+      },
       author='Joan Puigcerver',
       author_email='joapuipe@gmail.com',
       license='MIT',
