@@ -145,7 +145,7 @@ class Engine(object):
 
         batch_input = self._batch_input_fn(batch)
         if self._batch_target_fn:
-            batch_target = self._batch_target_fn(data)
+            batch_target = self._batch_target_fn(batch)
         else:
             batch_target = None
 

@@ -16,11 +16,11 @@ from laia.data import PaddedTensor
 
 from laia.losses.loss import Loss
 from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
-from laia.engine.feeders import ImageFeeder, ItemFeeder, VariableFeeder
+from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
 
 from laia.savers import SaverTrigger, SaverTriggerCollection
 
-from laia.meters import AllPairsMetricAveragePrecisionMeter
+from laia.meters import TimeMeter, RunningAverageMeter, AllPairsMetricAveragePrecisionMeter
 
 
 def Model(phoc_size):
@@ -124,25 +124,21 @@ if __name__ == '__main__':
 
     tr_ds = laia.data.TextImageFromTextTableDataset(
         args.tr_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor(),
-        txt_transform=laia.utils.TextToPHOC(syms, args.phoc_levels))
+        img_transform=laia.utils.ImageToTensor())
     tr_ds_loader = torch.utils.data.DataLoader(
         tr_ds, args.batch_size, num_workers=8,
         collate_fn=laia.data.PaddingCollater({
             'img': [1, None, None],
-            'txt': [phoc_size],
         }, sort_key=lambda x: -x['img'].size(2)),
         shuffle=True)
 
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor(),
-        txt_transform=laia.utils.TextToPHOC(syms, args.phoc_levels))
+        img_transform=laia.utils.ImageToTensor())
     va_ds_loader = torch.utils.data.DataLoader(
         va_ds, args.batch_size, num_workers=8,
         collate_fn=laia.data.PaddingCollater({
             'img': [1, None, None],
-            'txt': [phoc_size],
         }, sort_key=lambda x: -x['img'].size(2)))
 
 
@@ -162,7 +158,10 @@ if __name__ == '__main__':
                                  requires_grad=True,
                                  parent_feeder=ItemFeeder('img'))
     batch_target_fn = VariableFeeder(device=args.gpu,
-                                     parent_feeder=ItemFeeder('txt'))
+                                     parent_feeder=PHOCFeeder(
+                                         syms=syms,
+                                         levels=args.phoc_levels,
+                                         parent_feeder=ItemFeeder('txt')))
 
 
     trainer = laia.engine.Trainer(
@@ -182,8 +181,67 @@ if __name__ == '__main__':
         progress_bar='Valid' if args.show_progress_bar else False)
 
 
+    trainer.set_early_stop_trigger(Any(*early_stop_triggers)).add_evaluator(evaluator)
 
-    trainer.set_early_stop_trigger(Any(*early_stop_triggers))
+
+
+
+
+    train_timer = TimeMeter()
+    train_loss_meter = RunningAverageMeter()
+    valid_timer = TimeMeter()
+    valid_loss_meter = RunningAverageMeter()
+    ap_meter = AllPairsMetricAveragePrecisionMeter(
+        metric='braycurtis',
+        ignore_singleton=True)
+
+    def train_reset_meters(**kwargs):
+        train_timer.reset()
+        train_loss_meter.reset()
+
+    def valid_reset_meters(**kwargs):
+        valid_timer.reset()
+        valid_loss_meter.reset()
+        ap_meter.reset()
+
+    def train_accumulate_loss(batch_loss, **kwargs):
+        train_loss_meter.add(batch_loss)
+
+    def valid_accumulate_loss(batch, batch_output, batch_target, **kwargs):
+        batch_loss = trainer.criterion(batch_output, batch_target)
+        valid_loss_meter.add(batch_loss)
+
+        ap_meter.add(batch_output.data.cpu().numpy(), [''.join(w) for w in batch['txt']])
+
+    def valid_report_epoch(epoch, **kwargs):
+        # Average loss in the last EPOCH
+        tr_loss, _ = train_loss_meter.value
+        va_loss, _ = valid_loss_meter.value
+        # Timers
+        tr_time = train_timer.value
+        va_time = valid_timer.value
+        # Global and Mean AP for validation
+        g_ap, m_ap = ap_meter.value
+        print('Epoch {:4d}, '
+              'TR Loss = {:.3e}, '
+              'VA Loss = {:.3e}, '
+              'VA gAP  = {:.3e}, '
+              'VA mAP  = {:.3e}, '
+              'TR Time = {:.2f}s, '
+              'VA Time = {:.2f}s'.format(
+                  epoch,
+                  tr_loss,
+                  va_loss,
+                  g_ap,
+                  m_ap,
+                  tr_time,
+                  va_time))
+
+    trainer.add_hook(trainer.ON_EPOCH_START, train_reset_meters)
+    evaluator.add_hook(evaluator.ON_EPOCH_START, valid_reset_meters)
+    trainer.add_hook(trainer.ON_BATCH_END, train_accumulate_loss)
+    evaluator.add_hook(evaluator.ON_BATCH_END, valid_accumulate_loss)
+    evaluator.add_hook(evaluator.ON_EPOCH_END, valid_report_epoch)
 
 
     """
