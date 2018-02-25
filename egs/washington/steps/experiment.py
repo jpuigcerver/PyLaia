@@ -14,6 +14,7 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
 from laia.data import PaddedTensor
 
+from laia.meter import AllPairsMetricAveragePrecisionMeter
 
 from laia.losses.loss import Loss
 from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
@@ -55,8 +56,8 @@ class Model(torch.nn.Module):
             torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
             # conv3_6
-            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            torch.nn.ReLU(inplace=True),
+            #torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            #torch.nn.ReLU(inplace=True),
             # conv4_1
             torch.nn.Conv2d(256, 512, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),

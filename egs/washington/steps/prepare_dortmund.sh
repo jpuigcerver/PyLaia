@@ -74,3 +74,8 @@ awk '{ for(i=2; i <= NF; ++i) print $i; }' \
   }{
     printf("%-8s %d\n", $1, N++);
   }' > train/dortmund/syms.txt;
+
+# Prepare symbols table for PHOC training
+[ -s train/dortmund/phoc_syms.txt ] ||
+awk 'NR>1{ printf("%-5s %d\n", $1, NR - 2); }' \
+    train/dortmund/syms.txt > train/dortmund/phoc_syms.txt;

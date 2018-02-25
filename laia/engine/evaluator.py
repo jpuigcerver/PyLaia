@@ -69,14 +69,18 @@ class Evaluator(object):
             batch_target = self._batch_target_fn(data)
             self.__call_hooks('on_start_batch',
                               iteration=it,
+                              batch=data,
                               batch_input=batch_input,
                               batch_target=batch_target)
 
-            self._model.eval()
+            # Put model in eval mode
+            if hasattr(self._model, 'eval'):
+                self._model.eval()
             batch_output = self._model(batch_input)
 
             self.__call_hooks('on_end_batch',
                               iteration=it,
+                              batch=data,
                               batch_input=batch_input,
                               batch_target=batch_target,
                               batch_output=batch_output)
