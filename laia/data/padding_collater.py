@@ -29,7 +29,11 @@ def _get_max_size_and_check_batch_tensor(batch, expected_shape):
         else:
             assert maxv == expected_shape[d] and minv == expected_shape[d]
             max_sizes.append(expected_shape[d])
-    return max_sizes
+    if expected_shape:
+        fixed_size = all([x is not None for x in expected_shape])
+    else:
+        fixed_size = False
+    return max_sizes, fixed_size
 
 
 class PaddingCollater(object):
@@ -46,21 +50,27 @@ class PaddingCollater(object):
         error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
         elem_type = type(batch[0])
         if torch.is_tensor(batch[0]):
-            max_sizes = _get_max_size_and_check_batch_tensor(batch,
-                                                             padded_shapes)
-            out = batch[0].new(*max_sizes).zero_()
-            for i, x in enumerate(batch):
-                # Change this to handle arbitrary dimensions.
-                if x.dim() == 1:
-                    out[i][:x.size(0)] = x
-                elif x.dim() == 2:
-                    out[i][:x.size(0), :x.size(1)] = x
-                elif x.dim() == 3:
-                    out[i][:x.size(0), :x.size(1), :x.size(2)] = x
-                else:
-                    raise NotImplementedError('This is not implemented')
-            return PaddedTensor(data=out,
-                                sizes=torch.stack([torch.LongTensor(list(x.size())) for x in batch]))
+            max_sizes, fixed_size = _get_max_size_and_check_batch_tensor(
+                batch, padded_shapes)
+            if fixed_size:
+                return torch.stack(batch)
+            else:
+                out = batch[0].new(*max_sizes).zero_()
+                for i, x in enumerate(batch):
+                    # TODO(jpuigcerver): Change this to handle arbitrary dimensions.
+                    if x.dim() == 1:
+                        out[i][:x.size(0)] = x
+                    elif x.dim() == 2:
+                        out[i][:x.size(0), :x.size(1)] = x
+                    elif x.dim() == 3:
+                        out[i][:x.size(0), :x.size(1), :x.size(2)] = x
+                    elif x.dim() == 4:
+                        out[i][:x.size(0), :x.size(1), :x.size(2), :x.size(3)] = x
+                    else:
+                        raise NotImplementedError('This is not implemented')
+                sizes = torch.stack([torch.LongTensor(list(x.size())) for x in batch])
+                return PaddedTensor(data=out, sizes=sizes)
+
         elif (elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_'
               and elem_type.__name__ != 'string_'):
             elem = batch[0]

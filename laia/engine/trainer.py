@@ -123,6 +123,7 @@ class Trainer(object):
                 self.__call_hooks('on_start_batch',
                                   epoch=self._epochs,
                                   iteration=self._iterations,
+                                  batch=data,
                                   batch_input=batch_input,
                                   batch_target=batch_target)
 
@@ -140,6 +141,7 @@ class Trainer(object):
                 self.__call_hooks('on_end_batch',
                                   epoch=self._epochs,
                                   iteration=self._iterations,
+                                  batch=data,
                                   batch_input=batch_input,
                                   batch_target=batch_target,
                                   batch_loss=loss_and_output[0],
