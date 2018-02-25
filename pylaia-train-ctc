@@ -11,7 +11,8 @@ from torch.utils.data import DataLoader
 
 import laia
 import laia.models.htr
-from laia.distorter import ImageDistorter
+
+from laia.engine.feeders import ImageFeeder, ItemFeeder
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -84,56 +85,25 @@ if __name__ == '__main__':
     optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
                                     momentum=args.momentum)
 
-    distorter = ImageDistorter()
 
+    trainer = laia.engine.Trainer(
+        model=model,
+        # This is set automatically by HtrEngineWrapper
+        criterion=None,
+        optimizer=optimizer,
+        data_loader=tr_ds_loader,
+        batch_input_fn=ImageFeeder(device=args.gpu,
+                                   requires_grad=True,
+                                   parent_feeder=ItemFeeder('img')),
+        batch_target_fn=ItemFeeder('txt'))
 
-    def batch_input_fn(batch):
-        assert (isinstance(batch['img'], laia.data.PaddedTensor) or
-                torch.is_tensor(batch['img']))
-        if isinstance(batch['img'], laia.data.PaddedTensor):
-            x = batch['img'].data
-            xs = batch['img'].sizes[:, 1:].contiguous()
-            if args.gpu > 0:
-                x, xs = x.cuda(args.gpu - 1), xs.cuda(args.gpu - 1)
-            else:
-                x, xs = x.cpu(), xs.cpu()
-            return laia.data.PaddedTensor(data=Variable(x), sizes=Variable(xs))
-        else:
-            if args.gpu > 0:
-                x = batch['img'].cuda(args.gpu - 1)
-            else:
-                x = batch['img'].cpu()
-            return Variable(x)
-
-
-    def batch_target_fn(batch):
-        return batch['txt']
-
-
-    def distort_input_fn(batch):
-        x = batch_input_fn(batch)
-        if isinstance(x, laia.data.PaddedTensor):
-            x, xs = x.data, x.sizes
-            x = x.data if isinstance(x, Variable) else x
-            xs = xs.data if isinstance(xs, Variable) else xs
-            return laia.data.PaddedTensor(data=Variable(distorter(x)), sizes=xs)
-        else:
-            x = x.data if isinstance(x, Variable) else x
-            return Variable(x)
-
-
-    ctc = laia.losses.CTCLoss()
-    trainer = laia.engine.Trainer(model=model,
-                                  criterion=ctc,
-                                  optimizer=optimizer,
-                                  dataset=tr_ds_loader,
-                                  batch_input_fn=distort_input_fn,
-                                  batch_target_fn=batch_target_fn)
-
-    evaluator = laia.engine.Evaluator(model=model,
-                                      dataset=va_ds_loader,
-                                      batch_input_fn=batch_input_fn,
-                                      batch_target_fn=batch_target_fn)
+    evaluator = laia.engine.Evaluator(
+        model=model,
+        data_loader=va_ds_loader,
+        batch_input_fn=ImageFeeder(device=args.gpu,
+                                   requires_grad=True,
+                                   parent_feeder=ItemFeeder('img')),
+        batch_target_fn=ItemFeeder('txt'))
 
     engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
     engine_wrapper.run()
