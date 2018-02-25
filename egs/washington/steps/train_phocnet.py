@@ -16,6 +16,7 @@ from laia.data import PaddedTensor
 
 from laia.losses.loss import Loss
 from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
+from laia.engine.feeders import ImageFeeder, ItemFeeder, VariableFeeder
 
 from laia.savers import SaverTrigger, SaverTriggerCollection
 
@@ -80,58 +81,6 @@ def Model(phoc_size):
     )
 
 
-class TensorArgumentToDevice(object):
-    def __init__(self, argname, device, requires_grad=False):
-        self._argname = argname
-        self._device = device
-        self._requires_grad = requires_grad
-
-    def __call__(self, batch):
-        out = batch[self._argname]
-        if isinstance(out, PaddedTensor):
-            x = Variable(out.data, requires_grad=self._requires_grad)
-            xs = Variable(out.sizes, requires_grad=self._requires_grad)
-            if self._device > 0:
-                return PaddedTensor(data=x.cuda(self._device - 1),
-                                    sizes=xs.cuda(self._device - 1))
-            else:
-                return PaddedTensor(data=x.cpu(), sizes=xs.cpu())
-        else:
-            if self._device > 0:
-                return Variable(out.cuda(self._device - 1))
-            else:
-                return Variable(out.cpu())
-
-
-class PaddedImageArgumentToDevice(TensorArgumentToDevice):
-    def __init__(self, argname, device, requires_grad=False,
-                 keep_channels=False):
-        super(PaddedImageArgumentToDevice, self).__init__(
-            argname, device, requires_grad)
-        self._keep_channels = keep_channels
-
-    def __call__(self, batch):
-        out = super(PaddedImageArgumentToDevice, self).__call__(batch)
-        assert isinstance(out, PaddedTensor) or torch.is_tensor(out)
-        if self._keep_channel or not isinstance(out, PaddedTensor):
-            return out
-        else:
-            return PaddedTensor(data=out.data,
-                                sizes=out.sizes[:, 1:].contiguous())
-
-class IgnorePaddingArgumentToDevice(TensorArgumentToDevice):
-    def __init__(self, argname, device, requires_grad=False):
-        super(IgnorePaddingArgumentToDevice, self).__init__(
-            argname, device, requires_grad)
-
-    def __call__(self, batch):
-        out = super(IgnorePaddingArgumentToDevice, self).__call__(batch)
-        if isinstance(out, PaddedTensor):
-            return out.data
-        else:
-            return out
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=8,
@@ -149,6 +98,8 @@ if __name__ == '__main__':
     parser.add_argument('--phoc_levels', type=int, default=[1,2,3,4,5],
                         nargs='+',
                         help='PHOC levels used to encode the transcript')
+    parser.add_argument('--show_progress_bar', type=bool, default=True,
+                        help='If true, show progress bar for each epoch')
     parser.add_argument('syms')
     parser.add_argument('tr_img_dir')
     parser.add_argument('tr_txt_table')
@@ -206,21 +157,29 @@ if __name__ == '__main__':
             MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
 
 
-    batch_input_fn = IgnorePaddingArgumentToDevice('img', args.gpu)
-    batch_target_fn = TensorArgumentToDevice('txt', args.gpu)
+    batch_input_fn = ImageFeeder(device=args.gpu,
+                                 keep_padded_tensors=False,
+                                 requires_grad=True,
+                                 parent_feeder=ItemFeeder('img'))
+    batch_target_fn = VariableFeeder(device=args.gpu,
+                                     parent_feeder=ItemFeeder('txt'))
 
-    trainer = laia.engine.Trainer(model=model,
-                                  criterion=loss,
-                                  optimizer=optimizer,
-                                  dataset=tr_ds_loader,
-                                  batch_input_fn=batch_input_fn,
-                                  batch_target_fn=batch_target_fn)
 
-    evaluator = laia.engine.Evaluator(model=model,
-                                      dataset=va_ds_loader,
-                                      batch_input_fn=batch_input_fn,
-                                      batch_target_fn=batch_target_fn)
+    trainer = laia.engine.Trainer(
+        model=model,
+        criterion=loss,
+        optimizer=optimizer,
+        data_loader=tr_ds_loader,
+        batch_input_fn=batch_input_fn,
+        batch_target_fn=batch_target_fn,
+        progress_bar='Train' if args.show_progress_bar else False)
 
+    evaluator = laia.engine.Evaluator(
+        model=model,
+        data_loader=va_ds_loader,
+        batch_input_fn=batch_input_fn,
+        batch_target_fn=batch_target_fn,
+        progress_bar='Valid' if args.show_progress_bar else False)
 
 
 

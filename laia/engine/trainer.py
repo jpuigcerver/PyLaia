@@ -1,159 +1,148 @@
 from __future__ import absolute_import
 
-try:
-    from tqdm import tqdm
-except ImportError:
-    def tqdm(x):
-        return x
+from laia.engine.engine import Engine
 
 
-class Trainer(object):
-    def __init__(self, model, criterion, optimizer, dataset,
-                 batch_input_fn=None, batch_target_fn=None,
-                 early_stop_trigger=None,
-                 epoch_saver_trigger=None,
-                 iteration_saver_trigger=None):
-        self._model = model
+class Trainer(Engine):
+    r"""Wrapper class to train a model.
+
+    See :class:`laia.engine.Engine` for more information.
+
+    Arguments:
+      model: model to train.
+      data_loader (iterable): iterable object from which batches are read.
+      batch_input_fn (callable): function used to extract the input for the
+          model (e.g. a ``torch.Tensor``), from the batch loaded by the
+          ``data_loader``. Use ``None`` to fed the batch as-is.
+      batch_target_fn (callable): function used to extract the target passed
+          to the ``criterion`` with the model output, from the batch loaded
+          by the ``data_loader``. Use ``None`` to fed the batch as-is.
+      criterion (callable): used criterion to train the model.
+      optimizer (:class:`torch.Optimizer`): optimizer object that will update
+          the parameters of the model.
+      early_stop_trigger (callable, optional): function used to decide whether
+          the training must stop (when the trigger returns ``True``) or
+          continue (when return ``False``). If ``None``, the training will
+          run forever. (default: None)
+      progress_bar (bool or str, optional): if ``True``, :mod:`tqdm` will be
+          used to show a progress bar for each epoch. If a string is given,
+          the content of the string will be shown before the progress bar.
+          If the module :mod:`tqdm` is not installed, this will be ignored.
+          (default: None)
+    """
+    def __init__(self, model, data_loader, batch_input_fn, batch_target_fn,
+                 criterion, optimizer, early_stop_trigger=None,
+                 progress_bar=None):
+        super(Trainer, self).__init__(model=model,
+                                      data_loader=data_loader,
+                                      batch_input_fn=batch_input_fn,
+                                      batch_target_fn=batch_target_fn,
+                                      progress_bar=progress_bar)
         self._criterion = criterion
-        self._dataset = dataset
         self._optimizer = optimizer
-        self._iterations = 0
-        self._epochs = 0
-        self._batch_input_fn = None
-        self._batch_target_fn = None
         self._early_stop_trigger = None
-        self._epoch_saver_trigger = None
-        self._iteration_saver_trigger = None
-        self._hooks = {
-            'on_start_epoch': [],
-            'on_start_batch': [],
-            'on_end_epoch': [],
-            'on_end_batch': [],
-        }
-
-        # Default functions
-        self.set_batch_input_fn(batch_input_fn)
-        self.set_batch_target_fn(batch_target_fn)
         self.set_early_stop_trigger(early_stop_trigger)
-        self.set_epoch_saver_trigger(epoch_saver_trigger)
-        self.set_iteration_saver_trigger(iteration_saver_trigger)
-
-    @property
-    def model(self):
-        return self._model
-
-    @property
-    def iterations(self):
-        return self._iterations
-
-    @property
-    def epochs(self):
-        return self._epochs
 
     @property
     def criterion(self):
         return self._criterion
 
     @property
-    def hooks(self):
-        return self._hooks
+    def optimizer(self):
+        return self._optimizer
 
-    def set_batch_input_fn(self, fn):
-        if fn is None:
-            self._batch_input_fn = lambda x: x
-        else:
-            assert(callable(fn))
-            self._batch_input_fn = fn
+    def add_evaluator(self, evaluator):
+        r"""Add an evaluator to run at the end of each epoch."""
+        def run_eval(**kwargs):
+            evaluator.run()
+
+        if evaluator is not None:
+            self.add_hook(self.ON_EPOCH_END, run_eval)
+        return self
 
     def set_batch_target_fn(self, fn):
+        r"""Set the function to obtain the targets for the loss.
+
+        The argument can be either a function or a callable object that
+        will receive as a single argument the batch read from the
+        ``data_loader``, and must return the appropriate target for the
+        used loss to train the model.
+        """
         if fn is None:
             self._batch_target_fn = lambda x: x
         else:
             assert(callable(fn))
             self._batch_target_fn = fn
+        return self
+
+    def set_criterion(self, criterion):
+        assert callable(criterion)
+        self._criterion = criterion
+        return self
 
     def set_early_stop_trigger(self, trigger):
+        r"""Set the trigger used for early stopping.
+
+        Args:
+          trigger (callable): a function or callable object that returns
+              True when training must be stopped, or False otherwise.
+        """
         if trigger is None:
             self._early_stop_trigger = lambda: False
         else:
             assert(callable(trigger))
             self._early_stop_trigger = trigger
-
-    def set_epoch_saver_trigger(self, trigger):
-        if trigger is None:
-            self._epoch_saver_trigger = lambda x: False
-        else:
-            assert(callable(trigger))
-            self._epoch_saver_trigger = trigger
-
-    def set_iteration_saver_trigger(self, trigger):
-        if trigger is None:
-            self._iteration_saver_trigger = lambda x: False
-        else:
-            assert(callable(trigger))
-            self._iteration_saver_trigger = trigger
-
-    def add_hook(self, when, func):
-        assert when in self._hooks, '"%s" is not a valid hook event' % when
-        if func is not None:
-            self._hooks[when].append(func)
-
-    def __call_hooks(self, when, **kwargs):
-        assert when in self._hooks, '"%s" is not a valid hook event' % when
-        for hook in self._hooks[when]:
-            hook(trainer=self, **kwargs)
-
-    def add_evaluator(self, evaluator):
-        def run_eval(**kwargs):
-            evaluator.run()
-
-        if evaluator is not None:
-            self.add_hook('on_end_epoch', run_eval)
+        return self
 
     def run(self):
-        saved = False
+        r"""Run training until the early stop trigger returns True."""
+        assert callable(self.criterion)
+        assert callable(self._batch_input_fn), (
+            'batch_input_fn (type: {!r}) is not callable'.format(
+                str(self._batch_target_fn)))
+        assert callable(self._batch_target_fn), (
+            'batch_target_fn (type: {!r}) is not callable'.format(
+                str(self._batch_target_fn)))
+
         while not self._early_stop_trigger():
-            self._epochs += 1
-            self.__call_hooks('on_start_epoch', epoch=self._epochs)
-            for it, data in enumerate(tqdm(self._dataset), 1):
-                self._iterations += 1
-                batch_input = self._batch_input_fn(data)
-                batch_target = self._batch_target_fn(data)
-                loss_and_output = [None, None]
-                self.__call_hooks('on_start_batch',
-                                  epoch=self._epochs,
-                                  iteration=self._iterations,
-                                  batch=data,
-                                  batch_input=batch_input,
-                                  batch_target=batch_target)
+            self._run_epoch()
+        return self
 
-                def closure():
-                    self._model.train()
-                    batch_output = self._model(batch_input)
-                    batch_loss = self._criterion(batch_output, batch_target)
-                    batch_loss.backward()
-                    loss_and_output[0] = batch_loss
-                    loss_and_output[1] = batch_output
-                    return batch_loss
+    def _run_iteration(self, it, batch):
+        self._iterations += 1
 
-                self._optimizer.zero_grad()
-                self._optimizer.step(closure)
-                self.__call_hooks('on_end_batch',
-                                  epoch=self._epochs,
-                                  iteration=self._iterations,
-                                  batch=data,
-                                  batch_input=batch_input,
-                                  batch_target=batch_target,
-                                  batch_loss=loss_and_output[0],
-                                  batch_output=loss_and_output[1])
+        batch_input = self._batch_input_fn(batch)
+        batch_target = self._batch_target_fn(batch)
 
-                # After all hooks have been executed, trigger iteration saver
-                if self._iteration_saver_trigger(self):
-                    saved = True
+        self._call_hooks(self.ON_BATCH_START,
+                         batch=batch,
+                         batch_num=it,
+                         epoch=self._epochs,
+                         iteration=self._iterations,
+                         batch_input=batch_input,
+                         batch_target=batch_target)
 
-            self._iterations += it
-            self.__call_hooks('on_end_epoch', epoch=self._epochs)
 
-            # After all hooks have been executed, trigger epoch saver
-            if self._epoch_saver_trigger(self):
-                saved = True
+        loss_and_output = [None, None]
+        def closure():
+            if hasattr(self._model, 'eval'):
+                self._model.train()
+            batch_output = self._model(batch_input)
+            batch_loss = self._criterion(batch_output, batch_target)
+            batch_loss.backward()
+            loss_and_output[0] = batch_loss
+            loss_and_output[1] = batch_output
+            return batch_loss
+
+        self._optimizer.zero_grad()
+        self._optimizer.step(closure)
+
+        self._call_hooks(self.ON_BATCH_END,
+                         batch=batch,
+                         batch_num=it,
+                         epoch=self._epochs,
+                         iteration=self._iterations,
+                         batch_input=batch_input,
+                         batch_target=batch_target,
+                         batch_loss=loss_and_output[0],
+                         batch_output=loss_and_output[1])

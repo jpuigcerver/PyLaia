@@ -18,7 +18,7 @@ from laia.meter import AllPairsMetricAveragePrecisionMeter
 
 from laia.losses.loss import Loss
 from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
-
+from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.savers import SaverTrigger, SaverTriggerCollection
 
 
@@ -201,12 +201,12 @@ if __name__ == '__main__':
     trainer = laia.engine.Trainer(model=model,
                                   criterion=ctc,
                                   optimizer=optimizer,
-                                  dataset=tr_ds_loader,
+                                  data_loader=tr_ds_loader,
                                   batch_input_fn=batch_input_fn,
                                   batch_target_fn=batch_target_fn)
 
     evaluator = laia.engine.Evaluator(model=model,
-                                      dataset=va_ds_loader,
+                                      data_loader=va_ds_loader,
                                       batch_input_fn=batch_input_fn,
                                       batch_target_fn=batch_target_fn)
 
