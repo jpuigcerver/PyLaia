@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
 from builtins import range
 
 import torch
@@ -11,6 +10,7 @@ from torch.autograd import Variable
 
 import laia
 from laia.distorter import ImageDistorter
+from laia.utils.arguments import add_defaults, add_argument, args
 
 
 class RectanglesToTensor(object):
@@ -27,21 +27,12 @@ class RectanglesToTensor(object):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=8,
-                        help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.0005,
-                        help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=None,
-                        help='Momentum')
-    parser.add_argument('--max_updates', type=int, default=None,
-                        help='Maximum number of training updates (iterations)')
-    parser.add_argument('--gpu', type=int, default=1,
-                        help='Use this GPU (starting from 1)')
-    parser.add_argument('tr_img_dir')
-    parser.add_argument('tr_table')
-    parser.add_argument('va_table', nargs='?')
-    args = parser.parse_args()
+    add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu')
+    add_argument('--max_updates', type=int, help='Maximum number of training updates (iterations)')
+    add_argument('tr_img_dir')
+    add_argument('tr_table')
+    add_argument('va_table', nargs='?')
+    args = args()
 
     # Build model!
     model = None
