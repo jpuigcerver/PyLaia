@@ -2,36 +2,23 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import argparse
-
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-import laia
 import laia.models.htr
-
 from laia.engine.feeders import ImageFeeder, ItemFeeder
+from laia.utils.arguments import add_argument, args, add_defaults
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=8,
-                        help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.0005,
-                        help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=0,
-                        help='Momentum')
-    parser.add_argument('--max_updates', type=int, default=None,
-                        help='Maximum number of training updates (iterations)')
-    parser.add_argument('--gpu', type=int, default=1,
-                        help='Use this GPU (starting from 1)')
-    parser.add_argument('syms')
-    parser.add_argument('tr_img_dir')
-    parser.add_argument('tr_txt_table')
-    parser.add_argument('va_txt_table')
-
-    args = parser.parse_args()
+    add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu')
+    add_argument('--max_updates', type=int, default=None,
+                 help='Maximum number of training updates (iterations)')
+    add_argument('syms')
+    add_argument('tr_img_dir')
+    add_argument('tr_txt_table')
+    add_argument('va_txt_table')
+    args = args()
 
     syms = laia.utils.SymbolsTable(args.syms)
 
@@ -82,9 +69,9 @@ if __name__ == '__main__':
         model = model.cpu()
 
     parameters = model.parameters()
-    optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
+    optimizer = torch.optim.RMSprop(parameters,
+                                    lr=args.learning_rate,
                                     momentum=args.momentum)
-
 
     trainer = laia.engine.Trainer(
         model=model,

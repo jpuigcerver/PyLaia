@@ -3,24 +3,16 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import argparse
+import torch
+
 import laia.data
 import laia.engine
 import laia.nn
 import laia.utils
-import os
-import torch
-from torch.autograd import Variable
-from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
-from laia.data import PaddedTensor
-
-from laia.losses.loss import Loss
-from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
 from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
-
-from laia.savers import SaverTrigger, SaverTriggerCollection
-
+from laia.engine.triggers import Any, MaxEpochs
 from laia.meters import TimeMeter, RunningAverageMeter, AllPairsMetricAveragePrecisionMeter
+from laia.utils.arguments import add_argument, add_defaults, args
 
 
 def Model(phoc_size):
@@ -69,7 +61,7 @@ def Model(phoc_size):
         # SPP layer
         laia.nn.PyramidMaxPool2d(levels=3),
         # Linear layers
-        torch.nn.Linear(512 * (3 + 2 +1), 4096),
+        torch.nn.Linear(512 * (3 + 2 + 1), 4096),
         torch.nn.ReLU(inplace=True),
         torch.nn.Dropout(),
         torch.nn.Linear(4096, 4096),
@@ -82,29 +74,16 @@ def Model(phoc_size):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=8,
-                        help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.0005,
-                        help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=0,
-                        help='Momentum')
-    parser.add_argument('--gpu', type=int, default=1,
-                        help='Use this GPU (starting from 1)')
-    parser.add_argument('--seed', type=int, default=0x12345,
-                        help='Seed for random number generators')
-    parser.add_argument('--max_epochs', type=int, default=None,
-                        help='Maximum number of training epochs')
-    parser.add_argument('--phoc_levels', type=int, default=[1,2,3,4,5],
-                        nargs='+',
-                        help='PHOC levels used to encode the transcript')
-    parser.add_argument('--show_progress_bar', type=bool, default=True,
-                        help='If true, show progress bar for each epoch')
-    parser.add_argument('syms')
-    parser.add_argument('tr_img_dir')
-    parser.add_argument('tr_txt_table')
-    parser.add_argument('va_txt_table')
-    args = parser.parse_args()
+    add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu', 'seed', 'max_epochs')
+    add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
+                 help='PHOC levels used to encode the transcript')
+    add_argument('--show_progress_bar', type=bool, default=True,
+                 help='If true, show progress bar for each epoch')
+    add_argument('syms')
+    add_argument('tr_img_dir')
+    add_argument('tr_txt_table')
+    add_argument('va_txt_table')
+    args = args()
 
     laia.manual_seed(args.seed)
 
@@ -141,8 +120,6 @@ if __name__ == '__main__':
             'img': [1, None, None],
         }, sort_key=lambda x: -x['img'].size(2)))
 
-
-
     # List of early stop triggers.
     # If any of these returns True, training will stop.
     early_stop_triggers = []
@@ -151,7 +128,6 @@ if __name__ == '__main__':
     if args.max_epochs and args.max_epochs > 0:
         early_stop_triggers.append(
             MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
-
 
     batch_input_fn = ImageFeeder(device=args.gpu,
                                  keep_padded_tensors=False,
@@ -162,7 +138,6 @@ if __name__ == '__main__':
                                          syms=syms,
                                          levels=args.phoc_levels,
                                          parent_feeder=ItemFeeder('txt')))
-
 
     trainer = laia.engine.Trainer(
         model=model,
@@ -180,12 +155,7 @@ if __name__ == '__main__':
         batch_target_fn=batch_target_fn,
         progress_bar='Valid' if args.show_progress_bar else False)
 
-
     trainer.set_early_stop_trigger(Any(*early_stop_triggers)).add_evaluator(evaluator)
-
-
-
-
 
     train_timer = TimeMeter()
     train_loss_meter = RunningAverageMeter()
@@ -195,23 +165,28 @@ if __name__ == '__main__':
         metric='braycurtis',
         ignore_singleton=True)
 
+
     def train_reset_meters(**kwargs):
         train_timer.reset()
         train_loss_meter.reset()
+
 
     def valid_reset_meters(**kwargs):
         valid_timer.reset()
         valid_loss_meter.reset()
         ap_meter.reset()
 
+
     def train_accumulate_loss(batch_loss, **kwargs):
         train_loss_meter.add(batch_loss)
+
 
     def valid_accumulate_loss(batch, batch_output, batch_target, **kwargs):
         batch_loss = trainer.criterion(batch_output, batch_target)
         valid_loss_meter.add(batch_loss)
 
         ap_meter.add(batch_output.data.cpu().numpy(), [''.join(w) for w in batch['txt']])
+
 
     def valid_report_epoch(epoch, **kwargs):
         # Average loss in the last EPOCH
@@ -229,20 +204,20 @@ if __name__ == '__main__':
               'VA mAP  = {:.3e}, '
               'TR Time = {:.2f}s, '
               'VA Time = {:.2f}s'.format(
-                  epoch,
-                  tr_loss,
-                  va_loss,
-                  g_ap,
-                  m_ap,
-                  tr_time,
-                  va_time))
+            epoch,
+            tr_loss,
+            va_loss,
+            g_ap,
+            m_ap,
+            tr_time,
+            va_time))
+
 
     trainer.add_hook(trainer.ON_EPOCH_START, train_reset_meters)
     evaluator.add_hook(evaluator.ON_EPOCH_START, valid_reset_meters)
     trainer.add_hook(trainer.ON_BATCH_END, train_accumulate_loss)
     evaluator.add_hook(evaluator.ON_BATCH_END, valid_accumulate_loss)
     evaluator.add_hook(evaluator.ON_EPOCH_END, valid_report_epoch)
-
 
     """
     class LastParametersSaver(object):

@@ -265,18 +265,18 @@ class ImageDistorter(Distorter):
 
 
 if __name__ == '__main__':
+    from laia.utils.arguments import add_argument, args, add_defaults
     import argparse
     from PIL import Image, ImageOps
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--draw_boundary', action='store_true')
-    parser.add_argument('--aligned_center', action='store_true')
-    parser.add_argument('--seed', type=int, default=0x12345)
-    parser.add_argument('--ncol', type=int, default=1)
-    parser.add_argument('--scale', type=float, default=1.0)
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('img', type=argparse.FileType('r'), nargs='*')
-    args = parser.parse_args()
+    add_defaults('seed')
+    add_argument('--draw_boundary', action='store_true')
+    add_argument('--aligned_center', action='store_true')
+    add_argument('--ncol', type=int, default=1)
+    add_argument('--scale', type=float, default=1.0)
+    add_argument('--gpu', type=int, default=0)
+    add_argument('img', type=argparse.FileType('r'), nargs='*')
+    args = args()
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
