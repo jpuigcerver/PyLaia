@@ -2,7 +2,11 @@ from __future__ import absolute_import
 
 import unittest
 
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
+
 import numpy as np
 
 from laia.data.image_dataset import ImageDataset

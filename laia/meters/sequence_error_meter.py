@@ -6,9 +6,15 @@ from laia.meters.meter import Meter
 
 
 class SequenceErrorMeter(Meter):
+    def __init__(self):
+        super(SequenceErrorMeter, self).__init__()
+        self._num_errors = 0
+        self._ref_length = 0
+
     def reset(self):
         self._num_errors = 0
         self._ref_length = 0
+        return self
 
     def add(self, refs, hyps):
         assert hasattr(refs, '__iter__') or hasattr(refs, '__getitem__')
@@ -18,6 +24,7 @@ class SequenceErrorMeter(Meter):
         for ref, hyp in zip(refs, hyps):
             self._num_errors += editdistance.eval(ref, hyp)
             self._ref_length += len(ref)
+        return self
 
     @property
     def value(self):

@@ -8,13 +8,15 @@ import laia.data
 import laia.engine
 import laia.nn
 import laia.utils
+import logging
+import numpy as np
 import os
+import subprocess
 import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
-from laia.data import PaddedTensor
-
-from laia.losses.loss import Loss
+from laia.data import FixedSizeSampler, PaddedTensor
+from collections import OrderedDict
 from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
 from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
 
@@ -23,72 +25,118 @@ from laia.savers import SaverTrigger, SaverTriggerCollection
 from laia.meters import TimeMeter, RunningAverageMeter, AllPairsMetricAveragePrecisionMeter
 
 
-def Model(phoc_size):
-    return torch.nn.Sequential(
+import torch.nn.functional as F
+class MyBCELoss(laia.losses.loss.Loss):
+    def __call__(self, output, target):
+        loss = F.binary_cross_entropy(output, target, weight=None,
+                                      size_average=False)
+        return loss / output.size(0)
+
+def load_caffe_model_txt(txtfile):
+    if isinstance(txtfile, str):
+        txtfile = open(txtfile, 'r')
+    weights = []
+    player = None
+    for line in txtfile:
+        line = line.split()
+        l = '_'.join(line[0].split('_')[:-1])
+        i = int(line[0].split('_')[-1])
+        d = int(line[1])
+        shape = [int(x) for x in line[2:(d+2)]]
+        numel = reduce(lambda y, x: y * x, shape, 1)
+        w = np.zeros(numel)
+        for k, x in enumerate(line[(d+2):]):
+            w[k] = float(x)
+        w = w.reshape(shape)
+        print l, i, w.shape
+        if l != player:
+            weights.append(('%s.weight' % l, torch.from_numpy(w)))
+            player = l
+        else:
+            weights.append(('%s.bias' % l, torch.from_numpy(w)))
+    return OrderedDict(weights)
+
+def set_model_weights_from_caffe(pytorch_model, caffe_weights):
+    pytorch_model.load_state_dict(caffe_weights)
+    return pytorch_model
+
+
+def Model(phoc_size, levels=5):
+    return torch.nn.Sequential(OrderedDict([
         # conv1_1
-        torch.nn.Conv2d(1, 64, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv1_1', torch.nn.Conv2d(1, 64, kernel_size=3, padding=1)),
+        ('relu1_1', torch.nn.ReLU(inplace=True)),
         # conv1_2
-        torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
-        torch.nn.MaxPool2d(2),
+        ('conv1_2', torch.nn.Conv2d(64, 64, kernel_size=3, padding=1)),
+        ('relu1_2', torch.nn.ReLU(inplace=True)),
+        ('maxpool1', torch.nn.MaxPool2d(2)),
         # conv2_1
-        torch.nn.Conv2d(64, 128, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv2_1', torch.nn.Conv2d(64, 128, kernel_size=3, padding=1)),
+        ('relu2_1', torch.nn.ReLU(inplace=True)),
         # conv2_2
-        torch.nn.Conv2d(128, 128, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
-        torch.nn.MaxPool2d(2),
+        ('conv2_2', torch.nn.Conv2d(128, 128, kernel_size=3, padding=1)),
+        ('relu2_2', torch.nn.ReLU(inplace=True)),
+        ('maxpool2', torch.nn.MaxPool2d(2)),
         # conv3_1
-        torch.nn.Conv2d(128, 256, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv3_1', torch.nn.Conv2d(128, 256, kernel_size=3, padding=1)),
+        ('relu3_1', torch.nn.ReLU(inplace=True)),
         # conv3_2
-        torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv3_2', torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)),
+        ('relu3_2', torch.nn.ReLU(inplace=True)),
         # conv3_3
-        torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv3_3', torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)),
+        ('relu3_3', torch.nn.ReLU(inplace=True)),
         # conv3_4
-        torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv3_4', torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)),
+        ('relu3_4', torch.nn.ReLU(inplace=True)),
         # conv3_5
-        torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv3_5', torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)),
+        ('relu3_5', torch.nn.ReLU(inplace=True)),
         # conv3_6
-        torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv3_6', torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)),
+        ('relu3_6', torch.nn.ReLU(inplace=True)),
         # conv4_1
-        torch.nn.Conv2d(256, 512, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv4_1', torch.nn.Conv2d(256, 512, kernel_size=3, padding=1)),
+        ('relu4_1', torch.nn.ReLU(inplace=True)),
         # conv4_2
-        torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv4_2', torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)),
+        ('relu4_2', torch.nn.ReLU(inplace=True)),
         # conv4_3
-        torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
-        torch.nn.ReLU(inplace=True),
+        ('conv4_3', torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)),
+        ('relu4_3', torch.nn.ReLU(inplace=True)),
         # SPP layer
-        laia.nn.PyramidMaxPool2d(levels=3),
+        ('tpp5', laia.nn.PyramidMaxPool2d(levels=levels)),
         # Linear layers
-        torch.nn.Linear(512 * (3 + 2 +1), 4096),
-        torch.nn.ReLU(inplace=True),
-        torch.nn.Dropout(),
-        torch.nn.Linear(4096, 4096),
-        torch.nn.ReLU(inplace=True),
-        torch.nn.Dropout(),
-        torch.nn.Linear(4096, phoc_size),
+        ('fc6', torch.nn.Linear(512 * sum(range(1, levels + 1)), 4096)),
+        ('relu6', torch.nn.ReLU(inplace=True)),
+        ('drop6', torch.nn.Dropout()),
+        ('fc7', torch.nn.Linear(4096, 4096)),
+        ('relu7', torch.nn.ReLU(inplace=True)),
+        ('drop7', torch.nn.Dropout()),
+        ('fc8', torch.nn.Linear(4096, phoc_size)),
         # Predicted PHOC
-        torch.nn.Sigmoid()
-    )
+        ('sigmoid', torch.nn.Sigmoid())
+    ]))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=8,
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--num_samples_per_epoch', type=int, default=None,
+                        help='Use this number of samples randomly sampled '
+                        'from the dataset in each epoch')
+    parser.add_argument('--num_iterations_to_update', type=int, default=10,
+                        help='Update parameters every n iterations')
+    parser.add_argument('--batch_size', type=int, default=1,
                         help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.0005,
+    parser.add_argument('--learning_rate', type=float, default=0.0001,
                         help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=0,
+    parser.add_argument('--momentum', type=float, default=0.9,
                         help='Momentum')
+    parser.add_argument('--weight_decay', type=float, default=0.00005,
+                        help='L2 weight decay')
     parser.add_argument('--gpu', type=int, default=1,
                         help='Use this GPU (starting from 1)')
     parser.add_argument('--seed', type=int, default=0x12345,
@@ -110,7 +158,6 @@ if __name__ == '__main__':
 
     syms = laia.utils.SymbolsTable(args.syms)
 
-    loss = torch.nn.BCELoss()
     phoc_size = sum(args.phoc_levels) * len(syms)
     model = Model(phoc_size)
     if args.gpu > 0:
@@ -118,19 +165,29 @@ if __name__ == '__main__':
     else:
         model = model.cpu()
 
-    parameters = model.parameters()
-    optimizer = torch.optim.RMSprop(parameters, lr=args.learning_rate,
-                                    momentum=args.momentum)
+    logging.info('Model has {} parameters'.format(
+        sum(param.data.numel() for param in model.parameters())))
+    optimizer = torch.optim.SGD(params=model.parameters(),
+                                lr=args.learning_rate,
+                                momentum=args.momentum,
+                                weight_decay=args.weight_decay)
 
     tr_ds = laia.data.TextImageFromTextTableDataset(
         args.tr_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor())
-    tr_ds_loader = torch.utils.data.DataLoader(
-        tr_ds, args.batch_size, num_workers=8,
-        collate_fn=laia.data.PaddingCollater({
-            'img': [1, None, None],
-        }, sort_key=lambda x: -x['img'].size(2)),
-        shuffle=True)
+    if args.num_samples_per_epoch is None:
+        tr_ds_loader = torch.utils.data.DataLoader(
+            tr_ds, batch_size=args.batch_size, num_workers=8, shuffle=True,
+            collate_fn=laia.data.PaddingCollater({
+                'img': [1, None, None],
+            }, sort_key=lambda x: -x['img'].size(2)))
+    else:
+        tr_ds_loader = torch.utils.data.DataLoader(
+            tr_ds, batch_size=args.batch_size, num_workers=8,
+            sampler=FixedSizeSampler(tr_ds, args.num_samples_per_epoch),
+            collate_fn=laia.data.PaddingCollater({
+                'img': [1, None, None],
+            }, sort_key=lambda x: -x['img'].size(2)))
 
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
@@ -166,12 +223,13 @@ if __name__ == '__main__':
 
     trainer = laia.engine.Trainer(
         model=model,
-        criterion=loss,
+        criterion=MyBCELoss(),
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         batch_input_fn=batch_input_fn,
         batch_target_fn=batch_target_fn,
-        progress_bar='Train' if args.show_progress_bar else False)
+        progress_bar='Train' if args.show_progress_bar else False,
+        num_iterations_to_update=args.num_iterations_to_update)
 
     evaluator = laia.engine.Evaluator(
         model=model,
@@ -184,9 +242,6 @@ if __name__ == '__main__':
     trainer.set_early_stop_trigger(Any(*early_stop_triggers)).add_evaluator(evaluator)
 
 
-
-
-
     train_timer = TimeMeter()
     train_loss_meter = RunningAverageMeter()
     valid_timer = TimeMeter()
@@ -194,6 +249,7 @@ if __name__ == '__main__':
     ap_meter = AllPairsMetricAveragePrecisionMeter(
         metric='braycurtis',
         ignore_singleton=True)
+    ap_meter.logger.setLevel(logging.DEBUG)
 
     def train_reset_meters(**kwargs):
         train_timer.reset()
@@ -206,12 +262,14 @@ if __name__ == '__main__':
 
     def train_accumulate_loss(batch_loss, **kwargs):
         train_loss_meter.add(batch_loss)
+        train_timer.stop()
 
     def valid_accumulate_loss(batch, batch_output, batch_target, **kwargs):
         batch_loss = trainer.criterion(batch_output, batch_target)
         valid_loss_meter.add(batch_loss)
-
-        ap_meter.add(batch_output.data.cpu().numpy(), [''.join(w) for w in batch['txt']])
+        valid_timer.stop()
+        ap_meter.add(batch_output.data.cpu().numpy(),
+                     [''.join(w) for w in batch['txt']])
 
     def valid_report_epoch(epoch, **kwargs):
         # Average loss in the last EPOCH
@@ -222,20 +280,24 @@ if __name__ == '__main__':
         va_time = valid_timer.value
         # Global and Mean AP for validation
         g_ap, m_ap = ap_meter.value
-        print('Epoch {:4d}, '
-              'TR Loss = {:.3e}, '
-              'VA Loss = {:.3e}, '
-              'VA gAP  = {:.3e}, '
-              'VA mAP  = {:.3e}, '
-              'TR Time = {:.2f}s, '
-              'VA Time = {:.2f}s'.format(
-                  epoch,
-                  tr_loss,
-                  va_loss,
-                  g_ap,
-                  m_ap,
-                  tr_time,
-                  va_time))
+        logging.info('Epoch {:4d}, '
+                     'TR Loss = {:.3e}, '
+                     'VA Loss = {:.3e}, '
+                     'VA gAP  = {:.2%}, '
+                     'VA mAP  = {:.2%}, '
+                     'TR Time = {:.2f}s, '
+                     'VA Time = {:.2f}s'.format(
+                         epoch,
+                         tr_loss,
+                         va_loss,
+                         g_ap,
+                         m_ap,
+                         tr_time,
+                         va_time))
+
+    def valid_report_epoch2(epoch, **kwargs):
+        g_ap, m_ap = ap_meter.value
+        print('gAP = {:5.1f}%, mAP = {:5.1f}%'.format(g_ap, m_ap))
 
     trainer.add_hook(trainer.ON_EPOCH_START, train_reset_meters)
     evaluator.add_hook(evaluator.ON_EPOCH_START, valid_reset_meters)
@@ -243,6 +305,9 @@ if __name__ == '__main__':
     evaluator.add_hook(evaluator.ON_BATCH_END, valid_accumulate_loss)
     evaluator.add_hook(evaluator.ON_EPOCH_END, valid_report_epoch)
 
+
+    #evaluator.run()
+    #exit(0)
 
     """
     class LastParametersSaver(object):

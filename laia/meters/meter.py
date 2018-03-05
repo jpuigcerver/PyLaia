@@ -3,7 +3,7 @@ class Meter(object):
         self.reset()
 
     def reset(self):
-        pass
+        return self
 
     @property
     def value(self):

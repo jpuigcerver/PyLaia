@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import numpy as np
 
 from functools import reduce
@@ -30,6 +31,8 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
           whose label is not shared with any other object.
     """
 
+    _logger = logging.getLogger(__name__)
+
     def __init__(self, metric='euclidean', ignore_singleton=True):
         self._metric = metric
         self._features = []
@@ -40,11 +43,16 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
         # This is only to detect whether the metric is valid or not.
         _ = pdist([[1, 1], [1, 1]], metric)
 
+    @property
+    def logger(self):
+        return self._logger
+
     def reset(self):
         self._features = []
         self._labels = []
         self._label_count = {}
         self._gap, self._map = None, None
+        return self
 
     def add(self, features, labels):
         r"""Add objects to the set used to compute the AP."""
@@ -59,6 +67,7 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
         for c in labels:
             cnt = self._label_count.get(c, 0)
             self._label_count[c] = cnt + 1
+        return self
 
     def _compute(self):
         # Concatenate all feature tensors (batches).
@@ -66,8 +75,12 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
         if self._ignore_singleton:
             mask = [self._label_count[c] > 1 for c in self._labels]
             all_features = all_features[mask]
+            all_labels = [c for i, c in enumerate(self._labels) if mask[i]]
+        else:
+            all_labels = self._labels
 
         n = all_features.shape[0]   # number of objects
+        self.logger.debug('Compute Average Precision over {} samples'.format(n))
         distances = pdist(all_features, self._metric)
         # Sort pairs of examples in increasing order
         inds = [(i, j) for i in range(n) for j in range(i + 1, n)]
@@ -76,7 +89,7 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
         events = []
         events_i = [[] for i in range(n)]
         for (i, j) in inds:
-            if self._labels[i] == self._labels[j]:
+            if all_labels[i] == all_labels[j]:
                 events.append(1.0)
                 events_i[i].append(1.0)
                 events_i[j].append(1.0)
@@ -88,7 +101,8 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
         if events:
             # Compute Global and Mean Average Precision
             g_ap = self._compute_ap_ranked_events(events)
-            aps = [self._compute_ap_ranked_events(e) for e in events_i if len(e) > 0]
+            aps = [self._compute_ap_ranked_events(e)
+                   for e in events_i if len(e) > 0]
             m_ap = sum(aps) / len(aps)
             return g_ap, m_ap
         else:

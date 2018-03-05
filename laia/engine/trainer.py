@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
 from laia.engine.engine import Engine
+from laia.utils import check_inf, check_nan
+import logging
+import numpy as np
 
 
 class Trainer(Engine):
@@ -29,10 +32,16 @@ class Trainer(Engine):
           the content of the string will be shown before the progress bar.
           If the module :mod:`tqdm` is not installed, this will be ignored.
           (default: None)
+      num_iterations_to_update (int): Number of successive mini-batch
+          parameter gradients to accumulate before updating the parameters.
+          (default: None)
     """
+
+    _logger = logging.getLogger(__name__)
+
     def __init__(self, model, data_loader, batch_input_fn, batch_target_fn,
                  criterion, optimizer, early_stop_trigger=None,
-                 progress_bar=None):
+                 progress_bar=None, num_iterations_to_update=None):
         super(Trainer, self).__init__(model=model,
                                       data_loader=data_loader,
                                       batch_input_fn=batch_input_fn,
@@ -40,8 +49,12 @@ class Trainer(Engine):
                                       progress_bar=progress_bar)
         self._criterion = criterion
         self._optimizer = optimizer
-        self._early_stop_trigger = None
-        self.set_early_stop_trigger(early_stop_trigger)
+        self._early_stop_trigger = early_stop_trigger
+        self._num_iterations_to_update = num_iterations_to_update
+
+    @property
+    def logger(self):
+        return self._logger
 
     @property
     def criterion(self):
@@ -60,24 +73,13 @@ class Trainer(Engine):
             self.add_hook(self.ON_EPOCH_END, run_eval)
         return self
 
-    def set_batch_target_fn(self, fn):
-        r"""Set the function to obtain the targets for the loss.
-
-        The argument can be either a function or a callable object that
-        will receive as a single argument the batch read from the
-        ``data_loader``, and must return the appropriate target for the
-        used loss to train the model.
-        """
-        if fn is None:
-            self._batch_target_fn = lambda x: x
-        else:
-            assert(callable(fn))
-            self._batch_target_fn = fn
-        return self
-
     def set_criterion(self, criterion):
         assert callable(criterion)
         self._criterion = criterion
+        return self
+
+    def set_num_iterations_to_update(self, num):
+        self._num_iterations_to_update = num
         return self
 
     def set_early_stop_trigger(self, trigger):
@@ -85,13 +87,10 @@ class Trainer(Engine):
 
         Args:
           trigger (callable): a function or callable object that returns
-              True when training must be stopped, or False otherwise.
+              `True` when training must be stopped, or `False` otherwise.
         """
-        if trigger is None:
-            self._early_stop_trigger = lambda: False
-        else:
-            assert(callable(trigger))
-            self._early_stop_trigger = trigger
+        assert trigger is None or callable(trigger)
+        self._early_stop_trigger = trigger
         return self
 
     def run(self):
@@ -104,15 +103,30 @@ class Trainer(Engine):
             'batch_target_fn (type: {!r}) is not callable'.format(
                 str(self._batch_target_fn)))
 
-        while not self._early_stop_trigger():
+        while (self._early_stop_trigger is None or
+               not self._early_stop_trigger()):
             self._run_epoch()
         return self
+
 
     def _run_iteration(self, it, batch):
         self._iterations += 1
 
-        batch_input = self._batch_input_fn(batch)
-        batch_target = self._batch_target_fn(batch)
+        # Put model in training mode
+        if hasattr(self._model, 'train'):
+            self._model.train()
+
+        # Prepare input to the model.
+        if self._batch_input_fn is None:
+            batch_input = batch
+        else:
+            batch_input = self._batch_input_fn(batch)
+
+        # Prepare target to be passed to the loss function.
+        if self._batch_target_fn is None:
+            batch_target = batch
+        else:
+            batch_target = self._batch_target_fn(batch)
 
         self._call_hooks(self.ON_BATCH_START,
                          batch=batch,
@@ -122,20 +136,38 @@ class Trainer(Engine):
                          batch_input=batch_input,
                          batch_target=batch_target)
 
+        # Make all parameter gradients equal to zero.
+        if (self._num_iterations_to_update is None or
+            (it - 1) % self._num_iterations_to_update == 0):
+            self._optimizer.zero_grad()
 
-        loss_and_output = [None, None]
-        def closure():
-            if hasattr(self._model, 'eval'):
-                self._model.train()
-            batch_output = self._model(batch_input)
-            batch_loss = self._criterion(batch_output, batch_target)
-            batch_loss.backward()
-            loss_and_output[0] = batch_loss
-            loss_and_output[1] = batch_output
-            return batch_loss
+        # Run model, evaluate loss and compute gradients.
+        batch_output = self._model(batch_input)
 
-        self._optimizer.zero_grad()
-        self._optimizer.step(closure)
+        # Note: These checks are only active when logging level >= DEBUG
+        check_inf(tensor=batch_output, logger=self.logger,
+                  msg='Found {abs_num} ({rel_num:.2%}) INF values in the '
+                  'model output at epoch {epoch}, batch {batch} (absolute '
+                  'iteration {iteration})',
+                  epoch=self.epochs, batch=it, iteration=self.iterations)
+        check_nan(tensor=batch_output, logger=self.logger,
+                  msg='Found {abs_num} ({rel_num:.2%}) NAN values in the '
+                  'model output at epoch {epoch}, batch {batch} (absolute '
+                  'iteration {iteration})',
+                  epoch=self.epochs, batch=it, iteration=self.iterations)
+
+        batch_loss = self._criterion(batch_output, batch_target)
+        batch_loss.backward()
+
+        # Update model parameters.
+        if (self._num_iterations_to_update is None or
+            it % self._num_iterations_to_update == 0 or
+            it == len(self._data_loader)):
+            self.logger.debug(
+                'Updating parameters at epoch {}, batch {} '
+                '(absolute iteration {})'.format(
+                    self.epochs, it, self.iterations))
+            self._optimizer.step()
 
         self._call_hooks(self.ON_BATCH_END,
                          batch=batch,
@@ -144,5 +176,5 @@ class Trainer(Engine):
                          iteration=self._iterations,
                          batch_input=batch_input,
                          batch_target=batch_target,
-                         batch_loss=loss_and_output[0],
-                         batch_output=loss_and_output[1])
+                         batch_loss=batch_loss,
+                         batch_output=batch_output)
