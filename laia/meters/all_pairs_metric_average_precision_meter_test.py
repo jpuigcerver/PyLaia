@@ -10,10 +10,10 @@ class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
         self.batch1 = ([[1, 1],
                         [2, 2]],
                        [1, 2])
-        self.batch2 = ([[1, 1],
-                        [0, 2],
-                        [0, 0]],
-                       [1, 2, 3])
+        self.batch2 = ([[0, 0],
+                        [1, 1],
+                        [0, 2]],
+                       [3, 1, 2])
 
     def test(self):
         meter = AllPairsMetricAveragePrecisionMeter()

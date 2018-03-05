@@ -35,7 +35,7 @@ class Engine(object):
     ON_EPOCH_START = 'ON_EPOCH_START'
     ON_EPOCH_END   = 'ON_EPOCH_END'
 
-    logger = logging.getLogger(__name__)
+    _logger = logging.getLogger(__name__)
 
     def __init__(self, model, data_loader,
                  batch_input_fn=None,
@@ -43,14 +43,12 @@ class Engine(object):
                  progress_bar=None):
         self._model = model
         self._data_loader = data_loader
-        self._batch_input_fn = None
-        self._batch_target_fn = None
+        self._batch_input_fn = batch_input_fn
+        self._batch_target_fn = batch_target_fn
         self._progress_bar = progress_bar
 
         self._epochs = 0
         self._iterations = 0
-        self.set_batch_input_fn(batch_input_fn)
-        self.set_batch_target_fn(batch_target_fn)
 
         self._hooks = {
             self.ON_BATCH_START: [],
@@ -62,6 +60,10 @@ class Engine(object):
         if progress_bar and not tqdm:
             self.logger.debug('A progress cannot be shown because the "tqdm" '
                               'module was not found.')
+
+    @property
+    def logger(self):
+        return self._logger
 
     @property
     def model(self):
@@ -93,11 +95,8 @@ class Engine(object):
         ``data_loader``, and must return the appropriate input for the
         model.
         """
-        if fn is None:
-            self._batch_input_fn = lambda x: x
-        else:
-            assert(callable(fn))
-            self._batch_input_fn = fn
+        assert fn is None or callable(fn)
+        self._batch_input_fn = fn
         return self
 
     def set_batch_target_fn(self, fn):
@@ -108,11 +107,8 @@ class Engine(object):
         ``data_loader``, it must return an appropriate object that the
         hooks can understand.
         """
-        if fn is None:
-            self._batch_target_fn = lambda x: x
-        else:
-            assert(callable(fn))
-            self._batch_target_fn = fn
+        assert fn is None or callable(fn)
+        self._batch_target_fn = fn
         return self
 
     def add_hook(self, when, func):
@@ -143,7 +139,11 @@ class Engine(object):
     def _run_iteration(self, it, batch):
         self._iterations += 1
 
-        batch_input = self._batch_input_fn(batch)
+        if self._batch_input_fn:
+            batch_input = self._batch_input_fn(batch)
+        else:
+            batch_input = batch
+
         if self._batch_target_fn:
             batch_target = self._batch_target_fn(batch)
         else:
@@ -156,6 +156,7 @@ class Engine(object):
                          iteration=self._iterations,
                          batch_input=batch_input,
                          batch_target=batch_target)
+
         # Put model in evaluation mode
         if hasattr(self._model, 'eval'):
             self._model.eval()
@@ -183,7 +184,6 @@ class Engine(object):
                 batch_iterator = tqdm(self._data_loader)
         else:
             batch_iterator = self._data_loader
-
 
         for it, batch in enumerate(batch_iterator, 1):
             self._run_iteration(it, batch)

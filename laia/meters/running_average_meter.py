@@ -15,6 +15,7 @@ class RunningAverageMeter(Meter):
         self._n = 0.0
         self._s = 0.0
         self._s2 = 0.0
+        return self
 
     def add(self, v):
         if torch.is_tensor(v):
@@ -37,9 +38,11 @@ class RunningAverageMeter(Meter):
             self._n += 1
             self._s += v
             self._s2 += v * v
+        return self
 
     @property
     def value(self):
         avg = float(self._s) / float(self._n)
-        var = float(self._s2) / float(self._n) - avg * avg
+        # Note: The max is to avoid precision issues.
+        var = max(0.0, float(self._s2) / float(self._n) - avg * avg)
         return avg, math.sqrt(var)

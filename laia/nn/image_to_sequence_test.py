@@ -7,16 +7,16 @@ import torch
 from torch.autograd import Variable
 
 from laia.data import PaddedTensor
-from laia.nn import ImageColumnsToSequence
+from laia.nn.image_to_sequence import ImageToSequence
 
 
-class ImageColumnsToSequenceTest(unittest.TestCase):
+class ImageToSequenceTest(unittest.TestCase):
     def test_forward(self):
         x = Variable(torch.FloatTensor([[1, 2, 3],
                                         [4, 5, 6],
                                         [7, 8, 9],
                                         [10, 11, 12]]))
-        m = ImageColumnsToSequence(rows=4)
+        m = ImageToSequence(columnwise=True)
         y = m(x)
         np.testing.assert_allclose(y.data, np.array([[[1, 4, 7, 10]],
                                                      [[2, 5, 8, 11]],
@@ -28,7 +28,7 @@ class ImageColumnsToSequenceTest(unittest.TestCase):
                                         [7, 8, 9],
                                         [10, 11, 12]]),
                      requires_grad=True)
-        m = ImageColumnsToSequence(rows=4)
+        m = ImageToSequence(columnwise=True)
         y = m(x)
         dx, = torch.autograd.grad([y.sum()], [x])
         np.testing.assert_allclose(dx.data, np.array([[1, 1, 1],
@@ -42,7 +42,7 @@ class ImageColumnsToSequenceTest(unittest.TestCase):
                                         [[[7, 8, 0],
                                           [10, 11, 0]]]]))
         xs = torch.LongTensor([[2, 3], [2, 2]])
-        m = ImageColumnsToSequence(rows=2)
+        m = ImageToSequence(columnwise=True)
         y, ys = m(PaddedTensor(x, xs))
         np.testing.assert_allclose(y.data, np.array([[[1, 4],
                                                       [7, 10]],
@@ -59,7 +59,7 @@ class ImageColumnsToSequenceTest(unittest.TestCase):
                                           [10, 11, 0]]]]),
                      requires_grad=True)
         xs = torch.LongTensor([[2, 3], [2, 2]])
-        m = ImageColumnsToSequence(rows=2)
+        m = ImageToSequence(columnwise=True)
         y, ys = m(PaddedTensor(x, xs))
         dx, = torch.autograd.grad(
             [y[0, :, :].sum() + y[1, :, :].sum() + y[2, 0, :].sum()],
@@ -75,7 +75,7 @@ class ImageColumnsToSequenceTest(unittest.TestCase):
                                         [[[7, 8, 0],
                                           [10, 11, 0]]]]), requires_grad=True)
         xs = torch.LongTensor([[2, 3], [2, 2]])
-        m = ImageColumnsToSequence(rows=2, return_packed=True)
+        m = ImageToSequence(columnwise=True, return_packed=True)
         # Test forward
         y = m(PaddedTensor(x, xs))
         np.testing.assert_allclose(y.data.data, np.array([[1, 4],

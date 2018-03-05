@@ -11,9 +11,9 @@ class SymbolsTable(object):
     def clear(self):
         self._sym2val, self._val2sym = dict(), dict()
 
-    def load(self, f):
+    def load(self, f, encoding='utf8'):
         if isinstance(f, string_classes):
-            f = open(f, 'r')
+            f = open(f, 'r', encoding='utf8')
         self.clear()
         try:
             for n, line in enumerate(f, 1):
@@ -26,12 +26,12 @@ class SymbolsTable(object):
         finally:
             f.close()
 
-    def save(self, f):
+    def save(self, f, encoding='utf8'):
         if isinstance(f, string_classes):
-            f = open(f, 'w')
+            f = open(f, 'w', encoding=encoding)
         max_len = max([len(s) for s in self._sym2val])
         for v, s in self._val2sym.items():
-            f.write('%*s %d\n' % (max_len, s, v))
+            f.write(('%*s %d\n' % (max_len, s, v)).encode(encoding))
         f.close()
 
     def __len__(self):

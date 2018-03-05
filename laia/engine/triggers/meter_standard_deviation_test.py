@@ -25,41 +25,41 @@ class MeterStandardDeviationTest(unittest.TestCase):
     def test_exception(self):
         meter = ExceptionMeter()
         trigger = MeterStandardDeviation(meter, 0.1, 25)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
 
     def test_not_enough_values(self):
         meter = MockMeter()
         trigger = MeterStandardDeviation(meter, 0.1, 25)
         meter.set_value(0)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
         meter.set_value(0)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
         meter.set_value(0)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
 
     def test_above_threshold(self):
         meter = MockMeter()
         trigger = MeterStandardDeviation(meter, 0.01, 3)
 
         meter.set_value(1)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
         meter.set_value(2)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
         meter.set_value(3)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
 
     def test_below_threshold(self):
         meter = MockMeter()
         trigger = MeterStandardDeviation(meter, 1, 3)
 
         meter.set_value(1)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
         meter.set_value(2)
-        self.assertEquals(False, trigger())
+        self.assertEqual(False, trigger())
         meter.set_value(3)
-        self.assertEquals(True, trigger())
+        self.assertEqual(True, trigger())
         meter.set_value(3)
-        self.assertEquals(True, trigger())
+        self.assertEqual(True, trigger())
 
 if __name__ == '__main__':
     unittest.main()
