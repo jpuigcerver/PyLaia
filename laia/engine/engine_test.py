@@ -13,6 +13,7 @@ class DummyModel(object):
         self.counter += 1
         return x
 
+
 class EngineTest(unittest.TestCase):
     def test_simple(self):
         model = DummyModel()
@@ -36,12 +37,16 @@ class EngineTest(unittest.TestCase):
 
     def test_hooks(self):
         counters = [0, 0, 0, 0]
+
         def on_batch_start(caller, epoch, **kwargs):
             counters[0] += 1
+
         def on_epoch_start(caller, epoch, **kwargs):
             counters[1] += 1
+
         def on_batch_end(caller, epoch, **kwargs):
             counters[2] += 1
+
         def on_epoch_end(caller, epoch, **kwargs):
             counters[3] += 1
 

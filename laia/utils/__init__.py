@@ -12,6 +12,7 @@ try:
     from itertools import accumulate
 except ImportError:
     import operator
+
     def accumulate(iterable, func=operator.add):
         r"""Make an iterator that returns accumulated sums.
 
