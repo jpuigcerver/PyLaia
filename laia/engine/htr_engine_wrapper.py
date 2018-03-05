@@ -91,37 +91,37 @@ class HtrEngineWrapper(object):
         self._tr_engine.run()
         return self
 
-    def _train_reset_meters(self, **kwargs):
+    def _train_reset_meters(self, **_):
         self._train_timer.reset()
         self._train_loss_meter.reset()
         self._train_cer_meter.reset()
 
-    def _valid_reset_meters(self, **kwargs):
+    def _valid_reset_meters(self, **_):
         self._valid_timer.reset()
         self._valid_loss_meter.reset()
         self._valid_cer_meter.reset()
 
-    def _train_accumulate_loss(self, batch_loss, **kwargs):
+    def _train_accumulate_loss(self, batch_loss, **_):
         self._train_loss_meter.add(batch_loss)
         # Note: Stop training timer to avoid including extra costs
         # (e.g. the validation epoch)
         self._train_timer.stop()
 
-    def _valid_accumulate_loss(self, batch_output, batch_target, **kwargs):
+    def _valid_accumulate_loss(self, batch_output, batch_target, **_):
         batch_loss = self._tr_engine.criterion(batch_output, batch_target)
         self._valid_loss_meter.add(batch_loss)
         # Note: Stop timer to avoid including extra costs
         self._valid_timer.stop()
 
-    def _train_compute_cer(self, batch_output, batch_target, **kwargs):
+    def _train_compute_cer(self, batch_output, batch_target, **_):
         batch_decode = self._ctc_decoder(batch_output)
         self._train_cer_meter.add(batch_target, batch_decode)
 
-    def _valid_compute_cer(self, batch_output, batch_target, **kwargs):
+    def _valid_compute_cer(self, batch_output, batch_target, **_):
         batch_decode = self._ctc_decoder(batch_output)
         self._valid_cer_meter.add(batch_target, batch_decode)
 
-    def _report_epoch_train_only(self, **kwargs):
+    def _report_epoch_train_only(self, **_):
         # Average training loss in the last EPOCH
         tr_loss, _ = self.train_loss.value
         # Average training CER in the last EPOCH
@@ -137,7 +137,7 @@ class HtrEngineWrapper(object):
                              tr_cer,
                              tr_time))
 
-    def _report_epoch_train_and_valid(self, **kwargs):
+    def _report_epoch_train_and_valid(self, **_):
         # Average loss in the last EPOCH
         tr_loss, _ = self.train_loss.value
         va_loss, _ = self.valid_loss.value

@@ -61,7 +61,7 @@ class ImageFeeder(VariableFeeder):
                 x = self._view_as_4d(x)
                 # Ensure that the size tensor is the expected
                 if (not xs.dim() == 2 or
-                    (xs.size(1) != 2 and xs.size(1) != 3)):
+                        (xs.size(1) != 2 and xs.size(1) != 3)):
                     raise ValueError('Size tensor in PaddedTensor has not an '
                                      'expected shape: {!r}'.format(xs.size()))
 

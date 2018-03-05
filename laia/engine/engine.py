@@ -136,7 +136,7 @@ class Engine(object):
         return self
 
     def run(self):
-        r"""Run a single epoch on the dataset_loader."""
+        r"""Run a single epoch on the `dataset_loader`."""
         self._run_epoch()
         return self
 

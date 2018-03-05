@@ -38,16 +38,16 @@ class EngineTest(unittest.TestCase):
     def test_hooks(self):
         counters = [0, 0, 0, 0]
 
-        def on_batch_start(caller, epoch, **kwargs):
+        def on_batch_start(**_):
             counters[0] += 1
 
-        def on_epoch_start(caller, epoch, **kwargs):
+        def on_epoch_start(**_):
             counters[1] += 1
 
-        def on_batch_end(caller, epoch, **kwargs):
+        def on_batch_end(**_):
             counters[2] += 1
 
-        def on_epoch_end(caller, epoch, **kwargs):
+        def on_epoch_end(**_):
             counters[3] += 1
 
         engine = Engine(model=lambda x: x, data_loader=[1, 2])

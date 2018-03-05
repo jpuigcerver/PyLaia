@@ -13,6 +13,9 @@ class ExceptionMeter(Meter):
 
 
 class MockMeter(Meter):
+    def __init__(self):
+        self._value = None
+
     def set_value(self, value):
         self._value = value
 
@@ -60,6 +63,7 @@ class MeterStandardDeviationTest(unittest.TestCase):
         self.assertEqual(True, trigger())
         meter.set_value(3)
         self.assertEqual(True, trigger())
+
 
 if __name__ == '__main__':
     unittest.main()
