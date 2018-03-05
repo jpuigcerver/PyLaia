@@ -3,23 +3,20 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import argparse
+import os
+
+import torch
+from torch.autograd import Variable
+from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
+
 import laia.data
 import laia.engine
 import laia.nn
 import laia.utils
-import os
-import torch
-from torch.autograd import Variable
-from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
 from laia.data import PaddedTensor
-
-from laia.meter import AllPairsMetricAveragePrecisionMeter
-
-from laia.losses.loss import Loss
 from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
-from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.savers import SaverTrigger, SaverTriggerCollection
+from laia.utils.arguments import add_argument, add_defaults, args
 
 
 class Model(torch.nn.Module):
@@ -56,8 +53,8 @@ class Model(torch.nn.Module):
             torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
             # conv3_6
-            #torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            #torch.nn.ReLU(inplace=True),
+            # torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            # torch.nn.ReLU(inplace=True),
             # conv4_1
             torch.nn.Conv2d(256, 512, kernel_size=3, padding=1),
             torch.nn.ReLU(inplace=True),
@@ -83,7 +80,6 @@ class Model(torch.nn.Module):
         # Final linear classifier
         self._linear = torch.nn.Linear(2 * 512, num_output_symbols)
 
-
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         x = self._conv(x)
@@ -92,7 +88,7 @@ class Model(torch.nn.Module):
         x = x.mean(dim=2).permute(2, 0, 1).contiguous()
         xs = xs[:, 1].contiguous().data.tolist()
 
-        #x, xs = self._collapse(PaddedTensor(data=x, sizes=xs))
+        # x, xs = self._collapse(PaddedTensor(data=x, sizes=xs))
         # xs is the number of timestep of each sample.
 
         x = torch.nn.functional.dropout(x, p=0.5,
@@ -109,38 +105,16 @@ class Model(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=8,
-                        help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.0005,
-                        help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=0,
-                        help='Momentum')
-    parser.add_argument('--gpu', type=int, default=1,
-                        help='Use this GPU (starting from 1)')
-    parser.add_argument('--seed', type=int, default=0x12345,
-                        help='Seed for random number generators')
-    parser.add_argument('--final_fixed_height', type=int, default=20,
-                        help='Final height for the pseudo-images after the '
-                        'convolutions')
-    parser.add_argument('--max_epochs', type=int, default=None,
-                        help='Maximum number of training epochs')
-    parser.add_argument('--cer_stddev_values', type=int, default=None,
-                        help='Compute the standard deviation of the CER over '
-                        'this number of epochs')
-    parser.add_argument('--cer_stddev_threshold', type=float, default=None,
-                        help='Stop training if the standard deviation of the '
-                        'CER falls below this threshold')
-    parser.add_argument('syms')
-    parser.add_argument('tr_img_dir')
-    parser.add_argument('tr_txt_table')
-    parser.add_argument('va_txt_table')
-    args = parser.parse_args()
+    add_defaults()
+    add_argument('syms')
+    add_argument('tr_img_dir')
+    add_argument('tr_txt_table')
+    add_argument('va_txt_table')
+    args = args()
 
     laia.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
-
 
     model = Model(num_output_symbols=len(syms))
     if args.gpu > 0:
@@ -172,7 +146,7 @@ if __name__ == '__main__':
     va_ds_loader = torch.utils.data.DataLoader(
         va_ds, args.batch_size, num_workers=8,
         collate_fn=laia.data.PaddingCollater({
-        'img': [1, None, None]
+            'img': [1, None, None]
         }, sort_key=lambda x: -x['img'].size(2)))
 
 
@@ -194,6 +168,7 @@ if __name__ == '__main__':
                 x = batch['img'].cpu()
             return Variable(x)
 
+
     def batch_target_fn(batch):
         return batch['txt']
 
@@ -212,7 +187,6 @@ if __name__ == '__main__':
 
     engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
 
-
     # List of early stop triggers.
     # If any of these returns True, training will stop.
     early_stop_triggers = []
@@ -223,8 +197,8 @@ if __name__ == '__main__':
             MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
 
     # Configure MeterStandardDeviation trigger to monitor validation CER
-    if (args.cer_stddev_values and args.cer_stddev_values > 1 and
-        args.cer_stddev_threshold and args.cer_stddev_threshold > 0):
+    if (args.cer_stddev_values and args.cer_stddev_values > 1
+        and args.cer_stddev_threshold and args.cer_stddev_threshold > 0):
         early_stop_triggers.append(
             MeterStandardDeviation(
                 meter=engine_wrapper.valid_cer,
@@ -265,6 +239,7 @@ if __name__ == '__main__':
 
             return True
 
+
     class ParametersSaver(object):
         def __init__(self, path):
             self._path = path
@@ -277,6 +252,7 @@ if __name__ == '__main__':
             except:
                 # TODO(jpuigcerver): Log error saving checkpoint
                 return False
+
 
     trainer.set_epoch_saver_trigger(
         SaverTriggerCollection(
