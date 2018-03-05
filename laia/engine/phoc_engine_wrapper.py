@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
 import logging
+import torch
 
-from laia.decoders import CTCDecoder
-from laia.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
+from laia.meters import AllPairsMetricAveragePrecisionMeter, RunningAverageMeter, TimeMeter
 from laia.engine.engine import Engine
+from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
 
-from laia.losses import CTCLoss
 
-
-class HtrEngineWrapper(object):
-    r"""Engine wrapper to perform HTR experiments."""
+class PHOCEngineWrapper(object):
+    r"""Engine wrapper to perform KWS experiments with PHOC networks."""
 
     ON_BATCH_START = Engine.ON_BATCH_START
     ON_EPOCH_START = Engine.ON_EPOCH_START
@@ -19,38 +18,53 @@ class HtrEngineWrapper(object):
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self, train_engine, valid_engine=None):
+    def __init__(self, symbols_table, phoc_levels, train_engine,
+                 valid_engine=None, gpu=0):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
         # If the trainer was created without any criterion, or it is not
         # the CTCLoss, set it properly.
         if not self._tr_engine.criterion:
-            self._tr_engine.set_criterion(CTCLoss())
-        elif not isinstance(self._tr_engine.criterion, CTCLoss):
-            self.logger.warn('Overriding the criterion of the trainer to CTC.')
-            self._tr_engine.set_criterion(CTCLoss())
+            self._tr_engine.set_criterion(torch.nn.BCELoss())
 
-        self._ctc_decoder = CTCDecoder()
+        # Set trainer's batch_input_fn and batch_target_fn if not already set.
+        if not self._tr_engine.batch_input_fn:
+            self._tr_engine.set_batch_input_fn(
+                ImageFeeder(device=gpu,
+                            keep_padded_tensors=False,
+                            requires_grad=True,
+                            parent_feeder=ItemFeeder('img')))
+        if not self._tr_engine.batch_target_fn:
+            self._tr_engine.set_batch_target_fn(
+                VariableFeeder(device=gpu,
+                               parent_feeder=PHOCFeeder(
+                                   syms=symbols_table,
+                                   levels=phoc_levels,
+                                   parent_feeder=ItemFeeder('txt'))))
+
         self._train_timer = TimeMeter()
         self._train_loss_meter = RunningAverageMeter()
-        self._train_cer_meter = SequenceErrorMeter()
 
         self._tr_engine.add_hook(self.ON_EPOCH_START, self._train_reset_meters)
         self._tr_engine.add_hook(self.ON_BATCH_END, self._train_accumulate_loss)
-        self._tr_engine.add_hook(self.ON_BATCH_END, self._train_compute_cer)
 
         if valid_engine:
+            # Set batch_input_fn and batch_target_fn if not already set.
+            if not self._va_engine.batch_input_fn:
+                self._va_engine.set_batch_input_fn(self._tr_engine.batch_input_fn)
+            if not self._va_engine.batch_target_fn:
+                self._va_engine.set_batch_target_fn(self._tr_engine.batch_target_fn)
+
             self._valid_timer = TimeMeter()
             self._valid_loss_meter = RunningAverageMeter()
-            self._valid_cer_meter = SequenceErrorMeter()
+            self._valid_ap_meter = AllPairsMetricAveragePrecisionMeter(
+                metric='braycurtis', ignore_singleton=True)
 
             self._va_engine.add_hook(
                 self.ON_EPOCH_START, self._valid_reset_meters)
             self._va_engine.add_hook(
                 self.ON_BATCH_END, self._valid_accumulate_loss)
-            self._va_engine.add_hook(
-                self.ON_BATCH_END, self._valid_compute_cer)
             self._va_engine.add_hook(
                 self.ON_EPOCH_END, self._report_epoch_train_and_valid)
 
@@ -59,7 +73,7 @@ class HtrEngineWrapper(object):
         else:
             self._valid_timer = None
             self._valid_loss_meter = None
-            self._valid_cer_meter = None
+            self._valid_ap_meter = None
             self._tr_engine.add_hook(
                 self.ON_EPOCH_END, self._report_epoch_train_only)
 
@@ -80,12 +94,8 @@ class HtrEngineWrapper(object):
         return self._valid_loss_meter
 
     @property
-    def train_cer(self):
-        return self._train_cer_meter
-
-    @property
-    def valid_cer(self):
-        return self._valid_cer_meter
+    def valid_ap(self):
+        return self._valid_ap_meter
 
     def run(self):
         self._tr_engine.run()
@@ -94,12 +104,11 @@ class HtrEngineWrapper(object):
     def _train_reset_meters(self, **kwargs):
         self._train_timer.reset()
         self._train_loss_meter.reset()
-        self._train_cer_meter.reset()
 
     def _valid_reset_meters(self, **kwargs):
         self._valid_timer.reset()
         self._valid_loss_meter.reset()
-        self._valid_cer_meter.reset()
+        self._valid_ap_meter.reset()
 
     def _train_accumulate_loss(self, batch_loss, **kwargs):
         self._train_loss_meter.add(batch_loss)
@@ -107,57 +116,45 @@ class HtrEngineWrapper(object):
         # (e.g. the validation epoch)
         self._train_timer.stop()
 
-    def _valid_accumulate_loss(self, batch_output, batch_target, **kwargs):
+    def _valid_accumulate_loss(self, batch, batch_output, batch_target, **kwargs):
         batch_loss = self._tr_engine.criterion(batch_output, batch_target)
         self._valid_loss_meter.add(batch_loss)
-        # Note: Stop timer to avoid including extra costs
+        self._valid_ap_meter.add(batch_output.data.cpu().numpy(),
+                     [''.join(w) for w in batch['txt']])
         self._valid_timer.stop()
-
-    def _train_compute_cer(self, batch_output, batch_target, **kwargs):
-        batch_decode = self._ctc_decoder(batch_output)
-        self._train_cer_meter.add(batch_target, batch_decode)
-
-    def _valid_compute_cer(self, batch_output, batch_target, **kwargs):
-        batch_decode = self._ctc_decoder(batch_output)
-        self._valid_cer_meter.add(batch_target, batch_decode)
 
     def _report_epoch_train_only(self, **kwargs):
         # Average training loss in the last EPOCH
         tr_loss, _ = self.train_loss.value
-        # Average training CER in the last EPOCH
-        tr_cer = self.train_cer.value
         # Timers
         tr_time = self.train_timer.value
         self.logger.info('Epoch {:4d}, '
                          'TR Loss = {:.3e}, '
-                         'TR CER = {:6.2%}, '
                          'TR Time = {:.2f}s'.format(
                              self._tr_engine.epochs,
                              tr_loss,
-                             tr_cer,
                              tr_time))
 
     def _report_epoch_train_and_valid(self, **kwargs):
         # Average loss in the last EPOCH
         tr_loss, _ = self.train_loss.value
         va_loss, _ = self.valid_loss.value
-        # Average CER in the last EPOCH
-        tr_cer = self.train_cer.value
-        va_cer = self.valid_cer.value
         # Timers
         tr_time = self.train_timer.value
         va_time = self.valid_timer.value
+        # Global and Mean AP for validation
+        va_gap, va_map = self.valid_ap.value
         self.logger.info('Epoch {:4d}, '
                          'TR Loss = {:.3e}, '
                          'VA Loss = {:.3e}, '
-                         'TR CER = {:5.1%}, '
-                         'VA CER = {:5.1%}, '
+                         'VA gAP = {:5.1%}, '
+                         'VA mAP = {:5.1%}, '
                          'TR Time = {:.2f}s, '
                          'VA Time = {:.2f}s'.format(
                              self._tr_engine.epochs,
                              tr_loss,
                              va_loss,
-                             tr_cer,
-                             va_cer,
+                             va_gap,
+                             va_map,
                              tr_time,
                              va_time))

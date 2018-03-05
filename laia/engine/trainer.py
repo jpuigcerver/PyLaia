@@ -39,9 +39,10 @@ class Trainer(Engine):
 
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, model, data_loader, batch_input_fn, batch_target_fn,
-                 criterion, optimizer, early_stop_trigger=None,
-                 progress_bar=None, num_iterations_to_update=None):
+    def __init__(self, model, data_loader, criterion, optimizer,
+                 batch_input_fn=None, batch_target_fn=None,
+                 early_stop_trigger=None, progress_bar=None,
+                 num_iterations_to_update=None):
         super(Trainer, self).__init__(model=model,
                                       data_loader=data_loader,
                                       batch_input_fn=batch_input_fn,
@@ -107,7 +108,6 @@ class Trainer(Engine):
                not self._early_stop_trigger()):
             self._run_epoch()
         return self
-
 
     def _run_iteration(self, it, batch):
         self._iterations += 1

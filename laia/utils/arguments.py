@@ -29,7 +29,8 @@ _default_args = {
 def _get_parser():
     global _parser
     if not _parser:
-        _parser = argparse.ArgumentParser()
+        _parser = argparse.ArgumentParser(
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     return _parser
 
 
@@ -52,3 +53,12 @@ def add_argument(*args, **kwargs):
 
 def args():
     return _get_parser().parse_args()
+
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')

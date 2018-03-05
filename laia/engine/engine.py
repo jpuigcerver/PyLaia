@@ -62,6 +62,14 @@ class Engine(object):
                               'module was not found.')
 
     @property
+    def batch_input_fn(self):
+        return self._batch_input_fn
+
+    @property
+    def batch_target_fn(self):
+        return self._batch_target_fn
+
+    @property
     def logger(self):
         return self._logger
 
