@@ -67,7 +67,7 @@ class Trainer(Engine):
 
     def add_evaluator(self, evaluator):
         r"""Add an evaluator to run at the end of each epoch."""
-        def run_eval(**kwargs):
+        def run_eval(**_):
             evaluator.run()
 
         if evaluator is not None:
@@ -138,7 +138,7 @@ class Trainer(Engine):
 
         # Make all parameter gradients equal to zero.
         if (self._num_iterations_to_update is None or
-            (it - 1) % self._num_iterations_to_update == 0):
+                (it - 1) % self._num_iterations_to_update == 0):
             self._optimizer.zero_grad()
 
         # Run model, evaluate loss and compute gradients.
@@ -161,8 +161,8 @@ class Trainer(Engine):
 
         # Update model parameters.
         if (self._num_iterations_to_update is None or
-            it % self._num_iterations_to_update == 0 or
-            it == len(self._data_loader)):
+                it % self._num_iterations_to_update == 0 or
+                it == len(self._data_loader)):
             self.logger.debug(
                 'Updating parameters at epoch {}, batch {} '
                 '(absolute iteration {})'.format(

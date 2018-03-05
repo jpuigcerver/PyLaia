@@ -34,7 +34,7 @@ class MeterStandardDeviation(Trigger):
             values.
         """
         assert isinstance(meter, Meter)
-        assert threshold > 0, ('Standard deviation should be a positive value')
+        assert threshold > 0, 'Standard deviation should be a positive value'
         assert num_values_to_keep > 1, (
             'The number of values to keep must be greater than 1 to compute '
             'the standard deviation')
