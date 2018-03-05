@@ -3,26 +3,18 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import argparse
+import logging
+import torch
+
 import laia.data
 import laia.engine
 import laia.nn
 import laia.utils
-import logging
-import numpy as np
-import os
-import subprocess
-import torch
-from torch.autograd import Variable
-from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
-from laia.data import FixedSizeSampler, PaddedTensor
-from collections import OrderedDict
-from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, MeterStandardDeviation, MeterDecrease
 from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
-
-from laia.savers import SaverTrigger, SaverTriggerCollection
-
+from laia.engine.triggers import Any, MaxEpochs
 from laia.meters import TimeMeter, RunningAverageMeter, AllPairsMetricAveragePrecisionMeter
+from laia.utils.arguments import add_argument, add_defaults, args
+from laia.savers import SaverTrigger, SaverTriggerCollection
 
 
 import torch.nn.functional as F
@@ -48,7 +40,6 @@ def load_caffe_model_txt(txtfile):
         for k, x in enumerate(line[(d+2):]):
             w[k] = float(x)
         w = w.reshape(shape)
-        print l, i, w.shape
         if l != player:
             weights.append(('%s.weight' % l, torch.from_numpy(w)))
             player = l
@@ -122,37 +113,22 @@ def Model(phoc_size, levels=5):
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--num_samples_per_epoch', type=int, default=None,
-                        help='Use this number of samples randomly sampled '
-                        'from the dataset in each epoch')
-    parser.add_argument('--num_iterations_to_update', type=int, default=10,
-                        help='Update parameters every n iterations')
-    parser.add_argument('--batch_size', type=int, default=1,
-                        help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.0001,
-                        help='Learning rate')
-    parser.add_argument('--momentum', type=float, default=0.9,
-                        help='Momentum')
-    parser.add_argument('--weight_decay', type=float, default=0.00005,
-                        help='L2 weight decay')
-    parser.add_argument('--gpu', type=int, default=1,
-                        help='Use this GPU (starting from 1)')
-    parser.add_argument('--seed', type=int, default=0x12345,
-                        help='Seed for random number generators')
-    parser.add_argument('--max_epochs', type=int, default=None,
-                        help='Maximum number of training epochs')
-    parser.add_argument('--phoc_levels', type=int, default=[1,2,3,4,5],
-                        nargs='+',
-                        help='PHOC levels used to encode the transcript')
-    parser.add_argument('--show_progress_bar', type=bool, default=True,
-                        help='If true, show progress bar for each epoch')
-    parser.add_argument('syms')
-    parser.add_argument('tr_img_dir')
-    parser.add_argument('tr_txt_table')
-    parser.add_argument('va_txt_table')
-    args = parser.parse_args()
+
+    add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu', 'seed', 'max_epochs')
+    add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
+                 help='PHOC levels used to encode the transcript')
+    add_argument('--show_progress_bar', type=bool, default=True,
+                 help='If true, show progress bar for each epoch')
+    add_argument('--num_samples_per_epoch', type=int, default=None,
+                 help='Use this number of samples randomly sampled '
+                 'from the dataset in each epoch')
+    add_argument('--num_iterations_to_update', type=int, default=10,
+                 help='Update parameters every n iterations')
+    add_argument('syms')
+    add_argument('tr_img_dir')
+    add_argument('tr_txt_table')
+    add_argument('va_txt_table')
+    args = args()
 
     laia.manual_seed(args.seed)
 
@@ -198,8 +174,6 @@ if __name__ == '__main__':
             'img': [1, None, None],
         }, sort_key=lambda x: -x['img'].size(2)))
 
-
-
     # List of early stop triggers.
     # If any of these returns True, training will stop.
     early_stop_triggers = []
@@ -208,7 +182,6 @@ if __name__ == '__main__':
     if args.max_epochs and args.max_epochs > 0:
         early_stop_triggers.append(
             MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
-
 
     batch_input_fn = ImageFeeder(device=args.gpu,
                                  keep_padded_tensors=False,
@@ -220,7 +193,6 @@ if __name__ == '__main__':
                                          levels=args.phoc_levels,
                                          parent_feeder=ItemFeeder('txt')))
 
-
     trainer = laia.engine.Trainer(
         model=model,
         criterion=MyBCELoss(),
@@ -228,8 +200,7 @@ if __name__ == '__main__':
         data_loader=tr_ds_loader,
         batch_input_fn=batch_input_fn,
         batch_target_fn=batch_target_fn,
-        progress_bar='Train' if args.show_progress_bar else False,
-        num_iterations_to_update=args.num_iterations_to_update)
+        progress_bar='Train' if args.show_progress_bar else False)
 
     evaluator = laia.engine.Evaluator(
         model=model,
@@ -238,9 +209,7 @@ if __name__ == '__main__':
         batch_target_fn=batch_target_fn,
         progress_bar='Valid' if args.show_progress_bar else False)
 
-
     trainer.set_early_stop_trigger(Any(*early_stop_triggers)).add_evaluator(evaluator)
-
 
     train_timer = TimeMeter()
     train_loss_meter = RunningAverageMeter()
@@ -249,16 +218,18 @@ if __name__ == '__main__':
     ap_meter = AllPairsMetricAveragePrecisionMeter(
         metric='braycurtis',
         ignore_singleton=True)
-    ap_meter.logger.setLevel(logging.DEBUG)
+
 
     def train_reset_meters(**kwargs):
         train_timer.reset()
         train_loss_meter.reset()
 
+
     def valid_reset_meters(**kwargs):
         valid_timer.reset()
         valid_loss_meter.reset()
         ap_meter.reset()
+
 
     def train_accumulate_loss(batch_loss, **kwargs):
         train_loss_meter.add(batch_loss)
@@ -295,19 +266,12 @@ if __name__ == '__main__':
                          tr_time,
                          va_time))
 
-    def valid_report_epoch2(epoch, **kwargs):
-        g_ap, m_ap = ap_meter.value
-        print('gAP = {:5.1f}%, mAP = {:5.1f}%'.format(g_ap, m_ap))
 
     trainer.add_hook(trainer.ON_EPOCH_START, train_reset_meters)
     evaluator.add_hook(evaluator.ON_EPOCH_START, valid_reset_meters)
     trainer.add_hook(trainer.ON_BATCH_END, train_accumulate_loss)
     evaluator.add_hook(evaluator.ON_BATCH_END, valid_accumulate_loss)
     evaluator.add_hook(evaluator.ON_EPOCH_END, valid_report_epoch)
-
-
-    #evaluator.run()
-    #exit(0)
 
     """
     class LastParametersSaver(object):
