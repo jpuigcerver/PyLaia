@@ -168,6 +168,9 @@ class Trainer(Engine):
                 self._num_iterations_to_update > 1):
             batch_loss = batch_loss / self._num_iterations_to_update
         # Compute gradients
+        self.logger.debug(
+            'Start backward at epoch {}, batch {} '
+            '(absolute iteration {})'.format(self.epochs, it, self.iterations))
         batch_loss.backward()
 
         # Update model parameters.
