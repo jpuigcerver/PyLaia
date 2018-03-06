@@ -12,6 +12,7 @@ if torch.cuda.is_available():
                      torch.cuda.HalfTensor]
 _TENSOR_REAL = tuple(_TENSOR_REAL)
 
+
 def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
     r"""Check whether a tensor contains a +/- infinite value.
 
@@ -54,6 +55,7 @@ def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
 
     # No +/- inf were found
     return False
+
 
 def check_nan(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
     r"""Check whether a tensor contains a NaN value.
