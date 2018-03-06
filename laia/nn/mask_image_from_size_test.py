@@ -45,5 +45,6 @@ class MaskImageFromSizeTest(unittest.TestCase):
         # Check expected output
         np.testing.assert_allclose(expected_dx, dx.data)
 
+
 if __name__ == '__main__':
     unittest.main()
