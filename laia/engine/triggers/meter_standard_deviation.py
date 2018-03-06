@@ -17,22 +17,17 @@ class MeterStandardDeviation(Trigger):
     The trigger will only return True when the standard deviation over the
     last ``num_values_to_keep``  values read from the ``meter`` is below
     the given ``threshold``.
+
+    Arguments:
+    meter (:obj:`laia.meters.Meter`): the meter whose value will be
+        monitored.
+    threshold (float): the standard deviation threshold used to trigger
+        True.
+    num_values_to_keep (int): the size of the values over the meter
+        values.
     """
 
     def __init__(self, meter, threshold, num_values_to_keep):
-        r"""Creates a new MeterStandardDeviation trigger.
-
-        The trigger will only return True when the standard deviation over the
-        last ``num_values_to_keep``  values read from the ``meter`` is below
-        the given ``threshold``.
-
-        Args:
-          meter (laia.meters.Meter): the meter whose value will be monitored.
-          threshold (float): the standard deviation threshold used to trigger
-            True.
-          num_values_to_keep (int): the size of the values over the meter
-            values.
-        """
         assert isinstance(meter, Meter)
         assert threshold > 0, 'Standard deviation should be a positive value'
         assert num_values_to_keep > 1, (

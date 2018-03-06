@@ -9,7 +9,7 @@ class MultinaryOperator(Trigger):
         assert all([isinstance(op, Trigger) for op in triggers])
         self._triggers = triggers
 
-    def __call__(self, trainer):
+    def __call__(self):
         raise NotImplemented
 
 

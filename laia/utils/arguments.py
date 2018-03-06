@@ -17,6 +17,8 @@ _default_args = {
                             'help': 'Final height for the pseudo-images after the convolutions'}),
     'max_epochs': (('--max_epochs',),
                    {'type': int, 'help': 'Maximum number of training epochs'}),
+    'min_epochs': (('--min_epochs',),
+                   {'type': int, 'help': 'Minimum number of training epochs'}),
     'cer_stddev_values': (('--cer_stddev_values',),
                           {'type': int,
                            'help': 'Compute the standard deviation of the CER over this number of epochs'}),
