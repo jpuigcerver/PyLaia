@@ -7,7 +7,7 @@ import torch
 
 from collections import OrderedDict
 from laia.losses.loss import Loss
-from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
+from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 from torch.nn.functional import binary_cross_entropy
 from PIL import ImageOps
 
@@ -56,7 +56,7 @@ def build_dortmund_model(phoc_size, levels=5):
         ('conv4_3', torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)),
         ('relu4_3', torch.nn.ReLU(inplace=True)),
         # SPP layer
-        ('tpp5', PyramidMaxPool2d(levels=levels)),
+        ('tpp5', TemporalPyramidMaxPool2d(levels=levels)),
         # Linear layers
         ('fc6', torch.nn.Linear(512 * sum(range(1, levels + 1)), 4096)),
         ('relu6', torch.nn.ReLU(inplace=True)),
