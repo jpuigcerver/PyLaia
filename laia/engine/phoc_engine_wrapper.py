@@ -3,9 +3,11 @@ from __future__ import absolute_import
 import logging
 import torch
 
-from laia.meters import AllPairsMetricAveragePrecisionMeter, RunningAverageMeter, TimeMeter
+from laia.meters import AllPairsMetricAveragePrecisionMeter, \
+    RunningAverageMeter, TimeMeter
 from laia.engine.engine import Engine
-from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
+from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, \
+    VariableFeeder
 
 
 class PHOCEngineWrapper(object):
@@ -52,9 +54,11 @@ class PHOCEngineWrapper(object):
         if valid_engine:
             # Set batch_input_fn and batch_target_fn if not already set.
             if not self._va_engine.batch_input_fn:
-                self._va_engine.set_batch_input_fn(self._tr_engine.batch_input_fn)
+                self._va_engine.set_batch_input_fn(
+                    self._tr_engine.batch_input_fn)
             if not self._va_engine.batch_target_fn:
-                self._va_engine.set_batch_target_fn(self._tr_engine.batch_target_fn)
+                self._va_engine.set_batch_target_fn(
+                    self._tr_engine.batch_target_fn)
 
             self._valid_timer = TimeMeter()
             self._valid_loss_meter = RunningAverageMeter()
