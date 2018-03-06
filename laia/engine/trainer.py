@@ -53,6 +53,7 @@ class Trainer(Engine):
         self._optimizer = optimizer
         self._early_stop_trigger = early_stop_trigger
         self._num_iterations_to_update = num_iterations_to_update
+        self._updates = 0
 
     @property
     def logger(self):
@@ -65,6 +66,10 @@ class Trainer(Engine):
     @property
     def optimizer(self):
         return self._optimizer
+
+    @property
+    def updates(self):
+        return self._updates
 
     def add_evaluator(self, evaluator):
         r"""Add an evaluator to run at the end of each epoch."""
@@ -113,10 +118,6 @@ class Trainer(Engine):
     def _run_iteration(self, it, batch):
         self._iterations += 1
 
-        # Put model in training mode
-        if hasattr(self._model, 'train'):
-            self._model.train()
-
         # Prepare input to the model.
         if self._batch_input_fn is None:
             batch_input = batch
@@ -142,6 +143,10 @@ class Trainer(Engine):
                 (it - 1) % self._num_iterations_to_update == 0):
             self._optimizer.zero_grad()
 
+        # Put model in training mode
+        if hasattr(self._model, 'train'):
+            self._model.train()
+
         # Run model, evaluate loss and compute gradients.
         batch_output = self._model(batch_input)
 
@@ -156,14 +161,20 @@ class Trainer(Engine):
                   'model output at epoch {epoch}, batch {batch} (absolute '
                   'iteration {iteration})',
                   epoch=self.epochs, batch=it, iteration=self.iterations)
-
+        # Compute loss
         batch_loss = self._criterion(batch_output, batch_target)
+        # Make the loss independent of the number of accumulated iterations
+        if (self._num_iterations_to_update and
+                self._num_iterations_to_update > 1):
+            batch_loss = batch_loss / self._num_iterations_to_update
+        # Compute gradients
         batch_loss.backward()
 
         # Update model parameters.
         if (self._num_iterations_to_update is None or
                 it % self._num_iterations_to_update == 0 or
                 it == len(self._data_loader)):
+            self._updates += 1
             self.logger.debug(
                 'Updating parameters at epoch {}, batch {} '
                 '(absolute iteration {})'.format(
