@@ -2,12 +2,15 @@ from __future__ import absolute_import
 from __future__ import division
 
 import cv2
+import math
 import numpy as np
+import operator
 import torch
 
 from collections import OrderedDict
 from laia.losses.loss import Loss
 from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+from functools import reduce
 from torch.nn.functional import binary_cross_entropy
 from PIL import ImageOps
 
@@ -69,10 +72,15 @@ def build_dortmund_model(phoc_size, levels=5):
         ('sigmoid', torch.nn.Sigmoid())
     ]))
 
-    # Initialize bias to 0
+    # Initialize parameters as Caffe does
     for name, param in model.named_parameters():
         if name[-5:] == '.bias':
+            # Initialize bias to 0
             param.data.fill_(0)
+        else:
+            # compute fan in
+            fan_in = reduce(operator.mul, param.data.size()[1:])
+            param.data.normal_(mean=0, std=math.sqrt(2.0 / fan_in))
 
     return model
 
