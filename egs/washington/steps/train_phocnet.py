@@ -34,6 +34,12 @@ if __name__ == '__main__':
                  help='Use dynamic distortions to augment the training data')
     add_argument('--weight_decay', type=float, default=0.00005,
                  help='L2 weight decay')
+    add_argument('--train_loss_stddev_window_size', type=int, default=None,
+                 help='Use this number of epochs to compute the std. dev. of '
+                      'the training loss (must be >= 2)')
+    add_argument('--train_loss_stddev_threshold', type=float, default=0.1,
+                 help='Stop training when the std. dev. of the training loss '
+                      'is below this threshold')
     add_argument('syms')
     add_argument('tr_img_dir')
     add_argument('tr_txt_table')
@@ -94,7 +100,8 @@ if __name__ == '__main__':
 
     trainer = laia.engine.Trainer(
         model=model,
-        criterion=DortmundBCELoss(),
+        # Note: Criterion will be set automatically by the wrapper
+        criterion=None,
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         progress_bar='Train' if args.show_progress_bar else False)
@@ -103,6 +110,14 @@ if __name__ == '__main__':
         model=model,
         data_loader=va_ds_loader,
         progress_bar='Valid' if args.show_progress_bar else False)
+
+    engine_wrapper = PHOCEngineWrapper(
+        symbols_table=syms,
+        phoc_levels=args.phoc_levels,
+        train_engine=trainer,
+        valid_engine=evaluator,
+        gpu=args.gpu)
+    engine_wrapper.logger.setLevel(logging.INFO)
 
     # List of early stop triggers.
     # If any of these returns True, training will stop.
@@ -113,13 +128,16 @@ if __name__ == '__main__':
         early_stop_triggers.append(
             MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
 
+    # Configure trigger on the training loss
+    if (args.train_loss_stddev_window_size and
+            args.train_loss_stddev_window_size > 1):
+        early_stop_triggers.append(
+            laia.engine.triggers.MeterStandardDeviation(
+                meter=engine_wrapper.train_loss,
+                threshold=args.train_loss_stddev_threshold,
+                num_values_to_keep=args.train_loss_stddev_window_size))
+
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
 
-    engine_wrapper = PHOCEngineWrapper(
-        symbols_table=syms,
-        phoc_levels=args.phoc_levels,
-        train_engine=trainer,
-        valid_engine=evaluator,
-        gpu=args.gpu)
-    engine_wrapper.logger.setLevel(logging.INFO)
+    # Launch training
     engine_wrapper.run()
