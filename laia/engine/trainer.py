@@ -14,20 +14,21 @@ class Trainer(Engine):
     Arguments:
       model: model to train.
       data_loader (iterable): iterable object from which batches are read.
-      batch_input_fn (callable): function used to extract the input for the
-          model (e.g. a ``torch.Tensor``), from the batch loaded by the
-          ``data_loader``. Use ``None`` to fed the batch as-is.
-      batch_target_fn (callable): function used to extract the target passed
-          to the ``criterion`` with the model output, from the batch loaded
-          by the ``data_loader``. Use ``None`` to fed the batch as-is.
+      batch_input_fn (callable, optional): function used to extract the input
+          for the model (e.g. a ``torch.Tensor``), from the batch loaded by
+          the ``data_loader``. If ``None``, the batch is fed as-is to the
+          model. (default: None)
+      batch_target_fn (callable, optional): if given, this callable object
+          is used to extract the targets from the batch, which are
+          passed to the `ON_BATCH_START` and `ON_BATCH_END` hooks.
       criterion (callable): used criterion to train the model.
       optimizer (:class:`torch.Optimizer`): optimizer object that will update
           the parameters of the model.
-      early_stop_trigger (callable, optional): function used to decide whether
+      early_stop_trigger (callable): function used to decide whether
           the training must stop (when the trigger returns ``True``) or
           continue (when return ``False``). If ``None``, the training will
           run forever. (default: None)
-      progress_bar (bool or str, optional): if ``True``, :mod:`tqdm` will be
+      progress_bar (bool or str): if ``True``, :mod:`tqdm` will be
           used to show a progress bar for each epoch. If a string is given,
           the content of the string will be shown before the progress bar.
           If the module :mod:`tqdm` is not installed, this will be ignored.
