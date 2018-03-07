@@ -8,19 +8,18 @@ import laia.utils
 from laia.engine.triggers import Any, MaxEpochs
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.utils.arguments import add_argument, add_defaults, args, str2bool
-from dortmund_utils import build_dortmund_model, DortmundBCELoss, DortmundImageToTensor
-
+from dortmund_utils import build_dortmund_model, DortmundBCELoss, \
+    DortmundImageToTensor
 
 if __name__ == '__main__':
     logging.basicConfig()
 
-    add_defaults('gpu', 'seed', 'max_epochs')
-    add_argument('--batch_size', type=int, default=1,
-                 help='Batch size')
-    add_argument('--learning_rate', type=float, default=0.0001,
-                 help='Learning rate')
-    add_argument('--momentum', type=float, default=0.9,
-                 help='Momentum')
+    add_defaults('gpu', 'seed', 'max_epochs', 'train_loss_std_window_size',
+                 'train_loss_std_threshold',
+                 # Override default values for these arguments, but use the
+                 # same help/checks:
+                 batch_size=1, learning_rate=0.0001,
+                 momentum=0.9, show_progress_bar=True, use_distortions=True)
     add_argument('--num_iterations_to_update', type=int, default=10,
                  help='Update parameters every n iterations')
     add_argument('--num_samples_per_epoch', type=int, default=None,
@@ -28,18 +27,8 @@ if __name__ == '__main__':
                       'from the dataset in each epoch')
     add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
                  help='PHOC levels used to encode the transcript')
-    add_argument('--show_progress_bar', type=bool, default=True,
-                 help='If true, show progress bar for each epoch')
-    add_argument('--use_distortions', type=str2bool, nargs='?', const=True, default=True,
-                 help='Use dynamic distortions to augment the training data')
     add_argument('--weight_decay', type=float, default=0.00005,
                  help='L2 weight decay')
-    add_argument('--train_loss_stddev_window_size', type=int, default=None,
-                 help='Use this number of epochs to compute the std. dev. of '
-                      'the training loss (must be >= 2)')
-    add_argument('--train_loss_stddev_threshold', type=float, default=0.1,
-                 help='Stop training when the std. dev. of the training loss '
-                      'is below this threshold')
     add_argument('syms')
     add_argument('tr_img_dir')
     add_argument('tr_txt_table')
@@ -83,7 +72,8 @@ if __name__ == '__main__':
     else:
         tr_ds_loader = torch.utils.data.DataLoader(
             tr_ds, batch_size=args.batch_size, num_workers=8,
-            sampler=laia.data.FixedSizeSampler(tr_ds, args.num_samples_per_epoch),
+            sampler=laia.data.FixedSizeSampler(tr_ds,
+                                               args.num_samples_per_epoch),
             collate_fn=laia.data.PaddingCollater({
                 'img': [1, None, None],
             }, sort_key=lambda x: -x['img'].size(2)))
@@ -129,13 +119,12 @@ if __name__ == '__main__':
             MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
 
     # Configure trigger on the training loss
-    if (args.train_loss_stddev_window_size and
-            args.train_loss_stddev_window_size > 1):
+    if args.train_loss_std_window_size and args.train_loss_std_threshold:
         early_stop_triggers.append(
             laia.engine.triggers.MeterStandardDeviation(
                 meter=engine_wrapper.train_loss,
-                threshold=args.train_loss_stddev_threshold,
-                num_values_to_keep=args.train_loss_stddev_window_size))
+                threshold=args.train_loss_std_threshold,
+                num_values_to_keep=args.train_loss_std_window_size))
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
 
