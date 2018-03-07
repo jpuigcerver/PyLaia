@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import io
 from torch._six import string_classes
+
 
 class SymbolsTable(object):
     def __init__(self, f=None):
@@ -13,14 +15,14 @@ class SymbolsTable(object):
 
     def load(self, f, encoding='utf8'):
         if isinstance(f, string_classes):
-            f = open(f, 'r', encoding='utf8')
+            f = io.open(f, 'r', encoding=encoding)
         self.clear()
         try:
             for n, line in enumerate(f, 1):
                 line = line.split()
-                if len(line) == 0: continue
-                s, v = line[0], int(line[1])
-                self.add(s, v)
+                if len(line) != 0:
+                    s, v = line[0], int(line[1])
+                    self.add(s, v)
         except Exception:
             raise
         finally:
@@ -28,7 +30,7 @@ class SymbolsTable(object):
 
     def save(self, f, encoding='utf8'):
         if isinstance(f, string_classes):
-            f = open(f, 'w', encoding=encoding)
+            f = io.open(f, 'w', encoding=encoding)
         max_len = max([len(s) for s in self._sym2val])
         for v, s in self._val2sym.items():
             f.write(('%*s %d\n' % (max_len, s, v)).encode(encoding))
