@@ -9,6 +9,7 @@ from warpctc_pytorch import CTCLoss as _CTCLoss
 
 from laia.losses.loss import Loss
 
+
 class CTCLoss(Loss):
     def __init__(self, size_average=True):
         super(CTCLoss, self).__init__()
@@ -23,8 +24,9 @@ class CTCLoss(Loss):
         # Prepare tensors of the correct type
         xs = torch.IntTensor(xs)
         y = torch.IntTensor(list(itertools.chain.from_iterable(target)))
-        ys = torch.IntTensor([len(x) for x in target])
+        ys = torch.IntTensor([len(y_) for y_ in target])
 
         # Compute Loss
-        with torch.cuda.device_of(x):
-            return self._ctc(x, Variable(y), Variable(xs), Variable(ys))
+        self._loss = self._ctc(x, Variable(y), Variable(xs), Variable(ys))
+        # self._loss = Variable(torch.zeros(1), requires_grad=True)
+        return self._loss
