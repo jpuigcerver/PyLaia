@@ -22,11 +22,16 @@ class CTCLoss(Loss):
         assert len(target) == x.size(1), 'Batch size does not match'
 
         # Prepare tensors of the correct type
-        xs = torch.IntTensor(xs)
         y = torch.IntTensor(list(itertools.chain.from_iterable(target)))
+        xs = torch.IntTensor(xs)
         ys = torch.IntTensor([len(y_) for y_ in target])
 
+        y = Variable(y, requires_grad=False)
+        xs = Variable(xs, requires_grad=False)
+        ys = Variable(ys, requires_grad=False)
+
         # Compute Loss
-        self._loss = self._ctc(x, Variable(y), Variable(xs), Variable(ys))
-        # self._loss = Variable(torch.zeros(1), requires_grad=True)
+        self._loss = self._ctc(x, y, xs, ys)
+        #self._loss = torch.sum(x)
+        #self._loss = Variable(torch.zeros(1), requires_grad=True)
         return self._loss

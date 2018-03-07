@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 
 BASIC_FORMAT = '%(asctime)s %(levelname)s %(name)s : %(message)s'

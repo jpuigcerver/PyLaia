@@ -31,6 +31,7 @@ class DummyModel(torch.nn.Module):
 
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
+        batch_size = x.size(0)
         x = torch.nn.functional.adaptive_avg_pool2d(
             x, output_size=self._adaptive_size)
 
@@ -38,10 +39,10 @@ class DummyModel(torch.nn.Module):
         x = self._linear(x)
 
         if self._horizontal:
-            xs = torch.IntTensor(xs.size(0)).fill_(self._adaptive_size[1])
+            xs = torch.IntTensor(batch_size).fill_(self._adaptive_size[1])
             return pack_padded_sequence(input=x, lengths=xs.tolist(),
                                         batch_first=False)
         else:
-            xs = torch.IntTensor(xs.size(0)).fill_(self._adaptive_size[0])
+            xs = torch.IntTensor(batch_size).fill_(self._adaptive_size[0])
             return pack_padded_sequence(input=x, lengths=xs.tolist(),
                                         batch_first=False)
