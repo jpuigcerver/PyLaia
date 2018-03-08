@@ -16,8 +16,11 @@ class MockMeter(Meter):
     def __init__(self):
         self._value = None
 
-    def set_value(self, value):
-        self._value = value
+    def set_value(self, value, key=None):
+        if key:
+            self._value = {key: value}
+        else:
+            self._value = value
 
     @property
     def value(self):
@@ -30,14 +33,20 @@ class MeterStandardDeviationTest(unittest.TestCase):
         trigger = MeterStandardDeviation(meter, 0.1, 25)
         self.assertEqual(False, trigger())
 
+    def test_keyed(self):
+        meter = MockMeter()
+        trigger = MeterStandardDeviation(meter, 0.1, 3, meter_key='key')
+        meter.set_value(0, key='key')
+        self.assertEqual(False, trigger())
+        self.assertEqual(False, trigger())
+        self.assertEqual(True, trigger())
+
     def test_not_enough_values(self):
         meter = MockMeter()
         trigger = MeterStandardDeviation(meter, 0.1, 25)
         meter.set_value(0)
         self.assertEqual(False, trigger())
-        meter.set_value(0)
         self.assertEqual(False, trigger())
-        meter.set_value(0)
         self.assertEqual(False, trigger())
 
     def test_above_threshold(self):
