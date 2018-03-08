@@ -80,7 +80,6 @@ if __name__ == '__main__':
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu,
-                                   requires_grad=True,
                                    parent_feeder=ItemFeeder('img')),
         batch_target_fn=ItemFeeder('txt'))
 
@@ -88,7 +87,6 @@ if __name__ == '__main__':
         model=model,
         data_loader=va_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu,
-                                   requires_grad=True,
                                    parent_feeder=ItemFeeder('img')),
         batch_target_fn=ItemFeeder('txt'))
 
