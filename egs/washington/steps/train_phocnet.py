@@ -91,7 +91,7 @@ if __name__ == '__main__':
     trainer = laia.engine.Trainer(
         model=model,
         # Note: Criterion will be set automatically by the wrapper
-        criterion=None,
+        criterion=DortmundBCELoss(),
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         progress_bar='Train' if args.show_progress_bar else False)

@@ -25,10 +25,9 @@ class PHOCEngineWrapper(object):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
-        # If the trainer was created without any criterion, or it is not
-        # the CTCLoss, set it properly.
+        # If the trainer was created without any criterion, set it properly.
         if not self._tr_engine.criterion:
-            self._tr_engine.set_criterion(torch.nn.BCELoss())
+            self._tr_engine.set_criterion(torch.nn.BCEWithLogitsLoss())
 
         # Set trainer's batch_input_fn and batch_target_fn if not already set.
         if not self._tr_engine.batch_input_fn:
@@ -123,8 +122,10 @@ class PHOCEngineWrapper(object):
     def _valid_accumulate_loss(self, batch, batch_output, batch_target, **_):
         batch_loss = self._tr_engine.criterion(batch_output, batch_target)
         self._valid_loss_meter.add(batch_loss)
-        self._valid_ap_meter.add(batch_output.data.cpu().numpy(),
-                     [''.join(w) for w in batch['txt']])
+
+        batch_output_phoc = torch.nn.functional.sigmoid(batch_output.data)
+        self._valid_ap_meter.add(batch_output_phoc.cpu().numpy(),
+                                 [''.join(w) for w in batch['txt']])
         self._valid_timer.stop()
 
     def _report_epoch_train_only(self, **_):

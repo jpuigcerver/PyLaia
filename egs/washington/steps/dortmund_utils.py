@@ -11,7 +11,7 @@ from collections import OrderedDict
 from laia.losses.loss import Loss
 from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 from functools import reduce
-from torch.nn.functional import binary_cross_entropy
+from torch.nn.functional import binary_cross_entropy_with_logits
 from PIL import ImageOps
 
 
@@ -69,7 +69,7 @@ def build_dortmund_model(phoc_size, levels=5):
         ('drop7', torch.nn.Dropout()),
         ('fc8', torch.nn.Linear(4096, phoc_size)),
         # Predicted PHOC
-        ('sigmoid', torch.nn.Sigmoid())
+        # ('sigmoid', torch.nn.Sigmoid())
     ]))
 
     # Initialize parameters as Caffe does
@@ -94,14 +94,18 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
     src_point = np.float32([[x / 2, y / 3],
                             [2 * x / 3, 2 * y / 3],
                             [x / 3, 2 * y / 3]])
-    random_shift = (np.random.rand(3, 2) - 0.5) * 2 * (random_limits[1] - random_limits[0]) / 2 + np.mean(random_limits)
+    random_shift = (np.random.rand(3, 2) - 0.5) * 2 * (
+                random_limits[1] - random_limits[0]) / 2 + np.mean(
+        random_limits)
     dst_point = src_point * random_shift.astype(np.float32)
     transform = cv2.getAffineTransform(src_point, dst_point)
     if img.ndim == 3:
-        border_value = np.median(np.reshape(img, (img.shape[0] * img.shape[1], -1)), axis=0)
+        border_value = np.median(
+            np.reshape(img, (img.shape[0] * img.shape[1], -1)), axis=0)
     else:
         border_value = float(np.median(img))
-    return cv2.warpAffine(img, transform, dsize=(x, y), borderValue=border_value)
+    return cv2.warpAffine(img, transform, dsize=(x, y),
+                          borderValue=border_value)
 
 
 class DortmundImageToTensor(object):
@@ -118,6 +122,9 @@ class DortmundImageToTensor(object):
 
 class DortmundBCELoss(Loss):
     def __call__(self, output, target):
-        loss = binary_cross_entropy(output, target, weight=None,
-                                    size_average=False)
-        return loss / output.size(0)
+        loss = binary_cross_entropy_with_logits(output, target,
+                                                size_average=False)
+        loss = loss / output.size(0)
+        if output.grad is not None:
+            output.grad = output.grad / output.size(0)
+        return loss
