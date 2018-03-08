@@ -12,7 +12,7 @@ from laia.engine.triggers import Any, MaxEpochs
 from laia.utils.arguments import add_argument, add_defaults, args
 
 if __name__ == '__main__':
-    logging.basicConfig()
+    laia.utils.logging.init()
 
     add_defaults('gpu', 'max_epochs', 'num_samples_per_epoch', 'seed',
                  'train_loss_std_window_size', 'train_loss_std_threshold',
