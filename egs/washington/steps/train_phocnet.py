@@ -14,25 +14,27 @@ from dortmund_utils import build_dortmund_model, DortmundBCELoss, \
 if __name__ == '__main__':
     logging.basicConfig()
 
-    add_defaults('gpu', 'seed', 'max_epochs', 'train_loss_std_window_size',
-                 'train_loss_std_threshold',
+    add_defaults('gpu', 'max_epochs', 'num_samples_per_epoch', 'seed',
+                 'train_loss_std_window_size', 'train_loss_std_threshold',
+                 'valid_map_std_window_size', 'valid_map_std_threshold',
                  # Override default values for these arguments, but use the
                  # same help/checks:
-                 batch_size=1, learning_rate=0.0001,
-                 momentum=0.9, show_progress_bar=True, use_distortions=True)
-    add_argument('--num_iterations_to_update', type=int, default=10,
-                 help='Update parameters every n iterations')
-    add_argument('--num_samples_per_epoch', type=int, default=None,
-                 help='Use this number of samples randomly sampled '
-                      'from the dataset in each epoch')
+                 batch_size=1,
+                 learning_rate=0.0001,
+                 momentum=0.9,
+                 num_iterations_per_update=10,
+                 show_progress_bar=True,
+                 use_distortions=True,
+                 weight_l2_penalty=0.00005)
+
     add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
                  help='PHOC levels used to encode the transcript')
-    add_argument('--weight_decay', type=float, default=0.00005,
-                 help='L2 weight decay')
-    add_argument('syms')
-    add_argument('tr_img_dir')
-    add_argument('tr_txt_table')
-    add_argument('va_txt_table')
+    add_argument('syms', help='Symbols table mapping from strings to integers')
+    add_argument('tr_img_dir', help='Directory containing word images')
+    add_argument('tr_txt_table',
+                 help='Character transcriptions of each training image')
+    add_argument('va_txt_table',
+                 help='Character transcriptions of each validation image')
     args = args()
 
     laia.manual_seed(args.seed)
@@ -51,7 +53,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(params=model.parameters(),
                                 lr=args.learning_rate,
                                 momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+                                weight_decay=args.weight_l2_penalty)
 
     # If --use_distortions is given, apply the same affine distortions used by
     # Dortmund University.
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     trainer = laia.engine.Trainer(
         model=model,
         # Note: Criterion will be set automatically by the wrapper
-        criterion=DortmundBCELoss(),
+        criterion=None,
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         progress_bar='Train' if args.show_progress_bar else False)
@@ -124,9 +126,20 @@ if __name__ == '__main__':
             laia.engine.triggers.MeterStandardDeviation(
                 meter=engine_wrapper.train_loss,
                 threshold=args.train_loss_std_threshold,
-                num_values_to_keep=args.train_loss_std_window_size))
+                num_values_to_keep=args.train_loss_std_window_size,
+                meter_key=0))
+
+    # Configure trigger on the validation map
+    if args.valid_map_std_window_size and args.valid_map_std_threshold:
+        early_stop_triggers.append(
+            laia.engine.triggers.MeterStandardDeviation(
+                meter=engine_wrapper.valid_ap,
+                threshold=args.valid_map_std_threshold,
+                num_values_to_keep=args.valid_map_std_window_size,
+                meter_key=1))
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
+    trainer.set_num_iterations_per_update(args.num_iterations_per_update)
 
     # Launch training
     engine_wrapper.run()

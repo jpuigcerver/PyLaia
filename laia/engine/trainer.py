@@ -43,7 +43,7 @@ class Trainer(Engine):
     def __init__(self, model, data_loader, criterion, optimizer,
                  batch_input_fn=None, batch_target_fn=None,
                  early_stop_trigger=None, progress_bar=None,
-                 num_iterations_to_update=None):
+                 num_iterations_per_update=None):
         super(Trainer, self).__init__(model=model,
                                       data_loader=data_loader,
                                       batch_input_fn=batch_input_fn,
@@ -52,8 +52,11 @@ class Trainer(Engine):
         self._criterion = criterion
         self._optimizer = optimizer
         self._early_stop_trigger = early_stop_trigger
-        self._num_iterations_to_update = num_iterations_to_update
+        self._num_iterations_per_update = None
         self._updates = 0
+
+        # Initialize _num_iterations_per_update
+        self.set_num_iterations_per_update(num_iterations_per_update)
 
     @property
     def logger(self):
@@ -73,6 +76,7 @@ class Trainer(Engine):
 
     def add_evaluator(self, evaluator):
         r"""Add an evaluator to run at the end of each epoch."""
+
         def run_eval(**_):
             evaluator.run()
 
@@ -85,8 +89,13 @@ class Trainer(Engine):
         self._criterion = criterion
         return self
 
-    def set_num_iterations_to_update(self, num):
-        self._num_iterations_to_update = num
+    def set_num_iterations_per_update(self, num):
+        if num is None:
+            self._num_iterations_per_update = 1
+        else:
+            assert isinstance(num, int)
+            assert num > 0
+            self._num_iterations_per_update = num
         return self
 
     def set_early_stop_trigger(self, trigger):
@@ -139,8 +148,8 @@ class Trainer(Engine):
                          batch_target=batch_target)
 
         # Make all parameter gradients equal to zero.
-        if (self._num_iterations_to_update is None or
-                (it - 1) % self._num_iterations_to_update == 0):
+        # Note: (IT - 1) % NIPU = the iteration after a step()
+        if (self.iterations - 1) % self._num_iterations_per_update == 0:
             self._optimizer.zero_grad()
 
         # Put model in training mode
@@ -153,30 +162,30 @@ class Trainer(Engine):
         # Note: These checks are only active when logging level >= DEBUG
         check_inf(tensor=batch_output, logger=self.logger,
                   msg='Found {abs_num} ({rel_num:.2%}) INF values in the '
-                  'model output at epoch {epoch}, batch {batch} (absolute '
-                  'iteration {iteration})',
+                      'model output at epoch {epoch}, batch {batch} (absolute '
+                      'iteration {iteration})',
                   epoch=self.epochs, batch=it, iteration=self.iterations)
         check_nan(tensor=batch_output, logger=self.logger,
                   msg='Found {abs_num} ({rel_num:.2%}) NAN values in the '
-                  'model output at epoch {epoch}, batch {batch} (absolute '
-                  'iteration {iteration})',
+                      'model output at epoch {epoch}, batch {batch} (absolute '
+                      'iteration {iteration})',
                   epoch=self.epochs, batch=it, iteration=self.iterations)
         # Compute loss
         batch_loss = self._criterion(batch_output, batch_target)
-        # Make the loss independent of the number of accumulated iterations
-        if (self._num_iterations_to_update and
-                self._num_iterations_to_update > 1):
-            batch_loss = batch_loss / self._num_iterations_to_update
-        # Compute gradients
+
+        # Make the loss and gradients w.r.t. output independent of the number
+        # of accumulated iterations.
+        if self._num_iterations_per_update > 1:
+            batch_loss /= self._num_iterations_per_update
+
+        # Compute gradients w.r.t. parameters
         self.logger.debug(
             'Start backward at epoch {}, batch {} '
             '(absolute iteration {})'.format(self.epochs, it, self.iterations))
         batch_loss.backward()
 
         # Update model parameters.
-        if (self._num_iterations_to_update is None or
-                it % self._num_iterations_to_update == 0 or
-                it == len(self._data_loader)):
+        if self.iterations % self._num_iterations_per_update == 0:
             self._updates += 1
             self.logger.debug(
                 'Updating parameters at epoch {}, batch {} '

@@ -34,7 +34,6 @@ class PHOCEngineWrapper(object):
             self._tr_engine.set_batch_input_fn(
                 ImageFeeder(device=gpu,
                             keep_padded_tensors=False,
-                            requires_grad=True,
                             parent_feeder=ItemFeeder('img')))
         if not self._tr_engine.batch_target_fn:
             self._tr_engine.set_batch_target_fn(
