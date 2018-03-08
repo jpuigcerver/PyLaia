@@ -7,6 +7,8 @@ from laia.utils.symbols_table import SymbolsTable
 from laia.utils.text_to_tensor import TextToTensor
 from laia.utils.phoc import unigram_phoc, TextToPHOC
 
+import laia.utils.logging
+
 
 try:
     from itertools import accumulate
