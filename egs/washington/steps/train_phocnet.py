@@ -2,14 +2,14 @@
 from __future__ import division
 
 import logging
-import torch
-import laia.utils
 
-from laia.engine.triggers import Any, MaxEpochs
+import torch
+
+import laia.utils
+from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.utils.arguments import add_argument, add_defaults, args, str2bool
-from dortmund_utils import build_dortmund_model, DortmundBCELoss, \
-    DortmundImageToTensor
+from laia.engine.triggers import Any, MaxEpochs
+from laia.utils.arguments import add_argument, add_defaults, args
 
 if __name__ == '__main__':
     logging.basicConfig()
