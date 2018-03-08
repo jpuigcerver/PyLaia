@@ -25,15 +25,18 @@ class MeterStandardDeviation(Trigger):
         True.
     num_values_to_keep (int): the size of the values over the meter
         values.
+    meter_key: If given, get this key from the `meter` value.
+        Useful when the `meter` value is a tuple/list/dict. (default: None)
     """
 
-    def __init__(self, meter, threshold, num_values_to_keep):
+    def __init__(self, meter, threshold, num_values_to_keep, meter_key=None):
         assert isinstance(meter, Meter)
         assert threshold > 0, 'Standard deviation should be a positive value'
         assert num_values_to_keep > 1, (
             'The number of values to keep must be greater than 1 to compute '
             'the standard deviation')
         self._meter = meter
+        self._meter_key = meter_key
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
         self._values = []
@@ -51,10 +54,8 @@ class MeterStandardDeviation(Trigger):
             # from returning True.
             return False
 
-        # Note: RunningAverageMeter returns a tuple, with the current mean
-        # and standard deviation, use only the mean.
-        if isinstance(self._meter, RunningAverageMeter):
-            last_value = last_value[0]
+        if self._meter_key is not None:
+            last_value = last_value[self._meter_key]
 
         # Add last_value to the values
         if self._num_values_to_keep > len(self._values):
