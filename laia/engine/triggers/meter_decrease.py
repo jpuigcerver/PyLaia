@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import logging
 
-from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
+from laia.engine.triggers.trigger import TriggerLogWrapper
+from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
 
 from typing import Any
@@ -10,33 +11,23 @@ from typing import Any
 _logger = logging.getLogger(__name__)
 
 
-class MeterDecrease(LoggedTrigger):
+class MeterDecrease(TriggerFromMeter):
+    """Triggers each time a :class:`Meter` reaches a new lowest value.
+
+    Arguments:
+        meter (:obj:`Meter`): meter to monitor.
+        meter_key (Any): if the value returned by the meter is a tuple, list
+            or dictionary, use this key to get the specific value.
+            (default: None)
+        name (str): name for the trigger (default: None).
+    """
+
     def __init__(self, meter, meter_key=None, name=None):
         # type: (Meter, Any, str) -> None
-        assert isinstance(meter, Meter)
-        super(MeterDecrease, self).__init__(_logger, name)
-        self._meter = meter
-        self._meter_key = meter_key
+        super(MeterDecrease, self).__init__(meter, _logger, meter_key, name)
         self._lowest = float('inf')
 
-    def __call__(self):
-        # Try to get the meter's last value, if some exception occurs,
-        # we assume that the meter has not produced any value yet, and
-        # we do not trigger.
-        try:
-            last_value = self._meter.value
-            if last_value is None:
-                raise TypeError('Meter returned None')
-        except Exception:
-            self.logger.exception(
-                TriggerLogWrapper(self, 'No value fetched from meter'))
-            return False
-
-        if self._meter_key is not None:
-            last_value = last_value[self._meter_key]
-
-        # Return True, iff the value read from the meter is lower than the
-        # lowest value seen so far.
+    def _process_value(self, last_value):
         if last_value < self._lowest:
             self.logger.info(
                 TriggerLogWrapper(

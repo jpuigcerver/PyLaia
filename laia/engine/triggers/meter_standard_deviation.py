@@ -5,13 +5,14 @@ import logging
 import numpy as np
 from typing import Any
 
-from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
+from laia.engine.triggers.trigger import TriggerLogWrapper
+from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
 
 _logger = logging.getLogger(__name__)
 
 
-class MeterStandardDeviation(LoggedTrigger):
+class MeterStandardDeviation(TriggerFromMeter):
     r"""This trigger returns True when the standard deviation of a given meter
     over the latest values is lower than some threshold.
 
@@ -37,35 +38,18 @@ class MeterStandardDeviation(LoggedTrigger):
     def __init__(self, meter, threshold, num_values_to_keep, meter_key=None,
                  name=None):
         # type: (Meter, float, int, Any, str) -> None
-        assert isinstance(meter, Meter)
         assert threshold > 0, 'Standard deviation should be a positive value'
         assert num_values_to_keep > 1, (
             'The number of values to keep must be greater than 1 to compute '
             'the standard deviation')
-        super(MeterStandardDeviation, self).__init__(_logger, name)
-        self._meter = meter
-        self._meter_key = meter_key
+        super(MeterStandardDeviation, self).__init__(meter, _logger, meter_key,
+                                                     name)
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
         self._values = []
         self._nval = 0
 
-    def __call__(self):
-        # Try to get the meter's last value, if some exception occurs,
-        # we assume that the meter has not produced any value yet, and
-        # we do not trigger.
-        try:
-            last_value = self._meter.value
-            if last_value is None:
-                raise TypeError('Meter returned None')
-        except Exception:
-            self.logger.exception(
-                TriggerLogWrapper(self, 'No value fetched from meter'))
-            return False
-
-        if self._meter_key is not None:
-            last_value = last_value[self._meter_key]
-
+    def _process_value(self, last_value):
         # Add last_value to the values
         if self._num_values_to_keep > len(self._values):
             self._values.append(last_value)
