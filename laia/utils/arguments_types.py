@@ -1,5 +1,9 @@
-import argparse
+from __future__ import absolute_import
 
+import argparse
+import logging
+
+from collections import OrderedDict
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -30,6 +34,21 @@ def str2num_accept_open_range(v, t, vmin=None, vmax=None):
         raise argparse.ArgumentTypeError(
             'Value must be greater than {}'.format(vmax))
     return v
+
+
+def str2loglevel(v):
+    vmap = OrderedDict([
+        ('debug', logging.DEBUG),
+        ('warn', logging.WARNING),
+        ('info', logging.INFO),
+        ('error', logging.ERROR),
+        ('critical', logging.CRITICAL)
+    ])
+    try:
+        return vmap[v.lower()]
+    except KeyError:
+        raise argparse.ArgumentTypeError('Valid logging levels are: {!r}',
+                                         vmap.values())
 
 
 class NumberInClosedRange(object):
