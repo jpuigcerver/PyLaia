@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-
-from collections import OrderedDict
-from laia.data import PaddedTensor
 from torch.autograd import Variable
+
+from laia.data import PaddedTensor
+
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1,
@@ -74,6 +74,6 @@ class ConvBlock(nn.Module):
                 ys = Variable(ys)
             else:
                 ys = xs
-            return PaddedTensor(data=x, sizes=ys)
+            return PaddedTensor(x, sizes=ys)
         else:
             return x

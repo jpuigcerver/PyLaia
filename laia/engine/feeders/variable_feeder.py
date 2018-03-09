@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from laia.data import PaddedTensor
-from laia.engine.feeders.feeder import Feeder
-
 import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence
+
+from laia.data import PaddedTensor
+from laia.engine.feeders.feeder import Feeder
 
 
 class VariableFeeder(Feeder):
@@ -19,6 +19,7 @@ class VariableFeeder(Feeder):
       parent_feeder (callable, optional): parent feeder that should feed this.
           (default: None)
     """
+
     def __init__(self, device, requires_grad=False, parent_feeder=None):
         super(VariableFeeder, self).__init__(parent_feeder)
         self._device = device
@@ -30,7 +31,7 @@ class VariableFeeder(Feeder):
                 batch = batch.cuda(self._device - 1)
             else:
                 batch = batch.cpu()
-            return Variable(data=batch, requires_grad=self._requires_grad)
+            return Variable(batch, requires_grad=self._requires_grad)
 
         elif isinstance(batch, PaddedTensor):
             x, xs = batch.data, batch.sizes
@@ -42,9 +43,9 @@ class VariableFeeder(Feeder):
             else:
                 x, xs = x.cpu(), xs.cpu()
 
-            x = Variable(data=x, requires_grad=self._requires_grad)
-            xs = Variable(data=xs, requires_grad=False)
-            return PaddedTensor(data=x, sizes=xs)
+            x = Variable(x, requires_grad=self._requires_grad)
+            xs = Variable(xs)
+            return PaddedTensor(x, sizes=xs)
 
         elif isinstance(batch, PackedSequence):
             x, xs = batch.data, batch.batch_sizes
@@ -60,10 +61,10 @@ class VariableFeeder(Feeder):
                 if torch.is_tensor(xs):
                     xs = xs.cpu()
 
-            x = Variable(data=x, requires_grad=self._requires_grad)
+            x = Variable(x, requires_grad=self._requires_grad)
             if torch.is_tensor(xs):
-                xs = Variable(data=xs, requires_grad=False)
-            return PackedSequence(data=x, batch_sizes=xs)
+                xs = Variable(xs)
+            return PackedSequence(x, batch_sizes=xs)
 
         else:
             raise ValueError('Type {!r} is not supported'.format(type(batch)))

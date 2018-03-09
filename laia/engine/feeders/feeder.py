@@ -31,6 +31,7 @@ class ItemFeeder(Feeder):
       parent_feeder (callable, optional): parent feeder that should feed this.
           (default: None)
     """
+
     def __init__(self, key, parent_feeder=None):
         super(ItemFeeder, self).__init__(parent_feeder)
         self._key = key

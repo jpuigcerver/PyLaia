@@ -11,6 +11,6 @@ class TableLogger(object):
         return self._fields
 
     def add(self, **kwargs):
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             if k not in self._fields:
-                raise KeyError('"%s" is not a registered field.' % k)
+                raise KeyError('"{}" is not a registered field.'.format(k))

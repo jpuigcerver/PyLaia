@@ -1,11 +1,11 @@
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-
-from laia.models.htr.conv_block import ConvBlock
-from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
-from laia.data import PaddedTensor
 from nnutils_pytorch import mask_image_from_size
+from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
+
+from laia.data import PaddedTensor
+from laia.models.htr.conv_block import ConvBlock
 
 
 class VggRnn(nn.Module):
@@ -50,8 +50,8 @@ class VggRnn(nn.Module):
 
         collapse_funcs = {
             'sum': self._collapse_sum,
-            'max' : self._collapse_max,
-            'min' : self._collapse_min,
+            'max': self._collapse_max,
+            'min': self._collapse_min,
             'mean': self._collapse_mean
         }
         self._collapse = collapse_funcs.get(collapse.lower(), None)
@@ -73,7 +73,7 @@ class VggRnn(nn.Module):
         if self._rnn_dropout > 0.0:
             x = F.dropout(x, self._rnn_dropout, training=self.training)
         if is_padded:
-            x = pack_padded_sequence(x, list(xs[:,1]))
+            x = pack_padded_sequence(x, list(xs[:, 1]))
         x, _ = self._rnn(x)
         # Output linear layer
         if is_padded:
@@ -82,7 +82,7 @@ class VggRnn(nn.Module):
             x = F.dropout(x, self._lin_dropout, training=self.training)
         x = self._linear(x)
         if is_padded:
-            x = PackedSequence(data=x, batch_sizes=xs)
+            x = PackedSequence(x, batch_sizes=xs)
         return x
 
     def _collapse_sum(self, x, xs):
@@ -95,7 +95,7 @@ class VggRnn(nn.Module):
             return x.mean(dim=2, keepdim=True)
         else:
             x = mask_image_from_size(mask_value=0, inplace=True)(x, xs)
-            return x.sum(dim=2, keepdim=True) / xs[:,0]
+            return x.sum(dim=2, keepdim=True) / xs[:, 0]
 
     def _collapse_max(self, x, xs):
         if xs is not None:

@@ -31,9 +31,9 @@ class Engine(object):
     """
 
     ON_BATCH_START = 'ON_BATCH_START'
-    ON_BATCH_END   = 'ON_BATCH_END'
+    ON_BATCH_END = 'ON_BATCH_END'
     ON_EPOCH_START = 'ON_EPOCH_START'
-    ON_EPOCH_END   = 'ON_EPOCH_END'
+    ON_EPOCH_END = 'ON_EPOCH_END'
 
     _logger = logging.getLogger(__name__)
 

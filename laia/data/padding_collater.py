@@ -69,7 +69,7 @@ class PaddingCollater(object):
                     else:
                         raise NotImplementedError('This is not implemented')
                 sizes = torch.stack([torch.LongTensor(list(x.size())) for x in batch])
-                return PaddedTensor(data=out, sizes=sizes)
+                return PaddedTensor(out, sizes=sizes)
 
         elif (elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_'
               and elem_type.__name__ != 'string_'):

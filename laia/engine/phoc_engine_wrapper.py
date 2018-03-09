@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 import logging
+
 import torch
 
-from laia.meters import AllPairsMetricAveragePrecisionMeter, \
-    RunningAverageMeter, TimeMeter
 from laia.engine.engine import Engine
-from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, \
-    VariableFeeder
+from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
+                                 VariableFeeder)
+from laia.meters import (AllPairsMetricAveragePrecisionMeter,
+                         RunningAverageMeter, TimeMeter)
 
 
 class PHOCEngineWrapper(object):
@@ -135,9 +136,9 @@ class PHOCEngineWrapper(object):
         self.logger.info('Epoch {:4d}, '
                          'TR Loss = {:.3e}, '
                          'TR Time = {:.2f}s'.format(
-                             self._tr_engine.epochs,
-                             tr_loss,
-                             tr_time))
+            self._tr_engine.epochs,
+            tr_loss,
+            tr_time))
 
     def _report_epoch_train_and_valid(self, **_):
         # Average loss in the last EPOCH
@@ -155,10 +156,10 @@ class PHOCEngineWrapper(object):
                          'VA mAP = {:5.1%}, '
                          'TR Time = {:.2f}s, '
                          'VA Time = {:.2f}s'.format(
-                             self._tr_engine.epochs,
-                             tr_loss,
-                             va_loss,
-                             va_gap,
-                             va_map,
-                             tr_time,
-                             va_time))
+            self._tr_engine.epochs,
+            tr_loss,
+            va_loss,
+            va_gap,
+            va_map,
+            tr_time,
+            va_time))
