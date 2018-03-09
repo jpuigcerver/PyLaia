@@ -12,7 +12,7 @@ class NumIterations(LoggedTrigger):
     """Trigger after the given `trainer` reaches a given number of iterations.
 
     Arguments:
-        trainer (:obj:Trainer) : trainer to monitor
+        trainer (:obj:`~laia.engine.Trainer`) : trainer to monitor
         num_iterations (int) : number of iterations to reach
         name (str) : name of the trigger
     """

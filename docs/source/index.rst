@@ -13,8 +13,6 @@ PyLaia documentation
     :caption: Package Reference
 
     laia
-    data
-    engine
 
 
 Indices and tables
