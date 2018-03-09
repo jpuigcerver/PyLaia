@@ -6,8 +6,10 @@ from laia.engine.triggers.trigger import Trigger
 
 class EveryEpoch(Trigger):
     def __init__(self, trainer, on_every_n):
+        # type: (Trainer, int) -> None
         assert isinstance(trainer, Trainer)
         assert on_every_n > 0
+        super(EveryEpoch, self).__init__()
         self._trainer = trainer
         self._on_every_n = on_every_n
 
