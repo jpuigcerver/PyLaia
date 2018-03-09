@@ -12,6 +12,16 @@ _logger = logging.getLogger(__name__)
 
 
 class MeterIncrease(TriggerFromMeter):
+    """Triggers each time a :class:`Meter` reaches a new highest value.
+
+    Arguments:
+        meter (:obj:`~laia.meters.Meter`): meter to monitor.
+        meter_key: if the value returned by the meter is a tuple, list
+            or dictionary, use this key to get the specific value.
+            (default: None)
+        name (str): name for the trigger (default: None).
+    """
+
     def __init__(self, meter, meter_key=None, name=None):
         # type: (Meter, Any, str) -> None
         super(MeterIncrease, self).__init__(meter, _logger, meter_key, name)
