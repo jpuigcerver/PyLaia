@@ -1,7 +1,7 @@
 import argparse
 
 from laia.utils.arguments_types import str2bool, NumberInClosedRange, \
-    NumberInOpenRange
+    NumberInOpenRange, str2loglevel
 
 _parser = None
 _default_args = {
@@ -144,7 +144,36 @@ _default_args = {
             'default': 0.0,
             'type': NumberInClosedRange(type=float, vmin=0),
             'help': 'Apply this L2 weight penalty to the loss function'
-        })
+        }),
+    'logging_level': (
+        ('--logging_level',),
+        {
+            'default': 'INFO',
+            'choices': ('DEBUG', 'WARN', 'INFO', 'ERROR', 'CRITICAL'),
+            'type': str2loglevel,
+            'help': 'Use this level for logging',
+        }),
+    'logging_config': (
+        ('--logging_config',),
+        {
+            'type': str,
+            'help': 'Use this JSON file to configure the logging'
+        }),
+    'logging_file': (
+        ('--logfile',),
+        {
+            'type': str,
+            'help': 'Write the logs to this file'
+        }),
+    'logging_overwrite': (
+        ('--logging_overwrite',),
+        {
+            'type': str2bool,
+            'nargs': '?',
+            'const': True,
+            'default': False,
+            'help': 'If true, overwrite the logfile instead of appending it'
+        }),
 }
 
 
@@ -153,6 +182,8 @@ def _get_parser():
     if not _parser:
         _parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        add_defaults('logging_config', 'logging_file', 'logging_level',
+                     'logging_overwrite')
     return _parser
 
 
@@ -175,7 +206,7 @@ def add_defaults(*args, **kwargs):
 
 def add_argument(*args, **kwargs):
     _get_parser().add_argument(*args, **kwargs)
-
+    return _parser
 
 def args():
     return _get_parser().parse_args()
