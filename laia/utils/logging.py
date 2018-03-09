@@ -18,15 +18,15 @@ DETAILED_FORMAT = '%(asctime)s %(levelname)s %(name)s [%(pathname)s:%(lineno)d] 
 _logger = logging.getLogger('laia')
 
 
-def getLogger(name=None):
+def get_logger(name=None):
     if name is None:
         return _logger
     else:
         return logging.getLogger(name)
 
 
-def basicConfig(fmt=BASIC_FORMAT, level=INFO, filename=None,
-                filemode='a', log_also_to_stderr_level=ERROR):
+def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
+                 filemode='a', log_also_to_stderr_level=ERROR):
     fmt = logging.Formatter(fmt)
 
     if filename:
@@ -54,12 +54,12 @@ def config(fmt=BASIC_FORMAT, level=INFO, filename=None, filemode='a',
                 config_dict = json.load(f)
             logging.config.dictConfig(config_dict)
         except Exception:
-            basicConfig()
+            basic_config()
             _logger.exception(
                 'Logging configuration could not be parsed, using default')
     else:
-        basicConfig(fmt=fmt, level=level, filename=filename, filemode=filemode,
-                    log_also_to_stderr_level=log_also_to_stderr_level)
+        basic_config(fmt=fmt, level=level, filename=filename, filemode=filemode,
+                     log_also_to_stderr_level=log_also_to_stderr_level)
 
 
 def config_from_args(args, fmt=BASIC_FORMAT):

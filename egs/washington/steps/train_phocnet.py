@@ -35,7 +35,7 @@ if __name__ == '__main__':
     args = args()
     logging.config_from_args(args)
 
-    logger = logging.getLogger()
+    logger = logging.get_logger()
 
     laia.manual_seed(args.seed)
 
