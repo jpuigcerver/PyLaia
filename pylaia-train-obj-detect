@@ -33,6 +33,7 @@ if __name__ == '__main__':
     add_argument('tr_table')
     add_argument('va_table', nargs='?')
     args = args()
+    laia.utils.logging.config_from_args(args)
 
     # Build model!
     model = None

@@ -14,7 +14,7 @@ import laia.engine
 import laia.nn
 import laia.utils
 from laia.data import PaddedTensor
-from laia.engine.triggers import Any, EveryEpoch, MaxEpochs, \
+from laia.engine.triggers import Any, EveryEpoch, NumEpochs, \
     MeterStandardDeviation, MeterDecrease
 from laia.savers import SaverTrigger, SaverTriggerCollection
 from laia.utils.arguments import add_argument, add_defaults, args
@@ -112,6 +112,7 @@ if __name__ == '__main__':
     add_argument('tr_txt_table')
     add_argument('va_txt_table')
     args = args()
+    laia.utils.logging.config_from_args(args)
 
     laia.manual_seed(args.seed)
 
@@ -192,10 +193,10 @@ if __name__ == '__main__':
     # If any of these returns True, training will stop.
     early_stop_triggers = []
 
-    # Configure MaxEpochs trigger
+    # Configure NumEpochs trigger
     if args.max_epochs and args.max_epochs > 0:
         early_stop_triggers.append(
-            MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
+            NumEpochs(trainer=trainer, num_epochs=args.max_epochs))
 
     # Configure MeterStandardDeviation trigger to monitor validation CER
     if args.valid_cer_std_values and args.valid_cer_std_threshold:

@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 from __future__ import division
 
-import logging
-
 import torch
 
 import laia.utils
 from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.engine.triggers import Any, MaxEpochs
+from laia.engine.triggers import Any, NumEpochs
 from laia.utils.arguments import add_argument, add_defaults, args
+from laia.utils import logging
 
 if __name__ == '__main__':
-    laia.utils.logging.init()
-
     add_defaults('gpu', 'max_epochs', 'num_samples_per_epoch', 'seed',
                  'train_loss_std_window_size', 'train_loss_std_threshold',
                  'valid_map_std_window_size', 'valid_map_std_threshold',
@@ -36,6 +33,9 @@ if __name__ == '__main__':
     add_argument('va_txt_table',
                  help='Character transcriptions of each validation image')
     args = args()
+    logging.config_from_args(args)
+
+    logger = logging.getLogger()
 
     laia.manual_seed(args.seed)
 
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     else:
         model = model.cpu()
 
-    logging.info('Model has {} parameters'.format(
+    logger.info('Model has {} parameters'.format(
         sum(param.data.numel() for param in model.parameters())))
     optimizer = torch.optim.SGD(params=model.parameters(),
                                 lr=args.learning_rate,
@@ -115,10 +115,10 @@ if __name__ == '__main__':
     # If any of these returns True, training will stop.
     early_stop_triggers = []
 
-    # Configure MaxEpochs trigger
+    # Configure NumEpochs trigger
     if args.max_epochs and args.max_epochs > 0:
         early_stop_triggers.append(
-            MaxEpochs(trainer=trainer, max_epochs=args.max_epochs))
+            NumEpochs(trainer=trainer, num_epochs=args.max_epochs))
 
     # Configure trigger on the training loss
     if args.train_loss_std_window_size and args.train_loss_std_threshold:
