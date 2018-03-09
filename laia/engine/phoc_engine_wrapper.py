@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-import logging
-
 import torch
 
+import laia.plugins.logging as log
 from laia.engine.engine import Engine
 from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
                                  VariableFeeder)
@@ -18,8 +17,6 @@ class PHOCEngineWrapper(object):
     ON_EPOCH_START = Engine.ON_EPOCH_START
     ON_BATCH_END = Engine.ON_BATCH_END
     ON_EPOCH_END = Engine.ON_EPOCH_END
-
-    logger = logging.getLogger(__name__)
 
     def __init__(self, symbols_table, phoc_levels, train_engine,
                  valid_engine=None, gpu=0):
@@ -133,12 +130,12 @@ class PHOCEngineWrapper(object):
         tr_loss, _ = self.train_loss.value
         # Timers
         tr_time = self.train_timer.value
-        self.logger.info('Epoch {:4d}, '
-                         'TR Loss = {:.3e}, '
-                         'TR Time = {:.2f}s'.format(
-            self._tr_engine.epochs,
-            tr_loss,
-            tr_time))
+        log.info('Epoch {:4d}, '
+                 'TR Loss = {:.3e}, '
+                 'TR Time = {:.2f}s',
+                 self._tr_engine.epochs,
+                 tr_loss,
+                 tr_time, name=__name__)
 
     def _report_epoch_train_and_valid(self, **_):
         # Average loss in the last EPOCH
@@ -149,17 +146,17 @@ class PHOCEngineWrapper(object):
         va_time = self.valid_timer.value
         # Global and Mean AP for validation
         va_gap, va_map = self.valid_ap.value
-        self.logger.info('Epoch {:4d}, '
-                         'TR Loss = {:.3e}, '
-                         'VA Loss = {:.3e}, '
-                         'VA gAP = {:5.1%}, '
-                         'VA mAP = {:5.1%}, '
-                         'TR Time = {:.2f}s, '
-                         'VA Time = {:.2f}s'.format(
-            self._tr_engine.epochs,
-            tr_loss,
-            va_loss,
-            va_gap,
-            va_map,
-            tr_time,
-            va_time))
+        log.info('Epoch {:4d}, '
+                 'TR Loss = {:.3e}, '
+                 'VA Loss = {:.3e}, '
+                 'VA gAP = {:5.1%}, '
+                 'VA mAP = {:5.1%}, '
+                 'TR Time = {:.2f}s, '
+                 'VA Time = {:.2f}s',
+                 self._tr_engine.epochs,
+                 tr_loss,
+                 va_loss,
+                 va_gap,
+                 va_map,
+                 tr_time,
+                 va_time, name=__name__)

@@ -1,7 +1,7 @@
 import argparse
 
-from laia.utils.arguments_types import str2bool, NumberInClosedRange, \
-    NumberInOpenRange, str2loglevel
+from laia.plugins.arguments_types import (str2bool, NumberInClosedRange,
+                                          NumberInOpenRange, str2loglevel)
 
 _parser = None
 _default_args = {

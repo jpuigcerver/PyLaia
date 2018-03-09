@@ -1,14 +1,11 @@
 from __future__ import absolute_import
 
-import logging
-
+import laia.plugins.logging as log
 from laia.engine.trainer import Trainer
-from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
-
-_logger = logging.getLogger(__name__)
+from laia.engine.triggers.trigger import TriggerLogWrapper
 
 
-class NumEpochs(LoggedTrigger):
+class NumEpochs():
     """Trigger after the given `trainer` reaches a given number of epochs.
 
     Arguments:
@@ -20,18 +17,19 @@ class NumEpochs(LoggedTrigger):
     def __init__(self, trainer, num_epochs, name=None):
         # type: (Trainer, int, str) -> None
         assert isinstance(trainer, Trainer)
-        super(NumEpochs, self).__init__(_logger, name)
+        super(NumEpochs, self).__init__(name)
         self._trainer = trainer
         self._num_epochs = num_epochs
 
     def __call__(self):
         if self._trainer.epochs >= self._num_epochs:
-            self.logger.info(
-                TriggerLogWrapper(self, 'Trainer reached {} epochs',
-                                  self._num_epochs))
+            log.info(
+                TriggerLogWrapper(
+                    self, 'Trainer reached {} epochs',
+                    self._num_epochs))
             return True
         else:
-            self.logger.debug(
-                TriggerLogWrapper(self, 'Trainer DID NOT reach {} epochs yet',
-                                  self._num_epochs))
+            log.debug(TriggerLogWrapper(
+                self, 'Trainer DID NOT reach {} epochs yet',
+                self._num_epochs))
             return False

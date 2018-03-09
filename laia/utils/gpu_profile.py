@@ -7,12 +7,14 @@ import os
 import pynvml
 import torch
 
+import laia.plugins.logging as log
+
 print_tensor_sizes = True
 last_tensor_sizes = set()
-gpu_profile_fn = './gpu_mem_prof-%s.txt' % (
+gpu_profile_fn = './gpu_mem_prof-{}.txt'.format(
     datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
 if 'GPU_DEBUG' in os.environ:
-    print('profiling gpu usage to ', gpu_profile_fn)
+    log.debug('profiling gpu usage to {}', gpu_profile_fn)
 
 lineno = None
 func_name = None
@@ -33,11 +35,11 @@ def gpu_profile(frame, event):
                 handle = pynvml.nvmlDeviceGetHandleByIndex(int(os.environ['GPU_DEBUG']))
                 meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
                 line = linecache.getline(filename, lineno)
-                where_str = module_name+' '+func_name+':'+str(lineno)
+                where_str = module_name + ' ' + func_name + ':' + str(lineno)
 
                 with open(gpu_profile_fn, 'a+') as f:
-                    f.write('%50s %7.1fMb %s' % (
-                        where_str, meminfo.used/1024**2, line.rstrip()))
+                    f.write('{:>50} {%7.1f}Mb {}'.format(
+                        where_str, meminfo.used / 1024 ** 2, line.rstrip()))
                     if print_tensor_sizes is True:
                         for tensor in get_tensors():
                             if not hasattr(tensor, 'dbg_alloc_where'):
@@ -45,10 +47,10 @@ def gpu_profile(frame, event):
                         new_tensor_sizes = {(type(x), tuple(x.size()), x.dbg_alloc_where)
                                             for x in get_tensors()}
                         for t, s, loc in new_tensor_sizes - last_tensor_sizes:
-                            f.write('+ %50s %20s %10s\n' % (
+                            f.write('+ {:>50} {:>20} {:>10}\n'.format(
                                 loc, str(s), str(t)))
                         for t, s, loc in last_tensor_sizes - new_tensor_sizes:
-                            f.write('- %50s %20s %10s\n' % (
+                            f.write('- {:>50} {:>20} {:>10}\n'.format(
                                 loc, str(s), str(t)))
                         last_tensor_sizes = new_tensor_sizes
                 pynvml.nvmlShutdown()

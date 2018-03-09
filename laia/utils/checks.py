@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import logging
-
 import numpy as np
 import torch
+
+import laia.plugins.logging as log
 
 _TENSOR_REAL = (torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor)
 if torch.cuda.is_available():
@@ -12,7 +12,7 @@ if torch.cuda.is_available():
                      torch.cuda.HalfTensor)
 
 
-def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
+def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
     r"""Check whether a tensor contains a +/- infinite value.
 
     Arguments:
@@ -20,7 +20,7 @@ def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
       msg (str): message format string. The message format can use the keys
           ``abs_num`` and ``rel_num`` to print the absolute number and the
            percentage of infinite elements. (Default: None)
-      logger (logging.Logger): logger used to log the event (Default: None)
+      name (str): caller's __name__ (Default: None)
       raise_exception (bool): raise an exception instead of logging the event
           (Default: False)
       kwargs: additional named arguments passed to format the message.
@@ -32,10 +32,7 @@ def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
     if isinstance(tensor, torch.autograd.Variable):
         tensor = tensor.data
 
-    if logger is None:
-        logger = logging.getLogger()
-
-    if isinstance(tensor, _TENSOR_REAL) and logger.isEnabledFor(logging.DEBUG):
+    if isinstance(tensor, _TENSOR_REAL) and log._get_logger(name=name).isEnabledFor(log.DEBUG):
         num_inf = torch.sum(tensor == np.INF) + torch.sum(tensor == np.NINF)
         if num_inf > 0:
             per_inf = num_inf / tensor.numel()
@@ -47,7 +44,7 @@ def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
             if raise_exception:
                 raise ValueError(msg)
             else:
-                logger.debug(msg)
+                log.debug(msg, name=name)
 
             return True
 
@@ -55,7 +52,7 @@ def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
     return False
 
 
-def check_nan(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
+def check_nan(tensor, msg=None, name=None, raise_exception=False, **kwargs):
     r"""Check whether a tensor contains a NaN value.
 
     Arguments:
@@ -63,7 +60,7 @@ def check_nan(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
       msg (str): message format string. The message format can use the keys
           ``abs_num`` and ``rel_num`` to print the absolute number and the
            percentage of NaN elements. (Default: None)
-      logger (logging.Logger): logger used to log the event (Default: None)
+      name (str): caller's __name__ (Default: None)
       raise_exception (bool): raise an exception instead of logging the event
           (Default: False)
       kwargs: additional named arguments passed to format the message.
@@ -74,10 +71,7 @@ def check_nan(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
     if isinstance(tensor, torch.autograd.Variable):
         tensor = tensor.data
 
-    if logger is None:
-        logger = logging.getLogger()
-
-    if isinstance(tensor, _TENSOR_REAL) and logger.isEnabledFor(logging.DEBUG):
+    if isinstance(tensor, _TENSOR_REAL) and log._get_logger(name).isEnabledFor(log.DEBUG):
         num_nan = torch.sum(tensor != tensor)
         if num_nan > 0:
             per_nan = num_nan / tensor.numel()
@@ -89,7 +83,7 @@ def check_nan(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
             if raise_exception:
                 raise ValueError(msg)
             else:
-                logger.debug(msg)
+                log.debug(msg, name=name)
 
             return True
 

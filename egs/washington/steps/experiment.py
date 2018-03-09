@@ -14,10 +14,10 @@ import laia.engine
 import laia.nn
 import laia.utils
 from laia.data import PaddedTensor
-from laia.engine.triggers import Any, EveryEpoch, NumEpochs, \
-    MeterStandardDeviation, MeterDecrease
+from laia.engine.triggers import (Any, EveryEpoch, NumEpochs,
+                                  MeterStandardDeviation, MeterDecrease)
+from laia.plugins.arguments import add_argument, add_defaults, args
 from laia.savers import SaverTrigger, SaverTriggerCollection
-from laia.utils.arguments import add_argument, add_defaults, args
 
 
 class Model(torch.nn.Module):
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     add_argument('tr_txt_table')
     add_argument('va_txt_table')
     args = args()
-    laia.utils.logging.config_from_args(args)
+    laia.plugins.logging.config_from_args(args)
 
     laia.manual_seed(args.seed)
 

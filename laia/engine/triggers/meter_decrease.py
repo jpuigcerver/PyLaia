@@ -1,14 +1,11 @@
 from __future__ import absolute_import
 
-import logging
+from typing import Any
 
+import laia.plugins.logging as log
 from laia.engine.triggers.trigger import TriggerLogWrapper
 from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
-
-from typing import Any
-
-_logger = logging.getLogger(__name__)
 
 
 class MeterDecrease(TriggerFromMeter):
@@ -29,15 +26,13 @@ class MeterDecrease(TriggerFromMeter):
 
     def _process_value(self, last_value):
         if last_value < self._lowest:
-            self.logger.info(
-                TriggerLogWrapper(
-                    self, 'New lowest value {} (previous was {})',
-                    last_value, self._lowest))
+            log.info(TriggerLogWrapper(
+                self, 'New lowest value {} (previous was {})',
+                last_value, self._lowest), name=__name__)
             self._lowest = last_value
             return True
         else:
-            self.logger.debug(
-                TriggerLogWrapper(
-                    self, 'Value IS NOT the lowest (last: {} vs lowest: {})',
-                    last_value, self._lowest))
+            log.debug(TriggerLogWrapper(
+                self, 'Value IS NOT the lowest (last: {} vs lowest: {})',
+                last_value, self._lowest), name=__name__)
             return False

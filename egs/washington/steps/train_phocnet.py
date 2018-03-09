@@ -2,13 +2,13 @@
 from __future__ import division
 
 import torch
-
-import laia.utils
 from dortmund_utils import build_dortmund_model, DortmundImageToTensor
+
+import laia.plugins.logging as log
+import laia.utils
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.engine.triggers import Any, NumEpochs, NumUpdates
-from laia.utils import logging
-from laia.utils.arguments import add_argument, add_defaults, args
+from laia.engine.triggers import Any, NumEpochs
+from laia.plugins.arguments import add_argument, add_defaults, args
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
@@ -34,9 +34,7 @@ if __name__ == '__main__':
     add_argument('va_txt_table',
                  help='Character transcriptions of each validation image')
     args = args()
-    logging.config_from_args(args)
-
-    logger = logging.get_logger()
+    log.config_from_args(args)
 
     laia.manual_seed(args.seed)
 
@@ -49,8 +47,8 @@ if __name__ == '__main__':
     else:
         model = model.cpu()
 
-    logger.info('Model has {} parameters'.format(
-        sum(param.data.numel() for param in model.parameters())))
+    log.info('Model has {} parameters',
+             sum(param.data.numel() for param in model.parameters()))
     optimizer = torch.optim.SGD(params=model.parameters(),
                                 lr=args.learning_rate,
                                 momentum=args.momentum,

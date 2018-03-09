@@ -1,14 +1,11 @@
 from __future__ import absolute_import
 
-import logging
-
+import laia.plugins.logging as log
 from laia.engine.trainer import Trainer
-from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
-
-_logger = logging.getLogger(__name__)
+from laia.engine.triggers.trigger import TriggerLogWrapper
 
 
-class NumIterations(LoggedTrigger):
+class NumIterations():
     """Trigger after the given `trainer` reaches a given number of iterations.
 
     Arguments:
@@ -20,19 +17,19 @@ class NumIterations(LoggedTrigger):
     def __init__(self, trainer, num_iterations, name=None):
         # type: (Trainer, int, str) -> None
         assert isinstance(trainer, Trainer)
-        super(NumIterations, self).__init__(_logger, name)
+        super(NumIterations, self).__init__(name)
         self._trainer = trainer
         self._num_iterations = num_iterations
 
     def __call__(self):
         if self._trainer.iterations >= self._num_iterations:
-            self.logger.info(
-                TriggerLogWrapper(self, 'Trainer reached {} iterations',
-                                  self._num_iterations))
+            log.info(TriggerLogWrapper(
+                self, 'Trainer reached {} iterations',
+                self._num_iterations), name=__name__)
             return True
         else:
-            self.logger.debug(
-                TriggerLogWrapper(self,
-                                  'Trainer DID NOT reach {} iterations yet',
-                                  self._num_iterations))
+            log.debug(TriggerLogWrapper(
+                self,
+                'Trainer DID NOT reach {} iterations yet',
+                self._num_iterations), name=__name__)
             return False

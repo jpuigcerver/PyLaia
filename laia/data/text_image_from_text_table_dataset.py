@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-import logging
 from os import listdir
 from os.path import isfile, join, splitext
+
 from torch._six import string_classes
 
+import laia.plugins.logging as log
 from laia.data.text_image_dataset import TextImageDataset
-
-_logger = logging.getLogger(__name__)
 
 _IMAGE_EXTENSIONS = ('.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp')
 
@@ -69,8 +68,8 @@ def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
     for _, imgid, txt in _load_text_table_from_file(table_file):
         fname = imgid2fname.get(imgid)
         if fname is None:
-            _logger.warning('No image file was found in folder "%s" for image '
-                            'ID "%s", ignoring example...', imgs_dir, imgid)
+            log.warning('No image file was found in folder "{}" for image '
+                        'ID "{}", ignoring example...', imgs_dir, imgid, name=__name__)
             continue
         else:
             ids.append(imgid)
