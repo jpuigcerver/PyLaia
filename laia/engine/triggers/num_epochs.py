@@ -12,7 +12,7 @@ class NumEpochs(LoggedTrigger):
     """Trigger after the given `trainer` reaches a given number of epochs.
 
     Arguments:
-        trainer (:obj:Trainer) : trainer to monitor
+        trainer (:obj:`~laia.engine.Trainer`) : trainer to monitor
         num_epochs (int) : number of epochs to reach
         name (str) : name of the trigger
     """
