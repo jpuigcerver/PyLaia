@@ -79,7 +79,7 @@ _default_args = {
         {
             'type': NumberInClosedRange(type=int, vmin=2),
             'help': 'Use this number of epochs to compute the standard '
-                    'deviation of the validation Mean Average Precision (mAP) ' 
+                    'deviation of the validation Mean Average Precision (mAP) '
                     '(must be >= 2)'
         }),
     'valid_map_std_threshold': (
@@ -87,7 +87,7 @@ _default_args = {
         {
             'type': NumberInOpenRange(type=float, vmin=0),
             'help': 'Stop training if the standard deviation of the validation '
-                    'Mean Average Precision (mAP) is below this threshold ' 
+                    'Mean Average Precision (mAP) is below this threshold '
                     '(must be > 0)'
         }),
     'show_progress_bar': (
@@ -145,13 +145,22 @@ _default_args = {
             'type': NumberInClosedRange(type=float, vmin=0),
             'help': 'Apply this L2 weight penalty to the loss function'
         }),
+    'logging_also_to_stderr': (
+        ('--logging_also_to_stderr',),
+        {
+            'default': 'ERROR',
+            'type': str2loglevel,
+            'help': 'If you are logging to a file, use this level for logging '
+                    'also to stderr (use any of: debug, info, warn, error, '
+                    'critical)',
+        }),
     'logging_level': (
         ('--logging_level',),
         {
             'default': 'INFO',
-            'choices': ('DEBUG', 'WARN', 'INFO', 'ERROR', 'CRITICAL'),
             'type': str2loglevel,
-            'help': 'Use this level for logging',
+            'help': 'Use this level for logging (use any of: debug, info, '
+                    'warn, error, critical)',
         }),
     'logging_config': (
         ('--logging_config',),
@@ -160,7 +169,7 @@ _default_args = {
             'help': 'Use this JSON file to configure the logging'
         }),
     'logging_file': (
-        ('--logfile',),
+        ('--logging_file',),
         {
             'type': str,
             'help': 'Write the logs to this file'
@@ -182,8 +191,8 @@ def _get_parser():
     if not _parser:
         _parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        add_defaults('logging_config', 'logging_file', 'logging_level',
-                     'logging_overwrite')
+        add_defaults('logging_also_to_stderr', 'logging_config', 'logging_file',
+                     'logging_level', 'logging_overwrite')
     return _parser
 
 
@@ -207,6 +216,7 @@ def add_defaults(*args, **kwargs):
 def add_argument(*args, **kwargs):
     _get_parser().add_argument(*args, **kwargs)
     return _parser
+
 
 def args():
     return _get_parser().parse_args()
