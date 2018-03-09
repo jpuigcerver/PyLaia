@@ -15,8 +15,8 @@ class MeterDecrease(TriggerFromMeter):
     """Triggers each time a :class:`Meter` reaches a new lowest value.
 
     Arguments:
-        meter (:obj:`Meter`): meter to monitor.
-        meter_key (Any): if the value returned by the meter is a tuple, list
+        meter (:obj:`~laia.meters.Meter`): meter to monitor.
+        meter_key : if the value returned by the meter is a tuple, list
             or dictionary, use this key to get the specific value.
             (default: None)
         name (str): name for the trigger (default: None).

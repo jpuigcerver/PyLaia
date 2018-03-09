@@ -24,15 +24,14 @@ class MeterStandardDeviation(TriggerFromMeter):
     the given ``threshold``.
 
     Arguments:
-    meter (:obj:`laia.meters.Meter`): the meter whose value will be
-        monitored.
-    threshold (float): the standard deviation threshold used to trigger
-        True.
-    num_values_to_keep (int): the size of the values over the meter
-        values.
-    meter_key (any): If given, get this key from the `meter` value.
-        Useful when the `meter` value is a tuple/list/dict. (default: None)
-    name (str): Name for the trigger.
+        meter (:obj:`~laia.meters.Meter`): meter to monitor.
+        threshold (float): the standard deviation threshold used to trigger
+            True.
+        num_values_to_keep (int): the size of the values over the meter
+            values.
+        meter_key (any): If given, get this key from the `meter` value.
+            Useful when the `meter` value is a tuple/list/dict. (default: None)
+        name (str): Name for the trigger.
     """
 
     def __init__(self, meter, threshold, num_values_to_keep, meter_key=None,
