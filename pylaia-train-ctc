@@ -7,8 +7,9 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import laia.models.htr
+import laia.plugins.logging as log
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.utils.arguments import add_argument, args, add_defaults
+from laia.plugins.arguments import add_argument, args, add_defaults
 
 if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu')
@@ -19,7 +20,7 @@ if __name__ == '__main__':
     add_argument('tr_txt_table')
     add_argument('va_txt_table')
     args = args()
-    laia.utils.logging.config_from_args(args)
+    log.config_from_args(args)
 
     syms = laia.utils.SymbolsTable(args.syms)
 

@@ -1,5 +1,3 @@
-from logging import Logger
-
 import typing
 from typing import Dict, Tuple
 
@@ -30,17 +28,6 @@ class Trigger(object):
         return False
 
 
-class LoggedTrigger(Trigger):
-    def __init__(self, logger, name=None):
-        # type: (Logger, str) -> None
-        super(LoggedTrigger, self).__init__(name=name)
-        self._logger = logger
-
-    @property
-    def logger(self):
-        return self._logger
-
-
 # TODO: Convert this into a LoggerAdapter.
 class TriggerLogWrapper(object):
     """Wrap log to show the name of the trigger, if available.
@@ -57,7 +44,7 @@ class TriggerLogWrapper(object):
         assert isinstance(trigger, Trigger)
         assert isinstance(msg, str)
         if trigger.name:
-            self._msg = 'Trigger "' + trigger.name + '": ' + msg
+            self._msg = 'Trigger "{}": {}'.format(trigger.name, msg)
         else:
             self._msg = msg
 
@@ -118,7 +105,7 @@ class Any(MultinaryOperator):
 
 
 class All(MultinaryOperator):
-    """Returns `True` iff all of the given `triggers` return `True`.
+    """Returns `True` if all of the given `triggers` return `True`.
 
     Arguments:
         triggers (:obj:`~Trigger`): parameters of the operation.

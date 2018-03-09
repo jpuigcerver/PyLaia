@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import logging
-
 from torch._six import string_classes
+
+import laia.plugins.logging as log
 
 try:
     from tqdm import tqdm
@@ -35,8 +35,6 @@ class Engine(object):
     ON_EPOCH_START = 'ON_EPOCH_START'
     ON_EPOCH_END = 'ON_EPOCH_END'
 
-    _logger = logging.getLogger(__name__)
-
     def __init__(self, model, data_loader,
                  batch_input_fn=None,
                  batch_target_fn=None,
@@ -58,8 +56,8 @@ class Engine(object):
         }
 
         if progress_bar and not tqdm:
-            self.logger.debug('A progress cannot be shown because the "tqdm" '
-                              'module was not found.')
+            log.debug('A progress cannot be shown because the "tqdm" '
+                      'module was not found.', name=__name__)
 
     @property
     def batch_input_fn(self):
@@ -68,10 +66,6 @@ class Engine(object):
     @property
     def batch_target_fn(self):
         return self._batch_target_fn
-
-    @property
-    def logger(self):
-        return self._logger
 
     @property
     def model(self):

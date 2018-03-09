@@ -1,7 +1,8 @@
-import logging
 import math
 
 from numpy import logaddexp
+
+import laia.plugins.logging as log
 
 
 class DiscreteNormalDistribution(object):
@@ -36,10 +37,10 @@ class DiscreteNormalDistribution(object):
                 break
             p_acc = acc
         if self._debug_compute_constant:
-            logging.debug(('Computing Discrete Normal Distribution Constant. '
-                           'Mean = %.6e, var = %.6e, log_z = %.6e, iters = %d'),
-                          self._mean, self._var, acc, i)
-        return acc
+            log.debug('Computing Discrete Normal Distribution Constant. '
+                      'Mean = {:.6e}, var = {:.6e}, log_z = {.6e}, iters = {}',
+                      self._mean, self._var, acc, i)
+            return acc
 
     def pdf(self, x):
         return math.exp(self.log_pdf(x))

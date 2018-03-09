@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
+import laia.plugins.logging as log
+from laia.engine.triggers.trigger import TriggerLogWrapper
 from laia.meters.meter import Meter
-from logging import Logger
 
 
-class TriggerFromMeter(LoggedTrigger):
+class TriggerFromMeter():
     """Base class for triggers based on the value of a :class:`Meter`.
 
     If the value of the meter cannot be read (`Meter.value` returns `None` or
@@ -17,22 +17,21 @@ class TriggerFromMeter(LoggedTrigger):
 
     Arguments:
         meter (:obj:`Meter`): meter to monitor.
-        logger (:obj:`logging.Logger`): logger to use.
         meter_key (Any): if the value returned by the meter is a tuple, list
             or dictionary, use this key to get the specific value.
             (default: None)
-        name (str): name for the trigger (default: None).
+        name (str): name for the logger (default: None).
         num_exceptions_threshold (int): number of exceptions to catch from the
             meter before logging. (default: 5)
     """
 
-    def __init__(self, meter, logger, meter_key=None, name=None,
+    def __init__(self, meter, meter_key=None, name=None,
                  num_exceptions_threshold=5):
-        # type: (Meter, Logger, str) -> None
-        super(TriggerFromMeter, self).__init__(logger, name)
+        # type: (Meter, str) -> None
         self._meter = meter
         self._meter_key = meter_key
         self._num_exceptions = 0
+        self._name = name
         self._num_exceptions_threshold = num_exceptions_threshold
 
     @property
@@ -53,12 +52,11 @@ class TriggerFromMeter(LoggedTrigger):
         except Exception:
             self._num_exceptions += 1
             if self._num_exceptions % self._num_exceptions_threshold == 0:
-                self.logger.exception(
-                    TriggerLogWrapper(
-                        self,
-                        'No value fetched from meter after a while '
-                        '({} exceptions like this occured so far)',
-                        self._num_exceptions))
+                log.warn(TriggerLogWrapper(
+                    self,
+                    'No value fetched from meter after a while '
+                    '({} exceptions like this occured so far)',
+                    self._num_exceptions), name=self._name)
             return False
 
         if self._meter_key is not None:

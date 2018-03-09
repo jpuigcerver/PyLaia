@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-import logging
-
+import laia.plugins.logging as log
 from laia.decoders import CTCDecoder
-from laia.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from laia.engine.engine import Engine
-
 from laia.losses import CTCLoss
+from laia.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 
 
 class HtrEngineWrapper(object):
@@ -17,8 +15,6 @@ class HtrEngineWrapper(object):
     ON_BATCH_END = Engine.ON_BATCH_END
     ON_EPOCH_END = Engine.ON_EPOCH_END
 
-    logger = logging.getLogger(__name__)
-
     def __init__(self, train_engine, valid_engine=None):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
@@ -28,7 +24,7 @@ class HtrEngineWrapper(object):
         if not self._tr_engine.criterion:
             self._tr_engine.set_criterion(CTCLoss())
         elif not isinstance(self._tr_engine.criterion, CTCLoss):
-            self.logger.warn('Overriding the criterion of the trainer to CTC.')
+            log.warn('Overriding the criterion of the trainer to CTC.', name=__name__)
             self._tr_engine.set_criterion(CTCLoss())
 
         self._ctc_decoder = CTCDecoder()
@@ -128,14 +124,14 @@ class HtrEngineWrapper(object):
         tr_cer = self.train_cer.value
         # Timers
         tr_time = self.train_timer.value
-        self.logger.info('Epoch {:4d}, '
-                         'TR Loss = {:.3e}, '
-                         'TR CER = {:6.2%}, '
-                         'TR Time = {:.2f}s'.format(
-                             self._tr_engine.epochs,
-                             tr_loss,
-                             tr_cer,
-                             tr_time))
+        log.info('Epoch {:4d}, '
+                 'TR Loss = {:.3e}, '
+                 'TR CER = {:6.2%}, '
+                 'TR Time = {:.2f}s',
+                 self._tr_engine.epochs,
+                 tr_loss,
+                 tr_cer,
+                 tr_time, name=__name__)
 
     def _report_epoch_train_and_valid(self, **_):
         # Average loss in the last EPOCH
@@ -147,17 +143,17 @@ class HtrEngineWrapper(object):
         # Timers
         tr_time = self.train_timer.value
         va_time = self.valid_timer.value
-        self.logger.info('Epoch {:4d}, '
-                         'TR Loss = {:.3e}, '
-                         'VA Loss = {:.3e}, '
-                         'TR CER = {:5.1%}, '
-                         'VA CER = {:5.1%}, '
-                         'TR Time = {:.2f}s, '
-                         'VA Time = {:.2f}s'.format(
-                             self._tr_engine.epochs,
-                             tr_loss,
-                             va_loss,
-                             tr_cer,
-                             va_cer,
-                             tr_time,
-                             va_time))
+        log.info('Epoch {:4d}, '
+                 'TR Loss = {:.3e}, '
+                 'VA Loss = {:.3e}, '
+                 'TR CER = {:5.1%}, '
+                 'VA CER = {:5.1%}, '
+                 'TR Time = {:.2f}s, '
+                 'VA Time = {:.2f}s',
+                 self._tr_engine.epochs,
+                 tr_loss,
+                 va_loss,
+                 tr_cer,
+                 va_cer,
+                 tr_time,
+                 va_time, name == __name__)

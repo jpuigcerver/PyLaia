@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 import argparse
-import logging
-
 from collections import OrderedDict
+
+import laia.plugins.logging as log
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -38,11 +39,11 @@ def str2num_accept_open_range(v, t, vmin=None, vmax=None):
 
 def str2loglevel(v):
     vmap = OrderedDict([
-        ('debug', logging.DEBUG),
-        ('info', logging.INFO),
-        ('warn', logging.WARNING),
-        ('error', logging.ERROR),
-        ('critical', logging.CRITICAL)
+        ('debug', log.DEBUG),
+        ('info', log.INFO),
+        ('warn', log.WARNING),
+        ('error', log.ERROR),
+        ('critical', log.CRITICAL)
     ])
     try:
         return vmap[v.lower()]

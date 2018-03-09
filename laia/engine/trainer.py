@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
+import laia.plugins.logging as log
 from laia.engine.engine import Engine
 from laia.utils import check_inf, check_nan
-import logging
-import numpy as np
 
 
 class Trainer(Engine):
@@ -38,8 +37,6 @@ class Trainer(Engine):
           (default: None)
     """
 
-    _logger = logging.getLogger(__name__)
-
     def __init__(self, model, data_loader, criterion, optimizer,
                  batch_input_fn=None, batch_target_fn=None,
                  early_stop_trigger=None, progress_bar=None,
@@ -57,10 +54,6 @@ class Trainer(Engine):
 
         # Initialize _num_iterations_per_update
         self.set_num_iterations_per_update(num_iterations_per_update)
-
-    @property
-    def logger(self):
-        return self._logger
 
     @property
     def criterion(self):
@@ -160,12 +153,12 @@ class Trainer(Engine):
         batch_output = self._model(batch_input)
 
         # Note: These checks are only active when logging level >= DEBUG
-        check_inf(tensor=batch_output, logger=self.logger,
+        check_inf(tensor=batch_output, name=__name__,
                   msg='Found {abs_num} ({rel_num:.2%}) INF values in the '
                       'model output at epoch {epoch}, batch {batch} (absolute '
                       'iteration {iteration})',
                   epoch=self.epochs, batch=it, iteration=self.iterations)
-        check_nan(tensor=batch_output, logger=self.logger,
+        check_nan(tensor=batch_output, name=__name__,
                   msg='Found {abs_num} ({rel_num:.2%}) NAN values in the '
                       'model output at epoch {epoch}, batch {batch} (absolute '
                       'iteration {iteration})',
@@ -179,18 +172,15 @@ class Trainer(Engine):
             batch_loss /= self._num_iterations_per_update
 
         # Compute gradients w.r.t. parameters
-        self.logger.debug(
-            'Start backward at epoch {}, batch {} '
-            '(absolute iteration {})'.format(self.epochs, it, self.iterations))
+        log.debug('Start backward at epoch {}, batch {} ''(absolute iteration {})',
+                  self.epochs, it, self.iterations, name=__name__)
         batch_loss.backward()
 
         # Update model parameters.
         if self.iterations % self._num_iterations_per_update == 0:
             self._updates += 1
-            self.logger.debug(
-                'Updating parameters at epoch {}, batch {} '
-                '(absolute iteration {})'.format(
-                    self.epochs, it, self.iterations))
+            log.debug('Updating parameters at epoch {}, batch {} (absolute iteration {})',
+                      self.epochs, it, self.iterations, name=__name___)
             self._optimizer.step()
 
         self._call_hooks(self.ON_BATCH_END,

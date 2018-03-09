@@ -265,7 +265,7 @@ class ImageDistorter(Distorter):
 
 
 if __name__ == '__main__':
-    from laia.utils.arguments import add_argument, args, add_defaults
+    from laia.plugins.arguments import add_argument, args, add_defaults
     import argparse
     from PIL import Image, ImageOps
 

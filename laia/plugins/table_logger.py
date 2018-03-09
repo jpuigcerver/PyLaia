@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+
 class TableLogger(object):
     def __init__(self, filename, fields):
         assert isinstance(fields, OrderedDict)

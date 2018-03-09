@@ -9,8 +9,9 @@ import torch
 from torch.autograd import Variable
 
 import laia
+import laia.plugins.logging as log
 from laia.distorter import ImageDistorter
-from laia.utils.arguments import add_defaults, add_argument, args
+from laia.plugins.arguments import add_defaults, add_argument, args
 
 
 class RectanglesToTensor(object):
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     add_argument('tr_table')
     add_argument('va_table', nargs='?')
     args = args()
-    laia.utils.logging.config_from_args(args)
+    log.config_from_args(args)
 
     # Build model!
     model = None

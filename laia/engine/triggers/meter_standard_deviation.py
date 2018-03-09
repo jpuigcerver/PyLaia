@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
-import logging
-
-import numpy as np
 from typing import Any
 
+import numpy as np
+
+import laia.plugins.logging as log
 from laia.engine.triggers.trigger import TriggerLogWrapper
 from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
-
-_logger = logging.getLogger(__name__)
 
 
 class MeterStandardDeviation(TriggerFromMeter):
@@ -41,8 +39,7 @@ class MeterStandardDeviation(TriggerFromMeter):
         assert num_values_to_keep > 1, (
             'The number of values to keep must be greater than 1 to compute '
             'the standard deviation')
-        super(MeterStandardDeviation, self).__init__(meter, _logger, meter_key,
-                                                     name)
+        super(MeterStandardDeviation, self).__init__(meter, meter_key, name)
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
         self._values = []
@@ -62,14 +59,12 @@ class MeterStandardDeviation(TriggerFromMeter):
 
         std = np.std(np.asarray(self._values, dtype=np.float32))
         if std < self._threshold:
-            self.logger.info(
-                TriggerLogWrapper(
-                    self, 'Standard deviation {} < Theshold {}',
-                    std, self._threshold))
+            log.info(TriggerLogWrapper(
+                self, 'Standard deviation {} < Theshold {}',
+                std, self._threshold), name=__name__)
             return True
         else:
-            self.logger.debug(
-                TriggerLogWrapper(
-                    self, 'Standard deviation {} >= Theshold {}',
-                    std, self._threshold))
+            log.debug(TriggerLogWrapper(
+                self, 'Standard deviation {} >= Theshold {}',
+                std, self._threshold), name=__name__)
             return False
