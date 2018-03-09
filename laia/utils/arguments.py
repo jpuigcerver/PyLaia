@@ -54,6 +54,12 @@ _default_args = {
             'type': NumberInClosedRange(type=int, vmin=1),
             'help': 'Maximum number of training epochs'
         }),
+    'max_updates': (
+        ('--max_updates',),
+        {
+            'type': NumberInClosedRange(type=int, vmin=1),
+            'help': 'Maximum number of parameter updates during training'
+        }),
     'min_epochs': (
         ('--min_epochs',),
         {
