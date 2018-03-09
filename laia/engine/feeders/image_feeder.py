@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from laia.data import PaddedTensor
-from laia.engine.feeders.variable_feeder import VariableFeeder
-
 import torch
 from torch.autograd import Variable
+
+from laia.data import PaddedTensor
+from laia.engine.feeders.variable_feeder import VariableFeeder
 
 
 class ImageFeeder(VariableFeeder):
@@ -24,6 +24,7 @@ class ImageFeeder(VariableFeeder):
       parent_feeder (callable, optional): parent feeder that should feed this.
           (default: None)
     """
+
     def __init__(self, device, keep_padded_tensors=True,
                  keep_channels_in_size=False, requires_grad=False,
                  parent_feeder=None):
@@ -52,28 +53,25 @@ class ImageFeeder(VariableFeeder):
         if torch.is_tensor(batch.data):
             # View image batch as a N-C-H-W
             batch = self._view_as_4d(batch.data)
-            return Variable(data=batch, requires_grad=self._requires_grad)
+            return Variable(batch, requires_grad=self._requires_grad)
 
         elif isinstance(batch, PaddedTensor):
+            # View image batch as a N-C-H-W
+            x = self._view_as_4d(batch.data.data)
             if self._keep_padded_tensors:
-                x, xs = batch.data.data, batch.sizes.data
-                # View image batch as a N-C-H-W
-                x = self._view_as_4d(x)
+                xs = batch.sizes.data
                 # Ensure that the size tensor is the expected
-                if (not xs.dim() == 2 or
-                        (xs.size(1) != 2 and xs.size(1) != 3)):
+                if (xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3)):
                     raise ValueError('Size tensor in PaddedTensor has not an '
                                      'expected shape: {!r}'.format(xs.size()))
 
                 if xs.size(1) == 3 and not self._keep_channels_in_size:
                     xs = xs[:, 1:]
 
-                x = Variable(data=x, requires_grad=self._requires_grad)
-                xs = Variable(data=xs, requires_grad=False)
-                return PaddedTensor(data=x, sizes=xs)
+                x = Variable(x, requires_grad=self._requires_grad)
+                xs = Variable(xs)
+                return PaddedTensor(x, sizes=xs)
             else:
-                # View image batch as a N-C-H-W
-                x = self._view_as_4d(batch.data.data)
-                return Variable(data=x, requires_grad=self._requires_grad)
+                return Variable(x, requires_grad=self._requires_grad)
         else:
             raise ValueError('Type {!r} is not supported'.format(type(batch)))

@@ -2,15 +2,14 @@ from __future__ import absolute_import
 from __future__ import division
 
 import logging
+
 import numpy as np
 import torch
 
-
-_TENSOR_REAL = [torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor]
+_TENSOR_REAL = (torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor)
 if torch.cuda.is_available():
-    _TENSOR_REAL += [torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
-                     torch.cuda.HalfTensor]
-_TENSOR_REAL = tuple(_TENSOR_REAL)
+    _TENSOR_REAL += (torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
+                     torch.cuda.HalfTensor)
 
 
 def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
@@ -37,8 +36,7 @@ def check_inf(tensor, msg=None, logger=None, raise_exception=False, **kwargs):
         logger = logging.getLogger()
 
     if isinstance(tensor, _TENSOR_REAL) and logger.isEnabledFor(logging.DEBUG):
-        inf = float(np.inf)
-        num_inf = torch.sum(tensor == inf) + torch.sum(tensor == -inf)
+        num_inf = torch.sum(tensor == np.INF) + torch.sum(tensor == np.NINF)
         if num_inf > 0:
             per_inf = num_inf / tensor.numel()
             if msg is None:

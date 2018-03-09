@@ -26,12 +26,10 @@ class CTCLoss(Loss):
         xs = torch.IntTensor(xs)
         ys = torch.IntTensor([len(y_) for y_ in target])
 
-        y = Variable(y, requires_grad=False)
-        xs = Variable(xs, requires_grad=False)
-        ys = Variable(ys, requires_grad=False)
+        y = Variable(y)
+        xs = Variable(xs)
+        ys = Variable(ys)
 
         # Compute Loss
         self._loss = self._ctc(x, y, xs, ys)
-        #self._loss = torch.sum(x)
-        #self._loss = Variable(torch.zeros(1), requires_grad=True)
         return self._loss

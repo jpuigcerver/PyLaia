@@ -1,10 +1,10 @@
-import re
 import torch.nn as nn
 import torch.nn.functional as F
-
-from laia.models.htr.conv_block import ConvBlock
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
+
 from laia.data import PaddedTensor
+from laia.models.htr.conv_block import ConvBlock
+
 
 class VggRnnFixedHeight(nn.Module):
     def __init__(self, input_height, num_input_channels, num_output_labels,
@@ -41,8 +41,8 @@ class VggRnnFixedHeight(nn.Module):
             self._conv_blocks.append(layer)
 
         rnn = rnn_type(input_height * ni, rnn_units, rnn_layers,
-                      dropout=rnn_dropout, bidirectional=True,
-                      batch_first=False)
+                       dropout=rnn_dropout, bidirectional=True,
+                       batch_first=False)
         self.add_module('rnn', rnn)
         self._rnn = rnn
 
@@ -54,8 +54,8 @@ class VggRnnFixedHeight(nn.Module):
         is_padded = isinstance(x, PaddedTensor)
         # Check that the input height is the expected (all images in the batch
         # should have the same height).
-        assert ((is_padded and x.data.size()[2] == self._input_height) or
-                (not is_padded and x.size()[2] == self._input_height))
+        assert ((is_padded and x.data.size()[2] == self._input_height)
+                or (not is_padded and x.size()[2] == self._input_height))
         for block in self._conv_blocks:
             x = block(x)
         if is_padded:
@@ -66,7 +66,7 @@ class VggRnnFixedHeight(nn.Module):
         if self._rnn_dropout > 0.0:
             x = F.dropout(x, self._rnn_dropout, training=self.training)
         if is_padded:
-            x = pack_padded_sequence(x, list(xs.data[:,1]))
+            x = pack_padded_sequence(x, list(xs.data[:, 1]))
         x, _ = self._rnn(x)
         # Output linear layer
         if is_padded:
@@ -75,5 +75,5 @@ class VggRnnFixedHeight(nn.Module):
             x = F.dropout(x, self._lin_dropout, training=self.training)
         x = self._linear(x)
         if is_padded:
-            x = PackedSequence(data=x, batch_sizes=xs)
+            x = PackedSequence(x, batch_sizes=xs)
         return x
