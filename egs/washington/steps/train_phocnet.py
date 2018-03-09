@@ -6,12 +6,13 @@ import torch
 import laia.utils
 from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.engine.triggers import Any, NumEpochs
-from laia.utils.arguments import add_argument, add_defaults, args
+from laia.engine.triggers import Any, NumEpochs, NumUpdates
 from laia.utils import logging
+from laia.utils.arguments import add_argument, add_defaults, args
 
 if __name__ == '__main__':
-    add_defaults('gpu', 'max_epochs', 'num_samples_per_epoch', 'seed',
+    add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
+                 'seed',
                  'train_loss_std_window_size', 'train_loss_std_threshold',
                  'valid_map_std_window_size', 'valid_map_std_threshold',
                  # Override default values for these arguments, but use the
@@ -118,25 +119,37 @@ if __name__ == '__main__':
     # Configure NumEpochs trigger
     if args.max_epochs and args.max_epochs > 0:
         early_stop_triggers.append(
-            NumEpochs(trainer=trainer, num_epochs=args.max_epochs))
+            NumEpochs(trainer=trainer, num_epochs=args.max_epochs,
+                      name='Max training epochs'))
+
+    # Configure NumUpdates trigger
+    # TODO(jpuigcerver): Trainer needs to evaluate early stop in other places
+    """
+    if args.max_updates and args.max_updates > 0:
+        early_stop_triggers.append(
+            NumUpdates(trainer=trainer, num_updates=args.max_updates,
+                       name='Max training updates'))
+    """
 
     # Configure trigger on the training loss
     if args.train_loss_std_window_size and args.train_loss_std_threshold:
         early_stop_triggers.append(
             laia.engine.triggers.MeterStandardDeviation(
                 meter=engine_wrapper.train_loss,
-                threshold=args.train_loss_std_threshold,
+                meter_key=0,
                 num_values_to_keep=args.train_loss_std_window_size,
-                meter_key=0))
+                threshold=args.train_loss_std_threshold,
+                name='Train loss standard deviation'))
 
     # Configure trigger on the validation map
     if args.valid_map_std_window_size and args.valid_map_std_threshold:
         early_stop_triggers.append(
             laia.engine.triggers.MeterStandardDeviation(
                 meter=engine_wrapper.valid_ap,
-                threshold=args.valid_map_std_threshold,
+                meter_key=1,
                 num_values_to_keep=args.valid_map_std_window_size,
-                meter_key=1))
+                threshold=args.valid_map_std_threshold,
+                name='Valid mAP standard deviation'))
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
     trainer.set_num_iterations_per_update(args.num_iterations_per_update)
