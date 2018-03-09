@@ -39,8 +39,8 @@ def str2num_accept_open_range(v, t, vmin=None, vmax=None):
 def str2loglevel(v):
     vmap = OrderedDict([
         ('debug', logging.DEBUG),
-        ('warn', logging.WARNING),
         ('info', logging.INFO),
+        ('warn', logging.WARNING),
         ('error', logging.ERROR),
         ('critical', logging.CRITICAL)
     ])
