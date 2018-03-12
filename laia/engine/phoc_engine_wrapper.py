@@ -103,6 +103,7 @@ class PHOCEngineWrapper(object):
         self._tr_engine.run()
         return self
 
+    @property
     def logger(self):
         return self._logger
 
