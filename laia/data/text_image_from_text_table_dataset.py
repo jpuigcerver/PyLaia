@@ -10,6 +10,8 @@ from laia.data.text_image_dataset import TextImageDataset
 
 _IMAGE_EXTENSIONS = ('.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp')
 
+_logger = log.get_logger(__name__)
+
 
 class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(self, txt_table, imgs_dir, img_transform=None,
@@ -68,8 +70,8 @@ def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
     for _, imgid, txt in _load_text_table_from_file(table_file):
         fname = imgid2fname.get(imgid)
         if fname is None:
-            log.warning('No image file was found in folder "{}" for image '
-                        'ID "{}", ignoring example...', imgs_dir, imgid, name=__name__)
+            _logger.warning('No image file was found in folder "{}" for image '
+                            'ID "{}", ignoring example...', imgs_dir, imgid)
             continue
         else:
             ids.append(imgid)

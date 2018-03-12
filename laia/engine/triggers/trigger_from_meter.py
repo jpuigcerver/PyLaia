@@ -20,18 +20,18 @@ class TriggerFromMeter():
         meter_key (Any): if the value returned by the meter is a tuple, list
             or dictionary, use this key to get the specific value.
             (default: None)
-        name (str): name for the logger (default: None).
+        name (str): name of the trigger (default: None).
         num_exceptions_threshold (int): number of exceptions to catch from the
             meter before logging. (default: 5)
     """
 
     def __init__(self, meter, meter_key=None, name=None,
                  num_exceptions_threshold=5):
-        # type: (Meter, str) -> None
+        # type: (Meter, str, str) -> None
         self._meter = meter
         self._meter_key = meter_key
         self._num_exceptions = 0
-        self._name = name
+        self._logger = log.get_logger(name)
         self._num_exceptions_threshold = num_exceptions_threshold
 
     @property
@@ -52,11 +52,11 @@ class TriggerFromMeter():
         except Exception:
             self._num_exceptions += 1
             if self._num_exceptions % self._num_exceptions_threshold == 0:
-                log.warn(TriggerLogWrapper(
+                self._logger.warn(TriggerLogWrapper(
                     self,
                     'No value fetched from meter after a while '
                     '({} exceptions like this occured so far)',
-                    self._num_exceptions), name=self._name)
+                    self._num_exceptions))
             return False
 
         if self._meter_key is not None:

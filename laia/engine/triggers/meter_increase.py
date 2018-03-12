@@ -4,7 +4,6 @@ from typing import Any
 
 import numpy as np
 
-import laia.plugins.logging as log
 from laia.engine.triggers.trigger import TriggerLogWrapper
 from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
@@ -28,13 +27,13 @@ class MeterIncrease(TriggerFromMeter):
 
     def _process_value(self, last_value):
         if last_value > self._highest:
-            log.info(TriggerLogWrapper(
+            self._logger.info(TriggerLogWrapper(
                 self, 'New highest value {} (previous was {})',
-                last_value, self._highest), name=__name__)
+                last_value, self._highest))
             self._highest = last_value
             return True
         else:
-            log.debug(TriggerLogWrapper(
+            self._logger.debug(TriggerLogWrapper(
                 self, 'Value IS NOT the highest (last: {} vs highest: {})',
-                last_value, self._highest), name=__name__)
+                last_value, self._highest))
             return False
