@@ -15,6 +15,8 @@ class HtrEngineWrapper(object):
     ON_BATCH_END = Engine.ON_BATCH_END
     ON_EPOCH_END = Engine.ON_EPOCH_END
 
+    _logger = log.get_logger(__name__)
+
     def __init__(self, train_engine, valid_engine=None):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
@@ -24,7 +26,7 @@ class HtrEngineWrapper(object):
         if not self._tr_engine.criterion:
             self._tr_engine.set_criterion(CTCLoss())
         elif not isinstance(self._tr_engine.criterion, CTCLoss):
-            log.warn('Overriding the criterion of the trainer to CTC.', name=__name__)
+            self._logger.warn('Overriding the criterion of the trainer to CTC.')
             self._tr_engine.set_criterion(CTCLoss())
 
         self._ctc_decoder = CTCDecoder()
@@ -118,42 +120,18 @@ class HtrEngineWrapper(object):
         self._valid_cer_meter.add(batch_target, batch_decode)
 
     def _report_epoch_train_only(self, **_):
-        # Average training loss in the last EPOCH
-        tr_loss, _ = self.train_loss.value
-        # Average training CER in the last EPOCH
-        tr_cer = self.train_cer.value
-        # Timers
-        tr_time = self.train_timer.value
-        log.info('Epoch {:4d}, '
-                 'TR Loss = {:.3e}, '
-                 'TR CER = {:6.2%}, '
-                 'TR Time = {:.2f}s',
-                 self._tr_engine.epochs,
-                 tr_loss,
-                 tr_cer,
-                 tr_time, name=__name__)
+        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
+                          'TR Loss = {train_loss.value:.3e}, '
+                          'TR CER = {train_cer.value:6.2%}, '
+                          'TR Time = {train_timer.value:.2f}s',
+                          **vars(self))
 
     def _report_epoch_train_and_valid(self, **_):
-        # Average loss in the last EPOCH
-        tr_loss, _ = self.train_loss.value
-        va_loss, _ = self.valid_loss.value
-        # Average CER in the last EPOCH
-        tr_cer = self.train_cer.value
-        va_cer = self.valid_cer.value
-        # Timers
-        tr_time = self.train_timer.value
-        va_time = self.valid_timer.value
-        log.info('Epoch {:4d}, '
-                 'TR Loss = {:.3e}, '
-                 'VA Loss = {:.3e}, '
-                 'TR CER = {:5.1%}, '
-                 'VA CER = {:5.1%}, '
-                 'TR Time = {:.2f}s, '
-                 'VA Time = {:.2f}s',
-                 self._tr_engine.epochs,
-                 tr_loss,
-                 va_loss,
-                 tr_cer,
-                 va_cer,
-                 tr_time,
-                 va_time, name == __name__)
+        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
+                          'TR Loss = {train_loss.value:.3e}, '
+                          'VA Loss = {valid_loss.value:.3e}, '
+                          'TR CER = {train_cer.value:5.1%}, '
+                          'VA CER = {valid_cer.value:5.1%}, '
+                          'TR Time = {train_timer.value:.2f}s, '
+                          'VA Time = {valid_timer.value:.2f}s',
+                          **vars(self))

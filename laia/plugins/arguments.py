@@ -203,20 +203,14 @@ def _get_parser():
 
 
 def add_defaults(*args, **kwargs):
-    # If called without arguments add all
-    if len(args) == 0 and len(kwargs) == 0:
-        for args_, kwargs_ in _default_args.values():
-            add_argument(*args_, **kwargs_)
-    # Otherwise add only those given
-    else:
-        for arg in args:
-            args_, kwargs_ = _default_args[arg]
-            add_argument(*args_, **kwargs_)
-        for arg, default_value in kwargs.items():
-            args_, kwargs_ = _default_args[arg]
-            kwargs_['default'] = default_value
-            add_argument(*args_, **kwargs_)
-    return _parser
+    for arg in args:
+        args_, kwargs_ = _default_args[arg]
+        add_argument(*args_, **kwargs_)
+    for arg, default_value in kwargs.items():
+        args_, kwargs_ = _default_args[arg]
+        kwargs_['default'] = default_value
+        add_argument(*args_, **kwargs_)
+    return _get_parser()
 
 
 def add_argument(*args, **kwargs):

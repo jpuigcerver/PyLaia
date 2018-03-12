@@ -104,5 +104,5 @@ class VggRnn(nn.Module):
 
     def _collapse_min(self, x, xs):
         if xs is not None:
-            x = mask_image_from_size(mask_value=np.INF, inplace=True)(x, xs)
+            x = mask_image_from_size(mask_value=np.inf, inplace=True)(x, xs)
         return x.min(dim=2, keepdim=True)[0]

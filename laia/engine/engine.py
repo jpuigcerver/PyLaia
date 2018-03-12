@@ -35,6 +35,8 @@ class Engine(object):
     ON_EPOCH_START = 'ON_EPOCH_START'
     ON_EPOCH_END = 'ON_EPOCH_END'
 
+    _logger = log.get_logger(__name__)
+
     def __init__(self, model, data_loader,
                  batch_input_fn=None,
                  batch_target_fn=None,
@@ -56,8 +58,8 @@ class Engine(object):
         }
 
         if progress_bar and not tqdm:
-            log.debug('A progress cannot be shown because the "tqdm" '
-                      'module was not found.', name=__name__)
+            _logger.debug('A progress cannot be shown because'
+                          'the "tqdm" module was not found.')
 
     @property
     def batch_input_fn(self):
@@ -82,6 +84,10 @@ class Engine(object):
     @property
     def iterations(self):
         return self._iterations
+
+    @property
+    def logger(self):
+        return self._logger
 
     def reset(self):
         r"""Reset the number of epochs and iterations run."""

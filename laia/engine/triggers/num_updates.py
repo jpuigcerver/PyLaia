@@ -17,16 +17,18 @@ class NumUpdates():
     def __init__(self, trainer, num_updates, name=None):
         # type: (Trainer, int, str) -> None
         assert isinstance(trainer, Trainer)
-        super(NumUpdates, self).__init__(name)
         self._trainer = trainer
         self._num_updates = num_updates
+        self._logger = log.get_logger(name)
 
     def __call__(self):
         if self._trainer.updates >= self._num_updates:
-            log.info(TriggerLogWrapper(self, 'Trainer reached {} updates',
-                                       self._num_updates), name=__name__)
+            self._logger.info(TriggerLogWrapper(
+                self, 'Trainer reached {} updates',
+                self._num_updates))
             return True
         else:
-            log.debug(TriggerLogWrapper(self, 'Trainer DID NOT reach {} updates yet',
-                                        self._num_updates), name=__name__)
+            self._logger.debug(TriggerLogWrapper(
+                self, 'Trainer DID NOT reach {} updates yet',
+                self._num_updates))
             return False

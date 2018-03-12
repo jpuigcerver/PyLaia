@@ -4,7 +4,6 @@ from typing import Any
 
 import numpy as np
 
-import laia.plugins.logging as log
 from laia.engine.triggers.trigger import TriggerLogWrapper
 from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
@@ -59,12 +58,12 @@ class MeterStandardDeviation(TriggerFromMeter):
 
         std = np.std(np.asarray(self._values, dtype=np.float32))
         if std < self._threshold:
-            log.info(TriggerLogWrapper(
-                self, 'Standard deviation {} < Theshold {}',
-                std, self._threshold), name=__name__)
+            self._logger.info(TriggerLogWrapper(
+                self, 'Standard deviation {} < Threshold {}',
+                std, self._threshold))
             return True
         else:
-            log.debug(TriggerLogWrapper(
-                self, 'Standard deviation {} >= Theshold {}',
-                std, self._threshold), name=__name__)
+            self._logger.debug(TriggerLogWrapper(
+                self, 'Standard deviation {} >= Threshold {}',
+                std, self._threshold))
             return False

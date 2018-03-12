@@ -43,11 +43,7 @@ class TriggerLogWrapper(object):
         # type: (Trigger, str, Tuple[typing.Any], Dict[str, typing.Any]) -> None
         assert isinstance(trigger, Trigger)
         assert isinstance(msg, str)
-        if trigger.name:
-            self._msg = 'Trigger "{}": {}'.format(trigger.name, msg)
-        else:
-            self._msg = msg
-
+        self._msg = 'Trigger "{}": {}'.format(trigger.name, msg) if trigger.name else msg
         self._args = args
         self._kwargs = kwargs
 

@@ -30,6 +30,8 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
           whose label is not shared with any other object.
     """
 
+    _logger = log.get_logger(__name__)
+
     def __init__(self, metric='euclidean', ignore_singleton=True):
         self._metric = metric
         self._features = []
@@ -39,6 +41,10 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
         self._gap, self._map = None, None
         # This is only to detect whether the metric is valid or not.
         _ = pdist([[1, 1], [1, 1]], metric)
+
+    @property
+    def logger(self):
+        return self._logger
 
     def reset(self):
         self._features = []
@@ -73,7 +79,7 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
             all_labels = self._labels
 
         n = all_features.shape[0]  # number of objects
-        log.debug('Compute Average Precision over {} samples', n, name=__name__)
+        self._logger.debug('Compute Average Precision over {} samples', n)
         distances = pdist(all_features, self._metric)
         # Sort pairs of examples in increasing order
         inds = [(i, j) for i in range(n) for j in range(i + 1, n)]

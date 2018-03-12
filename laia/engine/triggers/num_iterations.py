@@ -17,19 +17,18 @@ class NumIterations():
     def __init__(self, trainer, num_iterations, name=None):
         # type: (Trainer, int, str) -> None
         assert isinstance(trainer, Trainer)
-        super(NumIterations, self).__init__(name)
         self._trainer = trainer
         self._num_iterations = num_iterations
+        self._logger = log.get_logger(name)
 
     def __call__(self):
         if self._trainer.iterations >= self._num_iterations:
-            log.info(TriggerLogWrapper(
+            self._logger.info(TriggerLogWrapper(
                 self, 'Trainer reached {} iterations',
-                self._num_iterations), name=__name__)
+                self._num_iterations))
             return True
         else:
-            log.debug(TriggerLogWrapper(
-                self,
-                'Trainer DID NOT reach {} iterations yet',
-                self._num_iterations), name=__name__)
+            self._logger.debug(TriggerLogWrapper(
+                self, 'Trainer DID NOT reach {} iterations yet',
+                self._num_iterations))
             return False

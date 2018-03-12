@@ -18,6 +18,8 @@ class PHOCEngineWrapper(object):
     ON_BATCH_END = Engine.ON_BATCH_END
     ON_EPOCH_END = Engine.ON_EPOCH_END
 
+    _logger = log.get_logger(__name__)
+
     def __init__(self, symbols_table, phoc_levels, train_engine,
                  valid_engine=None, gpu=0):
         self._tr_engine = train_engine
@@ -101,6 +103,9 @@ class PHOCEngineWrapper(object):
         self._tr_engine.run()
         return self
 
+    def logger(self):
+        return self._logger
+
     def _train_reset_meters(self, **_):
         self._train_timer.reset()
         self._train_loss_meter.reset()
@@ -126,37 +131,17 @@ class PHOCEngineWrapper(object):
         self._valid_timer.stop()
 
     def _report_epoch_train_only(self, **_):
-        # Average training loss in the last EPOCH
-        tr_loss, _ = self.train_loss.value
-        # Timers
-        tr_time = self.train_timer.value
-        log.info('Epoch {:4d}, '
-                 'TR Loss = {:.3e}, '
-                 'TR Time = {:.2f}s',
-                 self._tr_engine.epochs,
-                 tr_loss,
-                 tr_time, name=__name__)
+        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
+                          'TR Loss = {train_loss.value[0]:.3e}, '
+                          'TR Time = {train_timer.value:.2f}s',
+                          **vars(self))
 
     def _report_epoch_train_and_valid(self, **_):
-        # Average loss in the last EPOCH
-        tr_loss, _ = self.train_loss.value
-        va_loss, _ = self.valid_loss.value
-        # Timers
-        tr_time = self.train_timer.value
-        va_time = self.valid_timer.value
-        # Global and Mean AP for validation
-        va_gap, va_map = self.valid_ap.value
-        log.info('Epoch {:4d}, '
-                 'TR Loss = {:.3e}, '
-                 'VA Loss = {:.3e}, '
-                 'VA gAP = {:5.1%}, '
-                 'VA mAP = {:5.1%}, '
-                 'TR Time = {:.2f}s, '
-                 'VA Time = {:.2f}s',
-                 self._tr_engine.epochs,
-                 tr_loss,
-                 va_loss,
-                 va_gap,
-                 va_map,
-                 tr_time,
-                 va_time, name=__name__)
+        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
+                          'TR Loss = {train_loss.value[0]:.3e}, '
+                          'VA Loss = {valid_loss.value[0]:.3e}, '
+                          'VA gAP = {valid_ap.value[0]:5.1%}, '
+                          'VA mAP = {valid_ap.value[1]:5.1%}, '
+                          'TR Time = {train_timer.value:.2f}s, '
+                          'VA Time = {valid_timer.value:.2f}s',
+                          **vars(self))
