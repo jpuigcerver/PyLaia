@@ -2,10 +2,10 @@
 from __future__ import division
 
 import torch
-from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 
 import laia.plugins.logging as log
 import laia.utils
+from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.engine.triggers import Any, NumEpochs
 from laia.plugins.arguments import add_argument, add_defaults, args
