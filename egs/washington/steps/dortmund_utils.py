@@ -15,7 +15,7 @@ from torch.nn.functional import binary_cross_entropy_with_logits
 from PIL import ImageOps
 
 
-def build_dortmund_model(phoc_size, levels=5):
+def build_conv_model():
     model = torch.nn.Sequential(OrderedDict([
         # conv1_1
         ('conv1_1', torch.nn.Conv2d(1, 64, kernel_size=3, padding=1)),
@@ -57,8 +57,15 @@ def build_dortmund_model(phoc_size, levels=5):
         ('relu4_2', torch.nn.ReLU(inplace=True)),
         # conv4_3
         ('conv4_3', torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)),
-        ('relu4_3', torch.nn.ReLU(inplace=True)),
-        # SPP layer
+        ('relu4_3', torch.nn.ReLU(inplace=True))]))
+    return model
+
+
+def build_dortmund_model(phoc_size, levels=5):
+    model = build_conv_model()
+
+    for key, layer in OrderedDict([
+        # TPP layer
         ('tpp5', TemporalPyramidMaxPool2d(levels=levels)),
         # Linear layers
         ('fc6', torch.nn.Linear(512 * sum(range(1, levels + 1)), 4096)),
@@ -68,9 +75,8 @@ def build_dortmund_model(phoc_size, levels=5):
         ('relu7', torch.nn.ReLU(inplace=True)),
         ('drop7', torch.nn.Dropout()),
         ('fc8', torch.nn.Linear(4096, phoc_size)),
-        # Predicted PHOC
-        # ('sigmoid', torch.nn.Sigmoid())
-    ]))
+    ]).items():
+        model.add_module(key, layer)
 
     # Initialize parameters as Caffe does
     for name, param in model.named_parameters():
