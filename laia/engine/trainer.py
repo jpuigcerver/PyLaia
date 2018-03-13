@@ -4,6 +4,8 @@ import laia.plugins.logging as log
 from laia.engine.engine import Engine
 from laia.utils import check_inf, check_nan
 
+_logger = log.get_logger(__name__)
+
 
 class Trainer(Engine):
     r"""Wrapper class to train a model.
@@ -37,8 +39,6 @@ class Trainer(Engine):
           (default: None)
     """
 
-    _logger = log.get_logger(__name__)
-
     def __init__(self, model, data_loader, criterion, optimizer,
                  batch_input_fn=None, batch_target_fn=None,
                  early_stop_trigger=None, progress_bar=None,
@@ -71,7 +71,7 @@ class Trainer(Engine):
 
     @property
     def logger(self):
-        return self._logger
+        return _logger
 
     def add_evaluator(self, evaluator):
         r"""Add an evaluator to run at the end of each epoch."""
@@ -178,17 +178,17 @@ class Trainer(Engine):
             batch_loss /= self._num_iterations_per_update
 
         # Compute gradients w.r.t. parameters
-        self._logger.debug('Start backward at epoch {}, batch {} '
-                           '(absolute iteration {})',
-                           self.epochs, it, self.iterations)
+        self.logger.debug('Start backward at epoch {}, batch {} '
+                          '(absolute iteration {})',
+                          self.epochs, it, self.iterations)
         batch_loss.backward()
 
         # Update model parameters.
         if self.iterations % self._num_iterations_per_update == 0:
             self._updates += 1
-            self._logger.debug('Updating parameters at epoch {}, batch {} '
-                               '(absolute iteration {})',
-                               self.epochs, it, self.iterations)
+            self.logger.debug('Updating parameters at epoch {}, batch {} '
+                              '(absolute iteration {})',
+                              self.epochs, it, self.iterations)
             self._optimizer.step()
 
         self._call_hooks(self.ON_BATCH_END,

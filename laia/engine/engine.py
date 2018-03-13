@@ -9,6 +9,8 @@ try:
 except ImportError:
     tqdm = None
 
+_logger = log.get_logger(__name__)
+
 
 class Engine(object):
     r"""Wrapper class to train a model.
@@ -35,8 +37,6 @@ class Engine(object):
     ON_EPOCH_START = 'ON_EPOCH_START'
     ON_EPOCH_END = 'ON_EPOCH_END'
 
-    _logger = log.get_logger(__name__)
-
     def __init__(self, model, data_loader,
                  batch_input_fn=None,
                  batch_target_fn=None,
@@ -58,8 +58,8 @@ class Engine(object):
         }
 
         if progress_bar and not tqdm:
-            _logger.debug('A progress cannot be shown because'
-                          'the "tqdm" module was not found.')
+            self.logger.debug('A progress cannot be shown because'
+                              'the "tqdm" module was not found.')
 
     @property
     def batch_input_fn(self):
@@ -87,7 +87,7 @@ class Engine(object):
 
     @property
     def logger(self):
-        return self._logger
+        return _logger
 
     def reset(self):
         r"""Reset the number of epochs and iterations run."""

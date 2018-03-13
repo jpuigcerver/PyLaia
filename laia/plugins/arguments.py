@@ -157,7 +157,7 @@ _default_args = {
             'default': 'ERROR',
             'type': str2loglevel,
             'help': 'If you are logging to a file, use this level for logging '
-                    'also to stderr (use any of: debug, info, warn, error, '
+                    'also to stderr (use any of: debug, info, warning, error, '
                     'critical)',
         }),
     'logging_level': (
@@ -166,7 +166,7 @@ _default_args = {
             'default': 'INFO',
             'type': str2loglevel,
             'help': 'Use this level for logging (use any of: debug, info, '
-                    'warn, error, critical)',
+                    'warning, error, critical)',
         }),
     'logging_config': (
         ('--logging_config',),

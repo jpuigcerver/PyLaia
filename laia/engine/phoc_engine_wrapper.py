@@ -9,6 +9,8 @@ from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
 from laia.meters import (AllPairsMetricAveragePrecisionMeter,
                          RunningAverageMeter, TimeMeter)
 
+_logger = log.get_logger(__name__)
+
 
 class PHOCEngineWrapper(object):
     r"""Engine wrapper to perform KWS experiments with PHOC networks."""
@@ -17,8 +19,6 @@ class PHOCEngineWrapper(object):
     ON_EPOCH_START = Engine.ON_EPOCH_START
     ON_BATCH_END = Engine.ON_BATCH_END
     ON_EPOCH_END = Engine.ON_EPOCH_END
-
-    _logger = log.get_logger(__name__)
 
     def __init__(self, symbols_table, phoc_levels, train_engine,
                  valid_engine=None, gpu=0):
@@ -105,7 +105,7 @@ class PHOCEngineWrapper(object):
 
     @property
     def logger(self):
-        return self._logger
+        return _logger
 
     def _train_reset_meters(self, **_):
         self._train_timer.reset()
@@ -132,17 +132,24 @@ class PHOCEngineWrapper(object):
         self._valid_timer.stop()
 
     def _report_epoch_train_only(self, **_):
-        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
-                          'TR Loss = {train_loss.value[0]:.3e}, '
-                          'TR Time = {train_timer.value:.2f}s',
-                          **vars(self))
+        self.logger.info('Epoch {epochs:4d}, '
+                         'TR Loss = {train_loss.value[0]:.3e}, '
+                         'TR Time = {train_timer.value:.2f}s',
+                         epochs=self._tr_engine.epochs,
+                         train_loss=self.train_loss,
+                         train_timer=self.train_timer)
 
     def _report_epoch_train_and_valid(self, **_):
-        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
-                          'TR Loss = {train_loss.value[0]:.3e}, '
-                          'VA Loss = {valid_loss.value[0]:.3e}, '
-                          'VA gAP = {valid_ap.value[0]:5.1%}, '
-                          'VA mAP = {valid_ap.value[1]:5.1%}, '
-                          'TR Time = {train_timer.value:.2f}s, '
-                          'VA Time = {valid_timer.value:.2f}s',
-                          **vars(self))
+        self.logger.info('Epoch {epochs:4d}, '
+                         'TR Loss = {train_loss.value[0]:.3e}, '
+                         'VA Loss = {valid_loss.value[0]:.3e}, '
+                         'VA gAP = {valid_ap.value[0]:5.1%}, '
+                         'VA mAP = {valid_ap.value[1]:5.1%}, '
+                         'TR Time = {train_timer.value:.2f}s, '
+                         'VA Time = {valid_timer.value:.2f}s',
+                         epochs=self._tr_engine.epochs,
+                         train_loss=self.train_loss,
+                         valid_loss=self.valid_loss,
+                         train_timer=self.train_timer,
+                         valid_timer=self.valid_timer,
+                         valid_ap=self.valid_ap)

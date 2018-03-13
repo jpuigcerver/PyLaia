@@ -6,16 +6,16 @@ from laia.engine.engine import Engine
 from laia.losses import CTCLoss
 from laia.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 
+_logger = log.get_logger(__name__)
+
 
 class HtrEngineWrapper(object):
-    r"""Engine wrapper to perform HTR experiments."""
+    """Engine wrapper to perform HTR experiments."""
 
     ON_BATCH_START = Engine.ON_BATCH_START
     ON_EPOCH_START = Engine.ON_EPOCH_START
     ON_BATCH_END = Engine.ON_BATCH_END
     ON_EPOCH_END = Engine.ON_EPOCH_END
-
-    _logger = log.get_logger(__name__)
 
     def __init__(self, train_engine, valid_engine=None):
         self._tr_engine = train_engine
@@ -26,7 +26,7 @@ class HtrEngineWrapper(object):
         if not self._tr_engine.criterion:
             self._tr_engine.set_criterion(CTCLoss())
         elif not isinstance(self._tr_engine.criterion, CTCLoss):
-            self._logger.warn('Overriding the criterion of the trainer to CTC.')
+            self.logger.warn('Overriding the criterion of the trainer to CTC.')
             self._tr_engine.set_criterion(CTCLoss())
 
         self._ctc_decoder = CTCDecoder()
@@ -60,6 +60,10 @@ class HtrEngineWrapper(object):
             self._valid_cer_meter = None
             self._tr_engine.add_hook(
                 self.ON_EPOCH_END, self._report_epoch_train_only)
+
+    @property
+    def logger(self):
+        return _logger
 
     @property
     def train_timer(self):
@@ -120,18 +124,27 @@ class HtrEngineWrapper(object):
         self._valid_cer_meter.add(batch_target, batch_decode)
 
     def _report_epoch_train_only(self, **_):
-        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
-                          'TR Loss = {train_loss.value:.3e}, '
-                          'TR CER = {train_cer.value:6.2%}, '
-                          'TR Time = {train_timer.value:.2f}s',
-                          **vars(self))
+        self.logger.info('Epoch {epochs:4d}, '
+                         'TR Loss = {train_loss.value:.3e}, '
+                         'TR CER = {train_cer.value:6.2%}, '
+                         'TR Time = {train_timer.value:.2f}s',
+                         epochs=self._tr_engine.epochs,
+                         train_loss=self.train_loss,
+                         train_cer=self.train_cer,
+                         train_timer=self.train_timer)
 
     def _report_epoch_train_and_valid(self, **_):
-        self._logger.info('Epoch {_tr_engine.epochs:4d}, '
-                          'TR Loss = {train_loss.value:.3e}, '
-                          'VA Loss = {valid_loss.value:.3e}, '
-                          'TR CER = {train_cer.value:5.1%}, '
-                          'VA CER = {valid_cer.value:5.1%}, '
-                          'TR Time = {train_timer.value:.2f}s, '
-                          'VA Time = {valid_timer.value:.2f}s',
-                          **vars(self))
+        self.logger.info('Epoch {epochs:4d}, '
+                         'TR Loss = {train_loss.value:.3e}, '
+                         'VA Loss = {valid_loss.value:.3e}, '
+                         'TR CER = {train_cer.value:5.1%}, '
+                         'VA CER = {valid_cer.value:5.1%}, '
+                         'TR Time = {train_timer.value:.2f}s, '
+                         'VA Time = {valid_timer.value:.2f}s',
+                         epochs=self._tr_engine.epochs,
+                         train_loss=self.train_loss,
+                         valid_loss=self.valid_loss,
+                         train_cer=self.train_cer,
+                         valid_cer=self.valid_cer,
+                         train_timer=self.train_timer,
+                         valid_timer=self.valid_timer)

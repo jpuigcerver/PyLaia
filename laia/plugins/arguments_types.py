@@ -41,7 +41,7 @@ def str2loglevel(v):
     vmap = OrderedDict([
         ('debug', log.DEBUG),
         ('info', log.INFO),
-        ('warn', log.WARN),
+        ('warning', log.WARNING),
         ('error', log.ERROR),
         ('critical', log.CRITICAL)
     ])

@@ -7,6 +7,8 @@ import laia.plugins.logging as log
 from laia.meters.meter import Meter
 from laia.utils import accumulate
 
+_logger = log.get_logger(__name__)
+
 
 class AllPairsMetricAveragePrecisionMeter(Meter):
     r"""Compute Average Precision over pairs of objects using some metric.
@@ -30,8 +32,6 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
           whose label is not shared with any other object.
     """
 
-    _logger = log.get_logger(__name__)
-
     def __init__(self, metric='euclidean', ignore_singleton=True):
         self._metric = metric
         self._features = []
@@ -44,7 +44,7 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
 
     @property
     def logger(self):
-        return self._logger
+        return _logger
 
     def reset(self):
         self._features = []
@@ -79,7 +79,7 @@ class AllPairsMetricAveragePrecisionMeter(Meter):
             all_labels = self._labels
 
         n = all_features.shape[0]  # number of objects
-        self._logger.debug('Compute Average Precision over {} samples', n)
+        self.logger.debug('Compute Average Precision over {} samples', n)
         distances = pdist(all_features, self._metric)
         # Sort pairs of examples in increasing order
         inds = [(i, j) for i in range(n) for j in range(i + 1, n)]
