@@ -16,8 +16,10 @@ class CTCLoss(Loss):
         self._ctc = _CTCLoss(size_average)
 
     def __call__(self, output, target):
-        assert isinstance(output, PackedSequence)
-        x, xs = pad_packed_sequence(output)
+        if isinstance(output, PackedSequence):
+            x, xs = pad_packed_sequence(output)
+        else:
+            x, xs = output, [output.size(0)]
         assert xs[0] == x.size(0), 'Maximum length does not match'
         assert len(target) == x.size(1), 'Batch size does not match'
 
