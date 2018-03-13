@@ -10,6 +10,7 @@ from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.engine.triggers import Any, NumEpochs
 from laia.plugins.arguments import add_argument, add_defaults, args
 
+
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
                  'seed',
