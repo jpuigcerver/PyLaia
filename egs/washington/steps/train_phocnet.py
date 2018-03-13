@@ -108,7 +108,6 @@ if __name__ == '__main__':
         train_engine=trainer,
         valid_engine=evaluator,
         gpu=args.gpu)
-    engine_wrapper.logger.setLevel(logging.INFO)
 
     # List of early stop triggers.
     # If any of these returns True, training will stop.
