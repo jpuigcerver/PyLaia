@@ -4,15 +4,16 @@ from numpy import logaddexp
 
 import laia.plugins.logging as log
 
+_logger = log.get_logger(__name__)
+
 
 class DiscreteNormalDistribution(object):
-    def __init__(self, mean, var, eps=1e-9, debug_compute_constant=False):
+    def __init__(self, mean, var, eps=1e-9):
         assert mean >= 0, 'Mean must be a real value greater than or equal to 0'
         assert var > 0, 'Variance must be real value greater than 0'
         self._mean = mean
         self._var = var
         self._eps = eps
-        self._debug_compute_constant = debug_compute_constant
         self._log_z = self.__compute_constant(eps)
 
     @property
@@ -36,11 +37,10 @@ class DiscreteNormalDistribution(object):
             if math.fabs(acc - p_acc) / math.fabs(p_acc) < eps:
                 break
             p_acc = acc
-        if self._debug_compute_constant:
-            log.debug('Computing Discrete Normal Distribution Constant. '
+        _logger.debug('Computing Discrete Normal Distribution Constant. '
                       'Mean = {:.6e}, var = {:.6e}, log_z = {.6e}, iters = {}',
                       self._mean, self._var, acc, i)
-            return acc
+        return acc
 
     def pdf(self, x):
         return math.exp(self.log_pdf(x))

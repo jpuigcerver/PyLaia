@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
 import laia.plugins.logging as log
-from laia.engine.triggers.trigger import TriggerLogWrapper
+from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
 from laia.meters.meter import Meter
 
+_logger = log.get_logger(__name__)
 
-class TriggerFromMeter():
+
+class TriggerFromMeter(LoggedTrigger):
     """Base class for triggers based on the value of a :class:`Meter`.
 
     If the value of the meter cannot be read (`Meter.value` returns `None` or
@@ -28,10 +30,10 @@ class TriggerFromMeter():
     def __init__(self, meter, meter_key=None, name=None,
                  num_exceptions_threshold=5):
         # type: (Meter, str, str) -> None
+        super(TriggerFromMeter, self).__init__(_logger, name)
         self._meter = meter
         self._meter_key = meter_key
         self._num_exceptions = 0
-        self._logger = log.get_logger(name)
         self._num_exceptions_threshold = num_exceptions_threshold
 
     @property
@@ -52,7 +54,7 @@ class TriggerFromMeter():
         except Exception:
             self._num_exceptions += 1
             if self._num_exceptions % self._num_exceptions_threshold == 0:
-                self._logger.warn(TriggerLogWrapper(
+                self.logger.warn(TriggerLogWrapper(
                     self,
                     'No value fetched from meter after a while '
                     '({} exceptions like this occured so far)',

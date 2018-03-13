@@ -28,6 +28,17 @@ class Trigger(object):
         return False
 
 
+class LoggedTrigger(Trigger):
+    def __init__(self, logger, name=None):
+        # type: (Logger, str) -> None
+        super(LoggedTrigger, self).__init__(name=name)
+        self._logger = logger
+
+    @property
+    def logger(self):
+        return self._logger
+
+
 # TODO: Convert this into a LoggerAdapter.
 class TriggerLogWrapper(object):
     """Wrap log to show the name of the trigger, if available.
