@@ -5,6 +5,7 @@ import torch
 from laia.data.padding_collater import PaddedTensor
 from laia.nn.image_to_sequence import image_to_sequence
 from torch.nn.utils.rnn import pack_padded_sequence
+from torch.nn.functional import adaptive_avg_pool2d
 
 
 class DummyModel(torch.nn.Module):
@@ -19,7 +20,7 @@ class DummyModel(torch.nn.Module):
     Finally, for each timestep in the sequence, a linear transformation is done
     to have `num_output_labels` at each timestep.
 
-    Returns a PackedSequence (all samples have actually the sime size).
+    Returns a PackedSequence (all samples have actually the same size).
     """
     def __init__(self, adaptive_size, num_output_labels, horizontal=True):
         super(DummyModel, self).__init__()
@@ -32,9 +33,8 @@ class DummyModel(torch.nn.Module):
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         batch_size = x.size(0)
-        x = torch.nn.functional.adaptive_avg_pool2d(
-            x, output_size=self._adaptive_size)
 
+        x = adaptive_avg_pool2d(x, output_size=self._adaptive_size)
         x = image_to_sequence(x, columnwise=self._horizontal)
         x = self._linear(x)
 
