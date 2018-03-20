@@ -5,6 +5,13 @@ from torch.autograd import Variable
 from laia.data import PaddedTensor
 
 
+def _get_channels(x):
+    if isinstance(x, PaddedTensor):
+        return x.data.size(1)
+    else:
+        return x.size(1)
+
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1,
                  activation=nn.LeakyReLU, poolsize=None, dropout=0.0,
@@ -19,6 +26,8 @@ class ConvBlock(nn.Module):
         if poolsize and not isinstance(poolsize, (list, tuple)):
             poolsize = (poolsize, poolsize)
 
+        self.in_channels = in_channels
+
         # This is a torch tensor used to divide the input sizes in the
         # forward() method, when using a PaddedTensor as an input.
         # If no padding is effectively used, then this is set to None.
@@ -26,7 +35,7 @@ class ConvBlock(nn.Module):
             'poolsize',
             (torch.LongTensor(poolsize)
              if poolsize and poolsize[0] > 0 and poolsize[1] > 0
-             and (poolsize[0] > 1 or poolsize[1] > 1)
+                and (poolsize[0] > 1 or poolsize[1] > 1)
              else None))
 
         # First, add dropout module (optionally)
@@ -55,18 +64,19 @@ class ConvBlock(nn.Module):
             self.add_module('pooling', nn.MaxPool2d(poolsize))
 
     def forward(self, x):
-        is_padded = isinstance(x, PaddedTensor)
-        if is_padded:
-            xs = x.sizes
-            x = x.data
+        assert _get_channels(x) == self.in_channels, (
+            'Input image depth ({}) does not match the expected ({})'.format(
+                _get_channels(x), self.in_channels))
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
+        if xs:
             assert xs.dim() == 2, 'PaddedTensor.sizes must be a matrix'
             assert xs.size(1) == 2, (
-                'PaddedTensor.sizes must have 2 columns: Height and Width, '
-                '%d columns given instead.' % xs.size(1))
+                    'PaddedTensor.sizes must have 2 columns: Height and Width, '
+                    '%d columns given instead.' % xs.size(1))
         # Forward the input through all the modules in the conv block
         for module in self._modules.values():
             x = module(x)
-        if is_padded:
+        if xs:
             if self.poolsize is not None:
                 ys = xs.data.clone()
                 ys[:, 0] /= self.poolsize[0]
