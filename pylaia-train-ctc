@@ -12,7 +12,8 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.plugins.arguments import add_argument, args, add_defaults
 
 if __name__ == '__main__':
-    add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu')
+    add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
+                 'show_progress_bar')
     add_argument('--max_updates', type=int, default=None,
                  help='Maximum number of training updates (iterations)')
     add_argument('syms')
@@ -56,7 +57,7 @@ if __name__ == '__main__':
 
     # SOTA model for IAM/Rimes
     model = laia.models.htr.VggRnnFixedHeight(
-        128, 1, 80, [16, 32, 48, 64, 80],
+        128, 1, len(syms), [16, 32, 48, 64, 80],
         [3] * 5,
         [1] * 5,
         [nn.LeakyReLU] * 5,
@@ -83,14 +84,16 @@ if __name__ == '__main__':
         data_loader=tr_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu,
                                    parent_feeder=ItemFeeder('img')),
-        batch_target_fn=ItemFeeder('txt'))
+        batch_target_fn=ItemFeeder('txt'),
+        progress_bar='Train' if args.show_progress_bar else None)
 
     evaluator = laia.engine.Evaluator(
         model=model,
         data_loader=va_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu,
                                    parent_feeder=ItemFeeder('img')),
-        batch_target_fn=ItemFeeder('txt'))
+        batch_target_fn=ItemFeeder('txt'),
+        progress_bar='Valid' if args.show_progress_bar else None)
 
     engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
     engine_wrapper.run()

@@ -6,6 +6,13 @@ from laia.data import PaddedTensor
 from laia.models.htr.conv_block import ConvBlock
 
 
+def _get_height(x):
+    if isinstance(x, PaddedTensor):
+        return x.data.size(2)
+    else:
+        return x.size(2)
+
+
 class VggRnnFixedHeight(nn.Module):
     def __init__(self, input_height, num_input_channels, num_output_labels,
                  cnn_num_features,
@@ -51,11 +58,10 @@ class VggRnnFixedHeight(nn.Module):
         self._linear = linear
 
     def forward(self, x):
+        assert _get_height(x) == self._input_height, (
+            'Input image height ({}) is not the expected ({})'.format(
+                _get_height(x), self._input_height))
         is_padded = isinstance(x, PaddedTensor)
-        # Check that the input height is the expected (all images in the batch
-        # should have the same height).
-        assert ((is_padded and x.data.size()[2] == self._input_height)
-                or (not is_padded and x.size()[2] == self._input_height))
         for block in self._conv_blocks:
             x = block(x)
         if is_padded:
