@@ -61,7 +61,7 @@ class ImageFeeder(VariableFeeder):
             if self._keep_padded_tensors:
                 xs = batch.sizes.data
                 # Ensure that the size tensor is the expected
-                if (xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3)):
+                if xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3):
                     raise ValueError('Size tensor in PaddedTensor has not an '
                                      'expected shape: {!r}'.format(xs.size()))
 
