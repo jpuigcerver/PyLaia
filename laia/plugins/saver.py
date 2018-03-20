@@ -4,7 +4,9 @@ import os
 
 import torch
 
-import laia.plugins.logging as log
+from laia.plugins.logging import get_logger
+
+_logger = get_logger(__name__)
 
 BEST_TRAIN_CER = 'lowest-train-cer'
 BEST_TRAIN_LOSS = 'lowest-train-loss'
@@ -74,7 +76,7 @@ def save_model_ckpt(state, save_path,
 
 def load_model_ckpt(save_path, filename, *args, **kwargs):
     ckpt_path = os.path.join(save_path, filename)
-    log.debug('Loaded checkpoint {}', ckpt_path)
+    _logger.debug('Loaded checkpoint {}', ckpt_path)
     return torch.load(ckpt_path, *args, **kwargs)
 
 
