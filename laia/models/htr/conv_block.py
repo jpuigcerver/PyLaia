@@ -68,15 +68,16 @@ class ConvBlock(nn.Module):
             'Input image depth ({}) does not match the expected ({})'.format(
                 _get_channels(x), self.in_channels))
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
-        if xs:
+        # Forward the input through all the modules in the conv block
+        for module in self._modules.values():
+            x = module(x)
+        if xs is None:
+            return x
+        else:
             assert xs.dim() == 2, 'PaddedTensor.sizes must be a matrix'
             assert xs.size(1) == 2, (
                     'PaddedTensor.sizes must have 2 columns: Height and Width, '
                     '%d columns given instead.' % xs.size(1))
-        # Forward the input through all the modules in the conv block
-        for module in self._modules.values():
-            x = module(x)
-        if xs:
             if self.poolsize is not None:
                 ys = xs.data.clone()
                 ys[:, 0] /= self.poolsize[0]
@@ -85,5 +86,3 @@ class ConvBlock(nn.Module):
             else:
                 ys = xs
             return PaddedTensor(x, sizes=ys)
-        else:
-            return x
