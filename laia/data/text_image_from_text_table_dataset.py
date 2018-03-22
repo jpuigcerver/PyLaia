@@ -3,10 +3,9 @@ from __future__ import absolute_import
 from os import listdir
 from os.path import isfile, join, splitext
 
-from torch._six import string_classes
-
 import laia.logging as log
 from laia.data.text_image_dataset import TextImageDataset
+from torch._six import string_classes
 
 _IMAGE_EXTENSIONS = ('.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp')
 
@@ -50,6 +49,16 @@ def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
     return valid_image_filenames
 
 
+def _find_image_filename_from_id(img_id, img_dir, img_extensions):
+    img_extensions = set(img_extensions)
+    for ext in img_extensions:
+        for ext in [ext.lower(), ext.upper()]:
+            fname = join(img_dir, img_id + ext)
+            if isfile(fname):
+                return fname
+    return None
+
+
 def _load_text_table_from_file(table_file):
     if isinstance(table_file, string_classes):
         table_file = open(table_file, 'r')
@@ -65,10 +74,9 @@ def _load_text_table_from_file(table_file):
 
 
 def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
-    imgid2fname = _get_valid_image_filenames_from_dir(imgs_dir, img_extensions)
     ids, imgs, txts = [], [], []
     for _, imgid, txt in _load_text_table_from_file(table_file):
-        fname = imgid2fname.get(imgid)
+        fname = _find_image_filename_from_id(imgid, imgs_dir, img_extensions)
         if fname is None:
             _logger.warning('No image file was found in folder "{}" for image '
                             'ID "{}", ignoring example...', imgs_dir, imgid)
