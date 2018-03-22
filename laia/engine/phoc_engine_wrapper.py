@@ -6,7 +6,7 @@ import laia.logging as log
 from laia.engine.engine import Engine
 from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
                                  VariableFeeder)
-from laia.meters import (AllPairsMetricAveragePrecisionMeter,
+from laia.meters import (PairwiseAveragePrecisionMeter,
                          RunningAverageMeter, TimeMeter)
 
 _logger = log.get_logger(__name__)
@@ -60,7 +60,7 @@ class PHOCEngineWrapper(object):
 
             self._valid_timer = TimeMeter()
             self._valid_loss_meter = RunningAverageMeter()
-            self._valid_ap_meter = AllPairsMetricAveragePrecisionMeter(
+            self._valid_ap_meter = PairwiseAveragePrecisionMeter(
                 metric='braycurtis', ignore_singleton=True)
 
             self._va_engine.add_hook(

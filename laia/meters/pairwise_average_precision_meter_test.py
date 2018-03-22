@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from laia.meters import AllPairsMetricAveragePrecisionMeter
+from laia.meters import PairwiseAveragePrecisionMeter
 
 import unittest
 
@@ -16,7 +16,7 @@ class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
                        [3, 1, 2])
 
     def test(self):
-        meter = AllPairsMetricAveragePrecisionMeter()
+        meter = PairwiseAveragePrecisionMeter()
         # Add batches to the meter
         meter.add(*self.batch1)
         meter.add(*self.batch2)
@@ -26,7 +26,7 @@ class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
         self.assertEqual(8.0 / 12.0, m_ap)
 
     def test_with_singletons(self):
-        meter = AllPairsMetricAveragePrecisionMeter(
+        meter = PairwiseAveragePrecisionMeter(
             ignore_singleton=False)
 
         # Add batches to the meter
