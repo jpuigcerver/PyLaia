@@ -3,6 +3,7 @@
 from __future__ import division
 
 import torch
+from dortmund_utils import build_conv_model, DortmundImageToTensor
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 import laia.data
@@ -13,6 +14,7 @@ from dortmund_utils import build_conv_model, DortmundImageToTensor
 from laia.engine.triggers import (Any, NumEpochs,
                                   MeterStandardDeviation)
 from laia.plugins.arguments import add_argument, add_defaults, args
+from laia.plugins import SaverTrigger, SaverTriggerCollection
 
 
 def build_model(num_outputs,
@@ -174,54 +176,7 @@ if __name__ == '__main__':
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
     trainer.set_num_iterations_per_update(args.num_iterations_per_update)
-
     """
-    class LastParametersSaver(object):
-        def __init__(self, base_path, keep_checkpoints=5):
-            self._base_path = base_path
-            self._last_checkpoints = []
-            self._keep_checkpoints = keep_checkpoints
-            self._nckpt = 0
-
-        def __call__(self, trainer):
-            path = '{}-{}'.format(self._base_path, trainer.epochs)
-            print('Saving model parameters to {!r}'.format(path))
-            try:
-                torch.save(trainer.model.state_dict(), path)
-            except:
-                # TODO(jpuigcerver): Log error saving new checkpoint
-                return False
-
-            if len(self._last_checkpoints) < self._keep_checkpoints:
-                self._last_checkpoints.append(path)
-            else:
-                print('Removing old parameters remove: {!r}'.format(
-                    self._last_checkpoints[self._nckpt]))
-                try:
-                    os.remove(self._last_checkpoints[self._nckpt])
-                except:
-                    # TODO(jpuigcerver): Log error deleting old checkpoint
-                    pass
-                self._last_checkpoints[self._nckpt] = path
-                self._nckpt = (self._nckpt + 1) % self._keep_checkpoints
-
-            return True
-
-
-    class ParametersSaver(object):
-        def __init__(self, path):
-            self._path = path
-
-        def __call__(self, trainer):
-            print('Saving model parameters to {!r}'.format(self._path))
-            try:
-                torch.save(trainer.model.state_dict(), self._path)
-                return True
-            except:
-                # TODO(jpuigcerver): Log error saving checkpoint
-                return False
-
-
     trainer.set_epoch_saver_trigger(
         SaverTriggerCollection(
             SaverTrigger(EveryEpoch(trainer, 10),
@@ -231,5 +186,6 @@ if __name__ == '__main__':
             SaverTrigger(MeterDecrease(engine_wrapper.train_cer),
                          ParametersSaver('./checkpoint-best-train-cer'))))
     """
+
     # Start training
     engine_wrapper.run()
