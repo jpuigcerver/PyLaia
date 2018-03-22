@@ -2,182 +2,126 @@ from __future__ import absolute_import
 
 import io
 import json
-import os
-from importlib import import_module
+import os.path as p
 
 import torch
 
-from laia import get_rng_state, set_rng_state
+from laia import get_rng_state
 from laia.plugins.logging import get_logger
 
 _logger = get_logger(__name__)
 
-BEST_TRAIN_CER = 'lowest-train-cer'
-BEST_TRAIN_LOSS = 'lowest-train-loss'
-BEST_VALID_CER = 'lowest-valid-cer'
-BEST_VALID_LOSS = 'lowest-valid-loss'
 
-_criteria = (BEST_TRAIN_CER, BEST_TRAIN_LOSS,
-             BEST_VALID_CER, BEST_VALID_LOSS)
+class Saver(object):
+    def __init__(self, save_path, filename):
+        assert not p.dirname(filename)
+        self._save_path = save_path
+        self._filename = filename
 
+    @staticmethod
+    def save_json(obj, path):
+        with io.open(path, 'w') as f:
+            json.dump(obj, f)
 
-def save_model(model, save_path, filename='model',
-               *args, **kwargs):
-    """Saves the model represented by a dict as a json
+    def save_binary(self, obj, path):
+        torch.save(obj, path)
+        self._update_ledger(path)
 
-    Args:
-        model (dict): Dictionary representing the model. It's structure
-        is defined as::
-            {
-                'module': module string containing the class/function
-                    which created the model
-                'name': class/function which created the model
-                'args' (optional): class/function args
-                'kwargs' (optional): class/function kwargs
-            }
-        save_path (str): Path in which the file will be saved
-        filename (str, optional): Name of the file. Defaults to 'model'
-        *args: `json.dump` args
-        **kwargs: `json.dump` kwargs
-    """
-    full_path = os.path.join(save_path, filename)
-    with io.open(full_path, 'w') as f:
-        json.dump(model, f, *args, **kwargs)
-    _logger.debug('Saved model to {}', full_path)
+    def _update_ledger(self, path):
+        hidden = p.join(self._save_path, '.ledger.json')
+        with io.open(hidden, 'rw') as f:
+            ledger = json.load(f) or {}
+            ledger[self._filename] = path
+            json.dump(ledger, f)
 
 
-def load_model(save_path, filename='model'):
-    """Loads a model from a json file
+class ModelSaver(Saver):
+    def __init__(self, save_path, filename='model'):
+        super(ModelSaver, self).__init__(save_path, filename)
 
-    The model structure is described in ``save_model``
-
-    Args:
-        save_path (str): Path in which the model file is located
-        filename (str, optional): Name of the file. Defaults to 'model'
-
-    Returns:
-        The class/function called by ``model['name']`` located in
-        ``model['module']`` with its args and kwargs applied
-
-    """
-    full_path = os.path.join(save_path, filename)
-    with io.open(full_path, 'r') as f:
-        model = json.load(f)
-    module = import_module(model['module'])
-    fn = getattr(module, model['name'])
-    args, kwargs = model.get('args'), model.get('kwargs')
-    _logger.debug('Loaded model from {}', full_path)
-    return fn(*args, **kwargs)
+    def save(self, model):
+        path = p.join(self._save_path, self._filename)
+        try:
+            Saver.save_json({
+                # TODO: Where are these?
+                # 'module': model.module,
+                # 'name': model.name,
+                # 'args': model.args,
+                # 'kwargs': model.kwargs
+            }, path)
+            _logger.debug('Model saved: {}', path)
+        except:
+            _logger.error('Could not save the model {}', path)
+        return path
 
 
-def _get_ckpt_path(save_path, filename, suffix):
-    """Returns the checkpoint path"""
-    if os.path.split(filename)[0]:
-        raise ValueError("'filename' must not be a path")
-    ckpt_file = filename + '.ckpt'
-    if suffix is not None:
-        ckpt_file = '{}-{}'.format(ckpt_file, suffix)
-    return os.path.join(save_path, ckpt_file)
+class CheckpointSaver(Saver):
+    def __init__(self, save_path, filename, suffix=None):
+        super(CheckpointSaver, self).__init__(save_path, filename)
+        self._save_path = save_path
+        self._filename = filename
+        self._suffix = suffix
+
+    def _get_ckpt_path(self):
+        ckpt_file = self._filename + '.ckpt'
+        if self._suffix is not None:
+            ckpt_file = '{}-{}'.format(ckpt_file, self._suffix)
+        return p.join(self._save_path, ckpt_file)
+
+    def save(self, obj):
+        path = self._get_ckpt_path()
+        try:
+            super(CheckpointSaver, self).save_binary(obj, path)
+            _logger.debug('Checkpoint saved: {}', path)
+        except:
+            _logger.error('Could not save the checkpoint {}', path)
+        return path
 
 
-def _get_last_ckpt(save_path, filename):
-    """Returns the filename of the last checkpoint.
-    The last checkpoint is searched looking at the highest suffix,
-    (e.g. model.ckpt-1000 > model.ckpt-10) or no suffix at all.
-    """
-    if os.path.split(filename)[0]:
-        raise ValueError("'filename' must not be a path")
-    files = os.listdir(save_path)
-    if len(files) == 0:
-        raise LookupError('No files found in the directory')
-    pattern = filename + '.ckpt-(\d)+'
-    import re
-    suffixes = [int(re.search(pattern, f).group(1)) for f in files]
-    if len(suffixes) == 0:
-        raise LookupError('No checkpoint found with numeric suffix')
-    last = max(suffixes)
-    for file in files:
-        if file.endswith('.ckpt-{}'.format(last)):
-            return file
-    if filename + '.ckpt' in files:
-        return filename + '.ckpt'
-    return None
+class ModelCheckpointSaver(CheckpointSaver):
+    def __init__(self, save_path, filename='model', suffix=None):
+        super(ModelCheckpointSaver, self).__init__(save_path, filename, suffix)
+
+    def save(self, model):
+        super(ModelCheckpointSaver, self).save(model.state_dict())
 
 
-def _get_best_ckpt(save_path, criterion, filename):
-    """Returns the checkpoint filename associated
-     to the given criterion"""
-    files = [file for file in os.listdir(save_path)
-             if file == '{}.ckpt-{}'.format(filename, criterion)]
-    if len(files) == 0:
-        raise LookupError('No model checkpoint found')
-    return files[0]
+class TrainerCheckpointSaver(CheckpointSaver):
+    def __init__(self, save_path, filename='trainer', suffix=None):
+        super(TrainerCheckpointSaver, self).__init__(save_path, filename, suffix)
+
+    def save(self, trainer):
+        super(TrainerCheckpointSaver, self).save({
+            'epochs': trainer.epochs,
+            'optimizer_state': trainer.optimizer.state_dict(),
+            'rng_state': get_rng_state(),
+            # TODO: Where are these?
+            # 'triggers': trainer.triggers,
+            # 'args': trainer.args,
+            # 'kwargs': trainer.kwargs
+        })
 
 
-def save_model_ckpt(state, save_path,
-                    filename='model', suffix=None,
-                    *args, **kwargs):
-    ckpt_path = _get_ckpt_path(save_path, filename, suffix=suffix)
-    s = torch.save(state, ckpt_path, *args, **kwargs)
-    _logger.debug('Saved model checkpoint to {}', ckpt_path)
-    return s
+''' TODO
+class LastCheckpointsSaver(CheckpointSaver):
+    def __init__(self, save_path, filename, suffix=None, keep_checkpoints=5):
+        super(LastCheckpointsSaver, self).__init__(save_path, filename, suffix)
+        self._keep_ckpts = keep_checkpoints
+        self._last_ckpts = []
+        self._ckpt_num = 0
 
-
-def load_model_ckpt(save_path, filename, *args, **kwargs):
-    ckpt_path = os.path.join(save_path, filename)
-    l = torch.load(ckpt_path, *args, **kwargs)
-    _logger.debug('Loaded model checkpoint from {}', ckpt_path)
-    return l
-
-
-def load_last_model_ckpt(save_path, filename='model',
-                         *args, **kwargs):
-    f = _get_last_ckpt(save_path, filename)
-    return load_model_ckpt(save_path, f, *args, **kwargs)
-
-
-def load_best_model_ckpt(save_path, criterion, filename='model',
-                         *args, **kwargs):
-    f = _get_best_ckpt(save_path, criterion, filename)
-    return load_model_ckpt(save_path, f, *args, **kwargs)
-
-
-def save_trainer_ckpt(state, save_path,
-                      filename='trainer', suffix=None,
-                      *args, **kwargs):
-    '''
-    state: {
-        'epoch': epoch,
-        'optim_state_dict': optim_state_dict,
-        'rng': get_rng_state()
-        'triggers': triggers
-        'args': args
-        'kwargs': kwargs
-    }
-    '''
-    ckpt_path = _get_ckpt_path(save_path, filename, suffix=suffix)
-    state['rng'] = get_rng_state()
-    s = torch.save(state, ckpt_path, *args, **kwargs)
-    _logger.debug('Saved trainer checkpoint to {}', ckpt_path)
-    return s
-
-
-def load_trainer_ckpt(save_path, filename,
-                      *args, **kwargs):
-    ckpt_path = os.path.join(save_path, filename)
-    l = torch.load(ckpt_path, *args, **kwargs)
-    set_rng_state(l.get['rng'])
-    _logger.debug('Loaded model checkpoint from {}', ckpt_path)
-    return l
-
-
-def load_last_trainer_ckpt(save_path, filename='trainer',
-                           *args, **kwargs):
-    f = _get_last_ckpt(save_path, filename)
-    return load_trainer_ckpt(save_path, f, *args, **kwargs)
-
-
-def load_best_trainer_ckpt(save_path, criterion, filename='trainer',
-                           *args, **kwargs):
-    f = _get_best_ckpt(save_path, criterion, filename)
-    return load_trainer_ckpt(save_path, f, *args, **kwargs)
+    def save(self, obj):
+        ckpt_path = super(LastCheckpointsSaver, self).save(obj)
+        if len(self._last_ckpts) < self._keep_ckpts:
+            self._last_ckpts.append(ckpt_path)
+        else:
+            last = self._last_ckpts.pop()
+            try:
+                os.remove(last)
+                _logger.debug('{} parameters removed', last)
+            except Exception:
+                _logger.error('{} parameters could not be removed', last)
+            self._last_ckpts.append(ckpt_path)
+            self._ckpt_num = (self._ckpt_num + 1) % self._keep_ckpts
+        return ckpt_path
+'''
