@@ -10,11 +10,11 @@ from laia.utils.accumulate import accumulate
 _logger = log.get_logger(__name__)
 
 
-class AllPairsMetricAveragePrecisionMeter(Meter):
+class PairwiseAveragePrecisionMeter(Meter):
     r"""Compute Average Precision over pairs of objects using some metric.
 
     When a set of examples are added, its feature vectors and labels are
-    given and stored in the ``AllPairsMetricAveragePrecisionMeter`` object.
+    given and stored in the ``PairwiseAveragePrecisionMeter`` object.
     The actual computation of the Average Precision will be done once the
     ``value`` property of the object is accessed.
 
