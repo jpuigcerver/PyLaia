@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from torch._six import string_classes
 
-import laia.plugins.logging as log
+import laia.logging as log
 
 try:
     from tqdm import tqdm

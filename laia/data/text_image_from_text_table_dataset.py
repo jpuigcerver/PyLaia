@@ -5,7 +5,7 @@ from os.path import isfile, join, splitext
 
 from torch._six import string_classes
 
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.data.text_image_dataset import TextImageDataset
 
 _IMAGE_EXTENSIONS = ('.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp')

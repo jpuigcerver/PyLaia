@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.engine.engine import Engine
 from laia.utils import check_inf, check_nan
 

@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import laia.models.htr
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.plugins.arguments import add_argument, args, add_defaults
 

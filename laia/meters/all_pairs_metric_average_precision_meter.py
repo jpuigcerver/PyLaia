@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import numpy as np
 from scipy.spatial.distance import pdist
 
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.meters.meter import Meter
-from laia.utils import accumulate
+from laia.utils.accumulate import accumulate
 
 _logger = log.get_logger(__name__)
 

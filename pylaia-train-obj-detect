@@ -9,7 +9,7 @@ import torch
 from torch.autograd import Variable
 
 import laia
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.distorter import ImageDistorter
 from laia.plugins.arguments import add_defaults, add_argument, args
 
