@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from laia.savers.saver import Saver
-
 
 class SaverTrigger(object):
     r"""When called, saves the given object the ``saver`` if the ``trigger``

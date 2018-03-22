@@ -97,7 +97,7 @@ class MultinaryOperator(Trigger):
 
 
 class Any(MultinaryOperator):
-    """Returns `True` iff any of the given `triggers` returns `True`.
+    """Returns `True` if any of the given `triggers` returns `True`.
 
     Arguments:
         triggers (:obj:`~Trigger`): parameters of the operation.
