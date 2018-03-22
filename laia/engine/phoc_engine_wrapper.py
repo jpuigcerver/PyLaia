@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import torch
 
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.engine.engine import Engine
 from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
                                  VariableFeeder)

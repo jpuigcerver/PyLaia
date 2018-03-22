@@ -3,7 +3,7 @@ from __future__ import division
 
 import torch
 
-import laia.plugins.logging as log
+import laia.logging as log
 import laia.utils
 from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     args = args()
     log.config_from_args(args)
 
-    laia.manual_seed(args.seed)
+    laia.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
 

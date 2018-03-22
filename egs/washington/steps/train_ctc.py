@@ -2,8 +2,6 @@
 
 from __future__ import division
 
-import os
-
 import torch
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
@@ -12,10 +10,9 @@ import laia.engine
 import laia.nn
 import laia.utils
 from dortmund_utils import build_conv_model, DortmundImageToTensor
-from laia.engine.triggers import (Any, EveryEpoch, NumEpochs,
-                                  MeterStandardDeviation, MeterDecrease)
+from laia.engine.triggers import (Any, NumEpochs,
+                                  MeterStandardDeviation)
 from laia.plugins.arguments import add_argument, add_defaults, args
-from laia.savers import SaverTrigger, SaverTriggerCollection
 
 
 def build_model(num_outputs,
@@ -93,9 +90,9 @@ if __name__ == '__main__':
     add_argument('va_txt_table',
                  help='Character transcriptions of each validation image')
     args = args()
-    laia.plugins.logging.config_from_args(args)
+    laia.logging.config_from_args(args)
 
-    laia.manual_seed(args.seed)
+    laia.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
     model = build_model(num_outputs=len(syms))

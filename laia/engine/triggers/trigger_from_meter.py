@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import laia.plugins.logging as log
+import laia.logging as log
 from laia.engine.triggers.trigger import LoggedTrigger, TriggerLogWrapper
 from laia.meters.meter import Meter
 

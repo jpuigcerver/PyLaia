@@ -4,7 +4,7 @@ from __future__ import division
 import numpy as np
 import torch
 
-import laia.plugins.logging as log
+import laia.logging as log
 
 _TENSOR_REAL = (torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor)
 if torch.cuda.is_available():

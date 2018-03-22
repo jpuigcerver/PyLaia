@@ -7,8 +7,8 @@ from importlib import import_module
 
 import torch
 
-from laia import get_rng_state, set_rng_state
-from laia.plugins.logging import get_logger
+from laia.random import get_rng_state, set_rng_state
+from laia.logging import get_logger
 
 _logger = get_logger(__name__)
 
