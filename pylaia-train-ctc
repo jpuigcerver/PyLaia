@@ -4,6 +4,7 @@ from __future__ import division
 
 import torch
 import torch.nn as nn
+from laia.data import ImageDataLoader
 from torch.utils.data import DataLoader
 
 import laia.models.htr
@@ -29,20 +30,20 @@ if __name__ == '__main__':
         args.tr_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor(),
         txt_transform=laia.utils.TextToTensor(syms))
-    tr_ds_loader = DataLoader(tr_ds, args.batch_size, num_workers=8,
-                              collate_fn=laia.data.PaddingCollater({
-                                  'img': [1, None, None]
-                              }, sort_key=lambda x: -x['img'].size(2)),
-                              shuffle=True)
+    tr_ds_loader = ImageDataLoader(dataset=tr_ds,
+                                   image_channels=1,
+                                   batch_size=args.batch_size,
+                                   num_workers=8,
+                                   shuffle=True)
 
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor(),
         txt_transform=laia.utils.TextToTensor(syms))
-    va_ds_loader = DataLoader(va_ds, args.batch_size, num_workers=8,
-                              collate_fn=laia.data.PaddingCollater({
-                                  'img': [1, None, None]
-                              }, sort_key=lambda x: -x['img'].size(2)))
+    va_ds_loader = ImageDataLoader(dataset=tr_ds,
+                                   image_channels=1,
+                                   batch_size=args.batch_size,
+                                   num_workers=8)
 
     """
     model = laia.models.htr.VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
