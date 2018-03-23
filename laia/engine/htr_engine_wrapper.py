@@ -126,7 +126,7 @@ class HtrEngineWrapper(object):
     def _report_epoch_train_only(self, **_):
         self.logger.info('Epoch {epochs:4d}, '
                          'TR Loss = {train_loss.value[0]:.3e}, '
-                         'TR CER = {train_cer.value[0]:6.2%}, '
+                         'TR CER = {train_cer.value:5.1%}, '
                          'TR Time = {train_timer.value:.2f}s',
                          epochs=self._tr_engine.epochs,
                          train_loss=self.train_loss,
