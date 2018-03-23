@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 import io
 import json
+import os
 import os.path as p
+from collections import deque
 
 import torch
 
-from laia.random import get_rng_state, set_rng_state
 from laia.logging import get_logger
+from laia.random import get_rng_state
 
 _logger = get_logger(__name__)
 
@@ -15,6 +17,7 @@ _logger = get_logger(__name__)
 class Saver(object):
     def __init__(self, save_path, filename):
         assert not p.dirname(filename)
+        assert p.exists(save_path)
         self._save_path = save_path
         self._filename = filename
 
@@ -28,10 +31,14 @@ class Saver(object):
         self._update_ledger(path)
 
     def _update_ledger(self, path):
-        hidden = p.join(self._save_path, '.ledger.json')
-        with io.open(hidden, 'rw') as f:
-            ledger = json.load(f) or {}
-            ledger[self._filename] = path
+        ledger_path = p.join(self._save_path, '.ledger.json')
+        if os.path.isfile(ledger_path):
+            with io.open(ledger_path) as f:
+                ledger = json.load(f)
+        else:
+            ledger = {}
+        ledger[self._filename] = path
+        with io.open(ledger_path, 'w') as f:
             json.dump(ledger, f)
 
 
@@ -39,16 +46,14 @@ class ModelSaver(Saver):
     def __init__(self, save_path, filename='model'):
         super(ModelSaver, self).__init__(save_path, filename)
 
+    def __call__(self, model, suffix=None):
+        return self.save(model)
+
     def save(self, model):
+        assert all(k in model.keys() for k in ('module', 'name'))
         path = p.join(self._save_path, self._filename)
         try:
-            Saver.save_json({
-                # TODO: Where are these?
-                # 'module': model.module,
-                # 'name': model.name,
-                # 'args': model.args,
-                # 'kwargs': model.kwargs
-            }, path)
+            self.save_json(model, path)
             _logger.debug('Model saved: {}', path)
         except:
             _logger.error('Could not save the model {}', path)
@@ -56,22 +61,24 @@ class ModelSaver(Saver):
 
 
 class CheckpointSaver(Saver):
-    def __init__(self, save_path, filename, suffix=None):
+    def __init__(self, save_path, filename):
         super(CheckpointSaver, self).__init__(save_path, filename)
         self._save_path = save_path
         self._filename = filename
-        self._suffix = suffix
 
-    def _get_ckpt_path(self):
+    def __call__(self, state, suffix=None):
+        return self.save(state, suffix=suffix)
+
+    def _get_ckpt_path(self, suffix=None):
         ckpt_file = self._filename + '.ckpt'
-        if self._suffix is not None:
-            ckpt_file = '{}-{}'.format(ckpt_file, self._suffix)
+        if suffix is not None:
+            ckpt_file = '{}-{}'.format(ckpt_file, suffix)
         return p.join(self._save_path, ckpt_file)
 
-    def save(self, obj):
-        path = self._get_ckpt_path()
+    def save(self, state, suffix=None):
+        path = self._get_ckpt_path(suffix=suffix)
         try:
-            super(CheckpointSaver, self).save_binary(obj, path)
+            self.save_binary(state, path)
             _logger.debug('Checkpoint saved: {}', path)
         except:
             _logger.error('Could not save the checkpoint {}', path)
@@ -79,49 +86,41 @@ class CheckpointSaver(Saver):
 
 
 class ModelCheckpointSaver(CheckpointSaver):
-    def __init__(self, save_path, filename='model', suffix=None):
-        super(ModelCheckpointSaver, self).__init__(save_path, filename, suffix)
-
-    def save(self, model):
-        super(ModelCheckpointSaver, self).save(model.state_dict())
+    def __init__(self, save_path, filename='model'):
+        super(ModelCheckpointSaver, self).__init__(save_path, filename)
 
 
 class TrainerCheckpointSaver(CheckpointSaver):
-    def __init__(self, save_path, filename='trainer', suffix=None):
-        super(TrainerCheckpointSaver, self).__init__(save_path, filename, suffix)
+    def __init__(self, save_path, filename='trainer'):
+        super(TrainerCheckpointSaver, self).__init__(save_path, filename)
 
-    def save(self, trainer):
-        super(TrainerCheckpointSaver, self).save({
-            'epochs': trainer.epochs,
-            'optimizer_state': trainer.optimizer.state_dict(),
-            'rng_state': get_rng_state(),
-            # TODO: Where are these?
-            # 'triggers': trainer.triggers,
-            # 'args': trainer.args,
-            # 'kwargs': trainer.kwargs
-        })
+    def save(self, state, suffix=None):
+        state['rng_state'] = get_rng_state()
+        super(TrainerCheckpointSaver, self).save(state, suffix=suffix)
 
 
-''' TODO
-class LastCheckpointsSaver(CheckpointSaver):
-    def __init__(self, save_path, filename, suffix=None, keep_checkpoints=5):
-        super(LastCheckpointsSaver, self).__init__(save_path, filename, suffix)
+class LastCheckpointsSaver(object):
+    def __init__(self, checkpoint_saver, keep_checkpoints=5):
+        assert keep_checkpoints > 0
+        self._ckpt_saver = checkpoint_saver
         self._keep_ckpts = keep_checkpoints
-        self._last_ckpts = []
+        self._last_ckpts = deque()
         self._ckpt_num = 0
 
-    def save(self, obj):
-        ckpt_path = super(LastCheckpointsSaver, self).save(obj)
+    def __call__(self, state, suffix=None):
+        return self.save(state, suffix=suffix)
+
+    def save(self, state, suffix=None):
+        path = self._ckpt_saver.save(state, suffix=suffix)
         if len(self._last_ckpts) < self._keep_ckpts:
-            self._last_ckpts.append(ckpt_path)
+            self._last_ckpts.append(path)
         else:
-            last = self._last_ckpts.pop()
+            last = self._last_ckpts.popleft()
             try:
                 os.remove(last)
-                _logger.debug('{} parameters removed', last)
+                _logger.debug('{} checkpoint removed', last)
             except Exception:
-                _logger.error('{} parameters could not be removed', last)
-            self._last_ckpts.append(ckpt_path)
+                _logger.error('{} checkpoint could not be removed', last)
+            self._last_ckpts.append(path)
             self._ckpt_num = (self._ckpt_num + 1) % self._keep_ckpts
-        return ckpt_path
-'''
+        return path

@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 import io
 import json
+import os
 import os.path as p
 from importlib import import_module
 
 import torch
 
-from laia.plugins.logging import get_logger
+from laia.logging import get_logger
+from laia.random import set_rng_state
 
 _logger = get_logger(__name__)
 
@@ -15,7 +17,7 @@ _logger = get_logger(__name__)
 class Loader(object):
     def __init__(self, save_path, filename):
         assert not p.dirname(filename)
-        assert p.isfile(p.join(save_path, filename))
+        assert any(f.startswith(filename) for f in os.listdir(save_path))
         self._save_path = save_path
         self._filename = filename
 
@@ -30,13 +32,17 @@ class Loader(object):
 
 
 class ModelLoader(Loader):
+    def __call__(self):
+        return self.load()
+
     def load(self):
         path = p.join(self._save_path, self._filename)
         try:
-            model = Loader.load_json(path)
+            model = self.load_json(path)
             module = import_module(model['module'])
             fn = getattr(module, model['name'])
-            args, kwargs = model.get('args'), model.get('kwargs')
+            args = model.get('args', [])
+            kwargs = model.get('kwargs', {})
             _logger.debug('Loaded model from {}', path)
             return fn(*args, **kwargs)
         except:
@@ -44,6 +50,9 @@ class ModelLoader(Loader):
 
 
 class CheckpointLoader(Loader):
+    def __call__(self):
+        return self.load()
+
     def _get_last_ckpt_path(self):
         path = p.join(self._save_path, '.ledger.json')
         with io.open(path, 'r') as f:
@@ -59,7 +68,7 @@ class CheckpointLoader(Loader):
     def load(self):
         path = p.join(self._save_path, self._filename)
         try:
-            state = Loader.load_binary(path)
+            state = self.load_binary(path)
             _logger.debug('Loaded checkpoint from {}', path)
             return state
         except:
@@ -68,7 +77,7 @@ class CheckpointLoader(Loader):
     def load_last(self):
         path = self._get_last_ckpt_path()
         try:
-            state = Loader.load_binary(path)
+            state = self.load_binary(path)
             _logger.debug('Loaded last checkpoint from {}', path)
             return state
         except:
@@ -77,7 +86,7 @@ class CheckpointLoader(Loader):
     def load_by(self, criterion):
         path = self._get_ckpt_path_by(criterion)
         try:
-            state = Loader.load_binary(path)
+            state = self.load_binary(path)
             _logger.debug('Loaded {} checkpoint from {}', criterion, path)
             return state
         except:
@@ -85,18 +94,25 @@ class CheckpointLoader(Loader):
 
 
 class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(self, save_path, filename='model'):
-        super(ModelCheckpointLoader, self).__init__(save_path, filename)
-
-    # TODO: Override load here?
+    def __init__(self, save_path, name='model'):
+        super(ModelCheckpointLoader, self).__init__(save_path, name)
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, save_path, filename='trainer'):
-        super(TrainerCheckpointLoader, self).__init__(save_path, filename)
+    def __init__(self, save_path, name='trainer'):
+        super(TrainerCheckpointLoader, self).__init__(save_path, name)
 
     def load(self):
-        # TODO
-        raise NotImplemented
+        state = super(TrainerCheckpointLoader, self).load()
+        set_rng_state(state.pop('rng_state'))
+        return state
 
-    # TODO: load_last and load_by?
+    def load_last(self):
+        state = super(TrainerCheckpointLoader, self).load_last()
+        set_rng_state(state.pop('rng_state'))
+        return state
+
+    def load_by(self, criterion):
+        state = super(TrainerCheckpointLoader, self).load_by(criterion)
+        set_rng_state(state.pop('rng_state'))
+        return state
