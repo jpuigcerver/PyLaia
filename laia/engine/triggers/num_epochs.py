@@ -25,10 +25,11 @@ class NumEpochs(LoggedTrigger):
 
     def __call__(self):
         if self._trainer.epochs >= self._num_epochs:
-            self.logger.info(
-                TriggerLogWrapper(
-                    self, 'Trainer reached {} epochs',
-                    self._num_epochs))
+            if self._trainer.epochs == self._num_epochs:
+                self.logger.info(
+                    TriggerLogWrapper(
+                        self, 'Trainer reached {} epochs',
+                        self._num_epochs))
             return True
         else:
             self.logger.debug(TriggerLogWrapper(

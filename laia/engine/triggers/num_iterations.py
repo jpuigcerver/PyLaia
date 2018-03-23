@@ -25,9 +25,10 @@ class NumIterations(LoggedTrigger):
 
     def __call__(self):
         if self._trainer.iterations >= self._num_iterations:
-            self.logger.info(TriggerLogWrapper(
-                self, 'Trainer reached {} iterations',
-                self._num_iterations))
+            if self._trainer.iterations == self._num_iterations:
+                self.logger.info(TriggerLogWrapper(
+                    self, 'Trainer reached {} iterations',
+                    self._num_iterations))
             return True
         else:
             self.logger.debug(TriggerLogWrapper(
