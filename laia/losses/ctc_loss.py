@@ -11,7 +11,7 @@ from laia.losses.loss import Loss
 
 
 class CTCLoss(Loss):
-    def __init__(self, size_average=False, length_average=True):
+    def __init__(self, size_average=True, length_average=False):
         super(CTCLoss, self).__init__()
         self._ctc = _CTCLoss(size_average, length_average)
 
