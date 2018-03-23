@@ -22,7 +22,6 @@ if __name__ == '__main__':
     add_argument('tr_txt_table')
     add_argument('va_txt_table')
     args = args()
-    log.config_from_args(args)
 
     syms = laia.utils.SymbolsTable(args.syms)
 

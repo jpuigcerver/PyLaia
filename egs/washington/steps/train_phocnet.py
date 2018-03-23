@@ -35,7 +35,6 @@ if __name__ == '__main__':
     add_argument('va_txt_table',
                  help='Character transcriptions of each validation image')
     args = args()
-    log.config_from_args(args)
 
     laia.random.manual_seed(args.seed)
 

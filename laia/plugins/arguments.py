@@ -1,5 +1,6 @@
 import argparse
 
+import laia.logging
 from laia.plugins.arguments_types import (str2bool, NumberInClosedRange,
                                           NumberInOpenRange, str2loglevel)
 
@@ -25,6 +26,15 @@ _default_args = {
             'type': NumberInClosedRange(type=float, vmin=0),
             'default': 0,
             'help': 'Momentum (must be >= 0)'
+        }),
+    'nesterov': (
+        ('--nesterov',),
+        {
+            'type': str2bool,
+            'nargs': '?',
+            'const': True,
+            'default': False,
+            'help': 'Whether or not to use Nesterov momentum'
         }),
     'gpu': (
         ('--gpu',),
@@ -219,4 +229,6 @@ def add_argument(*args, **kwargs):
 
 
 def args():
-    return _get_parser().parse_args()
+    a = _get_parser().parse_args()
+    laia.logging.config_from_args(a)
+    return a
