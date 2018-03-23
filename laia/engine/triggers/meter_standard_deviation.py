@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-from typing import Any
-
 import numpy as np
-
 from laia.engine.triggers.trigger import TriggerLogWrapper
 from laia.engine.triggers.trigger_from_meter import TriggerFromMeter
 from laia.meters.meter import Meter
+from typing import Any
 
 
 class MeterStandardDeviation(TriggerFromMeter):

@@ -25,9 +25,10 @@ class NumUpdates(LoggedTrigger):
 
     def __call__(self):
         if self._trainer.updates >= self._num_updates:
-            self.logger.info(TriggerLogWrapper(
-                self, 'Trainer reached {} updates',
-                self._num_updates))
+            if self._trainer.updates == self._num_updates:
+                self.logger.info(TriggerLogWrapper(
+                    self, 'Trainer reached {} updates',
+                    self._num_updates))
             return True
         else:
             self.logger.debug(TriggerLogWrapper(
