@@ -10,7 +10,6 @@ from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.engine.triggers import Any, NumEpochs
 from laia.plugins.arguments import add_argument, add_defaults, args
 
-
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
                  'seed',
@@ -28,6 +27,8 @@ if __name__ == '__main__':
 
     add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
                  help='PHOC levels used to encode the transcript')
+    add_argument('--model_checkpoint', type=str, default='model.ckpt',
+                 help='Filename of the output model checkpoint')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -153,3 +154,6 @@ if __name__ == '__main__':
 
     # Launch training
     engine_wrapper.run()
+
+    # Save model parameters after training
+    torch.save(model.state_dict(), args.model_checkpoint)

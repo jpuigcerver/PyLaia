@@ -72,9 +72,11 @@ class PairwiseAveragePrecisionMeter(Meter):
         # Concatenate all feature tensors (batches).
         all_features = np.concatenate(self._features)
         if self._ignore_singleton:
-            mask = [self._label_count[c] > 1 for c in self._labels]
+            mask = [i for i, c in enumerate(self._labels)
+                    if self._label_count[c] > 1]
             all_features = all_features[mask]
-            all_labels = [c for i, c in enumerate(self._labels) if mask[i]]
+            all_labels = [c for i, c in enumerate(self._labels)
+                          if self._label_count[c] > 1]
         else:
             all_labels = self._labels
 
@@ -86,7 +88,7 @@ class PairwiseAveragePrecisionMeter(Meter):
         inds = [inds[k] for k in np.argsort(distances)]
 
         events = []
-        events_i = [[] for i in range(n)]
+        events_i = [[] for _ in range(n)]
         for (i, j) in inds:
             if all_labels[i] == all_labels[j]:
                 events.append(1.0)
