@@ -2,19 +2,42 @@
 
 from __future__ import division
 
+import os
+
 import torch
-from dortmund_utils import build_conv_model, DortmundImageToTensor
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 import laia.data
 import laia.engine
+import laia.logging
 import laia.nn
 import laia.utils
 from dortmund_utils import build_conv_model, DortmundImageToTensor
+from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.engine.triggers import (Any, NumEpochs,
                                   MeterStandardDeviation)
 from laia.plugins.arguments import add_argument, add_defaults, args
-from laia.plugins import SaverTrigger, SaverTriggerCollection
+
+
+class SaveModelCheckpointHook(object):
+    def __init__(self, meter, filename):
+        self._meter = meter
+        self._lowest = float('inf')
+        self._filename = os.path.normpath(filename)
+        dirname = os.path.dirname(self._filename)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+    def _save(self, model_dict):
+        torch.save(model_dict, self._filename)
+
+    def __call__(self, caller, **_):
+        assert isinstance(caller, laia.engine.Engine)
+        if self._meter.value < self._lowest:
+            self._lowest = self._meter.value
+            laia.logging.get_logger().info(
+                'New lowest validation CER: {:5.1%}'.format(self._lowest))
+            self._save(caller.model.state_dict())
 
 
 def build_model(num_outputs,
@@ -46,7 +69,6 @@ def build_model(num_outputs,
                 x, xs = input, None
 
             y = self._module(x)
-            print(y.size())
             if xs is None:
                 return pack_padded_sequence(input=y, lengths=[y.size(0)])
             else:
@@ -79,12 +101,14 @@ if __name__ == '__main__':
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  batch_size=1,
-                 learning_rate=0.0001,
+                 learning_rate=0.015,
                  momentum=0.9,
                  num_iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
+    add_argument('--model_checkpoint', type=str, default='model.ckpt',
+                 help='Filename of the output model checkpoint')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -92,7 +116,6 @@ if __name__ == '__main__':
     add_argument('va_txt_table',
                  help='Character transcriptions of each validation image')
     args = args()
-
     laia.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
@@ -116,45 +139,49 @@ if __name__ == '__main__':
 
     # Training data
     tr_ds = laia.data.TextImageFromTextTableDataset(
-        args.tr_txt_table, args.tr_img_dir, img_transform=tr_img_transform)
+        args.tr_txt_table, args.tr_img_dir,
+        img_transform=tr_img_transform,
+        txt_transform=laia.utils.TextToTensor(syms))
     if args.num_samples_per_epoch is None:
-        tr_ds_loader = torch.utils.data.DataLoader(
-            tr_ds, batch_size=1, num_workers=8, shuffle=True,
-            collate_fn=laia.data.PaddingCollater({
-                'img': [1, None, None],
-            }, sort_key=lambda x: -x['img'].size(2)))
+        tr_ds_loader = laia.data.ImageDataLoader(
+            tr_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
     else:
-        tr_ds_loader = torch.utils.data.DataLoader(
-            tr_ds, batch_size=args.batch_size, num_workers=8,
+        tr_ds_loader = laia.data.ImageDataLoader(
+            tr_ds, image_channels=1, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
-                                               args.num_samples_per_epoch),
-            collate_fn=laia.data.PaddingCollater({
-                'img': [1, None, None],
-            }, sort_key=lambda x: -x['img'].size(2)))
+                                               args.num_samples_per_epoch))
 
     # Validation data
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor())
-    va_ds_loader = torch.utils.data.DataLoader(
-        va_ds, args.batch_size, num_workers=8,
-        collate_fn=laia.data.PaddingCollater({
-            'img': [1, None, None],
-        }, sort_key=lambda x: -x['img'].size(2)))
+        img_transform=laia.utils.ImageToTensor(),
+        txt_transform=laia.utils.TextToTensor(syms))
+    va_ds_loader = laia.data.ImageDataLoader(dataset=va_ds,
+                                             image_channels=1,
+                                             batch_size=args.batch_size,
+                                             num_workers=8)
 
     trainer = laia.engine.Trainer(
         model=model,
         criterion=None,
         optimizer=optimizer,
         data_loader=tr_ds_loader,
+        batch_input_fn=ImageFeeder(device=args.gpu,
+                                   keep_padded_tensors=False,
+                                   parent_feeder=ItemFeeder('img')),
+        batch_target_fn=ItemFeeder('txt'),
         progress_bar='Train' if args.show_progress_bar else False)
 
     evaluator = laia.engine.Evaluator(
         model=model,
         data_loader=va_ds_loader,
+        batch_input_fn=ImageFeeder(device=args.gpu,
+                                   keep_padded_tensors=False,
+                                   parent_feeder=ItemFeeder('img')),
+        batch_target_fn=ItemFeeder('txt'),
         progress_bar='Valid' if args.show_progress_bar else False)
 
-    engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator, gpu=args.gpu)
+    engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
 
     # List of early stop triggers.
     # If any of these returns True, training will stop.
@@ -175,16 +202,17 @@ if __name__ == '__main__':
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
     trainer.set_num_iterations_per_update(args.num_iterations_per_update)
-    """
-    trainer.set_epoch_saver_trigger(
-        SaverTriggerCollection(
-            SaverTrigger(EveryEpoch(trainer, 10),
-                         LastParametersSaver('./checkpoint')),
-            SaverTrigger(MeterDecrease(engine_wrapper.valid_cer),
-                         ParametersSaver('./checkpoint-best-valid-cer')),
-            SaverTrigger(MeterDecrease(engine_wrapper.train_cer),
-                         ParametersSaver('./checkpoint-best-train-cer'))))
-    """
+
+    if args.model_checkpoint:
+        filename_va = args.model_checkpoint + '-valid-lowest-cer'
+        evaluator.add_hook(
+            evaluator.ON_EPOCH_END,
+            SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va))
 
     # Start training
-    engine_wrapper.run()
+    with torch.cuda.device(args.gpu - 1):
+        engine_wrapper.run()
+
+    # Save model parameters after training
+    if args.model_checkpoint:
+        torch.save(model.state_dict(), args.model_checkpoint)
