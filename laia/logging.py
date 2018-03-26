@@ -64,9 +64,11 @@ def get_logger(name=None):
         A :obj:`~.Logger` object.
     """
     logging._acquireLock()
+    backup_class = logging.getLoggerClass()
     logging.setLoggerClass(Logger)
     # Use 'laia' as the root logger
     logger = logging.getLogger(name if name else 'laia')
+    logging.setLoggerClass(backup_class)
     logging._releaseLock()
     return logger
 
