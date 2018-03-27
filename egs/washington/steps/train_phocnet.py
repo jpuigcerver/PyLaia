@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from __future__ import division
 
+import os
+
 import torch
 
 import laia.logging as log
@@ -9,6 +11,30 @@ from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.engine.triggers import Any, NumEpochs
 from laia.plugins.arguments import add_argument, add_defaults, args
+
+
+class SaveModelCheckpointHook(object):
+    def __init__(self, meter, filename, title, key):
+        self._meter = meter
+        self._highest = -float('inf')
+        self._filename = os.path.normpath(filename)
+        self._title = title
+        self._key = key
+        dirname = os.path.dirname(self._filename)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+    def _save(self, model_dict):
+        torch.save(model_dict, self._filename)
+
+    def __call__(self, caller, **_):
+        assert isinstance(caller, laia.engine.Engine)
+        if self._meter.value[self._key] > self._highest:
+            self._highest = self._meter.value[self._key]
+            laia.logging.get_logger().info(
+                'New highest {}: {:5.1%}'.format(self._title, self._highest))
+            self._save(caller.model.state_dict())
+
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
@@ -151,6 +177,19 @@ if __name__ == '__main__':
 
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
     trainer.set_num_iterations_per_update(args.num_iterations_per_update)
+
+    if args.model_checkpoint:
+        filename_gap = args.model_checkpoint + '-valid-highest-gap'
+        evaluator.add_hook(
+            evaluator.ON_EPOCH_END,
+            SaveModelCheckpointHook(engine_wrapper.valid_ap, filename_gap,
+                                    title='gAP', key=0))
+
+        filename_map = args.model_checkpoint + '-valid-highest-map'
+        evaluator.add_hook(
+            evaluator.ON_EPOCH_END,
+            SaveModelCheckpointHook(engine_wrapper.valid_ap, filename_map,
+                                    title='mAP', key=1))
 
     # Launch training
     engine_wrapper.run()
