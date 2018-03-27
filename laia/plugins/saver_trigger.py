@@ -11,9 +11,9 @@ class SaverTrigger(object):
         self._trigger = trigger
         self._saver = saver
 
-    def __call__(self, obj):
+    def __call__(self, *args, **kwargs):
         if self._trigger():
-            return self._saver(obj)
+            return self._saver(*args, **kwargs)
         else:
             return False
 
@@ -24,5 +24,5 @@ class SaverTriggerCollection(object):
         assert all([isinstance(st, SaverTrigger) for st in saver_triggers])
         self._saver_triggers = saver_triggers
 
-    def __call__(self, obj):
-        return any([st(obj) for st in self._saver_triggers])
+    def __call__(self, *args, **kwargs):
+        return any([st(*args, **kwargs) for st in self._saver_triggers])
