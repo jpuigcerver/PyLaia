@@ -18,6 +18,8 @@ from laia.engine.triggers import (Any, NumEpochs,
                                   MeterStandardDeviation)
 from laia.plugins.arguments import add_argument, add_defaults, args
 
+logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
+
 
 class SaveModelCheckpointHook(object):
     def __init__(self, meter, filename):
@@ -28,20 +30,23 @@ class SaveModelCheckpointHook(object):
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
 
-    def _save(self, model_dict):
-        torch.save(model_dict, self._filename)
+    def _save(self, model_state_dict, optimizer_state_dict):
+        torch.save({
+            'model': model_state_dict,
+            'optimizer': optimizer_state_dict
+        }, self._filename)
 
     def __call__(self, caller, **_):
-        assert isinstance(caller, laia.engine.Engine)
+        assert isinstance(caller, laia.engine.Trainer)
         if self._meter.value < self._lowest:
             self._lowest = self._meter.value
-            laia.logging.get_logger().info(
-                'New lowest validation CER: {:5.1%}'.format(self._lowest))
-            self._save(caller.model.state_dict())
+            logger.info('New lowest validation CER: {:5.1%}', self._lowest)
+            self._save(caller.model.state_dict(),
+                       caller.optimizer.state_dict())
 
 
 def build_model(num_outputs,
-                adaptive_pool_height=2,
+                adaptive_pool_height=16,
                 lstm_hidden_size=128,
                 lstm_num_layers=1):
     class RNNWrapper(torch.nn.Module):
@@ -81,6 +86,7 @@ def build_model(num_outputs,
     m.add_module('adap_pool', laia.nn.AdaptiveAvgPool2d(
         output_size=(adaptive_pool_height, None)))
     m.add_module('collapse', laia.nn.ImageToSequence(return_packed=True))
+    # 512 = number of filters in the last layer of Dortmund's model
     m.add_module('blstm', torch.nn.LSTM(
         input_size=512 * adaptive_pool_height,
         hidden_size=lstm_hidden_size,
@@ -107,8 +113,10 @@ if __name__ == '__main__':
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
-    add_argument('--model_checkpoint', type=str, default='model.ckpt',
+    add_argument('--save_checkpoint', type=str, default='model.ckpt',
                  help='Filename of the output model checkpoint')
+    add_argument('--load_checkpoint', type=str, default=None,
+                 help='Load model parameters from this checkpoint')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -129,6 +137,15 @@ if __name__ == '__main__':
                                 lr=args.learning_rate,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_l2_penalty)
+
+    if args.load_checkpoint:
+        logger.info('Loading parameters from {!r}', args.load_checkpoint)
+        saved_dict = torch.load(args.load_checkpoint)
+        if 'model' in saved_dict and 'optimizer' in saved_dict:
+            model.load_state_dict(saved_dict['model'])
+            optimizer.load_state_dict(saved_dict['optimizer'])
+        else:
+            model.load_state_dict(saved_dict)
 
     # If --use_distortions is given, apply the same affine distortions used by
     # Dortmund University.
@@ -203,10 +220,10 @@ if __name__ == '__main__':
     trainer.set_early_stop_trigger(Any(*early_stop_triggers))
     trainer.set_num_iterations_per_update(args.num_iterations_per_update)
 
-    if args.model_checkpoint:
-        filename_va = args.model_checkpoint + '-valid-lowest-cer'
-        evaluator.add_hook(
-            evaluator.ON_EPOCH_END,
+    if args.save_checkpoint:
+        filename_va = args.save_checkpoint + '-valid-lowest-cer'
+        trainer.add_hook(
+            trainer.ON_EPOCH_END,
             SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va))
 
     # Start training
@@ -214,5 +231,8 @@ if __name__ == '__main__':
         engine_wrapper.run()
 
     # Save model parameters after training
-    if args.model_checkpoint:
-        torch.save(model.state_dict(), args.model_checkpoint)
+    if args.save_checkpoint:
+        torch.save({
+            'model': model.state_dict(),
+            'optimizer': optimizer.state_dict()
+        }, args.save_checkpoint)
