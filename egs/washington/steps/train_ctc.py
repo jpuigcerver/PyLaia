@@ -4,15 +4,13 @@ from __future__ import division
 
 import os
 
-import torch
-from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
-
 import laia.data
 import laia.engine
 import laia.logging
 import laia.nn
 import laia.utils
-from dortmund_utils import build_conv_model, DortmundImageToTensor
+import torch
+from dortmund_utils import build_ctc_model, DortmundImageToTensor
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.engine.triggers import (Any, NumEpochs,
                                   MeterStandardDeviation)
@@ -45,60 +43,6 @@ class SaveModelCheckpointHook(object):
                        caller.optimizer.state_dict())
 
 
-def build_model(num_outputs,
-                adaptive_pool_height=16,
-                lstm_hidden_size=128,
-                lstm_num_layers=1):
-    class RNNWrapper(torch.nn.Module):
-        def __init__(self, module):
-            super(RNNWrapper, self).__init__()
-            self._module = module
-
-        def forward(self, input):
-            if isinstance(input, tuple):
-                input = input[0]
-            return self._module(input)
-
-        def __repr__(self):
-            return repr(self._module)
-
-    class PackedSequenceWrapper(torch.nn.Module):
-        def __init__(self, module):
-            super(PackedSequenceWrapper, self).__init__()
-            self._module = module
-
-        def forward(self, input):
-            if isinstance(input, PackedSequence):
-                x, xs = input.data, input.batch_sizes
-            else:
-                x, xs = input, None
-
-            y = self._module(x)
-            if xs is None:
-                return pack_padded_sequence(input=y, lengths=[y.size(0)])
-            else:
-                return PackedSequence(data=y, batch_sizes=xs)
-
-        def __repr__(self):
-            return repr(self._module)
-
-    m = build_conv_model()
-    m.add_module('adap_pool', laia.nn.AdaptiveAvgPool2d(
-        output_size=(adaptive_pool_height, None)))
-    m.add_module('collapse', laia.nn.ImageToSequence(return_packed=True))
-    # 512 = number of filters in the last layer of Dortmund's model
-    m.add_module('blstm', torch.nn.LSTM(
-        input_size=512 * adaptive_pool_height,
-        hidden_size=lstm_hidden_size,
-        num_layers=lstm_num_layers,
-        dropout=0.5,
-        bidirectional=True))
-    m.add_module('linear',
-                 RNNWrapper(PackedSequenceWrapper(
-                     torch.nn.Linear(2 * lstm_hidden_size, num_outputs))))
-    return m
-
-
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
                  'seed',
@@ -107,7 +51,7 @@ if __name__ == '__main__':
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  batch_size=1,
-                 learning_rate=0.015,
+                 learning_rate=0.0005,
                  momentum=0.9,
                  num_iterations_per_update=10,
                  show_progress_bar=True,
@@ -117,6 +61,11 @@ if __name__ == '__main__':
                  help='Filename of the output model checkpoint')
     add_argument('--load_checkpoint', type=str, default=None,
                  help='Load model parameters from this checkpoint')
+    add_argument('--adaptive_pool_height', type=int, default=16,
+                 help='Average adaptive pooling of the images before the '
+                      'LSTM layers')
+    add_argument('--lstm_hidden_size', type=int, default=128)
+    add_argument('--lstm_num_layers', type=int, default=1)
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -127,7 +76,10 @@ if __name__ == '__main__':
     laia.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
-    model = build_model(num_outputs=len(syms))
+    model = build_ctc_model(num_outputs=len(syms),
+                            adaptive_pool_height=args.adaptive_pool_height,
+                            lstm_hidden_size=args.lstm_hidden_size,
+                            lstm_num_layers=args.lstm_num_layers)
     if args.gpu > 0:
         model = model.cuda(args.gpu - 1)
     else:

@@ -1,18 +1,21 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import cv2
 import math
-import numpy as np
 import operator
-import torch
-
 from collections import OrderedDict
-from laia.losses.loss import Loss
-from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 from functools import reduce
-from torch.nn.functional import binary_cross_entropy_with_logits
+
+import cv2
+import numpy as np
+import torch
 from PIL import ImageOps
+from laia.losses.loss import Loss
+from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
+from laia.nn.image_to_sequence import ImageToSequence
+from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 
 def build_conv_model():
@@ -91,6 +94,60 @@ def build_dortmund_model(phoc_size, levels=5):
     return model
 
 
+def build_ctc_model(num_outputs,
+                    adaptive_pool_height=16,
+                    lstm_hidden_size=128,
+                    lstm_num_layers=1):
+    class RNNWrapper(torch.nn.Module):
+        def __init__(self, module):
+            super(RNNWrapper, self).__init__()
+            self._module = module
+
+        def forward(self, input):
+            if isinstance(input, tuple):
+                input = input[0]
+            return self._module(input)
+
+        def __repr__(self):
+            return repr(self._module)
+
+    class PackedSequenceWrapper(torch.nn.Module):
+        def __init__(self, module):
+            super(PackedSequenceWrapper, self).__init__()
+            self._module = module
+
+        def forward(self, input):
+            if isinstance(input, PackedSequence):
+                x, xs = input.data, input.batch_sizes
+            else:
+                x, xs = input, None
+
+            y = self._module(x)
+            if xs is None:
+                return pack_padded_sequence(input=y, lengths=[y.size(0)])
+            else:
+                return PackedSequence(data=y, batch_sizes=xs)
+
+        def __repr__(self):
+            return repr(self._module)
+
+    m = build_conv_model()
+    m.add_module('adap_pool', AdaptiveAvgPool2d(
+        output_size=(adaptive_pool_height, None)))
+    m.add_module('collapse', ImageToSequence(return_packed=True))
+    # 512 = number of filters in the last layer of Dortmund's model
+    m.add_module('blstm', torch.nn.LSTM(
+        input_size=512 * adaptive_pool_height,
+        hidden_size=lstm_hidden_size,
+        num_layers=lstm_num_layers,
+        dropout=0.5,
+        bidirectional=True))
+    m.add_module('linear',
+                 RNNWrapper(PackedSequenceWrapper(
+                     torch.nn.Linear(2 * lstm_hidden_size, num_outputs))))
+    return m
+
+
 def dortmund_distort(img, random_limits=(0.8, 1.1)):
     """
     Creates an augmentation by computing a homography from three points in the
@@ -101,7 +158,7 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
                             [2 * x / 3, 2 * y / 3],
                             [x / 3, 2 * y / 3]])
     random_shift = (np.random.rand(3, 2) - 0.5) * 2 * (
-                random_limits[1] - random_limits[0]) / 2 + np.mean(
+            random_limits[1] - random_limits[0]) / 2 + np.mean(
         random_limits)
     dst_point = src_point * random_shift.astype(np.float32)
     transform = cv2.getAffineTransform(src_point, dst_point)
