@@ -1,8 +1,16 @@
 import argparse
+import sys
 
 import laia.logging
 from laia.plugins.arguments_types import (str2bool, NumberInClosedRange,
                                           NumberInOpenRange, str2loglevel)
+
+try:
+    from shlex import quote as cmd_quote
+except ImportError:
+    from pipes import quote as cmd_quote
+
+_logger = laia.logging.get_logger(__name__)
 
 _parser = None
 _default_args = {
@@ -199,6 +207,15 @@ _default_args = {
             'default': False,
             'help': 'If true, overwrite the logfile instead of appending it'
         }),
+    'print_args': (
+        ('--print_args',),
+        {
+            'type': str2bool,
+            'nargs': '?',
+            'const': True,
+            'default': True,
+            'help': 'If true, log to INFO the arguments passed to the program'
+        }),
 }
 
 
@@ -208,7 +225,7 @@ def _get_parser():
         _parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         add_defaults('logging_also_to_stderr', 'logging_config', 'logging_file',
-                     'logging_level', 'logging_overwrite')
+                     'logging_level', 'logging_overwrite', 'print_args')
     return _parser
 
 
@@ -231,4 +248,6 @@ def add_argument(*args, **kwargs):
 def args():
     a = _get_parser().parse_args()
     laia.logging.config_from_args(a)
+    if a.print_args:
+        _logger.info(' '.join([cmd_quote(x) for x in sys.argv[1:]]))
     return a
