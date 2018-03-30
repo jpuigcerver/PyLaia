@@ -32,7 +32,9 @@ class PairwiseAveragePrecisionMeter(Meter):
           whose label is not shared with any other object.
     """
 
-    def __init__(self, metric='euclidean', ignore_singleton=True):
+    def __init__(self, metric='euclidean', ignore_singleton=True,
+                 exceptions_threshold=5):
+        super(PairwiseAveragePrecisionMeter, self).__init__(exceptions_threshold)
         self._metric = metric
         self._features = []
         self._labels = []

@@ -6,8 +6,8 @@ from laia.hooks.meters import Meter
 
 
 class SequenceErrorMeter(Meter):
-    def __init__(self):
-        super(SequenceErrorMeter, self).__init__()
+    def __init__(self, exceptions_threshold=5):
+        super(SequenceErrorMeter, self).__init__(exceptions_threshold)
         self._num_errors = 0
         self._ref_length = 0
 

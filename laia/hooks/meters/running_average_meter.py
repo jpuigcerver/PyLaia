@@ -18,7 +18,8 @@ class RunningAverageMeter(Meter):
     (0.0, 5.0)
     """
 
-    def __init__(self):
+    def __init__(self, exceptions_threshold=5):
+        super(RunningAverageMeter, self).__init__(exceptions_threshold)
         self._n = 0.0
         self._s = 0.0
         self._s2 = 0.0
