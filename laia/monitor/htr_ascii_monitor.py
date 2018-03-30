@@ -1,7 +1,8 @@
+from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from .ascii_monitor import AsciiMonitor
-from ..meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from ..decoders import CTCDecoder
 from ..losses import CTCLoss
+
 
 class HtrAsciiMonitor(AsciiMonitor):
     def __init__(self, filename, train_engine, valid_engine=None):
@@ -14,8 +15,8 @@ class HtrAsciiMonitor(AsciiMonitor):
         self._valid_timer = TimeMeter()
         self._train_loss_meter = RunningAverageMeter()
         self._valid_loss_meter = RunningAverageMeter()
-        self._train_cer_meter  = SequenceErrorMeter()
-        self._valid_cer_meter  = SequenceErrorMeter()
+        self._train_cer_meter = SequenceErrorMeter()
+        self._valid_cer_meter = SequenceErrorMeter()
 
         self._va_engine.add_hook('on_start_epoch', self.__valid_reset_meters)
         self._va_engine.add_hook('on_end_batch', self.__valid_accumulate_loss)

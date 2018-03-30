@@ -1,10 +1,9 @@
 import math
+
 import numpy as np
 import torch
 
-from laia.meters.meter import Meter
-
-from typing import Union
+from laia.hooks.meters import Meter
 
 
 class RunningAverageMeter(Meter):

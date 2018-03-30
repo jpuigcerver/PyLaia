@@ -4,7 +4,7 @@ from __future__ import division
 import math
 import unittest
 
-from laia.meters.running_average_meter import RunningAverageMeter
+from laia.hooks.meters import RunningAverageMeter
 
 
 class RunningAverageMeterTest(unittest.TestCase):

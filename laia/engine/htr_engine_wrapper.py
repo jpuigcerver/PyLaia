@@ -4,7 +4,7 @@ import laia.logging as log
 from laia.decoders import CTCDecoder
 from laia.engine.engine import Engine
 from laia.losses import CTCLoss
-from laia.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
+from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 
 _logger = log.get_logger(__name__)
 

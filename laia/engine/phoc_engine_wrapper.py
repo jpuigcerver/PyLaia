@@ -6,8 +6,8 @@ import laia.logging as log
 from laia.engine.engine import Engine
 from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
                                  VariableFeeder)
-from laia.meters import (PairwiseAveragePrecisionMeter,
-                         RunningAverageMeter, TimeMeter)
+from laia.hooks.meters import (PairwiseAveragePrecisionMeter,
+                               RunningAverageMeter, TimeMeter)
 
 _logger = log.get_logger(__name__)
 
