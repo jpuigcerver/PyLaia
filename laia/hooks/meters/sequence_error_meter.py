@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import editdistance
 
-from laia.meters.meter import Meter
+from laia.hooks.meters import Meter
 
 
 class SequenceErrorMeter(Meter):

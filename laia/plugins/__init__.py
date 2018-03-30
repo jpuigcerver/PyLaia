@@ -9,5 +9,3 @@ from laia.plugins.saver import (ModelSaver,
                                 ModelCheckpointSaver,
                                 TrainerCheckpointSaver,
                                 LastCheckpointsSaver)
-from laia.plugins.saver_trigger import (SaverTrigger,
-                                        SaverTriggerCollection)

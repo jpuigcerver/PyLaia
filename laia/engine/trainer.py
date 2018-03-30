@@ -34,7 +34,7 @@ class Trainer(Engine):
           the content of the string will be shown before the progress bar.
           If the module :mod:`tqdm` is not installed, this will be ignored.
           (default: None)
-      num_iterations_to_update (int): Number of successive mini-batch
+      num_iterations_per_update (int): Number of successive mini-batch
           parameter gradients to accumulate before updating the parameters.
           (default: None)
     """

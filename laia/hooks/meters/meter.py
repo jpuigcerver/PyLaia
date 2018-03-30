@@ -13,4 +13,4 @@ class Meter(object):
     @property
     def value(self):
         """Access the latest value of the meter."""
-        raise NotImplementedError('This method should be overriden.')
+        raise NotImplementedError('This method should be overridden.')

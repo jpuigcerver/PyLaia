@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from laia.meters.meter import Meter
-
 import time
+
+from laia.hooks.meters import Meter
 
 
 class TimeMeter(Meter):
