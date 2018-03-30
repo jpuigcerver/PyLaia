@@ -1,6 +1,5 @@
-from typing import Tuple
+from typing import Tuple, Callable, Any
 
-from laia.hooks.meters import Meter
 from laia.logging import get_logger, DEBUG, INFO, ERROR
 
 _logger = get_logger(__name__)
@@ -8,37 +7,47 @@ _logger = get_logger(__name__)
 
 class Condition(object):
     """Conditions are objects that when called return either `True` or `False`.
-
-    Typically used for early stopping, creating checkpoints of the
-    model during training, logging events, etc.
-
-    They may have a name, which may be useful for logging.
+    Typically used inside of Hooks to trigger an action
 
     Arguments:
-        name (str): name for the condition. (default: `None`)
+        obj (Callable): obj from which a value will be retrieved
+        key (Any, optional): Get this key from the obj after being called.
+            Useful when the obj() returns a tuple/list/dict. (default: None)
     """
 
-    def __init__(self, name=None):
-        # type: (str) -> None
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
+    def __init__(self, obj, key=None):
+        # type: (Callable, Any) -> None
+        self._obj = obj
+        self._key = key
 
     def __call__(self):
-        return False
+        raise NotImplementedError('This method should be overridden.')
+
+    def _process_value(self):
+        value = self._obj()
+        if value is None:
+            # An exception happened during the computation
+            return None
+        return value if self._key is None else value[self._key]
 
 
 class LoggingCondition(Condition):
-    def __init__(self, logger, name=None):
-        # type: (Logger, str) -> None
-        super(LoggingCondition, self).__init__(name=name)
+    def __init__(self, obj, key, logger, name=None):
+        # type: (obj, Any, Logger, str) -> None
+        super(LoggingCondition, self).__init__(obj, key)
         self._logger = logger
+        self._name = name
+
+    def __call__(self):
+        raise NotImplementedError('This method should be overridden.')
 
     @property
     def logger(self):
         return self._logger
+
+    @property
+    def name(self):
+        return self._name
 
     def log(self, level, msg, *args, **kwargs):
         self._logger.log(
@@ -56,65 +65,7 @@ class LoggingCondition(Condition):
         self.log(ERROR, msg, *args, **kwargs)
 
 
-class ConditionFromMeter(LoggingCondition):
-    """Base class for conditions based on the value of a :class:`Meter`.
-
-    If the value of the meter cannot be read (`Meter.value` returns `None` or
-    causes an exception), we assume that the meter has not produced a value
-    yet and the trigger returns false.
-
-    The number of exceptions will be recorded and an error will be logged
-    when `num_exceptions_threshold` are caught.
-
-    Arguments:
-        meter (:obj:`Meter`): meter to monitor.
-        meter_key (Any): if the value returned by the meter is a tuple, list
-            or dictionary, use this key to get the specific value.
-            (default: None)
-        name (str): name of the trigger (default: None).
-        num_exceptions_threshold (int): number of exceptions to catch from the
-            meter before logging. (default: 5)
-    """
-
-    def __init__(self, meter, meter_key=None, name=None,
-                 num_exceptions_threshold=5):
-        # type: (Meter, str, str, int) -> None
-        super(ConditionFromMeter, self).__init__(_logger, name)
-        self._meter = meter
-        self._meter_key = meter_key
-        self._num_exceptions = 0
-        self._num_exceptions_threshold = num_exceptions_threshold
-
-    @property
-    def meter(self):
-        return self._meter
-
-    def _process_value(self, last_value):
-        raise NotImplementedError('This method should be implemented')
-
-    def __call__(self):
-        # Try to get the meter's last value, if some exception occurs,
-        # we assume that the meter has not produced any value yet, and
-        # we do not trigger.
-        try:
-            last_value = self._meter.value
-            assert last_value is not None, 'Meter returned None'
-        except Exception:
-            self._num_exceptions += 1
-            if self._num_exceptions % self._num_exceptions_threshold == 0:
-                self.logger.warn(
-                    'No value fetched from meter after a while '
-                    '({} exceptions like this occurred so far)',
-                    self._num_exceptions)
-            return False
-
-        if self._meter_key is not None:
-            last_value = last_value[self._meter_key]
-
-        return self._process_value(last_value)
-
-
-class Not(Condition):
+class Not(object):
     """True when the given condition is false.
 
     Arguments:
@@ -122,16 +73,15 @@ class Not(Condition):
     """
 
     def __init__(self, condition):
-        # type: (Condition) -> None
-        assert isinstance(condition, Condition)
-        super(Not, self).__init__()
+        # type: (Callable   ) -> None
+        assert callable(condition)
         self._condition = condition
 
     def __call__(self):
         return not self._condition()
 
 
-class MultinaryCondition(Condition):
+class MultinaryCondition(object):
     """Base class for operators involving an arbitrary number of conditions.
 
     Arguments:
@@ -139,13 +89,12 @@ class MultinaryCondition(Condition):
     """
 
     def __init__(self, *conditions):
-        # type: (Tuple[Condition]) -> None
-        assert all([isinstance(c, Condition) for c in conditions])
-        super(MultinaryCondition, self).__init__()
+        # type: (Tuple[Callable]) -> None
+        assert all(callable(c) for c in conditions)
         self._conditions = conditions
 
     def __call__(self):
-        raise NotImplemented
+        raise NotImplementedError('This method should be overridden.')
 
 
 class Any(MultinaryCondition):
@@ -156,11 +105,11 @@ class Any(MultinaryCondition):
     """
 
     def __init__(self, *conditions):
-        # type: (Tuple[Condition]) -> None
+        # type: (Tuple[Callable]) -> None
         super(Any, self).__init__(*conditions)
 
     def __call__(self):
-        return any([c() for c in self._conditions])
+        return any(c() for c in self._conditions)
 
 
 class All(MultinaryCondition):
@@ -171,8 +120,8 @@ class All(MultinaryCondition):
     """
 
     def __init__(self, *conditions):
-        # type: (Tuple[Condition]) -> None
+        # type: (Tuple[Callable]) -> None
         super(All, self).__init__(*conditions)
 
     def __call__(self):
-        return all([c() for c in self._conditions])
+        return all(c() for c in self._conditions)

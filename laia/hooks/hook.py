@@ -10,9 +10,9 @@ class Hook(object):
         self._condition = condition
         self._action = action
 
-    def __call__(self, **kwargs):
+    def __call__(self, *args, **kwargs):
         if self._condition():
-            return self._action(**kwargs)
+            return self._action(*args, **kwargs)
         else:
             return False
 

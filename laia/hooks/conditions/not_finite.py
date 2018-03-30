@@ -1,19 +1,26 @@
 from __future__ import absolute_import
 
+from typing import Callable, Any
+
 import numpy as np
 
-from laia.engine.conditions.condition import ConditionFromMeter
+import laia.logging as log
+from laia.hooks.conditions.condition import LoggingCondition
+
+_logger = log.get_logger(__name__)
 
 
-class NotFinite(ConditionFromMeter):
-    def __init__(self, meter, meter_key=None, name=None):
-        super(NotFinite, self).__init__(meter, meter_key, name)
+class NotFinite(LoggingCondition):
+    def __init__(self, obj, key=None, name=None):
+        # type: (Callable, Any,str) -> None
+        super(NotFinite, self).__init__(obj, key, _logger, name)
 
-    def _process_value(self, last_value):
-        if not np.isfinite(last_value):
-            self.logger.info(
-                'Value read from meter ({}) is not finite!',
-                last_value)
+    def __call__(self):
+        value = self._process_value()
+        if value is None:
+            return False
+        if not np.isfinite(value):
+            self.info('Value read from meter ({}) is not finite!', value)
             return True
         else:
             return False
