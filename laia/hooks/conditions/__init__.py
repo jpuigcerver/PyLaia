@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from laia.hooks.conditions.always import Always
 from laia.hooks.conditions.condition import Any, All, Not
 from laia.hooks.conditions.highest import Highest
 from laia.hooks.conditions.lowest import Lowest
