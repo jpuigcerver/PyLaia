@@ -18,7 +18,7 @@ class Loader(object):
     def __init__(self, save_path, filename):
         assert not p.dirname(filename)
         assert any(f.startswith(filename) for f in os.listdir(save_path))
-        self._save_path = save_path
+        self._save_path = p.normpath(save_path)
         self._filename = filename
 
     @staticmethod
@@ -32,6 +32,9 @@ class Loader(object):
 
 
 class ModelLoader(Loader):
+    def __init__(self, save_path, filename='model'):
+        super(ModelLoader, self).__init__(save_path, filename)
+
     def __call__(self):
         return self.load()
 
@@ -45,8 +48,8 @@ class ModelLoader(Loader):
             kwargs = model.get('kwargs', {})
             _logger.debug('Loaded model from {}', path)
             return fn(*args, **kwargs)
-        except:
-            _logger.error('Could not load the model', path)
+        except Exception as e:
+            _logger.error('Could not load the model {}: {}', path, e)
 
 
 class CheckpointLoader(Loader):
@@ -71,8 +74,8 @@ class CheckpointLoader(Loader):
             state = self.load_binary(path)
             _logger.debug('Loaded checkpoint from {}', path)
             return state
-        except:
-            _logger.error('Could not load the checkpoint', path)
+        except Exception as e:
+            _logger.error('Could not load the checkpoint {}: {}', path, e)
 
     def load_last(self):
         path = self._get_last_ckpt_path()
@@ -80,8 +83,8 @@ class CheckpointLoader(Loader):
             state = self.load_binary(path)
             _logger.debug('Loaded last checkpoint from {}', path)
             return state
-        except:
-            _logger.error('Could not load the checkpoint', path)
+        except Exception as e:
+            _logger.error('Could not load the checkpoint {}: {}', path, e)
 
     def load_by(self, criterion):
         path = self._get_ckpt_path_by(criterion)
@@ -89,8 +92,8 @@ class CheckpointLoader(Loader):
             state = self.load_binary(path)
             _logger.debug('Loaded {} checkpoint from {}', criterion, path)
             return state
-        except:
-            _logger.error('Could not load the checkpoint', path)
+        except Exception as e:
+            _logger.error('Could not load the checkpoint {}: {}', path, e)
 
 
 class ModelCheckpointLoader(CheckpointLoader):

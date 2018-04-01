@@ -18,7 +18,7 @@ class Saver(object):
     def __init__(self, save_path, filename):
         assert not p.dirname(filename)
         assert p.exists(save_path)
-        self._save_path = save_path
+        self._save_path = p.normpath(save_path)
         self._filename = filename
 
     @staticmethod
@@ -46,7 +46,7 @@ class ModelSaver(Saver):
     def __init__(self, save_path, filename='model'):
         super(ModelSaver, self).__init__(save_path, filename)
 
-    def __call__(self, model, suffix=None):
+    def __call__(self, model):
         return self.save(model)
 
     def save(self, model):
@@ -55,8 +55,8 @@ class ModelSaver(Saver):
         try:
             self.save_json(model, path)
             _logger.debug('Model saved: {}', path)
-        except:
-            _logger.error('Could not save the model {}', path)
+        except Exception as e:
+            _logger.error('Could not save the model {}: {}', path, e)
         return path
 
 
@@ -80,8 +80,8 @@ class CheckpointSaver(Saver):
         try:
             self.save_binary(state, path)
             _logger.debug('Checkpoint saved: {}', path)
-        except:
-            _logger.error('Could not save the checkpoint {}', path)
+        except Exception as e:
+            _logger.error('Could not save the checkpoint {}: {}', path, e)
         return path
 
 
@@ -119,8 +119,8 @@ class LastCheckpointsSaver(object):
             try:
                 os.remove(last)
                 _logger.debug('{} checkpoint removed', last)
-            except Exception:
-                _logger.error('{} checkpoint could not be removed', last)
+            except Exception as e:
+                _logger.error('{} checkpoint could not be removed: {}', last, e)
             self._last_ckpts.append(path)
             self._ckpt_num = (self._ckpt_num + 1) % self._keep_ckpts
         return path
