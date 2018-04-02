@@ -2,7 +2,7 @@
 set -e;
 
 # Build Baidu Warp-CTC
-cd third_party/warp_ctc;
+cd third_party/warp-ctc;
 mkdir -p build;
 cd build;
 cmake ..;
