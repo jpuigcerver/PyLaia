@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 from __future__ import division
 
-from laia.meters.sequence_error_meter import SequenceErrorMeter
-
 import unittest
+
+from laia.hooks.meters import SequenceErrorMeter
 
 
 class SequenceErrorMeterTest(unittest.TestCase):

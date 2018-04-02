@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from laia.meters.time_meter import TimeMeter
-
 import time
 import unittest
+
+from laia.hooks.meters import TimeMeter
 
 
 class TimeMeterTest(unittest.TestCase):

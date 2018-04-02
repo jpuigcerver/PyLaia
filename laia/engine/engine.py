@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from torch._six import string_classes
 
 import laia.logging as log
+from laia.hooks import action_kwargs
 
 try:
     from tqdm import tqdm
@@ -10,6 +11,11 @@ except ImportError:
     tqdm = None
 
 _logger = log.get_logger(__name__)
+
+ON_BATCH_START = 'ON_BATCH_START'
+ON_BATCH_END = 'ON_BATCH_END'
+ON_EPOCH_START = 'ON_EPOCH_START'
+ON_EPOCH_END = 'ON_EPOCH_END'
 
 
 class Engine(object):
@@ -32,11 +38,6 @@ class Engine(object):
           (default: None)
     """
 
-    ON_BATCH_START = 'ON_BATCH_START'
-    ON_BATCH_END = 'ON_BATCH_END'
-    ON_EPOCH_START = 'ON_EPOCH_START'
-    ON_EPOCH_END = 'ON_EPOCH_END'
-
     def __init__(self, model, data_loader,
                  batch_input_fn=None,
                  batch_target_fn=None,
@@ -49,12 +50,12 @@ class Engine(object):
 
         self._epochs = 0
         self._iterations = 0
-
+        self._must_stop = False
         self._hooks = {
-            self.ON_BATCH_START: [],
-            self.ON_EPOCH_START: [],
-            self.ON_BATCH_END: [],
-            self.ON_EPOCH_END: []
+            ON_BATCH_START: [],
+            ON_EPOCH_START: [],
+            ON_BATCH_END: [],
+            ON_EPOCH_END: []
         }
 
         if progress_bar and not tqdm:
@@ -77,17 +78,19 @@ class Engine(object):
     def hooks(self):
         return self._hooks
 
-    @property
     def epochs(self):
         return self._epochs
 
-    @property
     def iterations(self):
         return self._iterations
 
     @property
     def logger(self):
         return _logger
+
+    @action_kwargs()
+    def stop(self):
+        self._must_stop = True
 
     def reset(self):
         r"""Reset the number of epochs and iterations run."""
@@ -119,8 +122,8 @@ class Engine(object):
         self._batch_target_fn = fn
         return self
 
-    def add_hook(self, when, func):
-        r"""Add a hook function to be executed at some point during the run.
+    def add_hook(self, when, hook):
+        r"""Add a hook to be executed at some point during the run.
 
         When multiple hooks are added at the same point of the run, they will
         be run in order of addition.
@@ -128,21 +131,22 @@ class Engine(object):
         Args:
           when: point in the run (valid values: ``ON_BATCH_START``,
             ``ON_EPOCH_START``, ``ON_BATCH_END``, ``ON_EPOCH_END``).
-          func: function or callable object that must accept ``**kwargs``.
+          Hook: `Hook` object.
         """
         assert when in self._hooks, (
             '{!r} is not a valid hook event'.format(when))
-        self._hooks[when].append(func)
+        self._hooks[when].append(hook)
         return self
 
     def run(self):
         r"""Run a single epoch on the `dataset_loader`."""
-        self._run_epoch()
+        if not self._must_stop:
+            self._run_epoch()
         return self
 
-    def _call_hooks(self, when, **kwargs):
+    def _call_hooks(self, when, *args, **kwargs):
         for hook in self._hooks[when]:
-            hook(caller=self, **kwargs)
+            hook(*args, **kwargs)
 
     def _run_iteration(self, it, batch):
         self._iterations += 1
@@ -157,7 +161,7 @@ class Engine(object):
         else:
             batch_target = None
 
-        self._call_hooks(self.ON_BATCH_START,
+        self._call_hooks(ON_BATCH_START,
                          batch=batch,
                          batch_num=it,
                          epoch=self._epochs,
@@ -171,7 +175,7 @@ class Engine(object):
 
         batch_output = self._model(batch_input)
 
-        self._call_hooks(self.ON_BATCH_END,
+        self._call_hooks(ON_BATCH_END,
                          batch=batch,
                          batch_num=it,
                          epoch=self._epochs,
@@ -182,7 +186,7 @@ class Engine(object):
 
     def _run_epoch(self):
         self._epochs += 1
-        self._call_hooks(self.ON_EPOCH_START, epoch=self._epochs)
+        self._call_hooks(ON_EPOCH_START, epoch=self._epochs)
 
         if self._progress_bar and tqdm:
             if isinstance(self._progress_bar, string_classes):
@@ -196,7 +200,7 @@ class Engine(object):
         for it, batch in enumerate(batch_iterator, 1):
             self._run_iteration(it, batch)
 
-        self._call_hooks(self.ON_EPOCH_END, epoch=self._epochs)
+        self._call_hooks(ON_EPOCH_END, epoch=self._epochs)
 
 
 # If we decide to extend the Evaluator class, we can move it to
