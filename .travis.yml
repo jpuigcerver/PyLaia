@@ -12,7 +12,7 @@ notifications:
 before_install:
   - pip install cffi
   - ./travis/install_pytorch.sh
-  - ./travis/update_submodules.sh
+  - git submodule update --init --recursive
   - ./travis/build_nnutils.sh
   - ./travis/build_warp_ctc.sh
 
