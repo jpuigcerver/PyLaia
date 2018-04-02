@@ -28,8 +28,7 @@ class Lowest(LoggingCondition):
                       value, self._lowest)
             self._lowest = value
             return True
-        else:
-            self.debug('Value IS NOT the lowest '
-                       '(last: {} vs lowest: {})',
-                       value, self._lowest)
-            return False
+        self.debug('Value IS NOT the lowest '
+                   '(last: {} vs lowest: {})',
+                   value, self._lowest)
+        return False

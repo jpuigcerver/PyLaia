@@ -59,7 +59,6 @@ class StdDevUnder(LoggingCondition):
             self.info('Standard deviation {} < Threshold {}',
                       std, self._threshold)
             return True
-        else:
-            self.debug('Standard deviation {} >= Threshold {}',
-                       std, self._threshold)
-            return False
+        self.debug('Standard deviation {} >= Threshold {}',
+                   std, self._threshold)
+        return False

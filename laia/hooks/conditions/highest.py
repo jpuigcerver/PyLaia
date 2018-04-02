@@ -28,8 +28,7 @@ class Highest(LoggingCondition):
                       value, self._highest)
             self._highest = value
             return True
-        else:
-            self.debug('Value IS NOT the highest '
-                       '(last: {} vs highest: {})',
-                       value, self._highest)
-            return False
+        self.debug('Value IS NOT the highest '
+                   '(last: {} vs highest: {})',
+                   value, self._highest)
+        return False
