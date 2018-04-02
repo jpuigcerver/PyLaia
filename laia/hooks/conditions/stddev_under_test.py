@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import unittest
 
-from laia.engine.triggers.meter_standard_deviation import MeterStandardDeviation
-from laia.meters.meter import Meter
+from laia.hooks.conditions import StdDevUnder
+from laia.hooks.meters import Meter
 
 
 class ExceptionMeter(Meter):
@@ -28,23 +28,26 @@ class MockMeter(Meter):
         return self._value
 
 
-class MeterStandardDeviationTest(unittest.TestCase):
+class StdDevUnderTest(unittest.TestCase):
     def test_exception(self):
         meter = ExceptionMeter()
-        trigger = MeterStandardDeviation(meter, 0.1, 25)
-        self.assertEqual(False, trigger())
+        cond = StdDevUnder(meter, 0.1, 25)
 
-    def test_keyed(self):
+        self.assertEqual(False, cond())
+
+    def test_with_key(self):
         meter = MockMeter()
-        trigger = MeterStandardDeviation(meter, 0.1, 3, meter_key='key')
+        cond = StdDevUnder(meter, 0.1, 3, key='key')
+
         meter.set_value(0, key='key')
-        self.assertEqual(False, trigger())
-        self.assertEqual(False, trigger())
-        self.assertEqual(True, trigger())
+        self.assertEqual(False, cond())
+        self.assertEqual(False, cond())
+        self.assertEqual(True, cond())
 
     def test_not_enough_values(self):
         meter = MockMeter()
-        trigger = MeterStandardDeviation(meter, 0.1, 25)
+        trigger = StdDevUnder(meter, 0.1, 25)
+
         meter.set_value(0)
         self.assertEqual(False, trigger())
         self.assertEqual(False, trigger())
@@ -52,27 +55,27 @@ class MeterStandardDeviationTest(unittest.TestCase):
 
     def test_above_threshold(self):
         meter = MockMeter()
-        trigger = MeterStandardDeviation(meter, 0.01, 3)
+        cond = StdDevUnder(meter, 0.01, 3)
 
         meter.set_value(1)
-        self.assertEqual(False, trigger())
+        self.assertEqual(False, cond())
         meter.set_value(2)
-        self.assertEqual(False, trigger())
+        self.assertEqual(False, cond())
         meter.set_value(3)
-        self.assertEqual(False, trigger())
+        self.assertEqual(False, cond())
 
     def test_below_threshold(self):
         meter = MockMeter()
-        trigger = MeterStandardDeviation(meter, 1, 3)
+        cond = StdDevUnder(meter, 1, 3)
 
         meter.set_value(1)
-        self.assertEqual(False, trigger())
+        self.assertEqual(False, cond())
         meter.set_value(2)
-        self.assertEqual(False, trigger())
+        self.assertEqual(False, cond())
         meter.set_value(3)
-        self.assertEqual(True, trigger())
+        self.assertEqual(True, cond())
         meter.set_value(3)
-        self.assertEqual(True, trigger())
+        self.assertEqual(True, cond())
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 
 import laia.logging as log
-from laia.meters.meter import Meter
+from laia.hooks.meters import Meter
 from laia.utils.accumulate import accumulate
 
 _logger = log.get_logger(__name__)
@@ -32,7 +32,9 @@ class PairwiseAveragePrecisionMeter(Meter):
           whose label is not shared with any other object.
     """
 
-    def __init__(self, metric='euclidean', ignore_singleton=True):
+    def __init__(self, metric='euclidean', ignore_singleton=True,
+                 exceptions_threshold=5):
+        super(PairwiseAveragePrecisionMeter, self).__init__(exceptions_threshold)
         self._metric = metric
         self._features = []
         self._labels = []
