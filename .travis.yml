@@ -11,6 +11,7 @@ notifications:
 
 before_install:
   - pip install cffi
+  - ./travis/install_pytorch.sh
   - ./travis/update_submodules.sh
   - ./travis/build_nnutils.sh
   - ./travis/build_warp_ctc.sh
