@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from torch._six import string_classes
 
 import laia.logging as log
-from laia.hooks import action_kwargs
+from laia.hooks import action
 
 try:
     from tqdm import tqdm
@@ -88,7 +88,7 @@ class Engine(object):
     def logger(self):
         return _logger
 
-    @action_kwargs()
+    @action
     def stop(self):
         self._must_stop = True
 
