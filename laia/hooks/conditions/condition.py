@@ -1,4 +1,4 @@
-from typing import Tuple, Callable, Any
+from typing import Tuple, Callable, Any as AnyT
 
 from laia.logging import get_logger, DEBUG, INFO, ERROR
 
@@ -16,7 +16,7 @@ class Condition(object):
     """
 
     def __init__(self, obj, key=None):
-        # type: (Callable, Any) -> None
+        # type: (Callable, AnyT) -> None
         self._obj = obj
         self._key = key
 
@@ -33,7 +33,7 @@ class Condition(object):
 
 class LoggingCondition(Condition):
     def __init__(self, obj, key, logger, name=None):
-        # type: (obj, Any, Logger, str) -> None
+        # type: (obj, AnyT, Logger, str) -> None
         super(LoggingCondition, self).__init__(obj, key)
         self._logger = logger
         self._name = name
@@ -73,7 +73,7 @@ class Not(object):
     """
 
     def __init__(self, condition):
-        # type: (Callable   ) -> None
+        # type: (Callable) -> None
         assert callable(condition)
         self._condition = condition
 
