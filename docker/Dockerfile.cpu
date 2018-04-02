@@ -23,7 +23,7 @@ ENV PATH /opt/conda/bin:$PATH
 # github.com/pytorch/pytorch/blob/master/Dockerfile
 
 # Usage:
-# $ docker build -f Dockerfile . --build-arg USR=<usr> --build-arg PW=<pw>
+# $ docker build -t pylaia  -f docker/Dockerfile.cpu . --build-arg USR=<usr> --build-arg PW=<pw>
 
 LABEL maintainer "Joan Puigcerver <joapuipe@gmail.com>"
 
@@ -39,7 +39,7 @@ ARG PW
 # Install PyLaia
 RUN git clone https://"$USR":"$PW"@github.com/jpuigcerver/PyLaia && \
     cd PyLaia && \
-    git submodule update --init && \
+    git submodule update --init --recursive && \
     pip install -v .
 
 # Install third party libraries
@@ -48,14 +48,18 @@ RUN cmake .. -DPYTORCH_SETUP_PREFIX=/opt/conda && \
     make && make install
 
 WORKDIR /PyLaia/third_party/nnutils/build
-RUN cmake .. -DPYTORCH_SETUP_PREFIX=/opt/conda && \
-    make && make install
+RUN cmake -DWITH_CUDA=OFF -DWITH_PYTORCH=ON -DPYTORCH_SETUP_PREFIX=/opt/conda .. && \
+    make VERBOSE=1 && make install
 
 WORKDIR /PyLaia/third_party/warp-ctc/build
 RUN cmake .. && make && \
     cd ../pytorch_binding && \
     python setup.py build && \
     python setup.py install
+
+# Run PyLaia's tests
+WORKDIR /PyLaia
+RUN ./travis/run_tests.sh
 
 # Cleanup
 WORKDIR /
