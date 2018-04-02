@@ -6,6 +6,7 @@ setup(name='laia', version='0.1', packages=find_packages(),
                         'future;python_version<"3.0"',
                         'mock;python_version<"3.0"',
                         'numpy',
+                        'scipy',
                         'torch',
                         'Pillow'],
       extras_require={
