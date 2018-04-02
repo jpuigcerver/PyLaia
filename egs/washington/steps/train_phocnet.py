@@ -11,7 +11,7 @@ import laia.utils
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.hooks import Hook
-from laia.hooks.conditions import TargetReached, StdDevUnder, Always
+from laia.hooks.conditions import GEqThan, StdDevUnder, Always
 from laia.plugins.arguments import add_argument, add_defaults, args
 
 
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
-                         Hook(TargetReached(
+                         Hook(GEqThan(
                              trainer.epochs,
                              args.max_epochs,
                              name='Max training epochs'), trainer.stop))

@@ -9,4 +9,4 @@ from laia.hooks.conditions.non_decreasing import NonDecreasing
 from laia.hooks.conditions.non_increasing import NonIncreasing
 from laia.hooks.conditions.not_finite import NotFinite
 from laia.hooks.conditions.stddev_under import StdDevUnder
-from laia.hooks.conditions.target_reached import TargetReached
+from laia.hooks.conditions.geq_than import GEqThan
