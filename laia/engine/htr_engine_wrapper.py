@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from laia.decoders import CTCDecoder
 from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
-from laia.hooks import Hook, action_kwargs
+from laia.hooks import Hook, action
 from laia.hooks.conditions import Always
 from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from laia.logging import get_logger
@@ -87,43 +87,43 @@ class HtrEngineWrapper(object):
         self._tr_engine.run()
         return self
 
-    @action_kwargs()
+    @action
     def _train_reset_meters(self):
         self._train_timer.reset()
         self._train_loss_meter.reset()
         self._train_cer_meter.reset()
 
-    @action_kwargs()
+    @action
     def _valid_reset_meters(self):
         self._valid_timer.reset()
         self._valid_loss_meter.reset()
         self._valid_cer_meter.reset()
 
-    @action_kwargs('batch_loss')
+    @action
     def _train_accumulate_loss(self, batch_loss):
         self._train_loss_meter.add(batch_loss)
         # Note: Stop training timer to avoid including extra costs
         # (e.g. the validation epoch)
         self._train_timer.stop()
 
-    @action_kwargs('batch_output', 'batch_target')
+    @action
     def _valid_accumulate_loss(self, batch_output, batch_target):
         batch_loss = self._tr_engine.criterion(batch_output, batch_target)
         self._valid_loss_meter.add(batch_loss)
         # Note: Stop timer to avoid including extra costs
         self._valid_timer.stop()
 
-    @action_kwargs('batch_output', 'batch_target')
+    @action
     def _train_compute_cer(self, batch_output, batch_target):
         batch_decode = self._ctc_decoder(batch_output)
         self._train_cer_meter.add(batch_target, batch_decode)
 
-    @action_kwargs('batch_output', 'batch_target')
+    @action
     def _valid_compute_cer(self, batch_output, batch_target):
         batch_decode = self._ctc_decoder(batch_output)
         self._valid_cer_meter.add(batch_target, batch_decode)
 
-    @action_kwargs()
+    @action
     def _report_epoch_train_only(self):
         self.logger.info('Epoch {epochs:4d}, '
                          'TR Loss = {train_loss.value[0]:.3e}, '
@@ -134,7 +134,7 @@ class HtrEngineWrapper(object):
                          train_cer=self.train_cer(),
                          train_timer=self.train_timer())
 
-    @action_kwargs()
+    @action
     def _report_epoch_train_and_valid(self):
         self.logger.info('Epoch {epochs:4d}, '
                          'TR Loss = {train_loss.value[0]:.3e}, '

@@ -30,14 +30,16 @@ class HookCollection(object):
         return any(h(*args, **kwargs) for h in self._hooks)
 
 
-def action_kwargs(*keys):
-    """`keys` is used to filter the kwargs passed to the function."""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **{
-                k: v for k, v in kwargs.items() if k in keys})
+def action(func):
+    """
+    Decorator. Filters all kwargs passed which
+    are not part of the function's parameters
+    """
 
-        return wrapper
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args,
+                    **{k: v for k, v in kwargs.items()
+                       if k in func.__code__.co_varnames})
 
-    return decorator
+    return wrapper

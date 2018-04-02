@@ -5,7 +5,7 @@ import unittest
 from laia.engine.engine import (Engine,
                                 ON_BATCH_START, ON_EPOCH_START,
                                 ON_BATCH_END, ON_EPOCH_END)
-from laia.hooks import action_kwargs, Hook
+from laia.hooks import action, Hook
 from laia.hooks.conditions import Always
 
 
@@ -42,19 +42,19 @@ class EngineTest(unittest.TestCase):
     def test_hooks(self):
         counters = [0, 0, 0, 0]
 
-        @action_kwargs()
+        @action
         def on_batch_start():
             counters[0] += 1
 
-        @action_kwargs()
+        @action
         def on_epoch_start():
             counters[1] += 1
 
-        @action_kwargs()
+        @action
         def on_batch_end():
             counters[2] += 1
 
-        @action_kwargs()
+        @action
         def on_epoch_end():
             counters[3] += 1
 
