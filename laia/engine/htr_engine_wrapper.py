@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-import laia.logging as log
 from laia.decoders import CTCDecoder
 from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
 from laia.hooks import Hook, action_kwargs
 from laia.hooks.conditions import Always
 from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
+from laia.logging import get_logger
 from laia.losses import CTCLoss
 
-_logger = log.get_logger(__name__)
+_logger = get_logger(__name__)
 
 
 class HtrEngineWrapper(object):
