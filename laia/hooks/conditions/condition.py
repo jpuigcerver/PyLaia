@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from typing import Tuple, Callable, Any as AnyT
 
 from laia.logging import get_logger, DEBUG, INFO, ERROR
@@ -98,30 +100,14 @@ class MultinaryCondition(object):
 
 
 class Any(MultinaryCondition):
-    """Returns `True` if any of the given `conditions` returns `True`.
-
-    Arguments:
-        conditions (:obj:`~Condition`): parameters of the operation.
-    """
-
-    def __init__(self, *conditions):
-        # type: (Tuple[Callable]) -> None
-        super(Any, self).__init__(*conditions)
+    """Returns `True` if any of the given `conditions` returns `True`."""
 
     def __call__(self):
         return any(c() for c in self._conditions)
 
 
 class All(MultinaryCondition):
-    """Returns `True` if all of the given `conditions` return `True`.
-
-    Arguments:
-        conditions (:obj:`~Condition`): parameters of the operation.
-    """
-
-    def __init__(self, *conditions):
-        # type: (Tuple[Callable]) -> None
-        super(All, self).__init__(*conditions)
+    """Returns `True` if all of the given `conditions` return `True`."""
 
     def __call__(self):
         return all(c() for c in self._conditions)

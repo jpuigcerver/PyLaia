@@ -22,5 +22,4 @@ class NotFinite(LoggingCondition):
         if not np.isfinite(value):
             self.info('Value read from meter ({}) is not finite!', value)
             return True
-        else:
-            return False
+        return False

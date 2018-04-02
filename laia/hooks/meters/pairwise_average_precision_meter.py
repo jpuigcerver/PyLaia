@@ -108,8 +108,7 @@ class PairwiseAveragePrecisionMeter(Meter):
                    for e in events_i if len(e) > 0]
             m_ap = sum(aps) / len(aps)
             return g_ap, m_ap
-        else:
-            return 0.0, 0.0
+        return 0.0, 0.0
 
     @classmethod
     def _compute_ap_ranked_events(cls, events):
@@ -127,9 +126,8 @@ class PairwiseAveragePrecisionMeter(Meter):
         den = hits[-1]
         if den > 0:
             return num / den
-        else:
-            # Handle the case where there aren't relevant events.
-            return 0.0
+        # Handle the case where there aren't relevant events.
+        return 0.0
 
     @property
     def value(self):
