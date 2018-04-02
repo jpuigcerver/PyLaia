@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from cgitb import Hook
+from laia.hooks.hook import Hook
 
 import laia.logging as log
 from laia.engine.engine import Engine, ON_EPOCH_END
