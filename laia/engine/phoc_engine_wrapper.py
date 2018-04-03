@@ -6,8 +6,7 @@ import laia.logging as log
 from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
 from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
                                  VariableFeeder)
-from laia.hooks import Hook, action
-from laia.hooks.conditions import Always
+from laia.hooks import action
 from laia.hooks.meters import (PairwiseAveragePrecisionMeter,
                                RunningAverageMeter, TimeMeter)
 
@@ -43,10 +42,8 @@ class PHOCEngineWrapper(object):
         self._train_timer = TimeMeter()
         self._train_loss_meter = RunningAverageMeter()
 
-        self._tr_engine.add_hook(ON_EPOCH_START,
-                                 Hook(Always(), self._train_reset_meters))
-        self._tr_engine.add_hook(ON_BATCH_END,
-                                 Hook(Always(), self._train_accumulate_loss))
+        self._tr_engine.add_hook(ON_EPOCH_START, self._train_reset_meters)
+        self._tr_engine.add_hook(ON_BATCH_END, self._train_accumulate_loss)
 
         if valid_engine:
             # Set batch_input_fn and batch_target_fn if not already set.
@@ -60,21 +57,16 @@ class PHOCEngineWrapper(object):
             self._valid_ap_meter = PairwiseAveragePrecisionMeter(
                 metric='braycurtis', ignore_singleton=True)
 
-            self._va_engine.add_hook(ON_EPOCH_START,
-                                     Hook(Always(), self._valid_reset_meters))
-            self._va_engine.add_hook(ON_BATCH_END,
-                                     Hook(Always(), self._valid_accumulate_loss))
-            self._va_engine.add_hook(ON_EPOCH_END,
-                                     Hook(Always(), self._report_epoch_train_and_valid))
-
+            self._va_engine.add_hook(ON_EPOCH_START, self._valid_reset_meters)
+            self._va_engine.add_hook(ON_BATCH_END, self._valid_accumulate_loss)
+            self._va_engine.add_hook(ON_EPOCH_END, self._report_epoch_train_and_valid)
             # Add evaluator to the trainer engine
             self._tr_engine.add_evaluator(self._va_engine)
         else:
             self._valid_timer = None
             self._valid_loss_meter = None
             self._valid_ap_meter = None
-            self._tr_engine.add_hook(ON_EPOCH_END,
-                                     Hook(Always(), self._report_epoch_train_only))
+            self._tr_engine.add_hook(ON_EPOCH_END, self._report_epoch_train_only)
 
     def train_timer(self):
         return self._train_timer

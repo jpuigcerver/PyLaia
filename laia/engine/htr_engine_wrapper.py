@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 from laia.decoders import CTCDecoder
 from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
-from laia.hooks import Hook, action
-from laia.hooks.conditions import Always
+from laia.hooks import action
 from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from laia.logging import get_logger
 from laia.losses import CTCLoss
@@ -31,26 +30,19 @@ class HtrEngineWrapper(object):
         self._train_loss_meter = RunningAverageMeter()
         self._train_cer_meter = SequenceErrorMeter()
 
-        self._tr_engine.add_hook(ON_EPOCH_START,
-                                 Hook(Always(), self._train_reset_meters))
-        self._tr_engine.add_hook(ON_BATCH_END,
-                                 Hook(Always(), self._train_accumulate_loss))
-        self._tr_engine.add_hook(ON_BATCH_END,
-                                 Hook(Always(), self._train_compute_cer))
+        self._tr_engine.add_hook(ON_EPOCH_START, self._train_reset_meters)
+        self._tr_engine.add_hook(ON_BATCH_END, self._train_accumulate_loss)
+        self._tr_engine.add_hook(ON_BATCH_END, self._train_compute_cer)
 
         if valid_engine:
             self._valid_timer = TimeMeter()
             self._valid_loss_meter = RunningAverageMeter()
             self._valid_cer_meter = SequenceErrorMeter()
 
-            self._va_engine.add_hook(ON_EPOCH_START,
-                                     Hook(Always(), self._valid_reset_meters))
-            self._va_engine.add_hook(ON_BATCH_END,
-                                     Hook(Always(), self._valid_accumulate_loss))
-            self._va_engine.add_hook(ON_BATCH_END,
-                                     Hook(Always(), self._valid_compute_cer))
-            self._va_engine.add_hook(ON_EPOCH_END,
-                                     Hook(Always(), self._report_epoch_train_and_valid))
+            self._va_engine.add_hook(ON_EPOCH_START, self._valid_reset_meters)
+            self._va_engine.add_hook(ON_BATCH_END, self._valid_accumulate_loss)
+            self._va_engine.add_hook(ON_BATCH_END, self._valid_compute_cer)
+            self._va_engine.add_hook(ON_EPOCH_END, self._report_epoch_train_and_valid)
 
             # Add evaluator to the trainer engine
             self._tr_engine.add_evaluator(self._va_engine)
@@ -58,8 +50,7 @@ class HtrEngineWrapper(object):
             self._valid_timer = None
             self._valid_loss_meter = None
             self._valid_cer_meter = None
-            self._tr_engine.add_hook(ON_EPOCH_END,
-                                     Hook(Always(), self._report_epoch_train_only))
+            self._tr_engine.add_hook(ON_EPOCH_END, self._report_epoch_train_only)
 
     @property
     def logger(self):
