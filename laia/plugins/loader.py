@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import io
 import json
 import os
-import os.path as p
 from importlib import import_module
 
+import os.path as p
 import torch
 
 from laia.logging import get_logger
@@ -22,11 +22,6 @@ class Loader(object):
         self._filename = filename
 
     @staticmethod
-    def load_json(path):
-        with io.open(path, 'r') as f:
-            return json.load(f)
-
-    @staticmethod
     def load_binary(path):
         return torch.load(path)
 
@@ -41,7 +36,7 @@ class ModelLoader(Loader):
     def load(self):
         path = p.join(self._save_path, self._filename)
         try:
-            model = self.load_json(path)
+            model = self.load_binary(path)
             module = import_module(model['module'])
             fn = getattr(module, model['name'])
             args = model.get('args', [])

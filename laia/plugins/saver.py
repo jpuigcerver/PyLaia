@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
+import inspect
 import io
 import json
 import os
-import os.path as p
 from collections import deque
 
+import os.path as p
 import torch
 
 from laia.logging import get_logger
@@ -20,11 +21,6 @@ class Saver(object):
         assert p.exists(save_path)
         self._save_path = p.normpath(save_path)
         self._filename = filename
-
-    @staticmethod
-    def save_json(obj, path):
-        with io.open(path, 'w') as f:
-            json.dump(obj, f)
 
     def save_binary(self, obj, path):
         torch.save(obj, path)
@@ -46,14 +42,18 @@ class ModelSaver(Saver):
     def __init__(self, save_path, filename='model'):
         super(ModelSaver, self).__init__(save_path, filename)
 
-    def __call__(self, model):
-        return self.save(model)
+    def __call__(self, func, *args, **kwargs):
+        return self.save(func, *args, **kwargs)
 
-    def save(self, model):
-        assert all(k in model.keys() for k in ('module', 'name'))
+    def save(self, func, *args, **kwargs):
         path = p.join(self._save_path, self._filename)
         try:
-            self.save_json(model, path)
+            self.save_binary({
+                'module': inspect.getmodule(func).__name__,
+                'name': func.__name__,
+                'args': args,
+                'kwargs': kwargs
+            }, path)
             _logger.debug('Model saved: {}', path)
         except Exception as e:
             _logger.error('Could not save the model {}: {}', path, e)
