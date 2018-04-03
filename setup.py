@@ -8,6 +8,7 @@ setup(name='laia', version='0.1', packages=find_packages(),
                         'numpy',
                         'scipy',
                         'torch',
+                        'typing;python_version<"3.5"',
                         'Pillow'],
       extras_require={
           'progress_bar': ['tqdm'],
