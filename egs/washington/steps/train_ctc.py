@@ -15,7 +15,7 @@ import laia.utils
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook
-from laia.hooks.conditions import GEqThan, StdDevUnder, Always
+from laia.hooks.conditions import GEqThan, StdDevUnder
 from laia.plugins.arguments import add_argument, add_defaults, args
 
 logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
@@ -171,8 +171,7 @@ if __name__ == '__main__':
 
     if args.save_checkpoint:
         filename_va = args.save_checkpoint + '-valid-lowest-cer'
-        trainer.add_hook(ON_EPOCH_END,
-                         Hook(Always(), SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va)))
+        trainer.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va))
 
         # Start training
         with torch.cuda.device(args.gpu - 1):

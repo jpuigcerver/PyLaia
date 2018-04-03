@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-from laia.hooks.hook import Hook
-
 import laia.logging as log
-from laia.engine.engine import Engine, ON_EPOCH_END
-from laia.hooks.conditions import Always
+from laia.engine.engine import Engine, ON_BATCH_START, ON_BATCH_END, ON_EPOCH_END
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -77,7 +74,7 @@ class Trainer(Engine):
             evaluator.run()
 
         if evaluator is not None:
-            self.add_hook(ON_EPOCH_END, Hook(Always(), run_eval))
+            self.add_hook(ON_EPOCH_END, run_eval)
         return self
 
     def set_criterion(self, criterion):
@@ -109,7 +106,7 @@ class Trainer(Engine):
         else:
             batch_target = self._batch_target_fn(batch)
 
-        self._call_hooks(self.ON_BATCH_START,
+        self._call_hooks(ON_BATCH_START,
                          batch=batch,
                          batch_num=it,
                          epoch=self._epochs,
@@ -162,7 +159,7 @@ class Trainer(Engine):
                               self.epochs(), it, self.iterations())
             self._optimizer.step()
 
-        self._call_hooks(self.ON_BATCH_END,
+        self._call_hooks(ON_BATCH_END,
                          batch=batch,
                          batch_num=it,
                          epoch=self._epochs,

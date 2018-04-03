@@ -2,81 +2,87 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import torch
-import torch.nn as nn
-from laia.data import ImageDataLoader
-from torch.utils.data import DataLoader
+from torch.nn import LeakyReLU
+from torch.optim import RMSprop
 
-import laia.models.htr
-import laia.logging as log
+from laia.data import ImageDataLoader, TextImageFromTextTableDataset
+from laia.engine import Trainer, Evaluator, HtrEngineWrapper
+from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
+from laia.hooks import Hook
+from laia.hooks.conditions import Lowest, MultipleOf
+from laia.models.htr import VggRnnFixedHeight
+from laia.plugins import ModelSaver, TrainerCheckpointSaver
 from laia.plugins.arguments import add_argument, args, add_defaults
+from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
 if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
                  'show_progress_bar')
     add_argument('--max_updates', type=int, default=None,
                  help='Maximum number of training updates (iterations)')
+    add_argument('save_path')
     add_argument('syms')
     add_argument('tr_img_dir')
     add_argument('tr_txt_table')
     add_argument('va_txt_table')
     args = args()
 
-    syms = laia.utils.SymbolsTable(args.syms)
+    syms = SymbolsTable(args.syms)
 
-    tr_ds = laia.data.TextImageFromTextTableDataset(
+    tr_ds = TextImageFromTextTableDataset(
         args.tr_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor(),
-        txt_transform=laia.utils.TextToTensor(syms))
+        img_transform=ImageToTensor(),
+        txt_transform=TextToTensor(syms))
     tr_ds_loader = ImageDataLoader(dataset=tr_ds,
                                    image_channels=1,
                                    batch_size=args.batch_size,
                                    num_workers=8,
                                    shuffle=True)
 
-    va_ds = laia.data.TextImageFromTextTableDataset(
+    va_ds = TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor(),
-        txt_transform=laia.utils.TextToTensor(syms))
+        img_transform=ImageToTensor(),
+        txt_transform=TextToTensor(syms))
     va_ds_loader = ImageDataLoader(dataset=tr_ds,
                                    image_channels=1,
                                    batch_size=args.batch_size,
                                    num_workers=8)
 
     """
-    model = laia.models.htr.VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
-                                   [3] * 4,
-                                   [1] * 4,
-                                   [nn.LeakyReLU] * 4,
-                                   [2, 2, 2, 0],
-                                   [0.0] * 4,
-                                   [False] * 4,
-                                   256, 3, 0.5, 0.5)
+    model = VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
+                              [3] * 4,
+                              [1] * 4,
+                              [LeakyReLU] * 4,
+                              [2, 2, 2, 0],
+                              [0.0] * 4,
+                              [False] * 4,
+                              256, 3, 0.5, 0.5)
     """
 
     # SOTA model for IAM/Rimes
-    model = laia.models.htr.VggRnnFixedHeight(
-        128, 1, len(syms), [16, 32, 48, 64, 80],
-        [3] * 5,
-        [1] * 5,
-        [nn.LeakyReLU] * 5,
-        [2, 2, 2, 0, 0],
-        [0.0, 0.0, 0.2, 0.2, 0.2],
-        [True] * 5,
-        256, 5, 0.5, 0.5)
+    hyperparameters = (128, 1, len(syms), [16, 32, 48, 64, 80],
+                       [3] * 5,
+                       [1] * 5,
+                       [LeakyReLU] * 5,
+                       [2, 2, 2, 0, 0],
+                       [0.0, 0.0, 0.2, 0.2, 0.2],
+                       [True] * 5,
+                       256, 5, 0.5, 0.5)
+    model = VggRnnFixedHeight(*hyperparameters)
 
-    if args.gpu > 0:
-        model = model.cuda(args.gpu - 1)
-    else:
-        model = model.cpu()
+    # Save the model
+    ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
+    # Load the model
+    # model = ModelLoader(args.save_path).load()
 
-    parameters = model.parameters()
-    optimizer = torch.optim.RMSprop(parameters,
-                                    lr=args.learning_rate,
-                                    momentum=args.momentum)
+    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
-    trainer = laia.engine.Trainer(
+    optimizer = RMSprop(model.parameters(),
+                        lr=args.learning_rate,
+                        momentum=args.momentum)
+
+    trainer = Trainer(
         model=model,
         # This is set automatically by HtrEngineWrapper
         criterion=None,
@@ -87,7 +93,7 @@ if __name__ == '__main__':
         batch_target_fn=ItemFeeder('txt'),
         progress_bar='Train' if args.show_progress_bar else None)
 
-    evaluator = laia.engine.Evaluator(
+    evaluator = Evaluator(
         model=model,
         data_loader=va_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu,
@@ -95,5 +101,24 @@ if __name__ == '__main__':
         batch_target_fn=ItemFeeder('txt'),
         progress_bar='Valid' if args.show_progress_bar else None)
 
-    engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
+    engine_wrapper = HtrEngineWrapper(trainer, evaluator)
+
+
+    def save(suffix=None):
+        TrainerCheckpointSaver(args.save_path).save({
+            # TODO: Move this inside the trainer as func state_dict
+            'epochs': trainer.epochs(),
+            'optimizer_state': trainer.optimizer.state_dict(),
+            # 'hooks': trainer.hooks,
+            # 'args': trainer.args,
+            # 'kwargs': trainer.kwargs
+        }, suffix)
+
+
+    # Set Hooks
+    trainer.add_hook(ON_EPOCH_END,
+                     Hook(Lowest(engine_wrapper.valid_cer), save, suffix='lowest-valid-cer'))
+    trainer.add_hook(ON_EPOCH_START,
+                     Hook(MultipleOf(trainer.epochs, 5), save))
+
     engine_wrapper.run()
