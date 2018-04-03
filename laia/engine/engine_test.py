@@ -5,8 +5,7 @@ import unittest
 from laia.engine.engine import (Engine,
                                 ON_BATCH_START, ON_EPOCH_START,
                                 ON_BATCH_END, ON_EPOCH_END)
-from laia.hooks import action, Hook
-from laia.hooks.conditions import Always
+from laia.hooks import action
 
 
 class DummyModel(object):
@@ -59,14 +58,10 @@ class EngineTest(unittest.TestCase):
             counters[3] += 1
 
         engine = Engine(model=lambda x: x, data_loader=[1, 2])
-        engine.add_hook(ON_BATCH_START,
-                        Hook(Always(), on_batch_start))
-        engine.add_hook(ON_EPOCH_START,
-                        Hook(Always(), on_epoch_start))
-        engine.add_hook(ON_BATCH_END,
-                        Hook(Always(), on_batch_end))
-        engine.add_hook(ON_EPOCH_END,
-                        Hook(Always(), on_epoch_end))
+        engine.add_hook(ON_BATCH_START, on_batch_start)
+        engine.add_hook(ON_EPOCH_START, on_epoch_start)
+        engine.add_hook(ON_BATCH_END, on_batch_end)
+        engine.add_hook(ON_EPOCH_END, on_epoch_end)
         engine.run()
         engine.run()
         # Check the number of calls to each function

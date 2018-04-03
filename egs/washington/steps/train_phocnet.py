@@ -11,7 +11,7 @@ import laia.utils
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.hooks import Hook
-from laia.hooks.conditions import GEqThan, StdDevUnder, Always
+from laia.hooks.conditions import GEqThan, StdDevUnder
 from laia.plugins.arguments import add_argument, add_defaults, args
 
 
@@ -180,18 +180,14 @@ if __name__ == '__main__':
 
     if args.model_checkpoint:
         filename_gap = args.model_checkpoint + '-valid-highest-gap'
-        evaluator.add_hook(ON_EPOCH_END,
-                           Hook(Always(),
-                                SaveModelCheckpointHook(engine_wrapper.valid_ap(),
-                                                        filename_gap,
-                                                        title='gAP', key=0)))
+        evaluator.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_ap(),
+                                                                 filename_gap,
+                                                                 title='gAP', key=0))
 
         filename_map = args.model_checkpoint + '-valid-highest-map'
-        evaluator.add_hook(ON_EPOCH_END,
-                           Hook(Always(),
-                                SaveModelCheckpointHook(engine_wrapper.valid_ap(),
-                                                        filename_map,
-                                                        title='mAP', key=1)))
+        evaluator.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_ap(),
+                                                                 filename_map,
+                                                                 title='mAP', key=1))
 
     # Launch training
     engine_wrapper.run()
