@@ -136,15 +136,17 @@ def build_ctc_model(num_outputs,
         output_size=(adaptive_pool_height, None)))
     m.add_module('collapse', ImageToSequence(return_packed=True))
     # 512 = number of filters in the last layer of Dortmund's model
+    m.add_module('dropout_blstm', RNNWrapper(torch.nn.Dropout()))
     m.add_module('blstm', torch.nn.LSTM(
         input_size=512 * adaptive_pool_height,
         hidden_size=lstm_hidden_size,
         num_layers=lstm_num_layers,
         dropout=0.5,
         bidirectional=True))
+    m.add_module('dropout_linear', RNNWrapper(torch.nn.Dropout()))
     m.add_module('linear',
-                 RNNWrapper(PackedSequenceWrapper(
-                     torch.nn.Linear(2 * lstm_hidden_size, num_outputs))))
+                 PackedSequenceWrapper(
+                     torch.nn.Linear(2 * lstm_hidden_size, num_outputs)))
     return m
 
 
