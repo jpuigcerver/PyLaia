@@ -9,7 +9,7 @@ from laia.data import ImageDataLoader, TextImageFromTextTableDataset
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook
+from laia.hooks import Hook, action
 from laia.hooks.conditions import Lowest, MultipleOf
 from laia.models.htr import VggRnnFixedHeight
 from laia.plugins import ModelSaver, TrainerCheckpointSaver
@@ -104,20 +104,14 @@ if __name__ == '__main__':
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
 
 
-    def save(suffix=None):
-        TrainerCheckpointSaver(args.save_path).save({
-            # TODO: Move this inside the trainer as func state_dict
-            'epochs': trainer.epochs(),
-            'optimizer_state': trainer.optimizer.state_dict(),
-            # 'hooks': trainer.hooks,
-            # 'args': trainer.args,
-            # 'kwargs': trainer.kwargs
-        }, suffix)
+    @action
+    def save(epoch):
+        TrainerCheckpointSaver(args.save_path).save(trainer.state_dict(), epoch)
 
 
     # Set Hooks
     trainer.add_hook(ON_EPOCH_END,
-                     Hook(Lowest(engine_wrapper.valid_cer), save, suffix='lowest-valid-cer'))
+                     Hook(Lowest(engine_wrapper.valid_cer), save, epoch='lowest-valid-cer'))
     trainer.add_hook(ON_EPOCH_START,
                      Hook(MultipleOf(trainer.epochs, 5), save))
 

@@ -202,6 +202,14 @@ class Engine(object):
 
         self._call_hooks(ON_EPOCH_END, epoch=self._epochs)
 
+    def state_dict(self):
+        # TODO
+        return {}
+
+    def load_state_dict(self, state):
+        # TODO
+        pass
+
 
 # If we decide to extend the Evaluator class, we can move it to
 # a different file and extend from the Engine class, but
