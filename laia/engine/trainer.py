@@ -168,3 +168,14 @@ class Trainer(Engine):
                          batch_target=batch_target,
                          batch_loss=batch_loss,
                          batch_output=batch_output)
+
+    def state_dict(self):
+        engine_state = super(Trainer, self).state_dict()
+        return {
+            # TODO
+            'engine_state': engine_state
+        }
+
+    def load_state_dict(self, state):
+        super(Trainer, self).load_state_dict(state['engine_state'])
+        # TODO
