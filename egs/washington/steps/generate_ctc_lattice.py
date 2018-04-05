@@ -9,6 +9,19 @@ from laia.utils import ImageToTensor, TextToTensor
 from laia.utils.symbols_table import SymbolsTable
 from laia.data import TextImageFromTextTableDataset
 from laia.data import ImageDataLoader
+from laia.decoders.ctc_decoder import CTCDecoder
+
+def ctc_lattice(img_ids, outputs):
+    for img_id, output in zip(img_ids, outputs):
+        output = output.cpu()
+        print(img_id)
+        for t in range(output.size(0)):
+            for k in range(output.size(1)):
+                print('{:d}\t{:d}\t{:d}\t0,{:.10g},{:d}'.format(
+                    t, t + 1, k + 1, float(output[t, k]), k + 1))
+        print(output.size(0))
+        print()
+
 
 if __name__ == '__main__':
     add_defaults('gpu')
@@ -39,19 +52,26 @@ if __name__ == '__main__':
         model.load_state_dict(ckpt)
 
     # Ensure parameters are in the correct device
+    model.eval()
     if args.gpu > 0:
         model = model.cuda(args.gpu - 1)
     else:
         model = model.cpu()
 
     dataset = TextImageFromTextTableDataset(
-        args.va_txt_table, args.tr_img_dir,
+        args.gt_file, args.img_dir,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms))
     dataset_loader = ImageDataLoader(dataset=dataset,
                                      image_channels=1,
-                                     batch_size=args.batch_size,
                                      num_workers=8)
-    for batch in dataset_loader:
-        print(batch)
-        # model(batch[])
+
+    decoder = CTCDecoder()
+    with torch.cuda.device(args.gpu - 1):
+        for batch in dataset_loader:
+            if args.gpu > 0:
+                x = batch['img'].data.cuda(args.gpu - 1)
+            else:
+                x = batch['img'].data.cpu()
+            y = model(torch.autograd.Variable(x)).data
+            ctc_lattice(batch['id'], [y])
