@@ -204,12 +204,22 @@ class Engine(object):
         self._call_hooks(ON_EPOCH_END, epoch=self._epochs)
 
     def state_dict(self):
-        # TODO
-        return {}
+        return {
+            'epochs': self.epochs(),
+            'iterations': self.iterations(),
+            'hooks': {when: [hook.state_dict() if hasattr(hook, 'state_dict') else None
+                             for hook in hooks]
+                      for when, hooks in self._hooks.items()}
+        }
 
     def load_state_dict(self, state):
-        # TODO
-        pass
+        self._epochs = state['epochs']
+        self._iterations = state['iterations']
+        for when, hooks in self._hooks.items():
+            hook_states = state['hooks'][when]
+            for i, hook in enumerate(hooks):
+                if hasattr(hook, 'load_state_dict'):
+                    hook.load_state_dict(hook_states[i])
 
 
 # If we decide to extend the Evaluator class, we can move it to

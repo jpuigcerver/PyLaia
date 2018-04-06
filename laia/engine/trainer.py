@@ -59,7 +59,6 @@ class Trainer(Engine):
     def optimizer(self):
         return self._optimizer
 
-    @property
     def updates(self):
         return self._updates
 
@@ -170,12 +169,13 @@ class Trainer(Engine):
                          batch_output=batch_output)
 
     def state_dict(self):
-        engine_state = super(Trainer, self).state_dict()
         return {
-            # TODO
-            'engine_state': engine_state
+            'engine_state': super(Trainer, self).state_dict(),
+            'optimizer_state': self._optimizer.state_dict(),
+            'updates': self.updates()
         }
 
     def load_state_dict(self, state):
         super(Trainer, self).load_state_dict(state['engine_state'])
-        # TODO
+        self._optimizer.load_state_dict(state['optimizer_state'])
+        self._updates = state['updates']

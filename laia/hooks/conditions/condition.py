@@ -32,6 +32,15 @@ class Condition(object):
             return None
         return value if self._key is None else value[self._key]
 
+    def state_dict(self):
+        return {
+            'obj': self._obj.state_dict() if hasattr(self._obj, 'state_dict') else None
+        }
+
+    def load_state_dict(self, state):
+        if hasattr(self._obj, 'load_state_dict'):
+            self._obj.load_state_dict(state['condition'])
+
 
 class LoggingCondition(Condition):
     def __init__(self, obj, key, logger, name=None):
