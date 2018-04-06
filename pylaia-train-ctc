@@ -5,6 +5,7 @@ from __future__ import division
 from torch.nn import LeakyReLU
 from torch.optim import RMSprop
 
+import laia.logging as log
 from laia.data import ImageDataLoader, TextImageFromTextTableDataset
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
@@ -12,9 +13,13 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook, action
 from laia.hooks.conditions import Lowest, MultipleOf
 from laia.models.htr import VggRnnFixedHeight
-from laia.plugins import ModelSaver, TrainerCheckpointSaver
+from laia.plugins import ModelSaver, TrainerCheckpointSaver, TrainerCheckpointLoader
 from laia.plugins.arguments import add_argument, args, add_defaults
+from laia.plugins.loader import TrainerLoader, ModelLoader
+from laia.plugins.saver import TrainerSaver
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
+
+log.set_level(log.DEBUG)
 
 if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
@@ -60,44 +65,43 @@ if __name__ == '__main__':
                               256, 3, 0.5, 0.5)
     """
 
-    # SOTA model for IAM/Rimes
-    hyperparameters = (128, 1, len(syms), [16, 32, 48, 64, 80],
-                       [3] * 5,
-                       [1] * 5,
-                       [LeakyReLU] * 5,
-                       [2, 2, 2, 0, 0],
-                       [0.0, 0.0, 0.2, 0.2, 0.2],
-                       [True] * 5,
-                       256, 5, 0.5, 0.5)
-    model = VggRnnFixedHeight(*hyperparameters)
-
-    # Save the model
-    ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
-    # Load the model
-    # model = ModelLoader(args.save_path).load()
+    model = ModelLoader(args.save_path).load()
+    if model is None:
+        # SOTA model for IAM/Rimes
+        hyperparameters = (128, 1, len(syms), [16, 32, 48, 64, 80],
+                           [3] * 5,
+                           [1] * 5,
+                           [LeakyReLU] * 5,
+                           [2, 2, 2, 0, 0],
+                           [0.0, 0.0, 0.2, 0.2, 0.2],
+                           [True] * 5,
+                           256, 5, 0.5, 0.5)
+        model = VggRnnFixedHeight(*hyperparameters)
+        ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
 
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
-    optimizer = RMSprop(model.parameters(),
-                        lr=args.learning_rate,
-                        momentum=args.momentum)
-
-    trainer = Trainer(
-        model=model,
-        # This is set automatically by HtrEngineWrapper
-        criterion=None,
-        optimizer=optimizer,
-        data_loader=tr_ds_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu,
-                                   parent_feeder=ItemFeeder('img')),
-        batch_target_fn=ItemFeeder('txt'),
-        progress_bar='Train' if args.show_progress_bar else None)
+    trainer = TrainerLoader(args.save_path).load()
+    if trainer is None:
+        optimizer = RMSprop(model.parameters(),
+                            lr=args.learning_rate,
+                            momentum=args.momentum)
+        parameters = {
+            'model': model,
+            'criterion': None,  # Set automatically by HtrEngineWrapper
+            'optimizer': optimizer,
+            'data_loader': tr_ds_loader,
+            'batch_input_fn': ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder('img')),
+            'batch_target_fn': ItemFeeder('txt'),
+            'progress_bar': 'Train' if args.show_progress_bar else None
+        }
+        trainer = Trainer(**parameters)
+        TrainerSaver(args.save_path).save(Trainer, **parameters)
 
     evaluator = Evaluator(
         model=model,
         data_loader=va_ds_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu,
-                                   parent_feeder=ItemFeeder('img')),
+        batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder('img')),
         batch_target_fn=ItemFeeder('txt'),
         progress_bar='Valid' if args.show_progress_bar else None)
 
@@ -109,10 +113,15 @@ if __name__ == '__main__':
         TrainerCheckpointSaver(args.save_path).save(trainer.state_dict(), epoch)
 
 
-    # Set Hooks
+    # Set hooks
     trainer.add_hook(ON_EPOCH_END,
                      Hook(Lowest(engine_wrapper.valid_cer), save, epoch='lowest-valid-cer'))
     trainer.add_hook(ON_EPOCH_START,
                      Hook(MultipleOf(trainer.epochs, 5), save))
+
+    # Continue from last checkpoint if possible
+    state = TrainerCheckpointLoader(args.save_path).load_last()
+    if state is not None:
+        trainer.load_state_dict(state)
 
     engine_wrapper.run()
