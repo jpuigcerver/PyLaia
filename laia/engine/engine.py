@@ -59,7 +59,7 @@ class Engine(object):
         }
 
         if progress_bar and not tqdm:
-            self.logger.debug('A progress cannot be shown because'
+            self.logger.debug('A progress bar cannot be shown because '
                               'the "tqdm" module was not found.')
 
     @property
@@ -92,11 +92,12 @@ class Engine(object):
     def stop(self):
         self._must_stop = True
 
+    @action
     def reset(self):
         r"""Reset the number of epochs and iterations run."""
         self._epochs = 0
         self._iterations = 0
-        return self
+        self._must_stop = False
 
     def set_batch_input_fn(self, fn):
         r"""Set the function to obtain the inputs for the model.
@@ -131,7 +132,7 @@ class Engine(object):
         Args:
           when: point in the run (valid values: ``ON_BATCH_START``,
             ``ON_EPOCH_START``, ``ON_BATCH_END``, ``ON_EPOCH_END``).
-          Hook: `Hook` object.
+          hook: `Hook` object.
         """
         assert when in self._hooks, (
             '{!r} is not a valid hook event'.format(when))
