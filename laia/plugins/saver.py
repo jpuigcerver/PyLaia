@@ -12,6 +12,11 @@ import torch
 from laia.logging import get_logger
 from laia.random import get_rng_state
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 _logger = get_logger(__name__)
 
 
