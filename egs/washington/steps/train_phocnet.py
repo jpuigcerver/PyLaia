@@ -48,7 +48,7 @@ if __name__ == '__main__':
                  batch_size=1,
                  learning_rate=0.0001,
                  momentum=0.9,
-                 num_iterations_per_update=10,
+                 iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
@@ -176,7 +176,7 @@ if __name__ == '__main__':
                              name='Valid mAP standard deviation'
                          ), trainer.stop))
 
-    trainer.set_num_iterations_per_update(args.num_iterations_per_update)
+    trainer.iterations_per_update = args.iterations_per_update
 
     if args.model_checkpoint:
         filename_gap = args.model_checkpoint + '-valid-highest-gap'

@@ -147,15 +147,15 @@ _default_args = {
             'help': 'Use this number of epochs to compute the standard '
                     'deviation of the training loss (must be >= 2)'
         }),
-    'num_samples_per_epoch': (
-        ('--num_samples_per_epoch',),
+    'samples_per_epoch': (
+        ('--samples_per_epoch',),
         {
             'type': NumberInClosedRange(type=int, vmin=1),
             'help': 'Use this number of training examples randomly sampled '
                     'from the dataset in each epoch'
         }),
-    'num_iterations_per_update': (
-        ('--num_iterations_per_update',),
+    'iterations_per_update': (
+        ('--iterations_per_update',),
         {
             'default': 1,
             'type': NumberInClosedRange(type=int, vmin=1),
@@ -168,6 +168,12 @@ _default_args = {
             'default': 0.0,
             'type': NumberInClosedRange(type=float, vmin=0),
             'help': 'Apply this L2 weight penalty to the loss function'
+        }),
+    'save_path': (
+        ('--save_path', ),
+        {
+            'type': str,
+            'help': 'Save any files in this location'
         }),
     'logging_also_to_stderr': (
         ('--logging_also_to_stderr',),
@@ -249,5 +255,6 @@ def args():
     a = _get_parser().parse_args()
     laia.logging.config_from_args(a)
     if a.print_args:
-        _logger.info(' '.join([cmd_quote(x) for x in sys.argv[1:]]))
+        import pprint
+        _logger.info('\n{}', pprint.pformat(vars(a), indent=4))
     return a
