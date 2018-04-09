@@ -18,10 +18,7 @@ class MockMeter(Meter):
         self._value = None
 
     def set_value(self, value, key=None):
-        if key:
-            self._value = {key: value}
-        else:
-            self._value = value
+        self._value = {key: value} if key else value
 
     @property
     def value(self):

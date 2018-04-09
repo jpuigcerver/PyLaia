@@ -46,7 +46,7 @@ class SaveModelCheckpointHook(object):
 
 
 if __name__ == '__main__':
-    add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
+    add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
                  'seed',
                  'train_loss_std_window_size', 'train_loss_std_threshold',
                  'valid_cer_std_window_size', 'valid_cer_std_threshold',
@@ -55,7 +55,7 @@ if __name__ == '__main__':
                  batch_size=1,
                  learning_rate=0.0005,
                  momentum=0.9,
-                 num_iterations_per_update=10,
+                 iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
@@ -113,14 +113,14 @@ if __name__ == '__main__':
         args.tr_txt_table, args.tr_img_dir,
         img_transform=tr_img_transform,
         txt_transform=laia.utils.TextToTensor(syms))
-    if args.num_samples_per_epoch is None:
+    if args.samples_per_epoch is None:
         tr_ds_loader = laia.data.ImageDataLoader(
             tr_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
     else:
         tr_ds_loader = laia.data.ImageDataLoader(
             tr_ds, image_channels=1, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
-                                               args.num_samples_per_epoch))
+                                               args.samples_per_epoch))
 
     # Validation data
     va_ds = laia.data.TextImageFromTextTableDataset(
@@ -167,7 +167,7 @@ if __name__ == '__main__':
                              args.valid_cer_std_window_size
                          ), trainer.stop))
 
-    trainer.set_num_iterations_per_update(args.num_iterations_per_update)
+    trainer.iterations_per_update = args.iterations_per_update
 
     if args.save_checkpoint:
         filename_va = args.save_checkpoint + '-valid-lowest-cer'

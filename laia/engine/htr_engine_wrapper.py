@@ -20,10 +20,10 @@ class HtrEngineWrapper(object):
         # If the trainer was created without any criterion, or it is not
         # the CTCLoss, set it properly.
         if not self._tr_engine.criterion:
-            self._tr_engine.set_criterion(CTCLoss())
+            self._tr_engine.criterion = CTCLoss()
         elif not isinstance(self._tr_engine.criterion, CTCLoss):
             self.logger.warn('Overriding the criterion of the trainer to CTC.')
-            self._tr_engine.set_criterion(CTCLoss())
+            self._tr_engine.criterion = CTCLoss()
 
         self._ctc_decoder = CTCDecoder()
         self._train_timer = TimeMeter()
