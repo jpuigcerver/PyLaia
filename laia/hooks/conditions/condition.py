@@ -39,7 +39,7 @@ class Condition(object):
 
     def load_state_dict(self, state):
         if hasattr(self._obj, 'load_state_dict'):
-            self._obj.load_state_dict(state['condition'])
+            self._obj.load_state_dict(state['obj'])
 
 
 class LoggingCondition(Condition):
