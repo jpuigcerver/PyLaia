@@ -8,6 +8,7 @@ from collections import deque
 
 import os.path as p
 import torch
+from builtins import str
 
 from laia.logging import get_logger
 from laia.random import get_rng_state
@@ -48,7 +49,7 @@ class Saver(object):
             ledger = {}
         ledger[self._filename] = path
         with io.open(ledger_path, 'w') as f:
-            json.dump(ledger, f)
+            f.write(str(json.dumps(ledger)))
 
 
 class ObjectSaver(Saver):

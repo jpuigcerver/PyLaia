@@ -28,4 +28,5 @@ class SequenceErrorMeter(Meter):
 
     @property
     def value(self):
-        return float(self._num_errors) / float(self._ref_length)
+        if self._ref_length > 0:
+            return float(self._num_errors) / float(self._ref_length)

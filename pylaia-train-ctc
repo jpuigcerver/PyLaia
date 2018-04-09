@@ -112,10 +112,12 @@ if __name__ == '__main__':
     def save(epoch):
         TrainerCheckpointSaver(args.save_path).save(trainer.state_dict(), epoch)
 
+    def valid_cer():
+        return engine_wrapper.valid_cer().value
 
     # Set hooks
     trainer.add_hook(ON_EPOCH_END,
-                     Hook(Lowest(engine_wrapper.valid_cer), save, epoch='lowest-valid-cer'))
+                     Hook(Lowest(valid_cer), save, epoch='lowest-valid-cer'))
     trainer.add_hook(ON_EPOCH_START,
                      Hook(MultipleOf(trainer.epochs, 5), save))
 
