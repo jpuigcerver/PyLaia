@@ -1,84 +1,61 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
-from __future__ import division
 
-from torch.nn import LeakyReLU
 from torch.optim import RMSprop
 
 import laia.logging as log
-from laia.data import ImageDataLoader, TextImageFromTextTableDataset
+from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeSampler
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook, action
-from laia.hooks.conditions import Lowest, MultipleOf
-from laia.models.htr import VggRnnFixedHeight
-from laia.plugins import ModelSaver, TrainerCheckpointSaver, TrainerCheckpointLoader
+from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
+from laia.plugins import TrainerCheckpointSaver, TrainerCheckpointLoader
 from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.plugins.loader import TrainerLoader, ModelLoader
 from laia.plugins.saver import TrainerSaver
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
-log.set_level(log.DEBUG)
-
 if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
-                 'show_progress_bar')
-    add_argument('--max_updates', type=int, default=None,
-                 help='Maximum number of training updates (iterations)')
-    add_argument('save_path')
-    add_argument('syms')
-    add_argument('tr_img_dir')
-    add_argument('tr_txt_table')
-    add_argument('va_txt_table')
+                 'max_epochs', 'show_progress_bar', 'save_path',
+                 'samples_per_epoch', 'iterations_per_update')
+    add_argument('syms', help='Symbols table mapping from strings to integers')
+    add_argument('img_dir', help='Directory containing word images')
+    add_argument('tr_txt_table', help='Character transcriptions of each training image')
+    add_argument('va_txt_table', help='Character transcriptions of each validation image')
     args = args()
 
     syms = SymbolsTable(args.syms)
 
     tr_ds = TextImageFromTextTableDataset(
-        args.tr_txt_table, args.tr_img_dir,
+        args.tr_txt_table, args.img_dir,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms))
+
     tr_ds_loader = ImageDataLoader(dataset=tr_ds,
                                    image_channels=1,
                                    batch_size=args.batch_size,
                                    num_workers=8,
-                                   shuffle=True)
+                                   shuffle=not bool(args.samples_per_epoch),
+                                   sampler=FixedSizeSampler(
+                                       tr_ds,
+                                       args.samples_per_epoch)
+                                   if args.samples_per_epoch else None)
 
     va_ds = TextImageFromTextTableDataset(
-        args.va_txt_table, args.tr_img_dir,
+        args.va_txt_table, args.img_dir,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms))
-    va_ds_loader = ImageDataLoader(dataset=tr_ds,
+    va_ds_loader = ImageDataLoader(dataset=va_ds,
                                    image_channels=1,
                                    batch_size=args.batch_size,
                                    num_workers=8)
 
-    """
-    model = VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
-                              [3] * 4,
-                              [1] * 4,
-                              [LeakyReLU] * 4,
-                              [2, 2, 2, 0],
-                              [0.0] * 4,
-                              [False] * 4,
-                              256, 3, 0.5, 0.5)
-    """
-
     model = ModelLoader(args.save_path).load()
     if model is None:
-        # SOTA model for IAM/Rimes
-        hyperparameters = (128, 1, len(syms), [16, 32, 48, 64, 80],
-                           [3] * 5,
-                           [1] * 5,
-                           [LeakyReLU] * 5,
-                           [2, 2, 2, 0, 0],
-                           [0.0, 0.0, 0.2, 0.2, 0.2],
-                           [True] * 5,
-                           256, 5, 0.5, 0.5)
-        model = VggRnnFixedHeight(*hyperparameters)
-        ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
-
+        log.error('Could not find the model. Have you run "pylaia-create-model"?')
+        exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
     trainer = TrainerLoader(args.save_path).load()
@@ -91,7 +68,9 @@ if __name__ == '__main__':
             'criterion': None,  # Set automatically by HtrEngineWrapper
             'optimizer': optimizer,
             'data_loader': tr_ds_loader,
-            'batch_input_fn': ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder('img')),
+            'batch_input_fn': ImageFeeder(device=args.gpu,
+                                          # keep_padded_tensors=False,
+                                          parent_feeder=ItemFeeder('img')),
             'batch_target_fn': ItemFeeder('txt'),
             'progress_bar': 'Train' if args.show_progress_bar else None
         }
@@ -112,18 +91,25 @@ if __name__ == '__main__':
     def save(epoch):
         TrainerCheckpointSaver(args.save_path).save(trainer.state_dict(), epoch)
 
+
     def valid_cer():
         return engine_wrapper.valid_cer().value
+
 
     # Set hooks
     trainer.add_hook(ON_EPOCH_END,
                      Hook(Lowest(valid_cer), save, epoch='lowest-valid-cer'))
     trainer.add_hook(ON_EPOCH_START,
                      Hook(MultipleOf(trainer.epochs, 5), save))
+    if args.max_epochs and args.max_epochs > 0:
+        trainer.add_hook(ON_EPOCH_START,
+                         Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
 
     # Continue from last checkpoint if possible
     state = TrainerCheckpointLoader(args.save_path).load_last()
     if state is not None:
         trainer.load_state_dict(state)
+
+    trainer.iterations_per_update = args.iterations_per_update
 
     engine_wrapper.run()
