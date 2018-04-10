@@ -46,4 +46,4 @@ class HookCollection(object):
         self._hooks = hooks
 
     def __call__(self, *args, **kwargs):
-        return any(h(*args, **kwargs) for h in self._hooks)
+        return any([h(*args, **kwargs) for h in self._hooks])
