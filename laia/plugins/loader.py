@@ -2,51 +2,84 @@ from __future__ import absolute_import
 
 import io
 import json
-import os
-import os.path as p
 from importlib import import_module
 
+import os.path as p
 import torch
 
 from laia.logging import get_logger
 from laia.random import set_rng_state
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 _logger = get_logger(__name__)
 
 
 class Loader(object):
-    def __init__(self, save_path, filename):
+    def __init__(self, load_path, filename):
         assert not p.dirname(filename)
-        assert any(f.startswith(filename) for f in os.listdir(save_path))
-        self._save_path = save_path
+        assert p.exists(load_path)
+        self._load_path = p.normpath(load_path)
         self._filename = filename
+        self._path = p.join(load_path, filename)
 
-    @staticmethod
-    def load_json(path):
-        with io.open(path, 'r') as f:
-            return json.load(f)
+    @property
+    def path(self):
+        return self._path
 
     @staticmethod
     def load_binary(path):
-        return torch.load(path)
+        try:
+            return torch.load(path)
+        except FileNotFoundError:
+            _logger.info('Could not find the file {}', path)
+            return None
 
 
-class ModelLoader(Loader):
+class ObjectLoader(Loader):
     def __call__(self):
         return self.load()
 
     def load(self):
-        path = p.join(self._save_path, self._filename)
+        obj = self.load_binary(self.path)
+        if obj is None:
+            return None
+        module = import_module(obj['module'])
+        fn = getattr(module, obj['name'])
+        args = obj.get('args', [])
+        kwargs = obj.get('kwargs', {})
+        return fn(*args, **kwargs)
+
+
+class ModelLoader(ObjectLoader):
+    def __init__(self, load_path, filename='model'):
+        super(ModelLoader, self).__init__(load_path, filename)
+
+    def load(self):
         try:
-            model = self.load_json(path)
-            module = import_module(model['module'])
-            fn = getattr(module, model['name'])
-            args = model.get('args', [])
-            kwargs = model.get('kwargs', {})
-            _logger.debug('Loaded model from {}', path)
-            return fn(*args, **kwargs)
-        except:
-            _logger.error('Could not load the model', path)
+            model = super(ModelLoader, self).load()
+            if model is not None:
+                _logger.info('Loaded model {}', self.path)
+            return model
+        except Exception as e:
+            _logger.error('Error while loading the model {}: {}', self.path, e)
+
+
+class TrainerLoader(ObjectLoader):
+    def __init__(self, load_path, filename='trainer'):
+        super(TrainerLoader, self).__init__(load_path, filename)
+
+    def load(self):
+        try:
+            trainer = super(TrainerLoader, self).load()
+            if trainer is not None:
+                _logger.info('Loaded trainer {}', self.path)
+            return trainer
+        except Exception as e:
+            _logger.error('Error while loading the trainer {}: {}', self.path, e)
 
 
 class CheckpointLoader(Loader):
@@ -54,65 +87,74 @@ class CheckpointLoader(Loader):
         return self.load()
 
     def _get_last_ckpt_path(self):
-        path = p.join(self._save_path, '.ledger.json')
+        path = p.join(self._load_path, '.ledger.json')
         with io.open(path, 'r') as f:
             ledger = json.load(f)
-            return ledger[self._filename]
+            return ledger.get(self._filename, None)
 
     def _get_ckpt_path_by(self, criterion):
         path = p.join(
-            self._save_path,
-            '{}.ckpt-{}'.format(self._filename, criterion))
+            self._load_path,
+            '{}-{}'.format(self._filename, criterion))
         return path
 
     def load(self):
-        path = p.join(self._save_path, self._filename)
+        path = p.join(self._load_path, self._filename)
         try:
             state = self.load_binary(path)
-            _logger.debug('Loaded checkpoint from {}', path)
+            if state is not None:
+                _logger.info('Loaded checkpoint {}', path)
             return state
-        except:
-            _logger.error('Could not load the checkpoint', path)
+        except Exception as e:
+            _logger.error('Error while loading the checkpoint {}: {}', path, e)
 
     def load_last(self):
         path = self._get_last_ckpt_path()
+        if path is None:
+            _logger.info('No previous checkpoint found')
+            return None
         try:
             state = self.load_binary(path)
-            _logger.debug('Loaded last checkpoint from {}', path)
+            if state is not None:
+                _logger.info('Loaded last checkpoint {}', path)
             return state
-        except:
-            _logger.error('Could not load the checkpoint', path)
+        except Exception as e:
+            _logger.error('Error while loading the checkpoint {}: {}', path, e)
 
     def load_by(self, criterion):
         path = self._get_ckpt_path_by(criterion)
         try:
             state = self.load_binary(path)
-            _logger.debug('Loaded {} checkpoint from {}', criterion, path)
+            if state is not None:
+                _logger.info('Loaded {} checkpoint {}', criterion, path)
             return state
-        except:
-            _logger.error('Could not load the checkpoint', path)
+        except Exception as e:
+            _logger.error('Error while loading the checkpoint {}: {}', path, e)
 
 
 class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(self, save_path, name='model'):
-        super(ModelCheckpointLoader, self).__init__(save_path, name)
+    def __init__(self, load_path, name='model.ckpt'):
+        super(ModelCheckpointLoader, self).__init__(load_path, name)
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, save_path, name='trainer'):
-        super(TrainerCheckpointLoader, self).__init__(save_path, name)
+    def __init__(self, load_path, name='trainer.ckpt'):
+        super(TrainerCheckpointLoader, self).__init__(load_path, name)
 
     def load(self):
         state = super(TrainerCheckpointLoader, self).load()
-        set_rng_state(state.pop('rng_state'))
+        if state is not None:
+            set_rng_state(state.pop('rng_state'))
         return state
 
     def load_last(self):
         state = super(TrainerCheckpointLoader, self).load_last()
-        set_rng_state(state.pop('rng_state'))
+        if state is not None:
+            set_rng_state(state.pop('rng_state'))
         return state
 
     def load_by(self, criterion):
         state = super(TrainerCheckpointLoader, self).load_by(criterion)
-        set_rng_state(state.pop('rng_state'))
+        if state is not None:
+            set_rng_state(state.pop('rng_state'))
         return state

@@ -4,16 +4,18 @@ from __future__ import division
 
 import os
 
+import torch
+from dortmund_utils import build_ctc_model, DortmundImageToTensor
+
 import laia.data
 import laia.engine
 import laia.logging
 import laia.nn
 import laia.utils
-import torch
-from dortmund_utils import build_ctc_model, DortmundImageToTensor
+from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.engine.triggers import (Any, NumEpochs,
-                                  MeterStandardDeviation)
+from laia.hooks import Hook
+from laia.hooks.conditions import GEqThan, StdDevUnder
 from laia.plugins.arguments import add_argument, add_defaults, args
 
 logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
@@ -44,7 +46,7 @@ class SaveModelCheckpointHook(object):
 
 
 if __name__ == '__main__':
-    add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
+    add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
                  'seed',
                  'train_loss_std_window_size', 'train_loss_std_threshold',
                  'valid_cer_std_window_size', 'valid_cer_std_threshold',
@@ -53,7 +55,7 @@ if __name__ == '__main__':
                  batch_size=1,
                  learning_rate=0.0005,
                  momentum=0.9,
-                 num_iterations_per_update=10,
+                 iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
@@ -111,14 +113,14 @@ if __name__ == '__main__':
         args.tr_txt_table, args.tr_img_dir,
         img_transform=tr_img_transform,
         txt_transform=laia.utils.TextToTensor(syms))
-    if args.num_samples_per_epoch is None:
+    if args.samples_per_epoch is None:
         tr_ds_loader = laia.data.ImageDataLoader(
             tr_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
     else:
         tr_ds_loader = laia.data.ImageDataLoader(
             tr_ds, image_channels=1, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
-                                               args.num_samples_per_epoch))
+                                               args.samples_per_epoch))
 
     # Validation data
     va_ds = laia.data.TextImageFromTextTableDataset(
@@ -152,39 +154,32 @@ if __name__ == '__main__':
 
     engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
 
-    # List of early stop triggers.
-    # If any of these returns True, training will stop.
-    early_stop_triggers = []
-
-    # Configure NumEpochs trigger
     if args.max_epochs and args.max_epochs > 0:
-        early_stop_triggers.append(
-            NumEpochs(trainer=trainer, num_epochs=args.max_epochs))
+        trainer.add_hook(ON_EPOCH_START,
+                         Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
 
-    # Configure MeterStandardDeviation trigger to monitor validation CER
+    # Monitor validation CER
     if args.valid_cer_std_window_size and args.valid_cer_std_threshold:
-        early_stop_triggers.append(
-            MeterStandardDeviation(
-                meter=engine_wrapper.valid_cer,
-                threshold=args.valid_cer_std_threshold,
-                num_values_to_keep=args.valid_cer_std_window_size))
+        trainer.add_hook(ON_EPOCH_START,
+                         Hook(StdDevUnder(
+                             engine_wrapper.valid_cer,
+                             args.valid_cer_std_threshold,
+                             args.valid_cer_std_window_size
+                         ), trainer.stop))
 
-    trainer.set_early_stop_trigger(Any(*early_stop_triggers))
-    trainer.set_num_iterations_per_update(args.num_iterations_per_update)
+    trainer.iterations_per_update = args.iterations_per_update
 
     if args.save_checkpoint:
         filename_va = args.save_checkpoint + '-valid-lowest-cer'
-        trainer.add_hook(
-            trainer.ON_EPOCH_END,
-            SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va))
+        trainer.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va))
 
-    # Start training
-    with torch.cuda.device(args.gpu - 1):
-        engine_wrapper.run()
+        # Start training
+        with torch.cuda.device(args.gpu - 1):
+            engine_wrapper.run()
 
-    # Save model parameters after training
-    if args.save_checkpoint:
-        torch.save({
-            'model': model.state_dict(),
-            'optimizer': optimizer.state_dict()
-        }, args.save_checkpoint)
+        # Save model parameters after training
+        if args.save_checkpoint:
+            torch.save({
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict()
+            }, args.save_checkpoint)

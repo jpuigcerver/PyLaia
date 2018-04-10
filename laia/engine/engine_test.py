@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
-from laia.engine.engine import Engine
-
 import unittest
+
+from laia.engine.engine import (Engine,
+                                ON_BATCH_START, ON_EPOCH_START,
+                                ON_BATCH_END, ON_EPOCH_END)
+from laia.hooks import action
 
 
 class DummyModel(object):
@@ -38,23 +41,27 @@ class EngineTest(unittest.TestCase):
     def test_hooks(self):
         counters = [0, 0, 0, 0]
 
-        def on_batch_start(**_):
+        @action
+        def on_batch_start():
             counters[0] += 1
 
-        def on_epoch_start(**_):
+        @action
+        def on_epoch_start():
             counters[1] += 1
 
-        def on_batch_end(**_):
+        @action
+        def on_batch_end():
             counters[2] += 1
 
-        def on_epoch_end(**_):
+        @action
+        def on_epoch_end():
             counters[3] += 1
 
         engine = Engine(model=lambda x: x, data_loader=[1, 2])
-        engine.add_hook(Engine.ON_BATCH_START, on_batch_start)
-        engine.add_hook(Engine.ON_EPOCH_START, on_epoch_start)
-        engine.add_hook(Engine.ON_BATCH_END, on_batch_end)
-        engine.add_hook(Engine.ON_EPOCH_END, on_epoch_end)
+        engine.add_hook(ON_BATCH_START, on_batch_start)
+        engine.add_hook(ON_EPOCH_START, on_epoch_start)
+        engine.add_hook(ON_BATCH_END, on_batch_end)
+        engine.add_hook(ON_EPOCH_END, on_epoch_end)
         engine.run()
         engine.run()
         # Check the number of calls to each function
@@ -63,17 +70,17 @@ class EngineTest(unittest.TestCase):
     def test_reset(self):
         engine = Engine(model=lambda x: x,
                         data_loader=[1, 2, 3])
-        self.assertEqual(0, engine.epochs)
-        self.assertEqual(0, engine.iterations)
+        self.assertEqual(0, engine.epochs())
+        self.assertEqual(0, engine.iterations())
         engine.run()
-        self.assertEqual(1, engine.epochs)
-        self.assertEqual(3, engine.iterations)
+        self.assertEqual(1, engine.epochs())
+        self.assertEqual(3, engine.iterations())
         engine.run()
-        self.assertEqual(2, engine.epochs)
-        self.assertEqual(6, engine.iterations)
+        self.assertEqual(2, engine.epochs())
+        self.assertEqual(6, engine.iterations())
         engine.reset()
-        self.assertEqual(0, engine.epochs)
-        self.assertEqual(0, engine.iterations)
+        self.assertEqual(0, engine.epochs())
+        self.assertEqual(0, engine.iterations())
 
 
 if __name__ == '__main__':

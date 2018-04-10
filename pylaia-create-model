@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+from torch.nn import LeakyReLU
+
+from laia.models.htr import VggRnnFixedHeight
+from laia.plugins import ModelSaver
+from laia.plugins.arguments import add_argument, args, add_defaults
+from laia.utils import SymbolsTable
+
+if __name__ == '__main__':
+    add_defaults('save_path')
+    add_argument('--adaptive_pool_height', type=int, default=16,
+                 help='Average adaptive pooling of the images before the LSTM layers')
+    add_argument('--lstm_hidden_size', type=int, default=128)
+    add_argument('--lstm_num_layers', type=int, default=1)
+    add_argument('syms', help='Symbols table mapping from strings to integers')
+    args = args()
+
+    syms = SymbolsTable(args.syms)
+
+    """
+    model = VggRnnFixedHeight(120, 1, 84, [16, 16, 32, 32],
+                              [3] * 4,
+                              [1] * 4,
+                              [LeakyReLU] * 4,
+                              [2, 2, 2, 0],
+                              [0.0] * 4,
+                              [False] * 4,
+                              256, 3, 0.5, 0.5)
+    """
+
+    # SOTA model for IAM/Rimes
+    hyperparameters = (args.lstm_hidden_size,
+                       args.lstm_num_layers, len(syms),
+                       [args.adaptive_pool_height * x for x in range(1, 6)],
+                       [3] * 5,
+                       [1] * 5,
+                       [LeakyReLU] * 5,
+                       [2, 2, 2, 0, 0],
+                       [0.0, 0.0, 0.2, 0.2, 0.2],
+                       [True] * 5,
+                       256, 5, 0.5, 0.5)
+    model = VggRnnFixedHeight(*hyperparameters)
+    ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)

@@ -4,12 +4,14 @@ from __future__ import division
 import os
 
 import torch
+from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 
 import laia.logging as log
 import laia.utils
-from dortmund_utils import build_dortmund_model, DortmundImageToTensor
+from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.engine.triggers import Any, NumEpochs
+from laia.hooks import Hook
+from laia.hooks.conditions import GEqThan, StdDevUnder
 from laia.plugins.arguments import add_argument, add_defaults, args
 
 
@@ -46,7 +48,7 @@ if __name__ == '__main__':
                  batch_size=1,
                  learning_rate=0.0001,
                  momentum=0.9,
-                 num_iterations_per_update=10,
+                 iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
@@ -136,15 +138,12 @@ if __name__ == '__main__':
         valid_engine=evaluator,
         gpu=args.gpu)
 
-    # List of early stop triggers.
-    # If any of these returns True, training will stop.
-    early_stop_triggers = []
-
-    # Configure NumEpochs trigger
     if args.max_epochs and args.max_epochs > 0:
-        early_stop_triggers.append(
-            NumEpochs(trainer=trainer, num_epochs=args.max_epochs,
-                      name='Max training epochs'))
+        trainer.add_hook(ON_EPOCH_START,
+                         Hook(GEqThan(
+                             trainer.epochs,
+                             args.max_epochs,
+                             name='Max training epochs'), trainer.stop))
 
     # Configure NumUpdates trigger
     # TODO(jpuigcerver): Trainer needs to evaluate early stop in other places
@@ -157,39 +156,38 @@ if __name__ == '__main__':
 
     # Configure trigger on the training loss
     if args.train_loss_std_window_size and args.train_loss_std_threshold:
-        early_stop_triggers.append(
-            laia.engine.triggers.MeterStandardDeviation(
-                meter=engine_wrapper.train_loss,
-                meter_key=0,
-                num_values_to_keep=args.train_loss_std_window_size,
-                threshold=args.train_loss_std_threshold,
-                name='Train loss standard deviation'))
+        trainer.add_hook(ON_EPOCH_START,
+                         Hook(StdDevUnder(
+                             engine_wrapper.train_loss,
+                             args.train_loss_std_threshold,
+                             args.train_loss_std_window_size,
+                             key=0,
+                             name='Train loss standard deviation'
+                         ), trainer.stop))
 
     # Configure trigger on the validation map
     if args.valid_map_std_window_size and args.valid_map_std_threshold:
-        early_stop_triggers.append(
-            laia.engine.triggers.MeterStandardDeviation(
-                meter=engine_wrapper.valid_ap,
-                meter_key=1,
-                num_values_to_keep=args.valid_map_std_window_size,
-                threshold=args.valid_map_std_threshold,
-                name='Valid mAP standard deviation'))
+        trainer.add_hook(ON_EPOCH_START,
+                         Hook(StdDevUnder(
+                             engine_wrapper.valid_ap,
+                             args.valid_map_std_threshold,
+                             args.valid_map_std_window_size,
+                             key=1,
+                             name='Valid mAP standard deviation'
+                         ), trainer.stop))
 
-    trainer.set_early_stop_trigger(Any(*early_stop_triggers))
-    trainer.set_num_iterations_per_update(args.num_iterations_per_update)
+    trainer.iterations_per_update = args.iterations_per_update
 
     if args.model_checkpoint:
         filename_gap = args.model_checkpoint + '-valid-highest-gap'
-        evaluator.add_hook(
-            evaluator.ON_EPOCH_END,
-            SaveModelCheckpointHook(engine_wrapper.valid_ap, filename_gap,
-                                    title='gAP', key=0))
+        evaluator.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_ap(),
+                                                                 filename_gap,
+                                                                 title='gAP', key=0))
 
         filename_map = args.model_checkpoint + '-valid-highest-map'
-        evaluator.add_hook(
-            evaluator.ON_EPOCH_END,
-            SaveModelCheckpointHook(engine_wrapper.valid_ap, filename_map,
-                                    title='mAP', key=1))
+        evaluator.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_ap(),
+                                                                 filename_map,
+                                                                 title='mAP', key=1))
 
     # Launch training
     engine_wrapper.run()

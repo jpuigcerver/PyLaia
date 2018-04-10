@@ -1,7 +1,12 @@
 from __future__ import absolute_import
 
-from laia.data.padding_collater import PaddingCollater
 from torch.utils.data import DataLoader
+
+from laia.data.padding_collater import PaddingCollater
+
+
+def sort_by_descending_width(x):
+    return -x['img'].size(2)
 
 
 class ImageDataLoader(DataLoader):
@@ -18,6 +23,8 @@ class ImageDataLoader(DataLoader):
             num_workers=num_workers,
             pin_memory=pin_memory,
             drop_last=drop_last,
-            collate_fn=PaddingCollater({
-                'img': [image_channels, image_height, image_width]
-            }, sort_key=lambda x: -x['img'].size(2)), )
+            collate_fn=PaddingCollater(
+                {'img': [image_channels, image_height, image_width]},
+                sort_key=sort_by_descending_width
+            ),
+        )
