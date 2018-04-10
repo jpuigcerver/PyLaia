@@ -209,8 +209,7 @@ class Engine(object):
             'iterations': self.iterations(),
             'hooks': {when: [hook.state_dict() if hasattr(hook, 'state_dict') else None
                              for hook in hooks]
-                      for when, hooks in self._hooks.items()}
-        }
+                      for when, hooks in self._hooks.items()}}
 
     def load_state_dict(self, state):
         self._epochs = state['epochs']
