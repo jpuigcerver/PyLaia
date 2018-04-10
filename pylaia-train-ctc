@@ -8,7 +8,7 @@ from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeS
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook, action
+from laia.hooks import Hook, action, HookCollection
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
 from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.plugins.loader import TrainerLoader, ModelLoader, TrainerCheckpointLoader, ModelCheckpointLoader
@@ -26,6 +26,31 @@ if __name__ == '__main__':
     args = args()
 
     syms = SymbolsTable(args.syms)
+
+    model = ModelLoader(args.save_path).load()
+    if model is None:
+        log.error('Could not find the model. Have you run "pylaia-create-model"?')
+        exit(1)
+    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
+
+    trainer = TrainerLoader(args.save_path).load()
+    if trainer is None:
+        optimizer = RMSprop(model.parameters(),
+                            lr=args.learning_rate,
+                            momentum=args.momentum)
+        parameters = {
+            'model': model,
+            'criterion': None,  # Set automatically by HtrEngineWrapper
+            'optimizer': optimizer,
+            'batch_target_fn': ItemFeeder('txt'),
+            'progress_bar': 'Train' if args.show_progress_bar else None}
+        trainer = Trainer(**parameters)
+        TrainerSaver(args.save_path).save(Trainer, **parameters)
+
+    evaluator = Evaluator(
+        model=model,
+        batch_target_fn=ItemFeeder('txt'),
+        progress_bar='Valid' if args.show_progress_bar else None)
 
     tr_ds = TextImageFromTextTableDataset(
         args.tr_txt_table, args.img_dir,
@@ -51,37 +76,16 @@ if __name__ == '__main__':
                                    batch_size=args.batch_size,
                                    num_workers=8)
 
-    model = ModelLoader(args.save_path).load()
-    if model is None:
-        log.error('Could not find the model. Have you run "pylaia-create-model"?')
-        exit(1)
-    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
+    # Set all these separately because they might change between executions
+    trainer.iterations_per_update = args.iterations_per_update
+    trainer.set_data_loader(tr_ds_loader)
+    trainer.set_batch_input_fn(ImageFeeder(device=args.gpu,
+                                           # keep_padded_tensors=False,
+                                           parent_feeder=ItemFeeder('img')))
 
-    trainer = TrainerLoader(args.save_path).load()
-    if trainer is None:
-        optimizer = RMSprop(model.parameters(),
-                            lr=args.learning_rate,
-                            momentum=args.momentum)
-        parameters = {
-            'model': model,
-            'criterion': None,  # Set automatically by HtrEngineWrapper
-            'optimizer': optimizer,
-            'data_loader': tr_ds_loader,
-            'batch_input_fn': ImageFeeder(device=args.gpu,
-                                          # keep_padded_tensors=False,
-                                          parent_feeder=ItemFeeder('img')),
-            'batch_target_fn': ItemFeeder('txt'),
-            'progress_bar': 'Train' if args.show_progress_bar else None
-        }
-        trainer = Trainer(**parameters)
-        TrainerSaver(args.save_path).save(Trainer, **parameters)
-
-    evaluator = Evaluator(
-        model=model,
-        data_loader=va_ds_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder('img')),
-        batch_target_fn=ItemFeeder('txt'),
-        progress_bar='Valid' if args.show_progress_bar else None)
+    evaluator.set_data_loader(va_ds_loader)
+    evaluator.set_batch_input_fn(ImageFeeder(device=args.gpu,
+                                             parent_feeder=ItemFeeder('img')))
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
 
@@ -101,14 +105,11 @@ if __name__ == '__main__':
 
 
     # Set hooks
-    trainer.add_hook(ON_EPOCH_END,
-                     Hook(Lowest(valid_cer), save_trainer, epoch='lowest-valid-cer'))
-    trainer.add_hook(ON_EPOCH_END,
-                     Hook(Lowest(valid_cer), save_model, epoch='lowest-valid-cer'))
-    trainer.add_hook(ON_EPOCH_START,
-                     Hook(MultipleOf(trainer.epochs, 5), save_trainer))
-    trainer.add_hook(ON_EPOCH_START,
-                     Hook(MultipleOf(trainer.epochs, 5), save_model))
+    trainer.add_hook(ON_EPOCH_END, HookCollection(
+        Hook(Lowest(valid_cer), save_trainer, epoch='lowest-valid-cer'),
+        Hook(Lowest(valid_cer), save_model, epoch='lowest-valid-cer'),
+        Hook(MultipleOf(trainer.epochs, 5), save_trainer),
+        Hook(MultipleOf(trainer.epochs, 5), save_model)))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
@@ -120,7 +121,5 @@ if __name__ == '__main__':
     model_state = ModelCheckpointLoader(args.save_path).load_last()
     if model_state is not None:
         model.load_state_dict(model_state)
-
-    trainer.iterations_per_update = args.iterations_per_update
 
     engine_wrapper.run()
