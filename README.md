@@ -1,5 +1,7 @@
 # PyLaia
 
+[![Build Status](https://travis-ci.com/jpuigcerver/PyLaia.svg?token=HF64eTvPxEUcjjUPXpgm&branch=master)](https://travis-ci.com/jpuigcerver/PyLaia)
+
 ## Requirements
 
 - PyTorch: http://pytorch.org/
