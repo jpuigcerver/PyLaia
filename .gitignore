@@ -105,3 +105,7 @@ ENV/
 
 # Backup files
 *~
+
+# Usual temporary folders
+tmp/
+kk/
