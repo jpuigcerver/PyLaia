@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import laia.logging as log
 from laia.engine.engine import Engine, ON_BATCH_START, ON_BATCH_END, ON_EPOCH_END
+from laia.hooks import action
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -35,9 +36,12 @@ class Trainer(Engine):
           (default: None)
     """
 
-    def __init__(self, model, data_loader, criterion, optimizer,
-                 batch_input_fn=None, batch_target_fn=None,
-                 progress_bar=None, iterations_per_update=1):
+    def __init__(self, model, criterion, optimizer,
+                 data_loader=None,
+                 batch_input_fn=None,
+                 batch_target_fn=None,
+                 progress_bar=None,
+                 iterations_per_update=1):
         super(Trainer, self).__init__(model=model,
                                       data_loader=data_loader,
                                       batch_input_fn=batch_input_fn,
@@ -47,6 +51,7 @@ class Trainer(Engine):
         self._optimizer = optimizer
         self._iterations_per_update = iterations_per_update
         self._updates = 0
+        self._must_stop = False
 
     @property
     def criterion(self):
@@ -81,6 +86,15 @@ class Trainer(Engine):
             assert num > 0
             self._iterations_per_update = num
 
+    @action
+    def stop(self):
+        self._must_stop = True
+
+    @action
+    def reset(self):
+        super(Trainer, self).reset()
+        self._must_stop = False
+
     def add_evaluator(self, evaluator):
         r"""Add an evaluator to run at the end of each epoch."""
 
@@ -89,6 +103,20 @@ class Trainer(Engine):
 
         if evaluator is not None:
             self.add_hook(ON_EPOCH_END, run_eval)
+        return self
+
+    def run(self):
+        r"""Run training """
+        assert callable(self.criterion)
+        assert callable(self._batch_input_fn), (
+            'batch_input_fn (type: {!r}) is not callable'.format(
+                str(self._batch_target_fn)))
+        assert callable(self._batch_target_fn), (
+            'batch_target_fn (type: {!r}) is not callable'.format(
+                str(self._batch_target_fn)))
+
+        while not self._must_stop:
+            self._run_epoch()
         return self
 
     def _run_iteration(self, it, batch):
