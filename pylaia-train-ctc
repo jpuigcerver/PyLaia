@@ -10,10 +10,9 @@ from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook, action
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
-from laia.plugins import TrainerCheckpointSaver, TrainerCheckpointLoader
 from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.loader import TrainerLoader, ModelLoader
-from laia.plugins.saver import TrainerSaver
+from laia.plugins.loader import TrainerLoader, ModelLoader, TrainerCheckpointLoader, ModelCheckpointLoader
+from laia.plugins.saver import TrainerSaver, ModelCheckpointSaver, TrainerCheckpointSaver
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
 if __name__ == '__main__':
@@ -88,8 +87,13 @@ if __name__ == '__main__':
 
 
     @action
-    def save(epoch):
+    def save_trainer(epoch):
         TrainerCheckpointSaver(args.save_path).save(trainer.state_dict(), epoch)
+
+
+    @action
+    def save_model(epoch):
+        ModelCheckpointSaver(args.save_path).save(model.state_dict(), epoch)
 
 
     def valid_cer():
@@ -98,17 +102,24 @@ if __name__ == '__main__':
 
     # Set hooks
     trainer.add_hook(ON_EPOCH_END,
-                     Hook(Lowest(valid_cer), save, epoch='lowest-valid-cer'))
+                     Hook(Lowest(valid_cer), save_trainer, epoch='lowest-valid-cer'))
+    trainer.add_hook(ON_EPOCH_END,
+                     Hook(Lowest(valid_cer), save_model, epoch='lowest-valid-cer'))
     trainer.add_hook(ON_EPOCH_START,
-                     Hook(MultipleOf(trainer.epochs, 5), save))
+                     Hook(MultipleOf(trainer.epochs, 5), save_trainer))
+    trainer.add_hook(ON_EPOCH_START,
+                     Hook(MultipleOf(trainer.epochs, 5), save_model))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
 
-    # Continue from last checkpoint if possible
-    state = TrainerCheckpointLoader(args.save_path).load_last()
-    if state is not None:
-        trainer.load_state_dict(state)
+    # Continue from last checkpoints if possible
+    trainer_state = TrainerCheckpointLoader(args.save_path).load_last()
+    if trainer_state is not None:
+        trainer.load_state_dict(trainer_state)
+    model_state = ModelCheckpointLoader(args.save_path).load_last()
+    if model_state is not None:
+        model.load_state_dict(model_state)
 
     trainer.iterations_per_update = args.iterations_per_update
 
