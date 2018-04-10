@@ -38,7 +38,8 @@ class Engine(object):
           (default: None)
     """
 
-    def __init__(self, model, data_loader,
+    def __init__(self, model,
+                 data_loader=None,
                  batch_input_fn=None,
                  batch_target_fn=None,
                  progress_bar=None):
@@ -50,7 +51,6 @@ class Engine(object):
 
         self._epochs = 0
         self._iterations = 0
-        self._must_stop = False
         self._hooks = {
             ON_BATCH_START: [],
             ON_EPOCH_START: [],
@@ -89,15 +89,10 @@ class Engine(object):
         return _logger
 
     @action
-    def stop(self):
-        self._must_stop = True
-
-    @action
     def reset(self):
         r"""Reset the number of epochs and iterations run."""
         self._epochs = 0
         self._iterations = 0
-        self._must_stop = False
 
     def set_data_loader(self, data_loader):
         """Set the data loader object from which samples are loaded."""
@@ -147,8 +142,8 @@ class Engine(object):
 
     def run(self):
         r"""Run a single epoch on the `dataset_loader`."""
-        if not self._must_stop:
-            self._run_epoch()
+        assert self._data_loader is not None, 'A data loader must be set'
+        self._run_epoch()
         return self
 
     def _call_hooks(self, when, *args, **kwargs):
