@@ -25,7 +25,7 @@ mkdir -p "$OUTPUT_DIR";
 shift 2;
 python steps/train_phocnet.py \
        --max_epochs=220 \
-       --model_checkpoint="$OUTPUT_DIR/model.ckpt" \
+       --save_path="$OUTPUT_DIR" \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        $@ \
