@@ -1,62 +1,31 @@
 #!/usr/bin/env python
 from __future__ import division
 
-import os
-
-import torch
-from dortmund_utils import build_dortmund_model, DortmundImageToTensor
-
 import laia.logging as log
 import laia.utils
+import torch
+from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.hooks import Hook
-from laia.hooks.conditions import GEqThan, StdDevUnder
+from laia.hooks import Hook, HookCollection, action
+from laia.hooks.conditions import GEqThan, MultipleOf, Highest
+from laia.plugins import ModelCheckpointSaver
 from laia.plugins.arguments import add_argument, add_defaults, args
 
-
-class SaveModelCheckpointHook(object):
-    def __init__(self, meter, filename, title, key):
-        self._meter = meter
-        self._highest = -float('inf')
-        self._filename = os.path.normpath(filename)
-        self._title = title
-        self._key = key
-        dirname = os.path.dirname(self._filename)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-
-    def _save(self, model_dict):
-        torch.save(model_dict, self._filename)
-
-    def __call__(self, caller, **_):
-        assert isinstance(caller, laia.engine.Engine)
-        if self._meter.value[self._key] > self._highest:
-            self._highest = self._meter.value[self._key]
-            laia.logging.get_logger().info(
-                'New highest {}: {:5.1%}'.format(self._title, self._highest))
-            self._save(caller.model.state_dict())
-
-
 if __name__ == '__main__':
-    add_defaults('gpu', 'max_epochs', 'max_updates', 'num_samples_per_epoch',
-                 'seed',
-                 'train_loss_std_window_size', 'train_loss_std_threshold',
-                 'valid_map_std_window_size', 'valid_map_std_threshold',
+    add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
+                 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  batch_size=1,
-                 learning_rate=0.0001,
+                 learning_rate=0.015,
                  momentum=0.9,
                  iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
-
     add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
                  help='PHOC levels used to encode the transcript')
-    add_argument('--model_checkpoint', type=str, default='model.ckpt',
-                 help='Filename of the output model checkpoint')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -71,13 +40,10 @@ if __name__ == '__main__':
 
     phoc_size = sum(args.phoc_levels) * len(syms)
     model = build_dortmund_model(phoc_size)
-    if args.gpu > 0:
-        model = model.cuda(args.gpu - 1)
-    else:
-        model = model.cpu()
-
+    model = model.cuda(args.gpu - 1) if args.gpu > 0 else model.cpu()
     log.info('Model has {} parameters',
              sum(param.data.numel() for param in model.parameters()))
+
     optimizer = torch.optim.SGD(params=model.parameters(),
                                 lr=args.learning_rate,
                                 momentum=args.momentum,
@@ -93,7 +59,7 @@ if __name__ == '__main__':
     # Training data
     tr_ds = laia.data.TextImageFromTextTableDataset(
         args.tr_txt_table, args.tr_img_dir, img_transform=tr_img_transform)
-    if args.num_samples_per_epoch is None:
+    if args.samples_per_epoch is None:
         tr_ds_loader = torch.utils.data.DataLoader(
             tr_ds, batch_size=args.batch_size, num_workers=8, shuffle=True,
             collate_fn=laia.data.PaddingCollater({
@@ -103,7 +69,7 @@ if __name__ == '__main__':
         tr_ds_loader = torch.utils.data.DataLoader(
             tr_ds, batch_size=args.batch_size, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
-                                               args.num_samples_per_epoch),
+                                               args.samples_per_epoch),
             collate_fn=laia.data.PaddingCollater({
                 'img': [1, None, None],
             }, sort_key=lambda x: -x['img'].size(2)))
@@ -125,6 +91,7 @@ if __name__ == '__main__':
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         progress_bar='Train' if args.show_progress_bar else False)
+    trainer.iterations_per_update = args.iterations_per_update
 
     evaluator = laia.engine.Evaluator(
         model=model,
@@ -138,59 +105,32 @@ if __name__ == '__main__':
         valid_engine=evaluator,
         gpu=args.gpu)
 
+
+    @action
+    def save_model(epoch):
+        ModelCheckpointSaver(args.save_path).save(model.state_dict(), epoch)
+
+
+    def valid_gap():
+        return engine_wrapper.valid_ap().value[0]
+
+
+    def valid_map():
+        return engine_wrapper.valid_ap().value[1]
+
+
+    # Set hooks
+    trainer.add_hook(ON_EPOCH_END, HookCollection(
+        Hook(Highest(valid_gap), save_model, epoch='highest-valid-gap'),
+        Hook(Highest(valid_map), save_model, epoch='highest-valid-map'),
+        Hook(MultipleOf(trainer.epochs, 5), save_model)))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
-                         Hook(GEqThan(
-                             trainer.epochs,
-                             args.max_epochs,
-                             name='Max training epochs'), trainer.stop))
-
-    # Configure NumUpdates trigger
-    # TODO(jpuigcerver): Trainer needs to evaluate early stop in other places
-    """
-    if args.max_updates and args.max_updates > 0:
-        early_stop_triggers.append(
-            NumUpdates(trainer=trainer, num_updates=args.max_updates,
-                       name='Max training updates'))
-    """
-
-    # Configure trigger on the training loss
-    if args.train_loss_std_window_size and args.train_loss_std_threshold:
-        trainer.add_hook(ON_EPOCH_START,
-                         Hook(StdDevUnder(
-                             engine_wrapper.train_loss,
-                             args.train_loss_std_threshold,
-                             args.train_loss_std_window_size,
-                             key=0,
-                             name='Train loss standard deviation'
-                         ), trainer.stop))
-
-    # Configure trigger on the validation map
-    if args.valid_map_std_window_size and args.valid_map_std_threshold:
-        trainer.add_hook(ON_EPOCH_START,
-                         Hook(StdDevUnder(
-                             engine_wrapper.valid_ap,
-                             args.valid_map_std_threshold,
-                             args.valid_map_std_window_size,
-                             key=1,
-                             name='Valid mAP standard deviation'
-                         ), trainer.stop))
-
-    trainer.iterations_per_update = args.iterations_per_update
-
-    if args.model_checkpoint:
-        filename_gap = args.model_checkpoint + '-valid-highest-gap'
-        evaluator.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_ap(),
-                                                                 filename_gap,
-                                                                 title='gAP', key=0))
-
-        filename_map = args.model_checkpoint + '-valid-highest-map'
-        evaluator.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_ap(),
-                                                                 filename_map,
-                                                                 title='mAP', key=1))
+                         Hook(GEqThan(trainer.epochs, args.max_epochs),
+                              trainer.stop))
 
     # Launch training
     engine_wrapper.run()
 
     # Save model parameters after training
-    torch.save(model.state_dict(), args.model_checkpoint)
+    save_model(trainer.epochs())

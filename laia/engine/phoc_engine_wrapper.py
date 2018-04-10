@@ -23,7 +23,7 @@ class PHOCEngineWrapper(object):
 
         # If the trainer was created without any criterion, set it properly.
         if not self._tr_engine.criterion:
-            self._tr_engine.set_criterion(torch.nn.BCEWithLogitsLoss())
+            self._tr_engine.criterion = torch.nn.BCEWithLogitsLoss()
 
         # Set trainer's batch_input_fn and batch_target_fn if not already set.
         if not self._tr_engine.batch_input_fn:
