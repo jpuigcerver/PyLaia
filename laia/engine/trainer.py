@@ -173,8 +173,7 @@ class Trainer(Engine):
         return {
             'engine_state': super(Trainer, self).state_dict(),
             'optimizer_state': self._optimizer.state_dict(),
-            'updates': self.updates()
-        }
+            'updates': self.updates()}
 
     def load_state_dict(self, state):
         super(Trainer, self).load_state_dict(state['engine_state'])
