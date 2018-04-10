@@ -1,8 +1,5 @@
-laia.models package
-===================
-
-.. automodule:: laia.models
-    :members:
+laia\.models package
+====================
 
 Subpackages
 -----------
@@ -12,3 +9,10 @@ Subpackages
     laia.models.htr
     laia.models.object_detect
 
+Module contents
+---------------
+
+.. automodule:: laia.models
+    :members:
+    :undoc-members:
+    :show-inheritance:

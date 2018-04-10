@@ -36,8 +36,7 @@ class Lowest(LoggingCondition):
     def state_dict(self):
         return {
             'condition': super(Lowest, self).state_dict(),
-            'lowest': self._lowest
-        }
+            'lowest': self._lowest}
 
     def load_state_dict(self, state):
         super(Lowest, self).load_state_dict(state['condition'])
