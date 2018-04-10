@@ -4,12 +4,11 @@ import inspect
 import io
 import json
 import os
+import os.path as p
 from collections import deque
 
-import os.path as p
 import torch
 from builtins import str
-
 from laia.logging import get_logger
 from laia.random import get_rng_state
 
@@ -37,8 +36,10 @@ class Saver(object):
         try:
             torch.save(obj, path)
             self._update_ledger(path)
+            return path
         except FileNotFoundError:
             _logger.info('Could not find the file {}', self.path)
+            return None
 
     def _update_ledger(self, path):
         ledger_path = p.join(self._save_path, '.ledger.json')
@@ -57,7 +58,7 @@ class ObjectSaver(Saver):
         return self.save(func, *args, **kwargs)
 
     def save(self, func, *args, **kwargs):
-        self.save_binary({
+        return self.save_binary({
             'module': inspect.getmodule(func).__name__,
             'name': func.__name__,
             'args': args,
@@ -71,10 +72,12 @@ class ModelSaver(ObjectSaver):
 
     def save(self, func, *args, **kwargs):
         try:
-            super(ModelSaver, self).save(func, *args, **kwargs)
-            _logger.debug('Saved model {}', self.path)
+            path = super(ModelSaver, self).save(func, *args, **kwargs)
+            _logger.debug('Saved model {}', path)
+            return path
         except Exception as e:
             _logger.error('Error while saving the model {}: {}', self.path, e)
+            return None
 
 
 class TrainerSaver(ObjectSaver):
@@ -83,10 +86,12 @@ class TrainerSaver(ObjectSaver):
 
     def save(self, func, *args, **kwargs):
         try:
-            super(TrainerSaver, self).save(func, *args, **kwargs)
-            _logger.debug('Saved trainer {}', self.path)
+            path = super(TrainerSaver, self).save(func, *args, **kwargs)
+            _logger.debug('Saved trainer {}', path)
+            return path
         except Exception as e:
             _logger.error('Error while saving the trainer {}: {}', self.path, e)
+            return None
 
 
 class CheckpointSaver(Saver):
@@ -94,16 +99,19 @@ class CheckpointSaver(Saver):
         return self.save(state, suffix=suffix)
 
     def _get_ckpt_path(self, suffix=None):
-        ckpt_file = '{}-{}'.format(self._filename, suffix) if suffix else self._filename
+        ckpt_file = '{}-{}'.format(self._filename,
+                                   suffix) if suffix else self._filename
         return p.join(self._save_path, ckpt_file)
 
     def save(self, state, suffix=None):
         path = self._get_ckpt_path(suffix=suffix)
         try:
-            self.save_binary(state, path)
+            path = self.save_binary(state, path)
             _logger.debug('Saved checkpoint {}', path)
+            return path
         except Exception as e:
             _logger.error('Error while saving the checkpoint {}: {}', path, e)
+            return None
 
 
 class ModelCheckpointSaver(CheckpointSaver):
@@ -117,7 +125,19 @@ class TrainerCheckpointSaver(CheckpointSaver):
 
     def save(self, state, suffix=None):
         state['rng_state'] = get_rng_state()
-        super(TrainerCheckpointSaver, self).save(state, suffix=suffix)
+        return super(TrainerCheckpointSaver, self).save(state, suffix=suffix)
+
+
+class BackupSaver(object):
+    def __init__(self, saver, keep_last=5):
+        self._saver = saver
+        self._keep_last = keep_last
+
+    def __call__(self, *args, **kwargs):
+        return self._saver(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        return self._saver.save(*args, **kwargs)
 
 
 class LastCheckpointsSaver(object):
@@ -141,6 +161,7 @@ class LastCheckpointsSaver(object):
                 os.remove(last)
                 _logger.debug('{} checkpoint removed', last)
             except Exception as e:
-                _logger.error('Error while removing the checkpoint {}: {}', last, e)
+                _logger.error('Error while removing the checkpoint {}: {}',
+                              last, e)
             self._last_ckpts.append(path)
             self._ckpt_num = (self._ckpt_num + 1) % self._keep_ckpts
