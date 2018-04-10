@@ -2,6 +2,7 @@
 from __future__ import division
 
 import os
+
 import laia.logging as log
 import laia.utils
 import torch
@@ -9,7 +10,7 @@ from dortmund_utils import build_dortmund_model, DortmundImageToTensor
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.hooks import Hook, HookCollection, action
-from laia.hooks.conditions import GEqThan, MultipleOf, Highest
+from laia.hooks.conditions import GEqThan, Highest
 from laia.plugins import ModelCheckpointSaver
 from laia.plugins.arguments import add_argument, add_defaults, args
 
@@ -21,7 +22,6 @@ class ModelCheckpointKeepLastSaver(object):
         self._filename = os.path.basename(filename)
         self._keep_last = keep_last
         self._saver = ModelCheckpointSaver(self._dirname, self._filename)
-        self._last = 0
 
     @action
     def __call__(self):
@@ -128,17 +128,13 @@ if __name__ == '__main__':
         gpu=args.gpu)
 
 
-    @action
-    def save_model(epoch):
-        ModelCheckpointSaver(args.save_path).save(model.state_dict(), epoch)
-
-
     def valid_gap():
         return engine_wrapper.valid_ap().value[0]
 
 
     def valid_map():
         return engine_wrapper.valid_ap().value[1]
+
 
     highest_gap_saver = ModelCheckpointKeepLastSaver(
         model,
@@ -160,4 +156,4 @@ if __name__ == '__main__':
     engine_wrapper.run()
 
     # Save model parameters after training
-    save_model(trainer.epochs())
+    ModelCheckpointSaver(args.save_path).save(model.state_dict())
