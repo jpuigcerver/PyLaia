@@ -99,6 +99,12 @@ class Engine(object):
         self._iterations = 0
         self._must_stop = False
 
+    def set_data_loader(self, data_loader):
+        """Set the data loader object from which samples are loaded."""
+        assert data_loader is not None
+        self._data_loader = data_loader
+        return self
+
     def set_batch_input_fn(self, fn):
         r"""Set the function to obtain the inputs for the model.
 
