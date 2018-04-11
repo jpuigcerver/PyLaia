@@ -70,6 +70,8 @@ class RunningAverageMeter(Meter):
 
     @property
     def value(self):
+        if not self._n:
+            return None, None
         avg = float(self._s) / float(self._n)
         # Note: The max is to avoid precision issues.
         var = max(0.0, float(self._s2) / float(self._n) - avg * avg)
