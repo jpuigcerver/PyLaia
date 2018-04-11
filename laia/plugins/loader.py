@@ -132,29 +132,56 @@ class CheckpointLoader(Loader):
             _logger.error('Error while loading the checkpoint {}: {}', path, e)
 
 
-class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(self, load_path, name='model.ckpt'):
-        super(ModelCheckpointLoader, self).__init__(load_path, name)
+class ModelCheckpointLoader(Loader):
+    def __init__(self, model, ckpt_loader):
+        super(ModelCheckpointLoader, self).__init__(ckpt_loader._load_path,
+                                                    ckpt_loader._filename)
+        self._model = model
+        self._ckpt_loader = ckpt_loader
+
+    def __call__(self):
+        self.load()
+
+    def load(self):
+        state = self._ckpt_loader.load()
+        if state is not None:
+            self._model.load_state_dict(state)
+
+    def load_last(self):
+        state = self._ckpt_loader.load_last()
+        if state is not None:
+            self._model.load_state_dict(state)
+
+    def load_by(self, criterion):
+        state = self._ckpt_loader.load_by(criterion)
+        if state is not None:
+            self._model.load_state_dict(state)
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, load_path, name='trainer.ckpt'):
-        super(TrainerCheckpointLoader, self).__init__(load_path, name)
+    def __init__(self, trainer, ckpt_loader):
+        super(TrainerCheckpointLoader, self).__init__(ckpt_loader._load_path,
+                                                      ckpt_loader._filename)
+        self._trainer = trainer
+        self._ckpt_loader = ckpt_loader
+
+    def __call__(self):
+        self.load()
 
     def load(self):
-        state = super(TrainerCheckpointLoader, self).load()
+        state = self._ckpt_loader.load()
         if state is not None:
             set_rng_state(state.pop('rng_state'))
-        return state
+            self._trainer.load_state_dict(state)
 
     def load_last(self):
-        state = super(TrainerCheckpointLoader, self).load_last()
+        state = self._ckpt_loader.load_last()
         if state is not None:
             set_rng_state(state.pop('rng_state'))
-        return state
+            self._trainer.load_state_dict(state)
 
     def load_by(self, criterion):
-        state = super(TrainerCheckpointLoader, self).load_by(criterion)
+        state = self._ckpt_loader.load_by(criterion)
         if state is not None:
             set_rng_state(state.pop('rng_state'))
-        return state
+            self._trainer.load_state_dict(state)

@@ -8,11 +8,12 @@ from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeS
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook, action, HookCollection
+from laia.hooks import Hook, HookCollection, action
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
 from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.loader import TrainerLoader, ModelLoader, TrainerCheckpointLoader, ModelCheckpointLoader
-from laia.plugins.saver import TrainerSaver, ModelCheckpointSaver, TrainerCheckpointSaver, BackupSaver
+from laia.plugins.loader import TrainerLoader, ModelLoader, TrainerCheckpointLoader, ModelCheckpointLoader, \
+    CheckpointLoader
+from laia.plugins.saver import TrainerSaver, ModelCheckpointSaver, TrainerCheckpointSaver, BackupSaver, CheckpointSaver
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
 if __name__ == '__main__':
@@ -89,42 +90,72 @@ if __name__ == '__main__':
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
 
-    # These must be outside an action so that they aren't created each time it's called
-    # Note that their state is not being saved between executions
-    trainer_saver = BackupSaver(TrainerCheckpointSaver(args.save_path))
-    model_saver = BackupSaver(ModelCheckpointSaver(args.save_path), keep=3)
-
-
-    @action
-    def save_trainer(epoch):
-        trainer_saver.save(trainer.state_dict(), epoch)
-
-
-    @action
-    def save_model(epoch):
-        model_saver.save(model.state_dict(), epoch)
-
 
     def valid_cer():
         return engine_wrapper.valid_cer().value
 
 
+    @action
+    def save_ckpt(saver, epoch):
+        saver.save(suffix=epoch)
+
+
+    '''
+    @action
+    def save_ckpt(saver, filename, epoch):
+        saver.filename = filename
+        saver.save(suffix=epoch)
+        
+    
+    ckpt_saver = CheckpointSaver(args.save_path)
+    tr_ckpt_saver = TrainerCheckpointSaver(trainer, ckpt_saver)
+    mo_ckpt_saver = ModelCheckpointSaver(model, ckpt_saver)
+    # These cannot be reused because each one keeps a different state
+    saver1 = BackupSaver(tr_ckpt_saver)
+    saver2 = BackupSaver(tr_ckpt_saver)
+    saver3 = BackupSaver(mo_ckpt_saver, keep=3)
+    saver4 = BackupSaver(mo_ckpt_saver, keep=3)
+    
+    
     # Set hooks
     trainer.add_hook(ON_EPOCH_END, HookCollection(
-        Hook(Lowest(valid_cer), save_trainer, epoch='lowest-valid-cer'),
-        Hook(Lowest(valid_cer), save_model, epoch='lowest-valid-cer'),
-        Hook(MultipleOf(trainer.epochs, 5), save_trainer),
-        Hook(MultipleOf(trainer.epochs, 5), save_model)))
+        Hook(Lowest(valid_cer), save_ckpt, saver=saver1, filename='trainer.ckpt-lowest-valid-cer'),
+        Hook(Lowest(valid_cer), save_ckpt, saver=saver2, filename='trainer.ckpt'),
+        Hook(MultipleOf(trainer.epochs, 5), save_ckpt, saver=saver3, filename='model.ckpt-lowest-valid-cer'),
+        Hook(MultipleOf(trainer.epochs, 5), save_ckpt, saver=saver4, filename='model.ckpt')))
+
+    '''
+
+    # TODO: Refactor
+    ckpt_saver1 = CheckpointSaver(args.save_path, 'trainer.ckpt-lowest-valid-cer')
+    ckpt_saver2 = CheckpointSaver(args.save_path, 'trainer.ckpt')
+    ckpt_saver3 = CheckpointSaver(args.save_path, 'model.ckpt-lowest-valid-cer')
+    ckpt_saver4 = CheckpointSaver(args.save_path, 'model.ckpt')
+    saver1 = BackupSaver(TrainerCheckpointSaver(trainer, ckpt_saver1))
+    saver2 = BackupSaver(TrainerCheckpointSaver(trainer, ckpt_saver2))
+    saver3 = BackupSaver(ModelCheckpointSaver(model, ckpt_saver3), keep=3)
+    saver4 = BackupSaver(ModelCheckpointSaver(model, ckpt_saver4), keep=3)
+
+    # Set hooks
+    trainer.add_hook(ON_EPOCH_END, HookCollection(
+        Hook(Lowest(valid_cer), save_ckpt, saver=saver1),
+        Hook(Lowest(valid_cer), save_ckpt, saver=saver2),
+        Hook(MultipleOf(trainer.epochs, 5), save_ckpt, saver=saver3),
+        Hook(MultipleOf(trainer.epochs, 5), save_ckpt, saver=saver4)))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
 
-    # Continue from last checkpoints if possible
-    trainer_state = TrainerCheckpointLoader(args.save_path).load_last()
-    if trainer_state is not None:
-        trainer.load_state_dict(trainer_state)
-    model_state = ModelCheckpointLoader(args.save_path).load_last()
-    if model_state is not None:
-        model.load_state_dict(model_state)
+    # Continue from last checkpoints with lowest valid cer, if possible
+    TrainerCheckpointLoader(
+        trainer,
+        CheckpointLoader(
+            args.save_path,
+            'trainer.ckpt-lowest-valid-cer')).load_last()
+    ModelCheckpointLoader(
+        model,
+        CheckpointLoader(
+            args.save_path,
+            'model.ckpt-lowest-valid-cer')).load_last()
 
     engine_wrapper.run()
