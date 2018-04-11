@@ -115,18 +115,33 @@ class CheckpointSaver(Saver):
             return None
 
 
-class ModelCheckpointSaver(CheckpointSaver):
-    def __init__(self, save_path, filename='model.ckpt'):
-        super(ModelCheckpointSaver, self).__init__(save_path, filename)
+class ModelCheckpointSaver(Saver):
+    def __init__(self, model, ckpt_saver):
+        super(ModelCheckpointSaver, self).__init__(ckpt_saver._save_path,
+                                                   ckpt_saver._filename)
+        self._model = model
+        self._ckpt_saver = ckpt_saver
+
+    def __call__(self, suffix=None):
+        return self._ckpt_saver.save(suffix=suffix)
+
+    def save(self, suffix=None):
+        return self._ckpt_saver.save(self._model.state_dict(), suffix=suffix)
 
 
-class TrainerCheckpointSaver(CheckpointSaver):
-    def __init__(self, save_path, filename='trainer.ckpt'):
-        super(TrainerCheckpointSaver, self).__init__(save_path, filename)
+class TrainerCheckpointSaver(Saver):
+    def __init__(self, trainer, ckpt_saver):
+        super(TrainerCheckpointSaver, self).__init__(ckpt_saver._save_path,
+                                                     ckpt_saver._filename)
+        self._trainer = trainer
+        self._ckpt_saver = ckpt_saver
 
-    def save(self, state, suffix=None):
-        state['rng_state'] = get_rng_state()
-        return super(TrainerCheckpointSaver, self).save(state, suffix=suffix)
+    def __call__(self, suffix=None):
+        return self._ckpt_saver.save(suffix=suffix)
+
+    def save(self, suffix=None):
+        state = dict(rng_state=get_rng_state(), **self._trainer.state_dict())
+        return self._ckpt_saver.save(state, suffix=suffix)
 
 
 class BackupSaver(object):
@@ -136,11 +151,11 @@ class BackupSaver(object):
         self._keep = keep
         self._last_saved = deque()
 
-    def __call__(self, state, suffix=None):
-        return self.save(state, suffix=suffix)
+    def __call__(self, suffix=None):
+        return self.save(suffix=suffix)
 
-    def save(self, state, suffix=None):
-        path = self._saver.save(state, suffix=suffix)
+    def save(self, suffix=None):
+        path = self._saver.save(suffix=suffix)
         if len(self._last_saved) >= self._keep:
             last = self._last_saved.popleft()
             try:
