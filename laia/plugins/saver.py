@@ -4,11 +4,12 @@ import inspect
 import io
 import json
 import os
-import os.path as p
+from builtins import str
 from collections import deque
 
+import os.path as p
 import torch
-from builtins import str
+
 from laia.logging import get_logger
 from laia.random import get_rng_state
 
@@ -129,39 +130,24 @@ class TrainerCheckpointSaver(CheckpointSaver):
 
 
 class BackupSaver(object):
-    def __init__(self, saver, keep_last=5):
+    def __init__(self, saver, keep=5):
+        assert keep > 0
         self._saver = saver
-        self._keep_last = keep_last
-
-    def __call__(self, *args, **kwargs):
-        return self._saver(*args, **kwargs)
-
-    def save(self, *args, **kwargs):
-        return self._saver.save(*args, **kwargs)
-
-
-class LastCheckpointsSaver(object):
-    def __init__(self, checkpoint_saver, keep_checkpoints=5):
-        assert keep_checkpoints > 0
-        self._ckpt_saver = checkpoint_saver
-        self._keep_ckpts = keep_checkpoints
-        self._last_ckpts = deque()
-        self._ckpt_num = 0
+        self._keep = keep
+        self._last_saved = deque()
 
     def __call__(self, state, suffix=None):
         return self.save(state, suffix=suffix)
 
     def save(self, state, suffix=None):
-        path = self._ckpt_saver.save(state, suffix=suffix)
-        if len(self._last_ckpts) < self._keep_ckpts:
-            self._last_ckpts.append(path)
-        else:
-            last = self._last_ckpts.popleft()
+        path = self._saver.save(state, suffix=suffix)
+        if len(self._last_saved) >= self._keep:
+            last = self._last_saved.popleft()
             try:
                 os.remove(last)
                 _logger.debug('{} checkpoint removed', last)
             except Exception as e:
                 _logger.error('Error while removing the checkpoint {}: {}',
                               last, e)
-            self._last_ckpts.append(path)
-            self._ckpt_num = (self._ckpt_num + 1) % self._keep_ckpts
+        self._last_saved.append(path)
+        return path
