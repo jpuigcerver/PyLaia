@@ -2,8 +2,12 @@ from __future__ import absolute_import
 
 import io
 import json
-
 import logging
+
+try:
+    import tqdm
+except ImportError:
+    tqdm = None
 
 # Inherit loglevels from Python's logging
 DEBUG = logging.DEBUG
@@ -14,6 +18,23 @@ CRITICAL = logging.CRITICAL
 
 BASIC_FORMAT = '%(asctime)s %(levelname)s %(name)s : %(message)s'
 DETAILED_FORMAT = '%(asctime)s %(levelname)s %(name)s [%(pathname)s:%(lineno)d] : %(message)s'
+
+
+class TqdmStreamHandler(logging.StreamHandler):
+    """This handler wraps StreamHandler so that logging
+        messages don't break the tqdm bar."""
+    def __init__(self, level=logging.NOTSET):
+        super(TqdmStreamHandler, self).__init__(level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.tqdm.write(msg)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
 
 
 class FormatMessage(object):
@@ -78,12 +99,12 @@ root = get_logger()
 
 
 def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
-                 filemode='a', log_also_to_stderr_level=ERROR):
+                 filemode='a', logging_also_to_stderr=ERROR):
     fmt = logging.Formatter(fmt)
 
-    handler = logging.StreamHandler()
+    handler = TqdmStreamHandler() if tqdm else logging.StreamHandler()
     handler.setFormatter(fmt)
-    if filename: handler.setLevel(log_also_to_stderr_level)
+    if filename: handler.setLevel(logging_also_to_stderr)
     root.addHandler(handler)
 
     if filename:
@@ -95,7 +116,7 @@ def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
 
 
 def config(fmt=BASIC_FORMAT, level=INFO, filename=None,
-           filemode='a', log_also_to_stderr_level=ERROR, config_dict=None):
+           filemode='a', logging_also_to_stderr=ERROR, config_dict=None):
     if config_dict:
         try:
             with io.open(config_dict, 'r') as f:
@@ -108,7 +129,7 @@ def config(fmt=BASIC_FORMAT, level=INFO, filename=None,
     else:
         basic_config(fmt=fmt, level=level,
                      filename=filename, filemode=filemode,
-                     log_also_to_stderr_level=log_also_to_stderr_level)
+                     logging_also_to_stderr=logging_also_to_stderr)
 
 
 def config_from_args(args, fmt=BASIC_FORMAT):
@@ -117,7 +138,7 @@ def config_from_args(args, fmt=BASIC_FORMAT):
            filename=args.logging_file,
            fmt=fmt,
            level=args.logging_level,
-           log_also_to_stderr_level=args.logging_also_to_stderr)
+           logging_also_to_stderr=args.logging_also_to_stderr)
 
 
 def log(level, msg, *args, **kwargs):
