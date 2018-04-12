@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from laia.decoders import CTCDecoder
+from laia.decoders import CTCGreedyDecoder
 from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
 from laia.hooks import action
 from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
@@ -32,7 +32,7 @@ class HtrEngineWrapper(object):
             self.logger.warn('Overriding the criterion of the trainer to CTC.')
             self._tr_engine.criterion = CTCLoss()
 
-        self._ctc_decoder = CTCDecoder()
+        self._ctc_decoder = CTCGreedyDecoder()
         self._train_timer = TimeMeter()
         self._train_loss_meter = RunningAverageMeter()
         self._train_cer_meter = SequenceErrorMeter()
@@ -178,6 +178,5 @@ class HtrEngineWrapper(object):
 
     @action
     def _epoch_summary(self, epoch):
-        print(epoch)
         self._summary_params['epoch'] = epoch
         self.logger.info(self._summary_format, **self._summary_params)

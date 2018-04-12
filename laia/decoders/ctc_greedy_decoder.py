@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 
 
-class CTCDecoder(object):
+class CTCGreedyDecoder(object):
     def __init__(self):
         self._output = None
 
