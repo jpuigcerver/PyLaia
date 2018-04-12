@@ -9,7 +9,7 @@ from laia.utils import ImageToTensor, TextToTensor
 from laia.utils.symbols_table import SymbolsTable
 from laia.data import TextImageFromTextTableDataset
 from laia.data import ImageDataLoader
-from laia.decoders.ctc_decoder import CTCDecoder
+
 
 def ctc_lattice(img_ids, outputs):
     for img_id, output in zip(img_ids, outputs):
@@ -18,7 +18,7 @@ def ctc_lattice(img_ids, outputs):
         for t in range(output.size(0)):
             for k in range(output.size(1)):
                 print('{:d}\t{:d}\t{:d}\t0,{:.10g},{:d}'.format(
-                    t, t + 1, k + 1, float(output[t, k]), k + 1))
+                    t, t + 1, k + 1, -float(output[t, k]), k + 1))
         print(output.size(0))
         print()
 
@@ -30,6 +30,7 @@ if __name__ == '__main__':
                       'LSTM layers')
     add_argument('--lstm_hidden_size', type=int, default=128)
     add_argument('--lstm_num_layers', type=int, default=1)
+    add_argument('--add_softmax', action='store_true')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('img_dir', help='Directory containing word images')
     add_argument('gt_file', help='')
@@ -66,7 +67,6 @@ if __name__ == '__main__':
                                      image_channels=1,
                                      num_workers=8)
 
-    decoder = CTCDecoder()
     with torch.cuda.device(args.gpu - 1):
         for batch in dataset_loader:
             if args.gpu > 0:
@@ -74,4 +74,6 @@ if __name__ == '__main__':
             else:
                 x = batch['img'].data.cpu()
             y = model(torch.autograd.Variable(x)).data
+            if args.add_softmax:
+                y = torch.nn.functional.log_softmax(y, dim=-1)
             ctc_lattice(batch['id'], [y])

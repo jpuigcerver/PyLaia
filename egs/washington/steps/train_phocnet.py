@@ -3,36 +3,17 @@ from __future__ import division
 
 import os
 
+import torch
+
 import laia.logging as log
 import laia.utils
-import torch
-from dortmund_utils import build_dortmund_model, DortmundImageToTensor
+from dortmund_utils import (build_dortmund_model, DortmundImageToTensor,
+                            ModelCheckpointKeepLastSaver)
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.hooks import Hook, HookCollection, action
+from laia.hooks import Hook, HookCollection
 from laia.hooks.conditions import GEqThan, Highest
-from laia.plugins import ModelCheckpointSaver
 from laia.plugins.arguments import add_argument, add_defaults, args
-
-
-class ModelCheckpointKeepLastSaver(object):
-    def __init__(self, model, filename, keep_last=5):
-        self._model = model
-        self._dirname = os.path.dirname(filename)
-        self._filename = os.path.basename(filename)
-        self._keep_last = keep_last
-        self._saver = ModelCheckpointSaver(self._dirname, self._filename)
-
-    @action
-    def __call__(self):
-        prefix = os.path.join(self._dirname, self._filename)
-        for i in range(self._keep_last - 1, 0, -1):
-            older = '{}-{}'.format(prefix, i)
-            newer = '{}-{}'.format(prefix, i - 1) if i > 1 else prefix
-            if os.path.isfile(newer):
-                os.rename(newer, older)
-        return self._saver.save(self._model.state_dict())
-
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
@@ -127,15 +108,6 @@ if __name__ == '__main__':
         valid_engine=evaluator,
         gpu=args.gpu)
 
-
-    def valid_gap():
-        return engine_wrapper.valid_ap().value[0]
-
-
-    def valid_map():
-        return engine_wrapper.valid_ap().value[1]
-
-
     highest_gap_saver = ModelCheckpointKeepLastSaver(
         model,
         os.path.join(args.save_path, 'model.ckpt-highest-valid-gap'))
@@ -145,8 +117,10 @@ if __name__ == '__main__':
 
     # Set hooks
     trainer.add_hook(ON_EPOCH_END, HookCollection(
-        Hook(Highest(valid_gap, name='Highest gAP'), highest_gap_saver),
-        Hook(Highest(valid_map, name='Highest mAP'), highest_map_saver)))
+        Hook(Highest(engine_wrapper.valid_ap(), key=0, name='Highest gAP'),
+             highest_gap_saver),
+        Hook(Highest(engine_wrapper.valid_ap(), key=1, name='Highest mAP'),
+             highest_map_saver)))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
@@ -156,4 +130,4 @@ if __name__ == '__main__':
     engine_wrapper.run()
 
     # Save model parameters after training
-    ModelCheckpointSaver(args.save_path).save(model.state_dict())
+    torch.save(model.state_dict(), os.path.join(args.save_path, 'model.ckpt'))

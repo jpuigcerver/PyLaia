@@ -5,67 +5,40 @@ from __future__ import division
 import os
 
 import torch
-from dortmund_utils import build_ctc_model, DortmundImageToTensor
 
-import laia.data
-import laia.engine
-import laia.logging
-import laia.nn
 import laia.utils
+from dortmund_utils import (build_ctc_model, build_ctc_model2,
+                            DortmundImageToTensor, ModelCheckpointKeepLastSaver)
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook
-from laia.hooks.conditions import GEqThan, StdDevUnder
+from laia.engine.trainer import Trainer
+from laia.hooks import Hook, HookCollection
+from laia.hooks.conditions import Lowest, GEqThan
 from laia.plugins.arguments import add_argument, add_defaults, args
+from htr_kws_engine_wrapper import HtrKwsEngineWrapper
 
 logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
 
-
-class SaveModelCheckpointHook(object):
-    def __init__(self, meter, filename):
-        self._meter = meter
-        self._lowest = float('inf')
-        self._filename = os.path.normpath(filename)
-        dirname = os.path.dirname(self._filename)
-        if dirname and not os.path.exists(dirname):
-            os.makedirs(dirname)
-
-    def _save(self, model_state_dict, optimizer_state_dict):
-        torch.save({
-            'model': model_state_dict,
-            'optimizer': optimizer_state_dict
-        }, self._filename)
-
-    def __call__(self, caller, **_):
-        assert isinstance(caller, laia.engine.Trainer)
-        if self._meter.value < self._lowest:
-            self._lowest = self._meter.value
-            logger.info('New lowest validation CER: {:5.1%}', self._lowest)
-            self._save(caller.model.state_dict(),
-                       caller.optimizer.state_dict())
-
-
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
-                 'seed',
-                 'train_loss_std_window_size', 'train_loss_std_threshold',
-                 'valid_cer_std_window_size', 'valid_cer_std_threshold',
+                 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  batch_size=1,
-                 learning_rate=0.0005,
+                 learning_rate=0.0001,
                  momentum=0.9,
                  iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
-    add_argument('--save_checkpoint', type=str, default='model.ckpt',
-                 help='Filename of the output model checkpoint')
-    add_argument('--load_checkpoint', type=str, default=None,
-                 help='Load model parameters from this checkpoint')
+    add_argument('--train_laia', action='store_true',
+                 help='Train Laia-based model')
     add_argument('--adaptive_pool_height', type=int, default=16,
                  help='Average adaptive pooling of the images before the '
                       'LSTM layers')
+    add_argument('--cnn_num_filters', type=int, nargs='+',
+                 default=[16, 32, 48, 64])
+    add_argument('--cnn_maxpool_size', type=int, nargs='*', default=[2, 2])
     add_argument('--lstm_hidden_size', type=int, default=128)
     add_argument('--lstm_num_layers', type=int, default=1)
     add_argument('syms', help='Symbols table mapping from strings to integers')
@@ -78,28 +51,6 @@ if __name__ == '__main__':
     laia.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
-    model = build_ctc_model(num_outputs=len(syms),
-                            adaptive_pool_height=args.adaptive_pool_height,
-                            lstm_hidden_size=args.lstm_hidden_size,
-                            lstm_num_layers=args.lstm_num_layers)
-    if args.gpu > 0:
-        model = model.cuda(args.gpu - 1)
-    else:
-        model = model.cpu()
-
-    optimizer = torch.optim.SGD(params=model.parameters(),
-                                lr=args.learning_rate,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_l2_penalty)
-
-    if args.load_checkpoint:
-        logger.info('Loading parameters from {!r}', args.load_checkpoint)
-        saved_dict = torch.load(args.load_checkpoint)
-        if 'model' in saved_dict and 'optimizer' in saved_dict:
-            model.load_state_dict(saved_dict['model'])
-            optimizer.load_state_dict(saved_dict['optimizer'])
-        else:
-            model.load_state_dict(saved_dict)
 
     # If --use_distortions is given, apply the same affine distortions used by
     # Dortmund University.
@@ -132,16 +83,41 @@ if __name__ == '__main__':
                                              batch_size=args.batch_size,
                                              num_workers=8)
 
-    trainer = laia.engine.Trainer(
-        model=model,
-        criterion=None,
-        optimizer=optimizer,
-        data_loader=tr_ds_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu,
-                                   keep_padded_tensors=False,
-                                   parent_feeder=ItemFeeder('img')),
-        batch_target_fn=ItemFeeder('txt'),
-        progress_bar='Train' if args.show_progress_bar else False)
+    if args.train_laia:
+        model = build_ctc_model2(
+            cnn_num_filters=args.cnn_num_filters,
+            cnn_maxpool_size=args.cnn_maxpool_size,
+            adaptive_pool_height=args.adaptive_pool_height,
+            lstm_hidden_size=args.lstm_hidden_size,
+            lstm_num_layers=args.lstm_num_layers,
+            num_outputs=len(syms))
+    else:
+        model = build_ctc_model(
+            adaptive_pool_height=args.adaptive_pool_height,
+            lstm_hidden_size=args.lstm_hidden_size,
+            lstm_num_layers=args.lstm_num_layers,
+            num_outputs=len(syms))
+    model = model.cuda(args.gpu - 1) if args.gpu > 0 else model.cpu()
+    logger.info('Model has {} parameters',
+                sum(param.data.numel() for param in model.parameters()))
+
+    optimizer = torch.optim.SGD(params=model.parameters(),
+                                lr=args.learning_rate,
+                                momentum=args.momentum,
+                                weight_decay=args.weight_l2_penalty)
+    parameters = {
+        'model': model,
+        'criterion': None,  # Set automatically by HtrEngineWrapper
+        'optimizer': optimizer,
+        'data_loader': tr_ds_loader,
+        'batch_input_fn': ImageFeeder(device=args.gpu,
+                                      keep_padded_tensors=False,
+                                      parent_feeder=ItemFeeder('img')),
+        'batch_target_fn': ItemFeeder('txt'),
+        'progress_bar': 'Train' if args.show_progress_bar else False,
+    }
+    trainer = Trainer(**parameters)
+    trainer.iterations_per_update = args.iterations_per_update
 
     evaluator = laia.engine.Evaluator(
         model=model,
@@ -152,34 +128,29 @@ if __name__ == '__main__':
         batch_target_fn=ItemFeeder('txt'),
         progress_bar='Valid' if args.show_progress_bar else False)
 
-    engine_wrapper = laia.engine.HtrEngineWrapper(trainer, evaluator)
+    engine_wrapper = HtrKwsEngineWrapper(trainer, evaluator)
+    engine_wrapper.set_word_delimiters([])
 
+    lowest_cer_saver = ModelCheckpointKeepLastSaver(
+        model,
+        os.path.join(args.save_path, 'model.ckpt-lowest-valid-cer'))
+    lowest_wer_saver = ModelCheckpointKeepLastSaver(
+        model,
+        os.path.join(args.save_path, 'model.ckpt-lowest-valid-wer'))
+
+    # Set hooks
+    trainer.add_hook(ON_EPOCH_END, HookCollection(
+        Hook(Lowest(engine_wrapper.valid_cer(), name='Lowest CER'),
+             lowest_cer_saver),
+        Hook(Lowest(engine_wrapper.valid_wer(), name='Lowest WER'),
+             lowest_cer_saver)))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
-                         Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
+                         Hook(GEqThan(trainer.epochs, args.max_epochs),
+                              trainer.stop))
 
-    # Monitor validation CER
-    if args.valid_cer_std_window_size and args.valid_cer_std_threshold:
-        trainer.add_hook(ON_EPOCH_START,
-                         Hook(StdDevUnder(
-                             engine_wrapper.valid_cer,
-                             args.valid_cer_std_threshold,
-                             args.valid_cer_std_window_size
-                         ), trainer.stop))
+    # Launch training
+    engine_wrapper.run()
 
-    trainer.iterations_per_update = args.iterations_per_update
-
-    if args.save_checkpoint:
-        filename_va = args.save_checkpoint + '-valid-lowest-cer'
-        trainer.add_hook(ON_EPOCH_END, SaveModelCheckpointHook(engine_wrapper.valid_cer, filename_va))
-
-        # Start training
-        with torch.cuda.device(args.gpu - 1):
-            engine_wrapper.run()
-
-        # Save model parameters after training
-        if args.save_checkpoint:
-            torch.save({
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict()
-            }, args.save_checkpoint)
+    # Save model parameters after training
+    torch.save(model.state_dict(), os.path.join(args.save_path, 'model.ckpt'))
