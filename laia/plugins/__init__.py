@@ -12,4 +12,4 @@ from laia.plugins.saver import (CheckpointSaver,
                                 ModelCheckpointSaver,
                                 TrainerSaver,
                                 TrainerCheckpointSaver,
-                                BackupSaver)
+                                RollingSaver)
