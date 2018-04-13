@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-import io
-import json
+import os
 from importlib import import_module
 
-import os.path as p
 import torch
 
 from laia.logging import get_logger
@@ -19,32 +17,29 @@ _logger = get_logger(__name__)
 
 
 class Loader(object):
-    def __init__(self, load_path, filename):
-        assert not p.dirname(filename)
-        assert p.exists(load_path)
-        self._load_path = p.normpath(load_path)
-        self._filename = filename
-        self._path = p.join(load_path, filename)
+    def __call__(self, *args, **kwargs):
+        return self.load(*args, **kwargs)
 
-    @property
-    def path(self):
-        return self._path
+    def load(self, *args, **kwargs):
+        raise NotImplementedError
 
-    @staticmethod
-    def load_binary(path):
+
+class BasicLoader(Loader):
+    def load(self, filepath):
         try:
-            return torch.load(path)
+            return torch.load(filepath)
         except FileNotFoundError:
-            _logger.info('Could not find the file {}', path)
-            return None
+            _logger.info('Could not find the file {}', filepath)
+        return None
 
 
 class ObjectLoader(Loader):
-    def __call__(self):
-        return self.load()
+    def __init__(self, filepath):
+        self._filepath = filepath
+        self._loader = BasicLoader()
 
     def load(self):
-        obj = self.load_binary(self.path)
+        obj = self._loader.load(self._filepath)
         if obj is None:
             return None
         module = import_module(obj['module'])
@@ -56,132 +51,80 @@ class ObjectLoader(Loader):
 
 class ModelLoader(ObjectLoader):
     def __init__(self, load_path, filename='model'):
-        super(ModelLoader, self).__init__(load_path, filename)
+        self._path = os.path.join(load_path, filename)
+        super(ModelLoader, self).__init__(self._path)
 
     def load(self):
-        try:
-            model = super(ModelLoader, self).load()
-            if model is not None:
-                _logger.info('Loaded model {}', self.path)
-            return model
-        except Exception as e:
-            _logger.error('Error while loading the model {}: {}', self.path, e)
+        model = super(ModelLoader, self).load()
+        if model is not None:
+            _logger.info('Loaded model {}', self._path)
+        return model
 
 
 class TrainerLoader(ObjectLoader):
     def __init__(self, load_path, filename='trainer'):
-        super(TrainerLoader, self).__init__(load_path, filename)
+        self._path = os.path.join(load_path, filename)
+        super(TrainerLoader, self).__init__(self._path)
 
     def load(self):
-        try:
-            trainer = super(TrainerLoader, self).load()
-            if trainer is not None:
-                _logger.info('Loaded trainer {}', self.path)
-            return trainer
-        except Exception as e:
-            _logger.error('Error while loading the trainer {}: {}', self.path, e)
+        trainer = super(TrainerLoader, self).load()
+        if trainer is not None:
+            _logger.info('Loaded trainer {}', self._path)
+        return trainer
 
 
 class CheckpointLoader(Loader):
-    def __call__(self):
-        return self.load()
+    def __init__(self):
+        self._loader = BasicLoader()
 
-    def _get_last_ckpt_path(self):
-        path = p.join(self._load_path, '.ledger.json')
-        with io.open(path, 'r') as f:
-            ledger = json.load(f)
-            return ledger.get(self._filename, None)
+    def load(self, filepath):
+        state = self._loader.load(filepath)
+        if state is not None:
+            _logger.info('Loaded checkpoint {}', filepath)
+        return state
 
-    def _get_ckpt_path_by(self, criterion):
-        path = p.join(
-            self._load_path,
-            '{}-{}'.format(self._filename, criterion))
-        return path
-
-    def load(self):
-        path = p.join(self._load_path, self._filename)
-        try:
-            state = self.load_binary(path)
-            if state is not None:
-                _logger.info('Loaded checkpoint {}', path)
-            return state
-        except Exception as e:
-            _logger.error('Error while loading the checkpoint {}: {}', path, e)
-
-    def load_last(self):
-        path = self._get_last_ckpt_path()
-        if path is None:
-            _logger.info('No previous checkpoint found')
+    def load_by(self, pattern, key=None, reverse=True):
+        import glob
+        matches = glob.glob(pattern)
+        if not len(matches):
             return None
-        try:
-            state = self.load_binary(path)
-            if state is not None:
-                _logger.info('Loaded last checkpoint {}', path)
-            return state
-        except Exception as e:
-            _logger.error('Error while loading the checkpoint {}: {}', path, e)
-
-    def load_by(self, criterion):
-        path = self._get_ckpt_path_by(criterion)
-        try:
-            state = self.load_binary(path)
-            if state is not None:
-                _logger.info('Loaded {} checkpoint {}', criterion, path)
-            return state
-        except Exception as e:
-            _logger.error('Error while loading the checkpoint {}: {}', path, e)
+        filepath = sorted(matches, key=key, reverse=reverse)[0]
+        return self.load(filepath)
 
 
-class ModelCheckpointLoader(Loader):
-    def __init__(self, model, ckpt_loader):
-        super(ModelCheckpointLoader, self).__init__(ckpt_loader._load_path,
-                                                    ckpt_loader._filename)
+class ModelCheckpointLoader(CheckpointLoader):
+    def __init__(self, model):
+        super(ModelCheckpointLoader, self).__init__()
         self._model = model
-        self._ckpt_loader = ckpt_loader
 
-    def __call__(self):
-        self.load()
-
-    def load(self):
-        state = self._ckpt_loader.load()
+    def load(self, filepath):
+        state = super(ModelCheckpointLoader, self).load(filepath)
         if state is not None:
             self._model.load_state_dict(state)
 
-    def load_last(self):
-        state = self._ckpt_loader.load_last()
-        if state is not None:
-            self._model.load_state_dict(state)
-
-    def load_by(self, criterion):
-        state = self._ckpt_loader.load_by(criterion)
+    def load_by(self, pattern, key=None, reverse=True):
+        state = super(ModelCheckpointLoader, self).load_by(pattern,
+                                                           key=key,
+                                                           reverse=reverse)
         if state is not None:
             self._model.load_state_dict(state)
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, trainer, ckpt_loader):
-        super(TrainerCheckpointLoader, self).__init__(ckpt_loader._load_path,
-                                                      ckpt_loader._filename)
+    def __init__(self, trainer):
+        super(TrainerCheckpointLoader, self).__init__()
         self._trainer = trainer
-        self._ckpt_loader = ckpt_loader
 
-    def __call__(self):
-        self.load()
-
-    def load(self):
-        state = self._ckpt_loader.load()
+    def load(self, filepath):
+        state = super(TrainerCheckpointLoader, self).load(filepath)
         if state is not None:
             set_rng_state(state.pop('rng_state'))
             self._trainer.load_state_dict(state)
 
-    def load_last(self):
-        state = self._ckpt_loader.load_last()
-        if state is not None:
-            set_rng_state(state.pop('rng_state'))
-            self._trainer.load_state_dict(state)
-
-    def load_by(self, criterion):
-        state = self._ckpt_loader.load_by(criterion)
+    def load_by(self, pattern, key=None, reverse=True):
+        state = super(TrainerCheckpointLoader, self).load_by(pattern,
+                                                             key=key,
+                                                             reverse=reverse)
         if state is not None:
             set_rng_state(state.pop('rng_state'))
             self._trainer.load_state_dict(state)
