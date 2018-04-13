@@ -21,8 +21,9 @@ DETAILED_FORMAT = '%(asctime)s %(levelname)s %(name)s [%(pathname)s:%(lineno)d] 
 
 
 class TqdmStreamHandler(logging.StreamHandler):
-    """This handler wraps StreamHandler so that logging
+    """This handler uses tqdm.write to log so logging
         messages don't break the tqdm bar."""
+
     def __init__(self, level=logging.NOTSET):
         super(TqdmStreamHandler, self).__init__(level)
 
@@ -31,9 +32,7 @@ class TqdmStreamHandler(logging.StreamHandler):
             msg = self.format(record)
             tqdm.tqdm.write(msg)
             self.flush()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             self.handleError(record)
 
 
