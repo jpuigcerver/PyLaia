@@ -41,5 +41,4 @@ if __name__ == '__main__':
                        [0.0, 0.0, 0.2, 0.2, 0.2],
                        [True] * 5,
                        256, 5, 0.5, 0.5)
-    model = VggRnnFixedHeight(*hyperparameters)
     ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
