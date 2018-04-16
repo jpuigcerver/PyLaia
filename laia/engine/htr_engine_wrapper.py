@@ -155,7 +155,7 @@ class HtrEngineWrapper(object):
             fmt += ', VA Loss = {valid_loss.value[0]:.3e}'
             params['valid_loss'] = self.valid_loss()
 
-            fmt += ', TR CER = {train_cer.value:5.1%}'
+        fmt += ', TR CER = {train_cer.value:5.1%}'
         params['train_cer'] = self.train_cer()
         if self._va_engine:
             fmt += ', VA CER = {valid_cer.value:5.1%}'

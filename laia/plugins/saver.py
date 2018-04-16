@@ -1,168 +1,120 @@
 from __future__ import absolute_import
 
 import inspect
-import io
-import json
 import os
-from builtins import str
 from collections import deque
 
-import os.path as p
 import torch
 
+import laia
 from laia.logging import get_logger
 from laia.random import get_rng_state
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 _logger = get_logger(__name__)
 
 
 class Saver(object):
-    def __init__(self, save_path, filename):
-        assert not p.dirname(filename)
-        assert p.exists(save_path)
-        self._save_path = p.normpath(save_path)
-        self._filename = filename
-        self._path = p.join(self._save_path, self._filename)
+    def __call__(self, *args, **kwargs):
+        return self.save(*args, **kwargs)
 
-    @property
-    def path(self):
-        return self._path
+    def save(self, *args, **kwargs):
+        raise NotImplementedError
 
-    def save_binary(self, obj, path):
-        try:
-            torch.save(obj, path)
-            self._update_ledger(path)
-            return path
-        except FileNotFoundError:
-            _logger.info('Could not find the file {}', self.path)
-            return None
 
-    def _update_ledger(self, path):
-        ledger_path = p.join(self._save_path, '.ledger.json')
-        if os.path.isfile(ledger_path):
-            with io.open(ledger_path) as f:
-                ledger = json.load(f)
-        else:
-            ledger = {}
-        ledger[self._filename] = path
-        with io.open(ledger_path, 'w') as f:
-            f.write(str(json.dumps(ledger)))
+class BasicSaver(Saver):
+    def save(self, obj, filepath):
+        dirname = os.path.dirname(os.path.normpath(filepath))
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        torch.save(obj, filepath)
+        return filepath
 
 
 class ObjectSaver(Saver):
-    def __call__(self, func, *args, **kwargs):
-        return self.save(func, *args, **kwargs)
+    def __init__(self, filepath):
+        self._filepath = filepath
+        self._basic_saver = BasicSaver()
 
-    def save(self, func, *args, **kwargs):
-        return self.save_binary({
-            'module': inspect.getmodule(func).__name__,
-            'name': func.__name__,
+    def save(self, func_or_class, *args, **kwargs):
+        return self._basic_saver.save({
+            'module': inspect.getmodule(func_or_class).__name__,
+            'name': func_or_class.__name__,
             'args': args,
-            'kwargs': kwargs
-        }, self.path)
+            'kwargs': kwargs}, self._filepath)
 
 
 class ModelSaver(ObjectSaver):
     def __init__(self, save_path, filename='model'):
-        super(ModelSaver, self).__init__(save_path, filename)
+        super(ModelSaver, self).__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
-        try:
-            path = super(ModelSaver, self).save(func, *args, **kwargs)
-            _logger.debug('Saved model {}', path)
-            return path
-        except Exception as e:
-            _logger.error('Error while saving the model {}: {}', self.path, e)
-            return None
+        path = super(ModelSaver, self).save(func, *args, **kwargs)
+        _logger.debug('Saved model {}', path)
+        return path
 
 
 class TrainerSaver(ObjectSaver):
     def __init__(self, save_path, filename='trainer'):
-        super(TrainerSaver, self).__init__(save_path, filename)
+        super(TrainerSaver, self).__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
-        try:
-            path = super(TrainerSaver, self).save(func, *args, **kwargs)
-            _logger.debug('Saved trainer {}', path)
-            return path
-        except Exception as e:
-            _logger.error('Error while saving the trainer {}: {}', self.path, e)
-            return None
+        path = super(TrainerSaver, self).save(func, *args, **kwargs)
+        _logger.debug('Saved trainer {}', path)
+        return path
 
 
 class CheckpointSaver(Saver):
-    def __call__(self, state, suffix=None):
-        return self.save(state, suffix=suffix)
+    def __init__(self, filepath):
+        self._filepath = filepath
+        self._basic_saver = BasicSaver()
 
-    def _get_ckpt_path(self, suffix=None):
-        ckpt_file = '{}-{}'.format(self._filename,
-                                   suffix) if suffix else self._filename
-        return p.join(self._save_path, ckpt_file)
+    def get_ckpt(self, suffix):
+        ckpt_filepath = '{}-{}'.format(self._filepath, suffix) \
+            if suffix is not None else self._filepath
+        return ckpt_filepath
 
     def save(self, state, suffix=None):
-        path = self._get_ckpt_path(suffix=suffix)
-        try:
-            path = self.save_binary(state, path)
-            _logger.debug('Saved checkpoint {}', path)
-            return path
-        except Exception as e:
-            _logger.error('Error while saving the checkpoint {}: {}', path, e)
-            return None
+        path = self._basic_saver.save(state, self.get_ckpt(suffix))
+        _logger.debug('Saved checkpoint {}', path)
+        return path
 
 
 class ModelCheckpointSaver(Saver):
-    def __init__(self, model, ckpt_saver):
-        super(ModelCheckpointSaver, self).__init__(ckpt_saver._save_path,
-                                                   ckpt_saver._filename)
-        self._model = model
+    def __init__(self, ckpt_saver, model):
+        # type: (CheckpointSaver, torch.nn.Module) -> None
         self._ckpt_saver = ckpt_saver
-
-    def __call__(self, suffix=None):
-        return self._ckpt_saver.save(suffix=suffix)
+        self._model = model
 
     def save(self, suffix=None):
         return self._ckpt_saver.save(self._model.state_dict(), suffix=suffix)
 
 
 class TrainerCheckpointSaver(Saver):
-    def __init__(self, trainer, ckpt_saver):
-        super(TrainerCheckpointSaver, self).__init__(ckpt_saver._save_path,
-                                                     ckpt_saver._filename)
-        self._trainer = trainer
+    def __init__(self, ckpt_saver, trainer):
+        # type: (CheckpointSaver, laia.engine.Engine) -> None
         self._ckpt_saver = ckpt_saver
-
-    def __call__(self, suffix=None):
-        return self._ckpt_saver.save(suffix=suffix)
+        self._trainer = trainer
 
     def save(self, suffix=None):
         state = dict(rng_state=get_rng_state(), **self._trainer.state_dict())
         return self._ckpt_saver.save(state, suffix=suffix)
 
 
-class BackupSaver(object):
+class RollingSaver(Saver):
+    """Saver wrapper that keeps a maximum number of files"""
+
     def __init__(self, saver, keep=5):
+        # type: (Saver, int) -> None
         assert keep > 0
         self._saver = saver
         self._keep = keep
         self._last_saved = deque()
 
-    def __call__(self, suffix=None):
-        return self.save(suffix=suffix)
-
-    def save(self, suffix=None):
-        path = self._saver.save(suffix=suffix)
+    def save(self, *args, **kwargs):
+        path = self._saver.save(*args, **kwargs)
         if len(self._last_saved) >= self._keep:
             last = self._last_saved.popleft()
-            try:
-                os.remove(last)
-                _logger.debug('{} checkpoint removed', last)
-            except Exception as e:
-                _logger.error('Error while removing the checkpoint {}: {}',
-                              last, e)
+            os.remove(last)
+            _logger.debug('{} checkpoint removed', last)
         self._last_saved.append(path)
         return path
