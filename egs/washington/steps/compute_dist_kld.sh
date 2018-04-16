@@ -34,20 +34,15 @@ BEGIN{
     if (prob > 0) {
       print -log(prob);
       S += -log(prob);
+      N++;
     } else {
-      print PENALTY;
-      S += PENALTY;
       NE++;
     }
-    N++;
   }
 }END{
   for (pair in PR) {
     if (M[pair] == 0) {
-      print PENALTY;
-      S += PENALTY;
-      N++; NE++;
-      print pair > "/dev/stderr";
+      NE++;
     }
   }
   if (NE > 0) {

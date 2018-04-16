@@ -34,22 +34,17 @@ BEGIN{
   if (pair in PR) {
     M[pair] = 1;
     if ($3 == "-inf") {
-      print PENALTY;
-      S += PENALTY;
       NE++;
     } else {
       print -$3;
       S += -$3;
+      N++;
     }
-    N++;
   }
 }END{
   for (pair in PR) {
     if (M[pair] == 0) {
-      print PENALTY;
-      S += PENALTY;
-      N++; NE++;
-      print pair > "/dev/stderr";
+      NE++;
     }
   }
   if (NE > 0) {
