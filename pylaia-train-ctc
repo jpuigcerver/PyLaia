@@ -11,10 +11,11 @@ from laia.data import (ImageDataLoader, TextImageFromTextTableDataset,
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook, HookCollection, action
-from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
+from laia.hooks import Hook, HookCollection, action, Action, ActionCollection
+from laia.hooks.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
 from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.loader import (TrainerLoader, ModelLoader, TrainerCheckpointLoader, ModelCheckpointLoader)
+from laia.plugins.loader import (TrainerLoader, ModelLoader,
+                                 TrainerCheckpointLoader, ModelCheckpointLoader)
 from laia.plugins.saver import (TrainerSaver, CheckpointSaver, RollingSaver,
                                 ModelCheckpointSaver, TrainerCheckpointSaver)
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
@@ -27,6 +28,11 @@ if __name__ == '__main__':
     add_argument('img_dir', help='Directory containing word images')
     add_argument('tr_txt_table', help='Character transcriptions of each training image')
     add_argument('va_txt_table', help='Character transcriptions of each validation image')
+    add_argument('--delimiters', type=list, default=['<space>'],
+                 help='Sequence of characters representing the word delimiters')
+    add_argument('--max_nondecreasing_epochs', type=int,
+                 help='Stop the training once there has been this number '
+                      'consecutive epochs without a new lowest validation CER')
     args = args()
 
     syms = SymbolsTable(args.syms)
@@ -36,6 +42,8 @@ if __name__ == '__main__':
         log.error('Could not find the model. Have you run "pylaia-create-model"?')
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
+    log.info('Model has {} parameters', sum(param.data.numel()
+                                            for param in model.parameters()))
 
     trainer = TrainerLoader(args.save_path).load()
     if trainer is None:
@@ -92,18 +100,24 @@ if __name__ == '__main__':
                                              parent_feeder=ItemFeeder('img')))
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
+    # Set word delimiters to compute the WER
+    engine_wrapper.set_word_delimiters([syms[sym] for sym in args.delimiters])
 
 
     def ckpt_saver(filename):
         return CheckpointSaver(os.path.join(args.save_path, filename))
 
 
-    tr_saver_best = RollingSaver(
+    tr_saver_best_cer = RollingSaver(
         TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-cer'), trainer))
+    tr_saver_best_wer = RollingSaver(
+        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-wer'), trainer))
     tr_saver = RollingSaver(
         TrainerCheckpointSaver(ckpt_saver('trainer.ckpt'), trainer))
-    mo_saver_best = RollingSaver(
+    mo_saver_best_cer = RollingSaver(
         ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-cer'), model), keep=3)
+    mo_saver_best_wer = RollingSaver(
+        ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-wer'), model), keep=3)
     mo_saver = RollingSaver(
         ModelCheckpointSaver(ckpt_saver('model.ckpt'), model), keep=3)
 
@@ -117,13 +131,31 @@ if __name__ == '__main__':
 
     # Set hooks
     trainer.add_hook(ON_EPOCH_END, HookCollection(
-        Hook(Lowest(engine_wrapper.valid_cer()), save, saver=tr_saver_best),
-        Hook(Lowest(engine_wrapper.valid_cer()), save, saver=mo_saver_best),
-        Hook(MultipleOf(trainer.epochs, 5), save, saver=tr_saver),
-        Hook(MultipleOf(trainer.epochs, 5), save, saver=mo_saver)))
-    if args.max_epochs and args.max_epochs > 0:
+        # Save on best CER
+        Hook(Lowest(engine_wrapper.valid_cer()),
+             ActionCollection(Action(save, saver=tr_saver_best_cer),
+                              Action(save, saver=mo_saver_best_cer))),
+        # Save on best WER
+        Hook(Lowest(engine_wrapper.valid_wer()),
+             ActionCollection(Action(save, saver=tr_saver_best_wer),
+                              Action(save, saver=mo_saver_best_wer))),
+        # Save every 5 epochs
+        Hook(MultipleOf(trainer.epochs, 5),
+             ActionCollection(Action(save, saver=tr_saver),
+                              Action(save, saver=mo_saver)))))
+
+    if args.max_nondecreasing_epochs:
+        # Stop if the validation CER hasn't improved in n epochs
+        trainer.add_hook(ON_EPOCH_END,
+                         Hook(ConsecutiveNonDecreasing(engine_wrapper.valid_cer(),
+                                                       args.max_nondecreasing_epochs),
+                              trainer.stop))
+    if args.max_epochs:
+        # Stop if the number of epochs has been reached
         trainer.add_hook(ON_EPOCH_START,
-                         Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop))
+                         Hook(GEqThan(trainer.epochs,
+                                      args.max_epochs),
+                              trainer.stop))
 
     # Continue from last checkpoints with lowest valid cer, if possible
     TrainerCheckpointLoader(trainer).load_by(
