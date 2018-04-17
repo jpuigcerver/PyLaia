@@ -31,7 +31,7 @@ class SymbolsTable(object):
             f = io.open(f, 'w', encoding=encoding)
         max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
-            f.write('{:>{w}} {}'.format(s, v, w=max_len).encode(encoding))
+            f.write('{:>{w}} {}\n'.format(s, v, w=max_len).encode(encoding))
         f.close()
 
     def __len__(self):
