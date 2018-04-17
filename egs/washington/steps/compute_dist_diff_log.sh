@@ -24,16 +24,20 @@ BEGIN{
   }
 }{
   pair = $1" "$2;
-  if ($3 > 0) {
-    if ($3 > 1e-5) {
-      print "Wrong log-probability value at line " NR ": " $3 > "/dev/stderr";
+  M[pair] = 1; N++;
+  if ($3 == "-inf") {
+    print P[pair];
+    S += P[pair];
+  } else {
+    if ($3 > 0) {
+      if ($3 > 1e-5) {
+        print "Wrong log-probability value at line " NR ": " $3 > "/dev/stderr";
+      }
+      $3 = 0;
     }
-    $3 = 0;
+    print P[pair] - exp($3);
+    S += abs(P[pair] - exp($3));
   }
-  M[pair] = 1;
-  print P[pair] - exp($3);
-  S += abs(P[pair] - exp($3));
-  N++;
 }END{
   for (pair in P) {
     if (M[pair] == 0) {
@@ -42,6 +46,5 @@ BEGIN{
       N++;
     }
   }
-
   print "Mean Absolute Error = " S / N > "/dev/stderr";
 }' "$@";
