@@ -18,11 +18,9 @@ class SymbolsTable(object):
             f = io.open(f, 'r', encoding=encoding)
         self.clear()
         try:
-            for n, line in enumerate(f, 1):
-                line = line.split()
-                if len(line) != 0:
-                    s, v = line[0], int(line[1])
-                    self.add(s, v)
+            lines = [line.split() for line in f if len(line.split()) != 0]
+            for s, v in lines:
+                self.add(s, int(v))
         except Exception:
             raise
         finally:
@@ -31,9 +29,9 @@ class SymbolsTable(object):
     def save(self, f, encoding='utf8'):
         if isinstance(f, string_classes):
             f = io.open(f, 'w', encoding=encoding)
-        max_len = max([len(s) for s in self._sym2val])
+        max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
-            f.write(('%*s %d\n' % (max_len, s, v)).encode(encoding))
+            f.write('{:>{w}} {}'.format(s, v, w=max_len).encode(encoding))
         f.close()
 
     def __len__(self):
@@ -61,11 +59,11 @@ class SymbolsTable(object):
 
     def add(self, symbol, value):
         if not isinstance(symbol, string_classes):
-            raise KeyError(
-                'Symbol must be a string, but type %s was given' % type(symbol))
+            raise KeyError('Symbol must be a string, '
+                           'but type {} was given'.format(type(symbol)))
         if not isinstance(value, int):
-            raise KeyError(
-                'Value must be an integer, but type %s was given' % type(value))
+            raise KeyError('Value must be an integer, '
+                           'but type {} was given'.format(type(value)))
 
         old_val = self._sym2val.get(symbol, None)
         old_sym = self._val2sym.get(value, None)
@@ -76,10 +74,9 @@ class SymbolsTable(object):
             # Nothing changes, so just ignore the add() operation
             pass
         elif old_val is not None:
-            raise KeyError(
-                ('Symbol "%s" was already present in the table ('
-                 'assigned to value %d)') % (symbol, old_val))
+            raise KeyError('Symbol "{}" was already present in the table '
+                           '(assigned to value {})'.format(symbol, old_val))
         elif old_sym is not None:
-            raise KeyError(
-                ('Value "%d" was already present in the table ('
-                 'assigned to symbol "%s"') % (value, old_sym))
+            raise KeyError('Value "{}" was already present in the table '
+                           '(assigned to symbol "{}")'.format(value, old_sym))
+
