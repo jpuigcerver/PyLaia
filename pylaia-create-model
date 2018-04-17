@@ -39,6 +39,6 @@ if __name__ == '__main__':
                        [LeakyReLU] * 5,
                        [2, 2, 2, 0, 0],
                        [0.0, 0.0, 0.2, 0.2, 0.2],
-                       [True] * 5,
+                       [False] * 5,  # Batch normalization
                        256, 5, 0.5, 0.5)
     ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
