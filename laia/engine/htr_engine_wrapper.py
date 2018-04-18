@@ -165,8 +165,8 @@ class HtrEngineWrapper(object):
             fmt += ', TR WER = {train_wer.value:5.1%}'
             params['train_wer'] = self.train_wer()
             if self._va_engine:
-                fmt += ', VA CER = {valid_wer.value:5.1%}'
-                params['valid_wer'] = self.valid_cer()
+                fmt += ', VA WER = {valid_wer.value:5.1%}'
+                params['valid_wer'] = self.valid_wer()
 
         fmt += ', TR Time = {train_timer.value:.2f}s'
         params['train_timer'] = self.train_timer()
