@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import io
 import json
 import logging
+import sys
 
 try:
     import tqdm
@@ -30,7 +31,7 @@ class TqdmStreamHandler(logging.StreamHandler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            tqdm.tqdm.write(msg)
+            tqdm.tqdm.write(msg, file=sys.stderr)
             self.flush()
         except Exception:
             self.handleError(record)
