@@ -32,7 +32,7 @@ fn="$outdir/${cv}.fst";
 [ -s "$fn.ark" -a -s "$fn.scp" ] || {
   join -1 1 <(sort queries_$cv.lst) <(sort "$outdir/$cv.lat.scp") |
   lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
-		 ark:- "ark,scp:$fn.ark,$fn.scp";
+  		 scp:- "ark,scp:$fn.ark,$fn.scp";
 }
 
 # Get 1-best path
