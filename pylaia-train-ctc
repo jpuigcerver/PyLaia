@@ -59,11 +59,6 @@ if __name__ == '__main__':
         trainer = Trainer(**parameters)
         TrainerSaver(args.save_path).save(Trainer, **parameters)
 
-    evaluator = Evaluator(
-        model=model,
-        batch_target_fn=ItemFeeder('txt'),
-        progress_bar='Valid' if args.show_progress_bar else None)
-
     tr_ds = TextImageFromTextTableDataset(
         args.tr_txt_table, args.img_dir,
         img_transform=ImageToTensor(),
@@ -79,6 +74,13 @@ if __name__ == '__main__':
                                        args.samples_per_epoch)
                                    if args.samples_per_epoch else None)
 
+    # Set all these separately because they might change between executions
+    trainer.iterations_per_update = args.iterations_per_update
+    trainer.set_data_loader(tr_ds_loader)
+    trainer.set_batch_input_fn(ImageFeeder(device=args.gpu,
+                                           # keep_padded_tensors=False,
+                                           parent_feeder=ItemFeeder('img')))
+
     va_ds = TextImageFromTextTableDataset(
         args.va_txt_table, args.img_dir,
         img_transform=ImageToTensor(),
@@ -88,16 +90,13 @@ if __name__ == '__main__':
                                    batch_size=args.batch_size,
                                    num_workers=8)
 
-    # Set all these separately because they might change between executions
-    trainer.iterations_per_update = args.iterations_per_update
-    trainer.set_data_loader(tr_ds_loader)
-    trainer.set_batch_input_fn(ImageFeeder(device=args.gpu,
-                                           # keep_padded_tensors=False,
-                                           parent_feeder=ItemFeeder('img')))
-
-    evaluator.set_data_loader(va_ds_loader)
-    evaluator.set_batch_input_fn(ImageFeeder(device=args.gpu,
-                                             parent_feeder=ItemFeeder('img')))
+    evaluator = Evaluator(
+        model=model,
+        data_loader=va_ds_loader,
+        batch_input_fn=ImageFeeder(device=args.gpu,
+                                   parent_feeder=ItemFeeder('img')),
+        batch_target_fn=ItemFeeder('txt'),
+        progress_bar='Valid' if args.show_progress_bar else None)
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
     # Set word delimiters to compute the WER
@@ -158,9 +157,10 @@ if __name__ == '__main__':
                               trainer.stop))
 
     # Continue from last checkpoints with lowest valid cer, if possible
-    TrainerCheckpointLoader(trainer).load_by(
+    device = 'cuda:{}'.format(args.gpu - 1) if args.gpu else 'cpu'
+    TrainerCheckpointLoader(trainer, map_location=device).load_by(
         os.path.join(args.save_path, 'trainer.ckpt.lowest-valid-cer*'))
-    ModelCheckpointLoader(model).load_by(
+    ModelCheckpointLoader(model, map_location=device).load_by(
         os.path.join(args.save_path, 'model.ckpt.lowest-valid-cer*'))
 
     engine_wrapper.run()

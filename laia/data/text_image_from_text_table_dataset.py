@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 from os import listdir
+
 from os.path import isfile, join, splitext
+from torch._six import string_classes
 
 import laia.logging as log
 from laia.data.text_image_dataset import TextImageDataset
-from torch._six import string_classes
 
-_IMAGE_EXTENSIONS = ('.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp')
+_IMAGE_EXTENSIONS = '.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp'
 
 _logger = log.get_logger(__name__)
 
@@ -61,16 +62,12 @@ def _find_image_filename_from_id(img_id, img_dir, img_extensions):
 
 def _load_text_table_from_file(table_file):
     if isinstance(table_file, string_classes):
-        table_file = open(table_file, 'r')
-
-    for n, line in enumerate(table_file, 1):
-        line = line.split()
-        # Skip empty lines and lines starting with #
-        if len(line) == 0 or line[0][0] == '#':
-            continue
-        yield n, line[0], line[1:]
-
-    table_file.close()
+        with open(table_file, 'r') as f:
+            for n, line in enumerate((l.split() for l in f), 1):
+                # Skip empty lines and lines starting with #
+                if not len(line) or line[0].startswith('#'):
+                    continue
+                yield n, line[0], line[1:]
 
 
 def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
