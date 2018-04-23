@@ -18,7 +18,7 @@ class SymbolsTable(object):
             f = io.open(f, 'r', encoding=encoding)
         self.clear()
         try:
-            lines = [line.split() for line in f if len(line.split()) != 0]
+            lines = [line.split() for line in f if len(line.split())]
             for s, v in lines:
                 self.add(s, int(v))
         except Exception:

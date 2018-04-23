@@ -25,9 +25,9 @@ class Loader(object):
 
 
 class BasicLoader(Loader):
-    def load(self, filepath):
+    def load(self, filepath, map_location=None):
         try:
-            return torch.load(filepath)
+            return torch.load(filepath, map_location=map_location)
         except FileNotFoundError:
             _logger.info('Could not find the file {}', filepath)
         return None
@@ -74,11 +74,12 @@ class TrainerLoader(ObjectLoader):
 
 
 class CheckpointLoader(Loader):
-    def __init__(self):
+    def __init__(self, map_location=None):
+        self._map_location = map_location
         self._loader = BasicLoader()
 
     def load(self, filepath):
-        state = self._loader.load(filepath)
+        state = self._loader.load(filepath, map_location=self._map_location)
         if state is not None:
             _logger.info('Loaded checkpoint {}', filepath)
         return state
@@ -93,8 +94,8 @@ class CheckpointLoader(Loader):
 
 
 class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(self, model):
-        super(ModelCheckpointLoader, self).__init__()
+    def __init__(self, model, map_location=None):
+        super(ModelCheckpointLoader, self).__init__(map_location=map_location)
         self._model = model
 
     def load(self, filepath):
@@ -111,8 +112,8 @@ class ModelCheckpointLoader(CheckpointLoader):
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, trainer):
-        super(TrainerCheckpointLoader, self).__init__()
+    def __init__(self, trainer, map_location=None):
+        super(TrainerCheckpointLoader, self).__init__(map_location=map_location)
         self._trainer = trainer
 
     def load(self, filepath):
