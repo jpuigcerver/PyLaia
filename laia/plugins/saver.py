@@ -90,13 +90,15 @@ class ModelCheckpointSaver(Saver):
 
 
 class TrainerCheckpointSaver(Saver):
-    def __init__(self, ckpt_saver, trainer):
-        # type: (CheckpointSaver, laia.engine.Engine) -> None
+    def __init__(self, ckpt_saver, trainer, gpu=None):
+        # type: (CheckpointSaver, laia.engine.Engine, int) -> None
         self._ckpt_saver = ckpt_saver
         self._trainer = trainer
+        self._gpu = gpu
 
     def save(self, suffix=None):
-        state = dict(rng_state=get_rng_state(), **self._trainer.state_dict())
+        state = dict(rng_state=get_rng_state(gpu=self._gpu),
+                     **self._trainer.state_dict())
         return self._ckpt_saver.save(state, suffix=suffix)
 
 

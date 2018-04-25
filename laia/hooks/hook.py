@@ -26,9 +26,10 @@ class Hook(object):
 
     def state_dict(self):
         return {
-            'condition': self._condition.state_dict() if hasattr(self._condition, 'state_dict') else None,
-            'action': self._action.state_dict() if hasattr(self._action, 'state_dict') else None
-        }
+            'condition': self._condition.state_dict()
+            if hasattr(self._condition, 'state_dict') else None,
+            'action': self._action.state_dict()
+            if hasattr(self._action, 'state_dict') else None}
 
     def load_state_dict(self, state):
         if hasattr(self._condition, 'load_state_dict'):
@@ -47,3 +48,15 @@ class HookCollection(object):
 
     def __call__(self, *args, **kwargs):
         return any([h(*args, **kwargs) for h in self._hooks])
+
+    def state_dict(self):
+        return {'hooks': [hook.state_dict()
+                          if hasattr(hook, 'state_dict') else None
+                          for hook in self._hooks]}
+
+    def load_state_dict(self, state):
+        for i, hook in enumerate(self._hooks):
+            if i >= len(state):
+                break
+            if hasattr(hook, 'load_state_dict'):
+                hook.load_state_dict(state['hooks'][i])

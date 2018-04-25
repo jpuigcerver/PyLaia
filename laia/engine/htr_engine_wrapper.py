@@ -103,12 +103,14 @@ class HtrEngineWrapper(object):
         self._train_timer.reset()
         self._train_loss_meter.reset()
         self._train_cer_meter.reset()
+        self._train_wer_meter.reset()
 
     @action
     def _valid_reset_meters(self):
         self._valid_timer.reset()
         self._valid_loss_meter.reset()
         self._valid_cer_meter.reset()
+        self._valid_wer_meter.reset()
 
     @action
     def _train_update_meters(self, batch_loss, batch_output, batch_target):
@@ -145,38 +147,33 @@ class HtrEngineWrapper(object):
         self._valid_timer.stop()
 
     def _prepare_epoch_summary(self):
-        fmt = 'Epoch {epoch:4d}'
-        # Note: We cannot add the epochs here, sine trainer.epochs is a method.
-        params = {'epoch': None}
-
-        fmt += ', TR Loss = {train_loss.value[0]:.3e}'
-        params['train_loss'] = self.train_loss()
-        if self._va_engine:
-            fmt += ', VA Loss = {valid_loss.value[0]:.3e}'
-            params['valid_loss'] = self.valid_loss()
-
-        fmt += ', TR CER = {train_cer.value:5.1%}'
-        params['train_cer'] = self.train_cer()
-        if self._va_engine:
-            fmt += ', VA CER = {valid_cer.value:5.1%}'
-            params['valid_cer'] = self.valid_cer()
-
-        if self._word_delimiters is not None:
-            fmt += ', TR WER = {train_wer.value:5.1%}'
-            params['train_wer'] = self.train_wer()
-            if self._va_engine:
-                fmt += ', VA WER = {valid_wer.value:5.1%}'
-                params['valid_wer'] = self.valid_wer()
-
-        fmt += ', TR Time = {train_timer.value:.2f}s'
-        params['train_timer'] = self.train_timer()
-        if self._va_engine:
-            fmt += ', VA Time = {valid_timer.value:.2f}s'
-            params['valid_timer'] = self.valid_timer()
-
-        return fmt, params
+        valid = bool(self._va_engine)
+        wer = bool(self._word_delimiters)
+        fmt = [
+            'Epoch {epoch:4d}',
+            'TR Loss = {train_loss.value[0]:.3e}',
+            'VA Loss = {valid_loss.value[0]:.3e}' if valid else None,
+            'TR CER = {train_cer.value:5.1%}',
+            'VA CER = {valid_cer.value:5.1%}' if valid else None,
+            'TR WER = {train_wer.value:5.1%}' if wer else None,
+            'VA WER = {valid_wer.value:5.1%}' if wer and valid else None,
+            'TR Time = {train_timer.value:.2f}s',
+            'VA Time = {valid_timer.value:.2f}s' if valid else None]
+        params = {
+            # Note: We cannot add the epochs here, sine trainer.epochs is a method.
+            'epoch': None,
+            'train_loss': self.train_loss(),
+            'valid_loss': self.valid_loss() if valid else None,
+            'train_cer': self.train_cer(),
+            'valid_cer': self.valid_cer() if valid else None,
+            'train_wer': self.train_wer() if wer else None,
+            'valid_wer': self.valid_wer() if wer and valid else None,
+            'train_timer': self.train_timer(),
+            'valid_timer': self.valid_timer() if valid else None}
+        return [f for f in fmt if f is not None], \
+               {k: v for k, v in params.items() if v is not None}
 
     @action
     def _epoch_summary(self, epoch):
         self._summary_params['epoch'] = epoch
-        self.logger.info(self._summary_format, **self._summary_params)
+        self.logger.info(', '.join(self._summary_format), **self._summary_params)
