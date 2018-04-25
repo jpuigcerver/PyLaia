@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     syms = SymbolsTable(args.syms)
 
-    model = ModelLoader(args.save_path).load()
+    model = ModelLoader(args.save_path, gpu=args.gpu).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-create-model"?')
         exit(1)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     log.info('Model has {} parameters', sum(param.data.numel()
                                             for param in model.parameters()))
 
-    trainer = TrainerLoader(args.save_path).load()
+    trainer = TrainerLoader(args.save_path, gpu=args.gpu).load()
     if trainer is None:
         optimizer = RMSprop(model.parameters(),
                             lr=args.learning_rate,
@@ -108,17 +108,22 @@ if __name__ == '__main__':
 
 
     tr_saver_best_cer = RollingSaver(
-        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-cer'), trainer))
+        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-cer'),
+                               trainer, gpu=args.gpu), keep=2)
     tr_saver_best_wer = RollingSaver(
-        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-wer'), trainer))
+        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-wer'),
+                               trainer, gpu=args.gpu), keep=2)
     tr_saver = RollingSaver(
-        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt'), trainer))
+        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt'),
+                               trainer, gpu=args.gpu))
     mo_saver_best_cer = RollingSaver(
-        ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-cer'), model), keep=3)
+        ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-cer'),
+                             model), keep=2)
     mo_saver_best_wer = RollingSaver(
-        ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-wer'), model), keep=3)
+        ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-wer'),
+                             model), keep=2)
     mo_saver = RollingSaver(
-        ModelCheckpointSaver(ckpt_saver('model.ckpt'), model), keep=3)
+        ModelCheckpointSaver(ckpt_saver('model.ckpt'), model))
 
 
     @action
@@ -157,10 +162,9 @@ if __name__ == '__main__':
                               trainer.stop))
 
     # Continue from last checkpoints with lowest valid cer, if possible
-    device = 'cuda:{}'.format(args.gpu - 1) if args.gpu else 'cpu'
-    TrainerCheckpointLoader(trainer, map_location=device).load_by(
+    TrainerCheckpointLoader(trainer, gpu=args.gpu).load_by(
         os.path.join(args.save_path, 'trainer.ckpt.lowest-valid-cer*'))
-    ModelCheckpointLoader(model, map_location=device).load_by(
+    ModelCheckpointLoader(model, gpu=args.gpu).load_by(
         os.path.join(args.save_path, 'model.ckpt.lowest-valid-cer*'))
 
     engine_wrapper.run()

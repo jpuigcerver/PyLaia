@@ -110,7 +110,6 @@ class HtrKwsEngineWrapper(HtrEngineWrapper):
         self._nbest_decoder = CTCNBestPathDecoder(nbest)
         self._valid_ap_meter = NBestPairwiseAveragePrecisionMeter()
 
-
     @action
     def _valid_reset_meters(self):
         super(HtrKwsEngineWrapper, self)._valid_reset_meters()
@@ -125,11 +124,7 @@ class HtrKwsEngineWrapper(HtrEngineWrapper):
 
     def _prepare_epoch_summary(self):
         fmt, params = super(HtrKwsEngineWrapper, self)._prepare_epoch_summary()
-        fmt += ', VA gAP = {valid_ap.value[0]:5.1%}'
-        fmt += ', VA mAP = {valid_ap.value[1]:5.1%}'
+        fmt += ['VA gAP = {valid_ap.value[0]:5.1%}',
+                'VA mAP = {valid_ap.value[1]:5.1%}']
         params['valid_ap'] = self._valid_ap_meter
         return fmt, params
-
-
-
-

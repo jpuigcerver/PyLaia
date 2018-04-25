@@ -25,21 +25,23 @@ class Loader(object):
 
 
 class BasicLoader(Loader):
-    def load(self, filepath, map_location=None):
+    def load(self, filepath, gpu=None):
+        device = 'cuda:{}'.format(gpu - 1) if gpu else 'cpu'
         try:
-            return torch.load(filepath, map_location=map_location)
+            return torch.load(filepath, map_location=device)
         except FileNotFoundError:
             _logger.info('Could not find the file {}', filepath)
         return None
 
 
 class ObjectLoader(Loader):
-    def __init__(self, filepath):
+    def __init__(self, filepath, gpu=None):
         self._filepath = filepath
+        self._gpu = gpu
         self._loader = BasicLoader()
 
     def load(self):
-        obj = self._loader.load(self._filepath)
+        obj = self._loader.load(self._filepath, gpu=self._gpu)
         if obj is None:
             return None
         module = import_module(obj['module'])
@@ -50,9 +52,9 @@ class ObjectLoader(Loader):
 
 
 class ModelLoader(ObjectLoader):
-    def __init__(self, load_path, filename='model'):
+    def __init__(self, load_path, filename='model', gpu=None):
         self._path = os.path.join(load_path, filename)
-        super(ModelLoader, self).__init__(self._path)
+        super(ModelLoader, self).__init__(self._path, gpu=gpu)
 
     def load(self):
         model = super(ModelLoader, self).load()
@@ -62,9 +64,9 @@ class ModelLoader(ObjectLoader):
 
 
 class TrainerLoader(ObjectLoader):
-    def __init__(self, load_path, filename='trainer'):
+    def __init__(self, load_path, filename='trainer', gpu=None):
         self._path = os.path.join(load_path, filename)
-        super(TrainerLoader, self).__init__(self._path)
+        super(TrainerLoader, self).__init__(self._path, gpu=gpu)
 
     def load(self):
         trainer = super(TrainerLoader, self).load()
@@ -74,12 +76,12 @@ class TrainerLoader(ObjectLoader):
 
 
 class CheckpointLoader(Loader):
-    def __init__(self, map_location=None):
-        self._map_location = map_location
+    def __init__(self, gpu=None):
+        self._gpu = gpu
         self._loader = BasicLoader()
 
     def load(self, filepath):
-        state = self._loader.load(filepath, map_location=self._map_location)
+        state = self._loader.load(filepath, gpu=self._gpu)
         if state is not None:
             _logger.info('Loaded checkpoint {}', filepath)
         return state
@@ -94,8 +96,8 @@ class CheckpointLoader(Loader):
 
 
 class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(self, model, map_location=None):
-        super(ModelCheckpointLoader, self).__init__(map_location=map_location)
+    def __init__(self, model, gpu=None):
+        super(ModelCheckpointLoader, self).__init__(gpu=gpu)
         self._model = model
 
     def load(self, filepath):
@@ -112,14 +114,14 @@ class ModelCheckpointLoader(CheckpointLoader):
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, trainer, map_location=None):
-        super(TrainerCheckpointLoader, self).__init__(map_location=map_location)
+    def __init__(self, trainer, gpu=None):
+        super(TrainerCheckpointLoader, self).__init__(gpu=gpu)
         self._trainer = trainer
 
     def load(self, filepath):
         state = super(TrainerCheckpointLoader, self).load(filepath)
         if state is not None:
-            set_rng_state(state.pop('rng_state'))
+            set_rng_state(state.pop('rng_state'), self._gpu)
             self._trainer.load_state_dict(state)
 
     def load_by(self, pattern, key=None, reverse=True):

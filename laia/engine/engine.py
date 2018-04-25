@@ -215,9 +215,12 @@ class Engine(object):
     def load_state_dict(self, state):
         self._epochs = state['epochs']
         self._iterations = state['iterations']
+        'Note: The hooks must be in the same order as those in the saved state'
         for when, hooks in self._hooks.items():
             hook_states = state['hooks'][when]
             for i, hook in enumerate(hooks):
+                if i >= len(hook_states):
+                    break
                 if hasattr(hook, 'load_state_dict'):
                     hook.load_state_dict(hook_states[i])
 
