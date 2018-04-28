@@ -48,6 +48,18 @@ if [[ ( ! -s data/original/ascii/forms.txt ) ||
   rm data/original/ascii/ascii.tgz;
 fi;
 
+if [[ ( ! -s data/original/testset.txt ) ||
+      ( ! -s data/original/trainset.txt ) ||
+      ( ! -s data/original/validationset1.txt ) ||
+      ( ! -s data/original/validationset2.txt ) ||
+      ( ! -s data/original/LargeWriterIndependentTextLineRecognitionTask.txt )
+    ]]; then
+  download_url http://www.fki.inf.unibe.ch/DBs/iamDB/tasks/largeWriterIndependentTextLineRecognitionTask.zip data/original;
+  unzip data/original/largeWriterIndependentTextLineRecognitionTask.zip \
+    -d data/original;
+  rm data/original/largeWriterIndependentTextLineRecognitionTask.zip;
+fi;
+
 case "$1" in
   forms)
     mkdir -p data/original/forms;
