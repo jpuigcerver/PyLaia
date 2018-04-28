@@ -52,3 +52,16 @@ awk '{
   for (i=2; i<=length($1); ++i) printf(" %s", substr($1, i, 1));
   printf("\n");
 }' data/almazan/lang/word/stopwords.txt > data/almazan/lang/char/stopwords.txt;
+
+# Split into test, train and validation sets.
+for p in char word; do
+    for s in te tr va; do
+	[ -s data/almazan/lang/$p/$s.txt ] ||
+	awk -v SF=data/almazan/$s.txt 'BEGIN{
+          while((getline < SF) > 0) KEEP[$1] = 1;
+        }{
+          split($1, A, "/");
+          if (A[3] in KEEP) print;
+        }' data/almazan/lang/$p/all.txt > data/almazan/lang/$p/$s.txt;
+    done;
+done;
