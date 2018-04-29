@@ -2,26 +2,44 @@ from __future__ import absolute_import
 
 import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
+from functools import reduce
 
+"""
+from laia.decoders.ctc_lattice_generator import CTCLatticeGenerator
+
+import pywrapfst as fst
+"""
 
 class CTCNBestPathDecoder(object):
     """N-best path decoder based on CTC output.
 
     Examples:
-        >>> nbest_decoder = CTCNBestPathDecoder(4)
         >>> a = torch.Tensor([[[ 1.0, 3.0, -1.0, 0.0]], \
                               [[-1.0, 2.0, -2.0, 3.0]], \
                               [[ 1.0, 5.0,  9.0, 2.0]], \
                               [[-1.0,-2.0, -3.0,-4.0]]])
+        >>> nbest_decoder = CTCNBestPathDecoder(4, output_alignment=False)
+        >>> nbest_decoder(a)
+        [[(14.0, [1, 3, 2]), (13.0, [1, 3, 2, 1]), (13.0, [1, 2]), (12.0, [1, 3, 2])]]
+        >>> nbest_decoder = CTCNBestPathDecoder(4, output_alignment=True)
         >>> nbest_decoder(a)
         [[(14.0, [1, 3, 2, 0]), (13.0, [1, 3, 2, 1]), (13.0, [1, 1, 2, 0]), (12.0, [1, 3, 2, 2])]]
     """
-    def __init__(self, nbest):
+    def __init__(self, nbest, output_alignment=False):
         assert isinstance(nbest, int) and nbest > 0
         self._nbest = nbest
+        self._output_alignment = output_alignment
         self._output = None
 
     def __call__(self, x):
+        """
+        latgen = CTCLatticeGenerator(normalize=True)
+        lattices = latgen(x)
+        self._output = [fst.shortestpath(f, nshortest=self._nbest)
+                        for f in lattices]
+        return self._output
+        """
+
         # Shape x: T x N x D
         if isinstance(x, PackedSequence):
             x, xs = pad_packed_sequence(x)
@@ -48,9 +66,21 @@ class CTCNBestPathDecoder(object):
                 best_paths.sort(reverse=True)
                 best_paths = best_paths[:self._nbest]
 
+            if not self._output_alignment:
+                best_paths = [
+                    (lkh, reduce(lambda z, x: z if z[-1] == x else z + [x],
+                                 path[1:], [path[0]]))
+                    for lkh, path in best_paths
+                ]
+                best_paths = [
+                    (lkh, [x for x in path if x != 0])
+                    for lkh, path in best_paths
+                ]
+
             self._output.append(best_paths)
 
         return self._output
+
 
     @property
     def output(self):
