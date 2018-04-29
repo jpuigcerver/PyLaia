@@ -1,1 +1,1 @@
-../washington/steps/train_ctc.py
+../../../washington/steps/train_ctc.py
