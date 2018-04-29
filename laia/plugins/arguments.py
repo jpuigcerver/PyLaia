@@ -154,6 +154,13 @@ _default_args = {
             'help': 'Use this number of training examples randomly sampled '
                     'from the dataset in each epoch'
         }),
+    'valid_samples_per_epoch': (
+        ('--valid_samples_per_epoch',),
+        {
+            'type': NumberInClosedRange(type=int, vmin=1),
+            'help': 'Use this number of validation examples randomly sampled '
+                    'from the dataset in each epoch'
+        }),
     'iterations_per_update': (
         ('--iterations_per_update',),
         {
