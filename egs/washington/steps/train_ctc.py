@@ -11,20 +11,20 @@ from dortmund_utils import (build_ctc_model, build_ctc_model2,
                             DortmundImageToTensor, ModelCheckpointKeepLastSaver)
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
+from laia.engine.htr_engine_wrapper import HtrEngineWrapper
 from laia.engine.trainer import Trainer
 from laia.hooks import Hook, HookCollection
 from laia.hooks.conditions import Lowest, GEqThan
 from laia.plugins.arguments import add_argument, add_defaults, args
-from htr_kws_engine_wrapper import HtrKwsEngineWrapper
+
 
 logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
-                 'seed', 'save_path',
+                 'valid_samples_per_epoch', 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
-                 batch_size=1,
                  learning_rate=0.0001,
                  momentum=0.9,
                  iterations_per_update=10,
@@ -78,10 +78,15 @@ if __name__ == '__main__':
         args.va_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor(),
         txt_transform=laia.utils.TextToTensor(syms))
-    va_ds_loader = laia.data.ImageDataLoader(dataset=va_ds,
-                                             image_channels=1,
-                                             batch_size=args.batch_size,
-                                             num_workers=8)
+    if args.samples_per_epoch is None:
+        va_ds_loader = laia.data.ImageDataLoader(
+            va_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
+    else:
+        va_ds_loader = laia.data.ImageDataLoader(
+            va_ds, image_channels=1, batch_size=1, num_workers=8,
+            sampler=laia.data.FixedSizeSampler(va_ds,
+                                               args.valid_samples_per_epoch))
+
 
     if args.train_laia:
         model = build_ctc_model2(
@@ -128,7 +133,7 @@ if __name__ == '__main__':
         batch_target_fn=ItemFeeder('txt'),
         progress_bar='Valid' if args.show_progress_bar else False)
 
-    engine_wrapper = HtrKwsEngineWrapper(trainer, evaluator)
+    engine_wrapper = HtrEngineWrapper(trainer, evaluator)
     engine_wrapper.set_word_delimiters([])
 
     lowest_cer_saver = ModelCheckpointKeepLastSaver(
@@ -143,7 +148,7 @@ if __name__ == '__main__':
         Hook(Lowest(engine_wrapper.valid_cer(), name='Lowest CER'),
              lowest_cer_saver),
         Hook(Lowest(engine_wrapper.valid_wer(), name='Lowest WER'),
-             lowest_cer_saver)))
+             lowest_wer_saver)))
     if args.max_epochs and args.max_epochs > 0:
         trainer.add_hook(ON_EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),

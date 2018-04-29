@@ -30,14 +30,14 @@ def build_conv_model():
         # conv1_2
         ('conv1_2', torch.nn.Conv2d(64, 64, kernel_size=3, padding=1)),
         ('relu1_2', torch.nn.ReLU(inplace=True)),
-        ('maxpool1', torch.nn.MaxPool2d(2)),
+        ('maxpool1', torch.nn.MaxPool2d(2, ceil_mode=True)),
         # conv2_1
         ('conv2_1', torch.nn.Conv2d(64, 128, kernel_size=3, padding=1)),
         ('relu2_1', torch.nn.ReLU(inplace=True)),
         # conv2_2
         ('conv2_2', torch.nn.Conv2d(128, 128, kernel_size=3, padding=1)),
         ('relu2_2', torch.nn.ReLU(inplace=True)),
-        ('maxpool2', torch.nn.MaxPool2d(2)),
+        ('maxpool2', torch.nn.MaxPool2d(2, ceil_mode=True)),
         # conv3_1
         ('conv3_1', torch.nn.Conv2d(128, 256, kernel_size=3, padding=1)),
         ('relu3_1', torch.nn.ReLU(inplace=True)),
