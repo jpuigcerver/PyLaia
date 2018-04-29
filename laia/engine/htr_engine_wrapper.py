@@ -87,7 +87,7 @@ class HtrEngineWrapper(object):
         return self._train_wer_meter
 
     def valid_wer(self):
-        return self._valid_cer_meter
+        return self._valid_wer_meter
 
     def run(self):
         self._summary_format, self._summary_params = \
