@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import torch
 
 import laia.logging as log
-from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
+from laia.engine.engine import EPOCH_START, ITER_END, EPOCH_END
 from laia.engine.feeders import (ImageFeeder, ItemFeeder, PHOCFeeder,
                                  VariableFeeder)
 from laia.hooks import action
@@ -17,7 +17,10 @@ class PHOCEngineWrapper(object):
     r"""Engine wrapper to perform KWS experiments with PHOC networks."""
 
     def __init__(self, symbols_table, phoc_levels, train_engine,
-                 valid_engine=None, gpu=0):
+                 valid_engine=None,
+                 check_va_hook_when=EPOCH_END,
+                 va_hook_condition=None,
+                 gpu=0):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
@@ -42,8 +45,8 @@ class PHOCEngineWrapper(object):
         self._train_timer = TimeMeter()
         self._train_loss_meter = RunningAverageMeter()
 
-        self._tr_engine.add_hook(ON_EPOCH_START, self._train_reset_meters)
-        self._tr_engine.add_hook(ON_BATCH_END, self._train_accumulate_loss)
+        self._tr_engine.add_hook(EPOCH_START, self._train_reset_meters)
+        self._tr_engine.add_hook(ITER_END, self._train_accumulate_loss)
 
         if valid_engine:
             # Set batch_input_fn and batch_target_fn if not already set.
@@ -57,16 +60,18 @@ class PHOCEngineWrapper(object):
             self._valid_ap_meter = PairwiseAveragePrecisionMeter(
                 metric='braycurtis', ignore_singleton=True)
 
-            self._va_engine.add_hook(ON_EPOCH_START, self._valid_reset_meters)
-            self._va_engine.add_hook(ON_BATCH_END, self._valid_accumulate_loss)
-            self._va_engine.add_hook(ON_EPOCH_END, self._report_epoch_train_and_valid)
-            # Add evaluator to the trainer engine
-            self._tr_engine.add_evaluator(self._va_engine)
+            self._va_engine.add_hook(EPOCH_START, self._valid_reset_meters)
+            self._va_engine.add_hook(ITER_END, self._valid_accumulate_loss)
+            self._va_engine.add_hook(EPOCH_END, self._report_epoch_train_and_valid)
+
+            self._tr_engine.add_evaluator(self._va_engine,
+                                          when=check_va_hook_when,
+                                          condition=va_hook_condition)
         else:
             self._valid_timer = None
             self._valid_loss_meter = None
             self._valid_ap_meter = None
-            self._tr_engine.add_hook(ON_EPOCH_END, self._report_epoch_train_only)
+            self._tr_engine.add_hook(EPOCH_END, self._report_epoch_train_only)
 
     def train_timer(self):
         return self._train_timer
@@ -92,12 +97,12 @@ class PHOCEngineWrapper(object):
         return _logger
 
     @action
-    def _train_reset_meters(self, **_):
+    def _train_reset_meters(self):
         self._train_timer.reset()
         self._train_loss_meter.reset()
 
     @action
-    def _valid_reset_meters(self, **_):
+    def _valid_reset_meters(self):
         self._valid_timer.reset()
         self._valid_loss_meter.reset()
         self._valid_ap_meter.reset()

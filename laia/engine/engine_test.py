@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import unittest
 
 from laia.engine.engine import (Engine,
-                                ON_BATCH_START, ON_EPOCH_START,
-                                ON_BATCH_END, ON_EPOCH_END)
+                                EPOCH_START, EPOCH_END,
+                                ITER_START, ITER_END)
 from laia.hooks import action
 
 
@@ -42,7 +42,7 @@ class EngineTest(unittest.TestCase):
         counters = [0, 0, 0, 0]
 
         @action
-        def on_batch_start():
+        def on_iter_start():
             counters[0] += 1
 
         @action
@@ -50,7 +50,7 @@ class EngineTest(unittest.TestCase):
             counters[1] += 1
 
         @action
-        def on_batch_end():
+        def on_iter_end():
             counters[2] += 1
 
         @action
@@ -58,10 +58,10 @@ class EngineTest(unittest.TestCase):
             counters[3] += 1
 
         engine = Engine(model=lambda x: x, data_loader=[1, 2])
-        engine.add_hook(ON_BATCH_START, on_batch_start)
-        engine.add_hook(ON_EPOCH_START, on_epoch_start)
-        engine.add_hook(ON_BATCH_END, on_batch_end)
-        engine.add_hook(ON_EPOCH_END, on_epoch_end)
+        engine.add_hook(ITER_START, on_iter_start)
+        engine.add_hook(EPOCH_START, on_epoch_start)
+        engine.add_hook(ITER_END, on_iter_end)
+        engine.add_hook(EPOCH_END, on_epoch_end)
         engine.run()
         engine.run()
         # Check the number of calls to each function

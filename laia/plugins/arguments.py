@@ -147,8 +147,8 @@ _default_args = {
             'help': 'Use this number of epochs to compute the standard '
                     'deviation of the training loss (must be >= 2)'
         }),
-    'samples_per_epoch': (
-        ('--samples_per_epoch',),
+    'train_samples_per_epoch': (
+        ('--train_samples_per_epoch',),
         {
             'type': NumberInClosedRange(type=int, vmin=1),
             'help': 'Use this number of training examples randomly sampled '
