@@ -148,7 +148,7 @@ class HtrEngineWrapper(object):
 
     def _prepare_epoch_summary(self):
         valid = bool(self._va_engine)
-        wer = bool(self._word_delimiters)
+        wer = (not self._word_delimiters is None)
         fmt = [
             'Epoch {epoch:4d}',
             'TR Loss = {train_loss.value[0]:.3e}',
