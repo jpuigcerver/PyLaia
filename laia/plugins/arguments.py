@@ -236,7 +236,8 @@ def _get_parser():
     global _parser
     if not _parser:
         _parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            conflict_handler='resolve')
         add_defaults('logging_also_to_stderr', 'logging_config', 'logging_file',
                      'logging_level', 'logging_overwrite', 'print_args')
     return _parser

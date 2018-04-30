@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     model = ModelLoader(args.save_path, gpu=args.gpu).load()
     if model is None:
-        log.error('Could not find the model. Have you run "pylaia-create-model"?')
+        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
     log.info('Model has {} parameters', sum(param.data.numel()
@@ -108,14 +108,14 @@ if __name__ == '__main__':
 
 
     tr_saver_best_cer = RollingSaver(
-        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-cer'),
-                               trainer, gpu=args.gpu), keep=2)
+        TrainerCheckpointSaver(ckpt_saver('engine-wrapper.ckpt.lowest-valid-cer'),
+                               engine_wrapper, gpu=args.gpu), keep=2)
     tr_saver_best_wer = RollingSaver(
-        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt.lowest-valid-wer'),
-                               trainer, gpu=args.gpu), keep=2)
+        TrainerCheckpointSaver(ckpt_saver('engine-wrapper.ckpt.lowest-valid-wer'),
+                               engine_wrapper, gpu=args.gpu), keep=2)
     tr_saver = RollingSaver(
-        TrainerCheckpointSaver(ckpt_saver('trainer.ckpt'),
-                               trainer, gpu=args.gpu))
+        TrainerCheckpointSaver(ckpt_saver('engine-wrapper.ckpt'),
+                               engine_wrapper, gpu=args.gpu))
     mo_saver_best_cer = RollingSaver(
         ModelCheckpointSaver(ckpt_saver('model.ckpt.lowest-valid-cer'),
                              model), keep=2)
@@ -162,8 +162,8 @@ if __name__ == '__main__':
                               trainer.stop))
 
     # Continue from last checkpoints with lowest valid cer, if possible
-    TrainerCheckpointLoader(trainer, gpu=args.gpu).load_by(
-        os.path.join(args.save_path, 'trainer.ckpt.lowest-valid-cer*'))
+    TrainerCheckpointLoader(engine_wrapper, gpu=args.gpu).load_by(
+        os.path.join(args.save_path, 'engine-wrapper.ckpt.lowest-valid-cer*'))
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
         os.path.join(args.save_path, 'model.ckpt.lowest-valid-cer*'))
 
