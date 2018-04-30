@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+import os
+from builtins import str
+
+import laia.logging as log
+from laia.data import ImageDataLoader, ImageFromListDataset
+from laia.decoders import CTCGreedyDecoder
+from laia.engine.feeders import ImageFeeder, ItemFeeder
+from laia.plugins.arguments import add_argument, args, add_defaults
+from laia.plugins.arguments_types import str2bool
+from laia.plugins.loader import ModelLoader, ModelCheckpointLoader
+from laia.utils import SymbolsTable, ImageToTensor
+
+if __name__ == '__main__':
+    add_defaults('batch_size', 'gpu', 'save_path',
+                 logging_level='WARNING')
+    add_argument('syms', help='Symbols table mapping from strings to integers')
+    add_argument('img_dir', help='Directory containing word images')
+    add_argument('img_list', help='File or list containing images to decode')
+    add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*')
+    add_argument('--use_letters', type=str2bool, nargs='?', const=True, default=False,
+                 help='Print output with letters')
+    add_argument('--space', type=str,
+                 help='Replace <space> with this. Used with --use_letters')
+    add_argument('--join_str', type=str,
+                 help='Join the output using this. Used with --use_letters')
+    args = args()
+
+    syms = SymbolsTable(args.syms)
+
+    model = ModelLoader(args.save_path, gpu=args.gpu).load()
+    if model is None:
+        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
+        exit(1)
+    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
+
+    ModelCheckpointLoader(model, gpu=args.gpu).load_by(
+        os.path.join(args.save_path, args.checkpoint))
+
+    te_ds = ImageFromListDataset(args.img_list, img_dir=args.img_dir,
+                                 img_transform=ImageToTensor())
+    te_ds_loader = ImageDataLoader(dataset=te_ds,
+                                   image_channels=1,
+                                   batch_size=args.batch_size,
+                                   num_workers=8)
+    batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder('img'))
+
+    decoder = CTCGreedyDecoder()
+    for batch in te_ds_loader:
+        batch_input = batch_input_fn(batch)
+        batch_output = model(batch_input)
+        batch_decode = decoder(batch_output)
+        for out in batch_decode:
+            if args.use_letters:
+                out = [str(syms[val]) for val in out]
+                if args.space:
+                    out = [args.space if sym == '<space>' else sym
+                           for sym in out]
+                if args.join_str is not None:
+                    out = args.join_str.join(out)
+            print(out)
