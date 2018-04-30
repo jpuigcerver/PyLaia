@@ -34,28 +34,28 @@ class HtrEngineWrapper(object):
 
         self._ctc_decoder = CTCGreedyDecoder()
         self._train_timer = TimeMeter()
-        self._train_loss_meter = RunningAverageMeter()
-        self._train_cer_meter = SequenceErrorMeter()
-        self._train_wer_meter = SequenceErrorMeter()
+        self._train_loss = RunningAverageMeter()
+        self._train_cer = SequenceErrorMeter()
+        self._train_wer = SequenceErrorMeter()
 
         self._tr_engine.add_hook(ON_EPOCH_START, self._train_reset_meters)
         self._tr_engine.add_hook(ON_BATCH_END, self._train_update_meters)
 
         if valid_engine:
             self._valid_timer = TimeMeter()
-            self._valid_loss_meter = RunningAverageMeter()
-            self._valid_cer_meter = SequenceErrorMeter()
-            self._valid_wer_meter = SequenceErrorMeter()
+            self._valid_loss = RunningAverageMeter()
+            self._valid_cer = SequenceErrorMeter()
+            self._valid_wer = SequenceErrorMeter()
 
             self._va_engine.add_hook(ON_EPOCH_START, self._valid_reset_meters)
             self._va_engine.add_hook(ON_BATCH_END, self._valid_update_meters)
 
-            # Add evaluator to the trainer engine
             self._tr_engine.add_evaluator(self._va_engine)
         else:
             self._valid_timer = None
-            self._valid_loss_meter = None
-            self._valid_cer_meter = None
+            self._valid_loss = None
+            self._valid_cer = None
+            self._valid_wer = None
 
         self._summary_format = None
         self._summary_params = None
@@ -72,22 +72,22 @@ class HtrEngineWrapper(object):
         return self._valid_timer
 
     def train_loss(self):
-        return self._train_loss_meter
+        return self._train_loss
 
     def valid_loss(self):
-        return self._valid_loss_meter
+        return self._valid_loss
 
     def train_cer(self):
-        return self._train_cer_meter
+        return self._train_cer
 
     def valid_cer(self):
-        return self._valid_cer_meter
+        return self._valid_cer
 
     def train_wer(self):
-        return self._train_wer_meter
+        return self._train_wer
 
     def valid_wer(self):
-        return self._valid_wer_meter
+        return self._valid_wer
 
     def run(self):
         self._summary_format, self._summary_params = \
@@ -101,30 +101,30 @@ class HtrEngineWrapper(object):
     @action
     def _train_reset_meters(self):
         self._train_timer.reset()
-        self._train_loss_meter.reset()
-        self._train_cer_meter.reset()
-        self._train_wer_meter.reset()
+        self._train_loss.reset()
+        self._train_cer.reset()
+        self._train_wer.reset()
 
     @action
     def _valid_reset_meters(self):
         self._valid_timer.reset()
-        self._valid_loss_meter.reset()
-        self._valid_cer_meter.reset()
-        self._valid_wer_meter.reset()
+        self._valid_loss.reset()
+        self._valid_cer.reset()
+        self._valid_wer.reset()
 
     @action
     def _train_update_meters(self, batch_loss, batch_output, batch_target):
-        self._train_loss_meter.add(batch_loss)
+        self._train_loss.add(batch_loss)
         # Compute character error rate
         batch_decode = self._ctc_decoder(batch_output)
-        self._train_cer_meter.add(batch_target, batch_decode)
+        self._train_cer.add(batch_target, batch_decode)
         # Compute word error rate, if word delimiters are given
         if self._word_delimiters is not None:
             decode_words = batch_char_to_word_seq(batch_decode,
                                                   self._word_delimiters)
             target_words = batch_char_to_word_seq(batch_target,
                                                   self._word_delimiters)
-            self._train_wer_meter.add(target_words, decode_words)
+            self._train_wer.add(target_words, decode_words)
         # Note: Stop training timer to avoid including extra costs
         # (e.g. the validation epoch)
         self._train_timer.stop()
@@ -132,17 +132,17 @@ class HtrEngineWrapper(object):
     @action
     def _valid_update_meters(self, batch_output, batch_target):
         batch_loss = self._tr_engine.criterion(batch_output, batch_target)
-        self._valid_loss_meter.add(batch_loss)
+        self._valid_loss.add(batch_loss)
         # Compute character error rate
         batch_decode = self._ctc_decoder(batch_output)
-        self._valid_cer_meter.add(batch_target, batch_decode)
+        self._valid_cer.add(batch_target, batch_decode)
         # Compute word error rate, if word delimiters are given
         if self._word_delimiters is not None:
             decode_words = batch_char_to_word_seq(batch_decode,
                                                   self._word_delimiters)
             target_words = batch_char_to_word_seq(batch_target,
                                                   self._word_delimiters)
-            self._valid_wer_meter.add(target_words, decode_words)
+            self._valid_wer.add(target_words, decode_words)
         # Note: Stop timer to avoid including extra costs
         self._valid_timer.stop()
 
@@ -162,14 +162,14 @@ class HtrEngineWrapper(object):
         params = {
             # Note: We cannot add the epochs here, sine trainer.epochs is a method.
             'epoch': None,
-            'train_loss': self.train_loss(),
-            'valid_loss': self.valid_loss() if valid else None,
-            'train_cer': self.train_cer(),
-            'valid_cer': self.valid_cer() if valid else None,
-            'train_wer': self.train_wer() if wer else None,
-            'valid_wer': self.valid_wer() if wer and valid else None,
-            'train_timer': self.train_timer(),
-            'valid_timer': self.valid_timer() if valid else None}
+            'train_loss': self._train_loss,
+            'valid_loss': self._valid_loss if valid else None,
+            'train_cer': self._train_cer,
+            'valid_cer': self._valid_cer if valid else None,
+            'train_wer': self._train_wer if wer else None,
+            'valid_wer': self._valid_wer if wer and valid else None,
+            'train_timer': self._train_timer,
+            'valid_timer': self._valid_timer if valid else None}
         return [f for f in fmt if f is not None], \
                {k: v for k, v in params.items() if v is not None}
 
@@ -177,3 +177,30 @@ class HtrEngineWrapper(object):
     def _epoch_summary(self, epoch):
         self._summary_params['epoch'] = epoch
         self.logger.info(', '.join(self._summary_format), **self._summary_params)
+
+    def state_dict(self):
+        return {
+            'trainer_state': self._tr_engine.state_dict(),
+            'train_loss': self._train_loss.state_dict(),
+            'valid_loss': self._valid_loss.state_dict()
+            if hasattr(self._valid_loss, 'state_dict') else None,
+            'train_cer': self._train_cer.state_dict(),
+            'valid_cer': self._valid_cer.state_dict()
+            if hasattr(self._valid_cer, 'state_dict') else None,
+            'train_wer': self._train_wer.state_dict(),
+            'valid_wer': self._valid_wer.state_dict()
+            if hasattr(self._valid_wer, 'state_dict') else None}
+
+    def load_state_dict(self, state):
+        if state is None:
+            return
+        self._tr_engine.load_state_dict(state['trainer_state'])
+        self._train_loss.load_state_dict(state['train_loss'])
+        if hasattr(self._valid_loss, 'load_state_dict'):
+            self._valid_loss.load_state_dict(state['valid_loss'])
+        self._train_cer.load_state_dict(state['train_cer'])
+        if hasattr(self._valid_cer, 'load_state_dict'):
+            self._valid_cer.load_state_dict(state['valid_cer'])
+        self._train_wer.load_state_dict(state['train_wer'])
+        if hasattr(self._valid_wer, 'load_state_dict'):
+            self._valid_wer.load_state_dict(state['valid_wer'])

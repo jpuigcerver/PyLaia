@@ -76,3 +76,18 @@ class RunningAverageMeter(Meter):
         # Note: The max is to avoid precision issues.
         var = max(0.0, float(self._s2) / float(self._n) - avg * avg)
         return avg, math.sqrt(var)
+
+    def state_dict(self):
+        return {
+            'meter_state': super(RunningAverageMeter, self).state_dict(),
+            'n': self._n,
+            's': self._s,
+            's2': self._s2}
+
+    def load_state_dict(self, state):
+        if state is None:
+            return
+        super(RunningAverageMeter, self).load_state_dict(state['meter_state'])
+        self._n = state['n']
+        self._s = state['s']
+        self._s2 = state['s2']

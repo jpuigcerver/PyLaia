@@ -91,7 +91,6 @@ class ModelCheckpointSaver(Saver):
 
 class TrainerCheckpointSaver(Saver):
     def __init__(self, ckpt_saver, trainer, gpu=None):
-        # type: (CheckpointSaver, laia.engine.Engine, int) -> None
         self._ckpt_saver = ckpt_saver
         self._trainer = trainer
         self._gpu = gpu
