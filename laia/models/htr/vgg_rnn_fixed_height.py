@@ -73,6 +73,7 @@ class VggRnnFixedHeight(nn.Module):
             x = F.dropout(x, self._rnn_dropout, training=self.training)
         if is_padded:
             x = pack_padded_sequence(x, list(xs.data[:, 1]))
+        self._rnn.flatten_parameters()
         x, _ = self._rnn(x)
         # Output linear layer
         if is_padded:

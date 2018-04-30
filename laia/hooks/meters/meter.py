@@ -54,3 +54,9 @@ class Meter(object):
                     '({} exceptions like this occurred so far)',
                     self._exceptions)
         return value
+
+    def state_dict(self):
+        return {'exceptions': self._exceptions}
+
+    def load_state_dict(self, state):
+        self._exceptions = state['exceptions']
