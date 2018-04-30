@@ -9,7 +9,7 @@ import torch
 import laia.utils
 from dortmund_utils import (build_ctc_model, build_ctc_model2,
                             DortmundImageToTensor, ModelCheckpointKeepLastSaver)
-from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
+from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.engine.htr_engine_wrapper import HtrEngineWrapper
 from laia.engine.trainer import Trainer
@@ -21,7 +21,7 @@ from laia.plugins.arguments import add_argument, add_defaults, args
 logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
 
 if __name__ == '__main__':
-    add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
+    add_defaults('gpu', 'max_epochs', 'max_updates', 'train_samples_per_epoch',
                  'valid_samples_per_epoch', 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
@@ -64,21 +64,21 @@ if __name__ == '__main__':
         args.tr_txt_table, args.tr_img_dir,
         img_transform=tr_img_transform,
         txt_transform=laia.utils.TextToTensor(syms))
-    if args.samples_per_epoch is None:
+    if args.train_samples_per_epoch is None:
         tr_ds_loader = laia.data.ImageDataLoader(
             tr_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
     else:
         tr_ds_loader = laia.data.ImageDataLoader(
             tr_ds, image_channels=1, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
-                                               args.samples_per_epoch))
+                                               args.train_samples_per_epoch))
 
     # Validation data
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor(),
         txt_transform=laia.utils.TextToTensor(syms))
-    if args.samples_per_epoch is None:
+    if args.valid_samples_per_epoch is None:
         va_ds_loader = laia.data.ImageDataLoader(
             va_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
     else:
@@ -144,13 +144,13 @@ if __name__ == '__main__':
         os.path.join(args.save_path, 'model.ckpt-lowest-valid-wer'))
 
     # Set hooks
-    trainer.add_hook(ON_EPOCH_END, HookCollection(
+    trainer.add_hook(EPOCH_END, HookCollection(
         Hook(Lowest(engine_wrapper.valid_cer(), name='Lowest CER'),
              lowest_cer_saver),
         Hook(Lowest(engine_wrapper.valid_wer(), name='Lowest WER'),
              lowest_wer_saver)))
     if args.max_epochs and args.max_epochs > 0:
-        trainer.add_hook(ON_EPOCH_START,
+        trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
                               trainer.stop))
 
