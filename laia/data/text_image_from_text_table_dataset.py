@@ -8,14 +8,14 @@ from torch._six import string_classes
 import laia.logging as log
 from laia.data.text_image_dataset import TextImageDataset
 
-_IMAGE_EXTENSIONS = '.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp'
+IMAGE_EXTENSIONS = '.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp'
 
 _logger = log.get_logger(__name__)
 
 
 class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(self, txt_table, imgs_dir, img_transform=None,
-                 txt_transform=None, img_extensions=_IMAGE_EXTENSIONS):
+                 txt_transform=None, img_extensions=IMAGE_EXTENSIONS):
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
@@ -50,13 +50,13 @@ def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
     return valid_image_filenames
 
 
-def _find_image_filename_from_id(img_id, img_dir, img_extensions):
-    img_extensions = set(img_extensions)
-    for ext in img_extensions:
-        for ext in [ext.lower(), ext.upper()]:
-            fname = join(img_dir, img_id + ext)
-            if isfile(fname):
-                return fname
+def find_image_filename_from_id(img_id, img_dir, img_extensions):
+    extensions = set(ext.lower() for ext in img_extensions)
+    extensions.update(ext.upper() for ext in img_extensions)
+    for ext in extensions:
+        fname = join(img_dir, img_id if img_id.endswith(ext) else img_id + ext)
+        if isfile(fname):
+            return fname
     return None
 
 
@@ -73,7 +73,7 @@ def _load_text_table_from_file(table_file):
 def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
     ids, imgs, txts = [], [], []
     for _, imgid, txt in _load_text_table_from_file(table_file):
-        fname = _find_image_filename_from_id(imgid, imgs_dir, img_extensions)
+        fname = find_image_filename_from_id(imgid, imgs_dir, img_extensions)
         if fname is None:
             _logger.warning('No image file was found in folder "{}" for image '
                             'ID "{}", ignoring example...', imgs_dir, imgid)
