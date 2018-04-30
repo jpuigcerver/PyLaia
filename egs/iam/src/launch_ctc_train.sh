@@ -41,7 +41,7 @@ fi;
 # This allows to get stats as frequently as in the Washington experiment
 # while making and comparable with the IAM setting of the PHOCNet paper.
 python ./src/python/train_ctc.py \
-       --max_epochs=658 \
+       --max_epochs=660 \
        --samples_per_epoch=3645 \
        --valid_samples_per_epoch=1215 \
        --logging_also_to_stderr=INFO \
