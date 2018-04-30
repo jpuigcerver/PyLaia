@@ -30,7 +30,7 @@ function download_url () {
   [ -z "$iam_user" -o -z "$iam_pass" ] && \
     echo "Please, use the --iam_user and --iam_pass options to download" \
 	 "the database from the IAM servers." >&2 && return 1;
-  wget -P "$2" --user="$iam_user" --password="$iam_pass" $listopt "$1" ||
+  wget -N -P "$2" --user="$iam_user" --password="$iam_pass" $listopt "$1" ||
   { echo "ERROR: Failed downloading $1!" >&2 && return 1; }
   return 0;
 }
@@ -105,8 +105,29 @@ case "$1" in
       [ -s data/original/words/words.tgz ] ||
       download_url "$url" data/original/words;
       tar zxf data/original/words/words.tgz -C data/original/words;
+      rm data/original/words/words.tgz;
+      echo "IMPORTANT: The original dataset contains two corrupted images: " \
+	   "a01-117-05-02 and r06-022-03-05. Download the \"forms\" " \
+	   "partition if you will need them." >&2;
     fi;
     ;;
   *)
     echo "ERROR: Unknown partition \"$1\"!" >&2 && exit 1;
 esac;
+
+
+function fix_word_image () {
+  # Fix some of the images
+  writer=$(echo "$1" | cut -d- -f1);
+  form=$(echo "$1" | cut -d- -f2);
+  form_img="data/original/forms/$writer-$form.png";
+  word_img="data/original/words/$writer/$writer-$form/$1.png";
+  [[ ( -s "$form_img" ) && ( -d "$(dirname "$word_img")" ) &&
+     ( ! -s "$word_img" ) ]] &&
+    echo "Fixing word image $1 ..." >&2 &&
+    convert "$form_img" -crop "$2" -strip "$word_img";
+  return 0;
+}
+
+fix_word_image a01-117-05-02 217x86+868+1648;
+fix_word_image r06-022-03-05 132x29+924+1304;
