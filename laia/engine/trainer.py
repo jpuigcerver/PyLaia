@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
-from laia.hooks import Hook
+from laia.hooks import Hook, action
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -94,6 +94,7 @@ class Trainer(Engine):
                 if condition is not None else evaluator.run)
         return self
 
+    @action
     def run(self):
         r"""Run training """
         assert callable(self.criterion)
@@ -103,7 +104,9 @@ class Trainer(Engine):
         assert callable(self._batch_target_fn), (
             'batch_target_fn (type: {!r}) is not callable'.format(
                 str(self._batch_target_fn)))
-        super(Trainer, self).run()
+        while not self._must_stop:
+            self._run_epoch()
+        return self
 
     def _run_iteration(self, batch_n, batch):
         batch_input, batch_target = self._prepare_input_and_target(batch)

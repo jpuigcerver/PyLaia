@@ -145,6 +145,7 @@ class Engine(object):
         self._hooks[when].append(hook)
         return self
 
+    @action
     def run(self):
         r"""Run a single epoch on the `dataset_loader`."""
         assert self._data_loader is not None, 'A data loader must be set'
