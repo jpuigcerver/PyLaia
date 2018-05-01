@@ -9,14 +9,14 @@ import laia.utils
 import torch
 from dortmund_utils import (build_dortmund_model, DortmundImageToTensor,
                             ModelCheckpointKeepLastSaver)
-from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
+from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.hooks import Hook, HookCollection
 from laia.hooks.conditions import GEqThan, Highest
 from laia.plugins.arguments import add_argument, add_defaults, args
 
 if __name__ == '__main__':
-    add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
+    add_defaults('gpu', 'max_epochs', 'max_updates', 'train_samples_per_epoch',
                  'valid_samples_per_epoch', 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # Training data
     tr_ds = laia.data.TextImageFromTextTableDataset(
         args.tr_txt_table, args.tr_img_dir, img_transform=tr_img_transform)
-    if args.samples_per_epoch is None:
+    if args.train_samples_per_epoch is None:
         tr_ds_loader = torch.utils.data.DataLoader(
             tr_ds, batch_size=args.batch_size, num_workers=8, shuffle=True,
             collate_fn=laia.data.PaddingCollater({
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         tr_ds_loader = torch.utils.data.DataLoader(
             tr_ds, batch_size=args.batch_size, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
-                                               args.samples_per_epoch),
+                                               args.train_samples_per_epoch),
             collate_fn=laia.data.PaddingCollater({
                 'img': [1, None, None],
             }, sort_key=lambda x: -x['img'].size(2)))
@@ -134,13 +134,13 @@ if __name__ == '__main__':
         os.path.join(args.save_path, 'model.ckpt-highest-valid-map'))
 
     # Set hooks
-    trainer.add_hook(ON_EPOCH_END, HookCollection(
+    trainer.add_hook(EPOCH_END, HookCollection(
         Hook(Highest(engine_wrapper.valid_ap(), key=0, name='Highest gAP'),
              highest_gap_saver),
         Hook(Highest(engine_wrapper.valid_ap(), key=1, name='Highest mAP'),
              highest_map_saver)))
     if args.max_epochs and args.max_epochs > 0:
-        trainer.add_hook(ON_EPOCH_START,
+        trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
                               trainer.stop))
 

@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import laia.logging as log
-from laia.engine.engine import Engine, ON_BATCH_START, ON_BATCH_END, ON_EPOCH_END
-from laia.hooks import action
+from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
+from laia.hooks import Hook
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -22,7 +22,7 @@ class Trainer(Engine):
           model. (default: None)
       batch_target_fn (callable, optional): if given, this callable object
           is used to extract the targets from the batch, which are
-          passed to the `ON_BATCH_START` and `ON_BATCH_END` hooks.
+          passed to the `ITER_START` and `ITER_END` hooks.
       criterion (callable): used criterion to train the model.
       optimizer (:class:`torch.Optimizer`): optimizer object that will update
           the parameters of the model.
@@ -51,7 +51,6 @@ class Trainer(Engine):
         self._optimizer = optimizer
         self._iterations_per_update = iterations_per_update
         self._updates = 0
-        self._must_stop = False
 
     @property
     def criterion(self):
@@ -86,23 +85,13 @@ class Trainer(Engine):
             assert num > 0
             self._iterations_per_update = num
 
-    @action
-    def stop(self):
-        self._must_stop = True
-
-    @action
-    def reset(self):
-        super(Trainer, self).reset()
-        self._must_stop = False
-
-    def add_evaluator(self, evaluator):
+    def add_evaluator(self, evaluator, when=EPOCH_END, condition=None):
         r"""Add an evaluator to run at the end of each epoch."""
-
-        def run_eval(**_):
-            evaluator.run()
-
         if evaluator is not None:
-            self.add_hook(ON_EPOCH_END, run_eval)
+            self.add_hook(
+                when,
+                Hook(condition, evaluator.run)
+                if condition is not None else evaluator.run)
         return self
 
     def run(self):
@@ -114,37 +103,23 @@ class Trainer(Engine):
         assert callable(self._batch_target_fn), (
             'batch_target_fn (type: {!r}) is not callable'.format(
                 str(self._batch_target_fn)))
+        super(Trainer, self).run()
 
-        while not self._must_stop:
-            self._run_epoch()
-        return self
+    def _run_iteration(self, batch_n, batch):
+        batch_input, batch_target = self._prepare_input_and_target(batch)
 
-    def _run_iteration(self, it, batch):
-        self._iterations += 1
-
-        # Prepare input to the model.
-        if self._batch_input_fn is None:
-            batch_input = batch
-        else:
-            batch_input = self._batch_input_fn(batch)
-
-        # Prepare target to be passed to the loss function.
-        if self._batch_target_fn is None:
-            batch_target = batch
-        else:
-            batch_target = self._batch_target_fn(batch)
-
-        self._call_hooks(ON_BATCH_START,
-                         batch=batch,
-                         batch_num=it,
-                         epoch=self._epochs,
-                         iteration=self._iterations,
-                         batch_input=batch_input,
-                         batch_target=batch_target)
+        action_kwargs = {
+            'batch': batch,
+            'batch_num': batch_n,
+            'epoch': self._epochs,
+            'iteration': self._iterations,
+            'batch_input': batch_input,
+            'batch_target': batch_target}
+        self._call_hooks(ITER_START, **action_kwargs)
 
         # Make all parameter gradients equal to zero.
-        # Note: (IT - 1) % NIPU = the iteration after a step()
-        if (self.iterations() - 1) % self.iterations_per_update == 0:
+        # Note: IT % NIPU = the iteration after a step()
+        if self._iterations % self.iterations_per_update == 0:
             self._optimizer.zero_grad()
 
         # Put model in training mode
@@ -159,12 +134,13 @@ class Trainer(Engine):
                   msg='Found {abs_num} ({rel_num:.2%}) INF values in the '
                       'model output at epoch {epoch}, batch {batch} (absolute '
                       'iteration {iteration})',
-                  epoch=self.epochs(), batch=it, iteration=self.iterations())
+                  epoch=self._epochs, batch=batch_n, iteration=self._iterations)
         check_nan(tensor=batch_output, logger=__name__,
                   msg='Found {abs_num} ({rel_num:.2%}) NAN values in the '
                       'model output at epoch {epoch}, batch {batch} (absolute '
                       'iteration {iteration})',
-                  epoch=self.epochs(), batch=it, iteration=self.iterations())
+                  epoch=self._epochs, batch=batch_n, iteration=self._iterations)
+
         # Compute loss
         batch_loss = self._criterion(batch_output, batch_target)
 
@@ -176,26 +152,23 @@ class Trainer(Engine):
         # Compute gradients w.r.t. parameters
         self.logger.debug('Start backward at epoch {}, batch {} '
                           '(absolute iteration {})',
-                          self.epochs(), it, self.iterations())
+                          self._epochs, batch_n, self._iterations)
         batch_loss.backward()
 
+        self._iterations += 1
+
         # Update model parameters.
-        if self.iterations() % self.iterations_per_update == 0:
+        if self._iterations % self.iterations_per_update == 0:
             self._updates += 1
             self.logger.debug('Updating parameters at epoch {}, batch {} '
                               '(absolute iteration {})',
-                              self.epochs(), it, self.iterations())
+                              self._epochs, batch_n, self._iterations)
             self._optimizer.step()
 
-        self._call_hooks(ON_BATCH_END,
-                         batch=batch,
-                         batch_num=it,
-                         epoch=self._epochs,
-                         iteration=self._iterations,
-                         batch_input=batch_input,
-                         batch_target=batch_target,
-                         batch_loss=batch_loss,
-                         batch_output=batch_output)
+        action_kwargs['iterations'] = self._iterations
+        action_kwargs['batch_output'] = batch_output
+        action_kwargs['batch_loss'] = batch_loss
+        self._call_hooks(ITER_END, **action_kwargs)
 
     def state_dict(self):
         return {

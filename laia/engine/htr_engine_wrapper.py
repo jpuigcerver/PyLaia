@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from laia.decoders import CTCGreedyDecoder
-from laia.engine.engine import ON_EPOCH_START, ON_BATCH_END, ON_EPOCH_END
+from laia.engine.engine import EPOCH_START, EPOCH_END, ITER_END
 from laia.hooks import action
 from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from laia.logging import get_logger
@@ -19,7 +19,11 @@ def batch_char_to_word_seq(batch_sequence_of_characters, delimiters):
 class HtrEngineWrapper(object):
     """Engine wrapper to perform HTR experiments."""
 
-    def __init__(self, train_engine, valid_engine=None, word_delimiters=None):
+    def __init__(self, train_engine,
+                 valid_engine=None,
+                 check_va_hook_when=EPOCH_END,
+                 va_hook_condition=None,
+                 word_delimiters=None):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
         self._word_delimiters = word_delimiters
@@ -38,8 +42,8 @@ class HtrEngineWrapper(object):
         self._train_cer = SequenceErrorMeter()
         self._train_wer = SequenceErrorMeter()
 
-        self._tr_engine.add_hook(ON_EPOCH_START, self._train_reset_meters)
-        self._tr_engine.add_hook(ON_BATCH_END, self._train_update_meters)
+        self._tr_engine.add_hook(EPOCH_START, self._train_reset_meters)
+        self._tr_engine.add_hook(ITER_END, self._train_update_meters)
 
         if valid_engine:
             self._valid_timer = TimeMeter()
@@ -47,10 +51,12 @@ class HtrEngineWrapper(object):
             self._valid_cer = SequenceErrorMeter()
             self._valid_wer = SequenceErrorMeter()
 
-            self._va_engine.add_hook(ON_EPOCH_START, self._valid_reset_meters)
-            self._va_engine.add_hook(ON_BATCH_END, self._valid_update_meters)
+            self._va_engine.add_hook(EPOCH_START, self._valid_reset_meters)
+            self._va_engine.add_hook(ITER_END, self._valid_update_meters)
 
-            self._tr_engine.add_evaluator(self._va_engine)
+            self._tr_engine.add_evaluator(self._va_engine,
+                                          when=check_va_hook_when,
+                                          condition=va_hook_condition)
         else:
             self._valid_timer = None
             self._valid_loss = None
@@ -59,7 +65,7 @@ class HtrEngineWrapper(object):
 
         self._summary_format = None
         self._summary_params = None
-        self._tr_engine.add_hook(ON_EPOCH_END, self._epoch_summary)
+        self._tr_engine.add_hook(EPOCH_END, self._epoch_summary)
 
     @property
     def logger(self):
@@ -97,6 +103,7 @@ class HtrEngineWrapper(object):
 
     def set_word_delimiters(self, delimiters):
         self._word_delimiters = delimiters
+        return self
 
     @action
     def _train_reset_meters(self):
