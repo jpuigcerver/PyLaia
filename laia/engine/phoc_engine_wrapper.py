@@ -17,7 +17,7 @@ class PHOCEngineWrapper(object):
     r"""Engine wrapper to perform KWS experiments with PHOC networks."""
 
     def __init__(self, symbols_table, phoc_levels, train_engine,
-                 valid_engine=None, gpu=0):
+                 valid_engine=None, gpu=0, exclude_labels=None):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
@@ -55,7 +55,9 @@ class PHOCEngineWrapper(object):
             self._valid_timer = TimeMeter()
             self._valid_loss_meter = RunningAverageMeter()
             self._valid_ap_meter = PairwiseAveragePrecisionMeter(
-                metric='braycurtis', ignore_singleton=True)
+                metric='braycurtis',
+                ignore_singleton=True,
+                exclude_labels=exclude_labels)
 
             self._va_engine.add_hook(ON_EPOCH_START, self._valid_reset_meters)
             self._va_engine.add_hook(ON_BATCH_END, self._valid_accumulate_loss)

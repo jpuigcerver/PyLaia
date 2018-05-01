@@ -2,11 +2,11 @@
 from __future__ import division
 
 import os
-
-import torch
+from argparse import FileType
 
 import laia.logging as log
 import laia.utils
+import torch
 from dortmund_utils import (build_dortmund_model, DortmundImageToTensor,
                             ModelCheckpointKeepLastSaver)
 from laia.engine.engine import ON_EPOCH_START, ON_EPOCH_END
@@ -29,6 +29,9 @@ if __name__ == '__main__':
                  weight_l2_penalty=0.00005)
     add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
                  help='PHOC levels used to encode the transcript')
+    add_argument('--exclude_words_ap', type=FileType('r'),
+                 help='List of words to exclude in the Average Precision '
+                      'computation')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -101,12 +104,18 @@ if __name__ == '__main__':
         data_loader=va_ds_loader,
         progress_bar='Valid' if args.show_progress_bar else False)
 
+    if args.exclude_words_ap:
+        exclude_words_ap = set([x.strip() for x in args.exclude_words_ap])
+    else:
+        exclude_words_ap = None
+
     engine_wrapper = PHOCEngineWrapper(
         symbols_table=syms,
         phoc_levels=args.phoc_levels,
         train_engine=trainer,
         valid_engine=evaluator,
-        gpu=args.gpu)
+        gpu=args.gpu,
+        exclude_labels=exclude_words_ap)
 
     highest_gap_saver = ModelCheckpointKeepLastSaver(
         model,

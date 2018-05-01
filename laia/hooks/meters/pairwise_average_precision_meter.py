@@ -33,7 +33,7 @@ class PairwiseAveragePrecisionMeter(Meter):
     """
 
     def __init__(self, metric='euclidean', ignore_singleton=True,
-                 exceptions_threshold=5):
+                 exceptions_threshold=5, exclude_labels=None):
         super(PairwiseAveragePrecisionMeter, self).__init__(exceptions_threshold)
         self._metric = metric
         self._features = []
@@ -41,6 +41,7 @@ class PairwiseAveragePrecisionMeter(Meter):
         self._label_count = {}
         self._ignore_singleton = ignore_singleton
         self._gap, self._map = None, None
+        self._exclude_labels = exclude_labels
         # This is only to detect whether the metric is valid or not.
         _ = pdist([[1, 1], [1, 1]], metric)
 
@@ -77,10 +78,16 @@ class PairwiseAveragePrecisionMeter(Meter):
             mask = [i for i, c in enumerate(self._labels)
                     if self._label_count[c] > 1]
             all_features = all_features[mask]
-            all_labels = [c for i, c in enumerate(self._labels)
+            all_labels = [c for c in self._labels
                           if self._label_count[c] > 1]
         else:
             all_labels = self._labels
+        if self._exclude_labels:
+            mask = [i for i, c in enumerate(all_labels)
+                    if c not in self._exclude_labels]
+            all_features = all_features[mask]
+            all_labels = [c for c in all_labels
+                          if c not in self._exclude_labels]
 
         n = all_features.shape[0]  # number of objects
         self.logger.debug('Compute Average Precision over {} samples', n)
