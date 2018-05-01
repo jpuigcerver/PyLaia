@@ -3,14 +3,14 @@ set -e;
 
 if [ $# -lt 1 ]; then
   cat <<EOF > /dev/stderr
-Usage: ${0##*/} PARTITION_ID OUTPUT_DIR [TRAIN_OPTIONS]
+Usage: ${0##*/} OUTPUT_DIR [TRAIN_OPTIONS]
 
-Example: ${0##*/} train/almazan/ctc --gpu=2
+Example: ${0##*/} train/dortmund/phocnet/cv1 --gpu=2
 EOF
   exit 1;
 fi;
 
-export PYTHONPATH=$HOME/src/PyLaia:$PYTHONPATH;
+export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 TRAIN_TXT=data/almazan/lang/char/tr.txt;
 VALID_TXT=data/almazan/lang/char/va.txt;
@@ -36,18 +36,19 @@ if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
 fi;
 
 # 3645 is the number of train samples in Washington.
-# 658 is the number of epochs to perform ~240000 updates.
+# 660 is the number of epochs to perform ~240000 updates.
 # This allows to get stats as frequently as in the Washington experiment
 # while making and comparable with the IAM setting of the PHOCNet paper.
-python ./src/python/train_ctc.py \
+python ./src/python/train_phocnet.py \
        --max_epochs=660 \
        --samples_per_epoch=3645 \
        --valid_samples_per_epoch=6000 \
+       --exclude_words_ap=data/almazan/lang/word/stopwords.txt \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --save_path="$OUTPUT_DIR" \
        $@ \
-       data/almazan/lang/syms_ctc.txt \
+       data/almazan/lang/syms_phoc.txt \
        data/original/words \
        "$TRAIN_TXT" \
        "$VALID_TXT";
