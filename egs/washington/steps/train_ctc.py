@@ -78,7 +78,7 @@ if __name__ == '__main__':
         args.va_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor(),
         txt_transform=laia.utils.TextToTensor(syms))
-    if args.samples_per_epoch is None:
+    if args.valid_samples_per_epoch is None:
         va_ds_loader = laia.data.ImageDataLoader(
             va_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
     else:
@@ -86,7 +86,6 @@ if __name__ == '__main__':
             va_ds, image_channels=1, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(va_ds,
                                                args.valid_samples_per_epoch))
-
 
     if args.train_laia:
         model = build_ctc_model2(

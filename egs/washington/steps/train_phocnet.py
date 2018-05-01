@@ -17,7 +17,7 @@ from laia.plugins.arguments import add_argument, add_defaults, args
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'samples_per_epoch',
-                 'seed', 'save_path',
+                 'valid_samples_per_epoch', 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  batch_size=1,
@@ -84,11 +84,20 @@ if __name__ == '__main__':
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
         img_transform=laia.utils.ImageToTensor())
-    va_ds_loader = torch.utils.data.DataLoader(
-        va_ds, args.batch_size, num_workers=8,
-        collate_fn=laia.data.PaddingCollater({
-            'img': [1, None, None],
-        }, sort_key=lambda x: -x['img'].size(2)))
+    if args.valid_samples_per_epoch is None:
+        va_ds_loader = torch.utils.data.DataLoader(
+            va_ds, args.batch_size, num_workers=8,
+            collate_fn=laia.data.PaddingCollater({
+                'img': [1, None, None],
+            }, sort_key=lambda x: -x['img'].size(2)))
+    else:
+        va_ds_loader = torch.utils.data.DataLoader(
+            va_ds, batch_size=args.batch_size, num_workers=8,
+            sampler=laia.data.FixedSizeSampler(va_ds,
+                                               args.valid_samples_per_epoch),
+            collate_fn=laia.data.PaddingCollater({
+                'img': [1, None, None],
+            }, sort_key=lambda x: -x['img'].size(2)))
 
     trainer = laia.engine.Trainer(
         model=model,
