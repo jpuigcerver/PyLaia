@@ -9,7 +9,7 @@ import laia.logging as log
 from laia.data import (ImageDataLoader, TextImageFromTextTableDataset,
                        FixedSizeSampler)
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
-from laia.engine.engine import ON_EPOCH_END, ON_EPOCH_START
+from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook, HookCollection, action, Action, ActionCollection
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
@@ -23,7 +23,7 @@ from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
                  'max_epochs', 'show_progress_bar', 'save_path',
-                 'samples_per_epoch', 'iterations_per_update')
+                 'train_samples_per_epoch', 'iterations_per_update')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('img_dir', help='Directory containing word images')
     add_argument('tr_txt_table', help='Character transcriptions of each training image')
@@ -68,11 +68,11 @@ if __name__ == '__main__':
                                    image_channels=1,
                                    batch_size=args.batch_size,
                                    num_workers=8,
-                                   shuffle=not bool(args.samples_per_epoch),
+                                   shuffle=not bool(args.train_samples_per_epoch),
                                    sampler=FixedSizeSampler(
                                        tr_ds,
-                                       args.samples_per_epoch)
-                                   if args.samples_per_epoch else None)
+                                       args.train_samples_per_epoch)
+                                   if args.train_samples_per_epoch else None)
 
     # Set all these separately because they might change between executions
     trainer.iterations_per_update = args.iterations_per_update
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     log.get_logger('laia.hooks.conditions.multiple_of').setLevel(log.WARNING)
 
     # Set hooks
-    trainer.add_hook(ON_EPOCH_END, HookCollection(
+    trainer.add_hook(EPOCH_END, HookCollection(
         # Save on best CER
         Hook(Lowest(engine_wrapper.valid_cer()),
              ActionCollection(Action(save, saver=tr_saver_best_cer),
@@ -150,13 +150,13 @@ if __name__ == '__main__':
 
     if args.max_nondecreasing_epochs:
         # Stop if the validation CER hasn't improved in n epochs
-        trainer.add_hook(ON_EPOCH_END,
+        trainer.add_hook(EPOCH_END,
                          Hook(ConsecutiveNonDecreasing(engine_wrapper.valid_cer(),
                                                        args.max_nondecreasing_epochs),
                               trainer.stop))
     if args.max_epochs:
         # Stop if the number of epochs has been reached
-        trainer.add_hook(ON_EPOCH_START,
+        trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs,
                                       args.max_epochs),
                               trainer.stop))

@@ -12,10 +12,10 @@ except ImportError:
 
 _logger = log.get_logger(__name__)
 
-ON_BATCH_START = 'ON_BATCH_START'
-ON_BATCH_END = 'ON_BATCH_END'
-ON_EPOCH_START = 'ON_EPOCH_START'
-ON_EPOCH_END = 'ON_EPOCH_END'
+EPOCH_START = 'EPOCH_START'
+EPOCH_END = 'EPOCH_END'
+ITER_START = 'ITER_START'
+ITER_END = 'ITER_END'
 
 
 class Engine(object):
@@ -30,7 +30,7 @@ class Engine(object):
           model. (default: None)
       batch_target_fn (callable, optional): if given, this callable object
           is used to extract the targets from the batch, which are
-          passed to the `ON_BATCH_START` and `ON_BATCH_END` hooks.
+          passed to the `ITER_START` and `ITER_END` hooks.
       progress_bar (bool or str, optional): if ``True``, :mod:`tqdm` will be
           used to show a progress bar for each epoch. If a string is given,
           the content of the string will be shown before the progress bar.
@@ -51,12 +51,12 @@ class Engine(object):
 
         self._epochs = 0
         self._iterations = 0
+        self._must_stop = False
         self._hooks = {
-            ON_BATCH_START: [],
-            ON_EPOCH_START: [],
-            ON_BATCH_END: [],
-            ON_EPOCH_END: []
-        }
+            EPOCH_START: [],
+            EPOCH_END: [],
+            ITER_START: [],
+            ITER_END: []}
 
         if progress_bar and not tqdm:
             self.logger.debug('A progress bar cannot be shown because '
@@ -93,6 +93,11 @@ class Engine(object):
         r"""Reset the number of epochs and iterations run."""
         self._epochs = 0
         self._iterations = 0
+        self._must_stop = False
+
+    @action
+    def stop(self):
+        self._must_stop = True
 
     def set_data_loader(self, data_loader):
         """Set the data loader object from which samples are loaded."""
@@ -131,8 +136,8 @@ class Engine(object):
         be run in order of addition.
 
         Args:
-          when: point in the run (valid values: ``ON_BATCH_START``,
-            ``ON_EPOCH_START``, ``ON_BATCH_END``, ``ON_EPOCH_END``).
+          when: point in the run (valid values: ``ITER_START``,
+            ``ITER_END``, ``EPOCH_START``, ``EPOCH_END``).
           hook: `Hook` object.
         """
         assert when in self._hooks, (
@@ -150,26 +155,17 @@ class Engine(object):
         for hook in self._hooks[when]:
             hook(*args, **kwargs)
 
-    def _run_iteration(self, it, batch):
-        self._iterations += 1
+    def _run_iteration(self, batch_n, batch):
+        batch_input, batch_target = self._prepare_input_and_target(batch)
 
-        if self._batch_input_fn:
-            batch_input = self._batch_input_fn(batch)
-        else:
-            batch_input = batch
-
-        if self._batch_target_fn:
-            batch_target = self._batch_target_fn(batch)
-        else:
-            batch_target = None
-
-        self._call_hooks(ON_BATCH_START,
-                         batch=batch,
-                         batch_num=it,
-                         epoch=self._epochs,
-                         iteration=self._iterations,
-                         batch_input=batch_input,
-                         batch_target=batch_target)
+        action_kwargs = {
+            'batch': batch,
+            'batch_num': batch_n,
+            'epoch': self._epochs,
+            'iteration': self._iterations,
+            'batch_input': batch_input,
+            'batch_target': batch_target}
+        self._call_hooks(ITER_START, **action_kwargs)
 
         # Put model in evaluation mode
         if hasattr(self._model, 'eval'):
@@ -177,37 +173,40 @@ class Engine(object):
 
         batch_output = self._model(batch_input)
 
-        self._call_hooks(ON_BATCH_END,
-                         batch=batch,
-                         batch_num=it,
-                         epoch=self._epochs,
-                         iteration=self._iterations,
-                         batch_input=batch_input,
-                         batch_target=batch_target,
-                         batch_output=batch_output)
+        self._iterations += 1
+        action_kwargs['iteration'] = self._iterations
+        action_kwargs['batch_output'] = batch_output
+        self._call_hooks(ITER_END, **action_kwargs)
+
+    def _prepare_input_and_target(self, batch):
+        # Prepare input to the model.
+        batch_input = self._batch_input_fn(batch) if self._batch_input_fn else batch
+        # Prepare target to be passed to the loss function.
+        batch_target = self._batch_target_fn(batch) if self.batch_target_fn else None
+        return batch_input, batch_target
 
     def _run_epoch(self):
-        self._epochs += 1
-        self._call_hooks(ON_EPOCH_START, epoch=self._epochs)
+        self._call_hooks(EPOCH_START, epoch=self._epochs)
 
         if self._progress_bar and tqdm:
-            if isinstance(self._progress_bar, string_classes):
-                batch_iterator = tqdm(self._data_loader,
-                                      desc=self._progress_bar)
-            else:
-                batch_iterator = tqdm(self._data_loader)
+            batch_iterator = tqdm(self._data_loader,
+                                  desc=self._progress_bar
+                                  if isinstance(self._progress_bar, string_classes) else None)
         else:
             batch_iterator = self._data_loader
 
         for it, batch in enumerate(batch_iterator, 1):
+            if self._must_stop:
+                break
             self._run_iteration(it, batch)
-
-        self._call_hooks(ON_EPOCH_END, epoch=self._epochs)
+        else:
+            self._epochs += 1
+            self._call_hooks(EPOCH_END, epoch=self._epochs)
 
     def state_dict(self):
         return {
-            'epochs': self.epochs(),
-            'iterations': self.iterations(),
+            'epochs': self._epochs,
+            'iterations': self._iterations,
             'hooks': {when: [hook.state_dict() if hasattr(hook, 'state_dict') else None
                              for hook in hooks]
                       for when, hooks in self._hooks.items()}}
