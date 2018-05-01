@@ -5,7 +5,7 @@ if [ $# -lt 1 ]; then
   cat <<EOF > /dev/stderr
 Usage: ${0##*/} OUTPUT_DIR [TRAIN_OPTIONS]
 
-Example: ${0##*/} train/dortmund/phocnet/cv1 --gpu=2
+Example: ${0##*/} train/dortmund/phocnet --gpu=2
 EOF
   exit 1;
 fi;

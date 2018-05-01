@@ -10,7 +10,7 @@ EOF
   exit 1;
 fi;
 
-export PYTHONPATH=$HOME/src/PyLaia:$PYTHONPATH;
+export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 TRAIN_TXT=data/almazan/lang/char/tr.txt;
 VALID_TXT=data/almazan/lang/char/va.txt;
