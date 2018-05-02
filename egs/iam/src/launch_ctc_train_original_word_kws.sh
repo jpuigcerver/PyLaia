@@ -41,7 +41,7 @@ fi;
 # while making and comparable with the IAM setting of the PHOCNet paper.
 python ./src/python/train_ctc.py \
        --max_epochs=660 \
-       --samples_per_epoch=3645 \
+       --train_samples_per_epoch=3645 \
        --valid_samples_per_epoch=6000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
