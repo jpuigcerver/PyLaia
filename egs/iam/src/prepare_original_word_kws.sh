@@ -91,3 +91,26 @@ for p in char word; do
           > data/original/word_kws/lang/$p/$s.txt;
     done;
 done;
+
+for s in te va; do
+  [ -s data/original/word_kws/lang/word/${s}_no_singleton.txt ] ||
+  awk -v SF=data/original/word_kws/$s.txt '{
+    if ($2 in INST) INST[$2] = INST[$2]" "$1;
+    else INST[$2] = $1;
+    COUNT[$2] = COUNT[$2] + 1;
+  }END{
+    for (w in INST) {
+      if (COUNT[w] > 1) {
+        n = split(INST[w], A, " ");
+        for (i = 1; i <= n; ++i) { print A[i], w; }
+      }
+    }
+  }' data/original/word_kws/lang/word/$s.txt |
+  sort > data/original/word_kws/lang/word/${s}_no_singleton.txt;
+
+  [ -s data/original/word_kws/lang/char/${s}_no_singleton.txt ] ||
+  join -1 1 \
+       <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_no_singleton.txt) \
+       <(sort data/original/word_kws/lang/char/$s.txt) \
+       > data/original/word_kws/lang/char/${s}_no_singleton.txt;
+done;
