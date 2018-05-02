@@ -101,8 +101,10 @@ for p in char word; do
     done;
 done;
 
+# List of sample queries and stopwords (exclude images of singleton labels)
 for s in te va; do
-  [ -s data/original/word_kws/lang/word/${s}_no_singleton.txt ] ||
+  # Word-level transcription
+  [ -s data/original/word_kws/lang/word/${s}_queries+stopwords.txt ] ||
   awk -v SF=data/original/word_kws/$s.txt '{
     if ($2 in INST) INST[$2] = INST[$2]" "$1;
     else INST[$2] = $1;
@@ -115,11 +117,29 @@ for s in te va; do
       }
     }
   }' data/original/word_kws/lang/word/$s.txt |
-  sort > data/original/word_kws/lang/word/${s}_no_singleton.txt;
+  sort > data/original/word_kws/lang/word/${s}_queries+stopwords.txt;
 
-  [ -s data/original/word_kws/lang/char/${s}_no_singleton.txt ] ||
+  # Character-level transcription
+  [ -s data/original/word_kws/lang/char/${s}_queries+stopwords.txt ] ||
   join -1 1 \
-       <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_no_singleton.txt) \
+       <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_queries+stopwords.txt) \
        <(sort data/original/word_kws/lang/char/$s.txt) \
-       > data/original/word_kws/lang/char/${s}_no_singleton.txt;
+       > data/original/word_kws/lang/char/${s}_queries+stopwords.txt;
+done;
+
+# List of sample queries (exclude singletons and stopwords)
+for s in te va; do
+  # Word-level transcription
+  [ -s data/original/word_kws/lang/word/${s}_queries.txt ] ||
+  awk -v swf=data/original/word_kws/lang/word/stopwords.txt 'BEGIN{
+    while((getline < swf) > 0) SW[$1] = 1;
+  }SW[$2] == 0' data/original/word_kws/lang/word/${s}_queries+stopwords.txt \
+  > data/original/word_kws/lang/word/${s}_queries.txt;      
+
+  # Char-level transcription
+  [ -s data/original/word_kws/lang/char/${s}_queries.txt ] ||
+  join -1 1 \
+       <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_queries.txt) \
+       <(sort data/original/word_kws/lang/char/$s.txt) \
+       > data/original/word_kws/lang/char/${s}_queries.txt;
 done;

@@ -13,7 +13,7 @@ fi;
 export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 TRAIN_TXT=data/original/word_kws/lang/char/tr.txt;
-VALID_TXT=data/original/word_kws/lang/char/va.txt;
+VALID_TXT=data/original/word_kws/lang/char/va_queries.txt;
 OUTPUT_DIR="$1";
 shift 1;
 
@@ -42,8 +42,6 @@ fi;
 python ./src/python/train_phocnet.py \
        --max_epochs=660 \
        --train_samples_per_epoch=3645 \
-       --valid_samples_per_epoch=6000 \
-       --exclude_words_ap=data/original/word_kws/lang/word/stopwords.txt \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --save_path="$OUTPUT_DIR" \
