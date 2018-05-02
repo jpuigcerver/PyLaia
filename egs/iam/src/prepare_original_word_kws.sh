@@ -69,6 +69,15 @@ awk '{
 }' data/original/word_kws/lang/word/stopwords.txt \
   > data/original/word_kws/lang/char/stopwords.txt;
 
+# Prepare list of all stopword samples.
+[ -s data/original/word_kws/lang/word/all_stopwords.txt ] ||
+awk 'BEGIN{
+  while ((getline < "data/original/word_kws/lang/word/stopwords.txt") > 0) {
+    sw[$1] = 1;
+  }
+}sw[$2] == 1' data/original/word_kws/lang/word/all.txt \
+    > data/original/word_kws/lang/word/all_stopwords.txt;
+
 # Split into test, train and validation sets.
 for p in char word; do
     for s in te tr va; do
