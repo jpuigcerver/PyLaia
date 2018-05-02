@@ -65,3 +65,26 @@ for p in char word; do
         }' data/almazan/lang/$p/all.txt > data/almazan/lang/$p/$s.txt;
     done;
 done;
+
+for s in te va; do
+  [ -s data/almazan/lang/word/${s}_no_singleton.txt ] ||
+  awk -v SF=data/almazan/$s.txt '{
+    if ($2 in INST) INST[$2] = INST[$2]" "$1;
+    else INST[$2] = $1;
+    COUNT[$2] = COUNT[$2] + 1;
+  }END{
+    for (w in INST) {
+      if (COUNT[w] > 1) {
+        n = split(INST[w], A, " ");
+        for (i = 1; i <= n; ++i) { print A[i], w; }
+      }
+    }
+  }' data/almazan/lang/word/$s.txt |
+  sort > data/almazan/lang/word/${s}_no_singleton.txt;
+
+  [ -s data/almazan/lang/char/${s}_no_singleton.txt ] ||
+  join -1 1 \
+       <(cut -d\  -f1 data/almazan/lang/word/${s}_no_singleton.txt) \
+       <(sort data/almazan/lang/char/$s.txt) \
+       > data/almazan/lang/char/${s}_no_singleton.txt;
+done;
