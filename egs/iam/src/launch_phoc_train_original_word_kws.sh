@@ -35,13 +35,11 @@ if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
     fi;
 fi;
 
-# 3645 is the number of train samples in Washington.
-# 660 is the number of epochs to perform ~240000 updates.
-# This allows to get stats as frequently as in the Washington experiment
-# while making and comparable with the IAM setting of the PHOCNet paper.
+# 6000 samples/epoch -> 600 updates/epoch
+# 400 epochs needed for 240,000 updates.
 python ./src/python/train_phocnet.py \
-       --max_epochs=660 \
-       --train_samples_per_epoch=3645 \
+       --max_epochs=400 \
+       --train_samples_per_epoch=6000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --save_path="$OUTPUT_DIR" \
