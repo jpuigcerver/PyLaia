@@ -53,6 +53,15 @@ awk '{
   printf("\n");
 }' data/almazan/lang/word/stopwords.txt > data/almazan/lang/char/stopwords.txt;
 
+# Prepare list of all stopword samples.
+[ -s data/almazan/lang/word/all_stopwords.txt ] ||
+awk 'BEGIN{
+  while ((getline < "data/almazan/lang/word/stopwords.txt") > 0) {
+    sw[$1] = 1;
+  }
+}sw[$2] == 1' data/almazan/lang/word/all.txt \
+    > data/almazan/lang/word/all_stopwords.txt;
+
 # Split into test, train and validation sets.
 for p in char word; do
     for s in te tr va; do
