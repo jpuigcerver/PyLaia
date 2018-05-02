@@ -3,7 +3,7 @@ set -e;
 
 if [ $# -lt 1 ]; then
   cat <<EOF > /dev/stderr
-Usage: ${0##*/} PARTITION_ID OUTPUT_DIR [TRAIN_OPTIONS]
+Usage: ${0##*/} OUTPUT_DIR [TRAIN_OPTIONS]
 
 Example: ${0##*/} train/almazan/ctc --gpu=2
 EOF

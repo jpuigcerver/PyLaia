@@ -31,6 +31,9 @@ if __name__ == '__main__':
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
+    add_argument('--load_checkpoint', type=str,
+                 help='Path to the checkpoint to load.')
+    add_argument('--continue_epoch', type=int)
     add_argument('--train_laia', action='store_true',
                  help='Train Laia-based model')
     add_argument('--adaptive_pool_height', type=int, default=16,
@@ -101,6 +104,11 @@ if __name__ == '__main__':
             lstm_hidden_size=args.lstm_hidden_size,
             lstm_num_layers=args.lstm_num_layers,
             num_outputs=len(syms))
+
+    if args.load_checkpoint:
+        model_ckpt = torch.load(args.load_checkpoint)
+        model.load_state_dict(model_ckpt)
+
     model = model.cuda(args.gpu - 1) if args.gpu > 0 else model.cpu()
     logger.info('Model has {} parameters',
                 sum(param.data.numel() for param in model.parameters()))
@@ -152,6 +160,9 @@ if __name__ == '__main__':
         trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
                               trainer.stop))
+
+    if args.continue_epoch:
+        trainer._epochs = args.continue_epoch
 
     # Launch training
     engine_wrapper.run()
