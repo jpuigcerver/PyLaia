@@ -23,7 +23,7 @@ for p in va te; do
         python src/python/generate_ctc_lattice.py --add_softmax \
 	        data/almazan/lang/syms_ctc.txt \
 	        data/original/words \
-	        data/almazan/lang/char/$p.txt \
+	        data/almazan/lang/char/${p}_queries+stopwords.txt \
 	        "$model" \
 	        >(lattice-remove-ctc-blank 1 ark:- ark:- |
                   lattice-prune --beam=$maxbeam \
