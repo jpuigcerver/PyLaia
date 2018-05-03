@@ -32,6 +32,11 @@ LABEL maintainer "Joan Puigcerver <joapuipe@gmail.com>"
 # TODO: Use PyTorch's Dockerfile once we upgrade
 RUN conda install -y pytorch=0.3.1 torchvision -c pytorch
 
+# Set encoding so that python doesn't fail to encode characters
+# like \u22f1 (⋱) used in Tensor's string representation
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 # TODO: Remove credentials once PyLaia goes public
 ARG USR
 ARG PW

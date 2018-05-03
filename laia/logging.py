@@ -167,3 +167,14 @@ def critical(msg, *args, **kwargs):
 
 def set_level(level):
     root.setLevel(level)
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        root.info('Laia stopped')
+        return
+    root.exception('Uncaught Laia exception:', exc_info=(
+        exc_type, exc_value, exc_traceback))
+
+
+sys.excepthook = handle_exception

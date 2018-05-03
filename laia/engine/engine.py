@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from torch._six import string_classes
+from torch._six import string_classes, raise_from
 
 import laia.logging as log
 from laia.hooks import action
@@ -31,6 +31,8 @@ class Engine(object):
       batch_target_fn (callable, optional): if given, this callable object
           is used to extract the targets from the batch, which are
           passed to the `ITER_START` and `ITER_END` hooks.
+      batch_id_fn (callable, optional): if given, this callable object is
+          used to extract the batch ids to be used in a possible exception.
       progress_bar (bool or str, optional): if ``True``, :mod:`tqdm` will be
           used to show a progress bar for each epoch. If a string is given,
           the content of the string will be shown before the progress bar.
@@ -42,11 +44,13 @@ class Engine(object):
                  data_loader=None,
                  batch_input_fn=None,
                  batch_target_fn=None,
+                 batch_id_fn=None,
                  progress_bar=None):
         self._model = model
         self._data_loader = data_loader
         self._batch_input_fn = batch_input_fn
         self._batch_target_fn = batch_target_fn
+        self._batch_id_fn = batch_id_fn
         self._progress_bar = progress_bar
 
         self._epochs = 0
@@ -69,6 +73,10 @@ class Engine(object):
     @property
     def batch_target_fn(self):
         return self._batch_target_fn
+
+    @property
+    def batch_id_fn(self):
+        return self._batch_id_fn
 
     @property
     def model(self):
@@ -175,7 +183,16 @@ class Engine(object):
         if hasattr(self._model, 'eval'):
             self._model.eval()
 
-        batch_output = self._model(batch_input)
+        # Run model
+        try:
+            batch_output = self._model(batch_input)
+        except Exception as e:
+            wrapper = Exception(dict(
+                epochs=self._epochs,
+                iterations=self._iterations,
+                batch_ids=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input))
+            raise_from(wrapper, e)
 
         self._iterations += 1
         action_kwargs['iteration'] = self._iterations
