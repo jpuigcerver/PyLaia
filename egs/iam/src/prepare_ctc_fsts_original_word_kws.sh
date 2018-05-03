@@ -5,7 +5,7 @@ if [ $# -ne 2 ]; then
   cat <<EOF > /dev/stderr
 Usage: ${0##*/} CHECKPOINT OUTPUT_DIR
 
-Example: ${0##*/} train/almazan/ctc/model.ckpt fsts/almazan/ctc
+Example: ${0##*/} train/original/word_kws/ctc/model.ckpt fsts/original/word_kws/ctc
 EOF
   exit 1;
 fi;
@@ -21,9 +21,9 @@ maxbeam=20;
 for p in va te; do
     [ -s "$outdir/$p.lat.ark" -a -s "$outdir/$p.lat.scp" ] || {
         python src/python/generate_ctc_lattice.py --add_softmax \
-	        data/almazan/lang/syms_ctc.txt \
+	        data/original/word_kws/lang/syms_ctc.txt \
 	        data/original/words \
-	        data/almazan/lang/char/${p}_queries+stopwords.txt \
+	        data/original/word_kws/lang/char/${p}_queries+stopwords.txt \
 	        "$model" \
 	        >(lattice-remove-ctc-blank 1 ark:- ark:- |
                   lattice-prune --beam=$maxbeam \
