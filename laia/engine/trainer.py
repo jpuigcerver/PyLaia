@@ -120,6 +120,9 @@ class Trainer(Engine):
             'batch_target': batch_target}
         self._call_hooks(ITER_START, **action_kwargs)
 
+        if self._must_stop:
+            return
+
         # Make all parameter gradients equal to zero.
         # Note: IT % NIPU = the iteration after a step()
         if self._iterations % self.iterations_per_update == 0:

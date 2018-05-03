@@ -168,6 +168,9 @@ class Engine(object):
             'batch_target': batch_target}
         self._call_hooks(ITER_START, **action_kwargs)
 
+        if self._must_stop:
+            return
+
         # Put model in evaluation mode
         if hasattr(self._model, 'eval'):
             self._model.eval()
@@ -188,6 +191,9 @@ class Engine(object):
 
     def _run_epoch(self):
         self._call_hooks(EPOCH_START, epoch=self._epochs)
+
+        if self._must_stop:
+            return
 
         if self._progress_bar and tqdm:
             batch_iterator = tqdm(self._data_loader,
