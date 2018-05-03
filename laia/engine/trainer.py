@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from torch._six import raise_from
+
 import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.hooks import Hook, action
@@ -23,6 +25,8 @@ class Trainer(Engine):
       batch_target_fn (callable, optional): if given, this callable object
           is used to extract the targets from the batch, which are
           passed to the `ITER_START` and `ITER_END` hooks.
+      batch_id_fn (callable, optional): if given, this callable object is
+          used to extract the batch ids to be used in a possible exception.
       criterion (callable): used criterion to train the model.
       optimizer (:class:`torch.Optimizer`): optimizer object that will update
           the parameters of the model.
@@ -40,12 +44,14 @@ class Trainer(Engine):
                  data_loader=None,
                  batch_input_fn=None,
                  batch_target_fn=None,
+                 batch_id_fn=None,
                  progress_bar=None,
                  iterations_per_update=1):
         super(Trainer, self).__init__(model=model,
                                       data_loader=data_loader,
                                       batch_input_fn=batch_input_fn,
                                       batch_target_fn=batch_target_fn,
+                                      batch_id_fn=batch_id_fn,
                                       progress_bar=progress_bar)
         self._criterion = criterion
         self._optimizer = optimizer
@@ -132,8 +138,18 @@ class Trainer(Engine):
         if hasattr(self._model, 'train'):
             self._model.train()
 
-        # Run model, evaluate loss and compute gradients.
-        batch_output = self._model(batch_input)
+        # Run model
+        try:
+            if self._iterations > 2:
+                raise Exception('TEST!')
+            batch_output = self._model(batch_input)
+        except Exception as e:
+            wrapper = Exception(dict(
+                epochs=self._epochs,
+                iterations=self._iterations,
+                batch_ids=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input))
+            raise_from(wrapper, e)
 
         # Note: These checks are only active when logging level >= DEBUG
         check_inf(tensor=batch_output, logger=__name__,
@@ -148,7 +164,15 @@ class Trainer(Engine):
                   epoch=self._epochs, batch=batch_n, iteration=self._iterations)
 
         # Compute loss
-        batch_loss = self._criterion(batch_output, batch_target)
+        try:
+            batch_loss = self._criterion(batch_output, batch_target)
+        except Exception as e:
+            wrapper = Exception(dict(
+                epochs=self._epochs,
+                iterations=self._iterations,
+                batch_ids=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input))
+            raise_from(wrapper, e)
 
         # Make the loss and gradients w.r.t. output independent of the number
         # of accumulated iterations.
@@ -159,7 +183,15 @@ class Trainer(Engine):
         self.logger.debug('Start backward at epoch {}, batch {} '
                           '(absolute iteration {})',
                           self._epochs, batch_n, self._iterations)
-        batch_loss.backward()
+        try:
+            batch_loss.backward()
+        except Exception as e:
+            wrapper = Exception(dict(
+                epochs=self._epochs,
+                iterations=self._iterations,
+                batch_ids=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input))
+            raise_from(wrapper, e)
 
         self._iterations += 1
 
