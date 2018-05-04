@@ -18,7 +18,7 @@ from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
 from laia.nn.image_to_sequence import ImageToSequence
 from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 from laia.plugins import ModelCheckpointSaver
-from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.nn import BCEWithLogitsLoss
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 
@@ -228,14 +228,13 @@ class DortmundImageToTensor(object):
         return torch.from_numpy(x)
 
 
-class DortmundBCELoss(Loss):
-    def __call__(self, output, target):
-        loss = binary_cross_entropy_with_logits(output, target,
-                                                size_average=False)
-        loss = loss / output.size(0)
-        if output.grad is not None:
-            output.grad = output.grad / output.size(0)
-        return loss
+class DortmundBCELoss(BCEWithLogitsLoss):
+    def __init__(self):
+        super(DortmundBCELoss, self).__init__(size_average=False)
+
+    def forward(self, output, target):
+        loss = super(DortmundBCELoss, self).forward(output, target)
+        return loss / output.size(0)                                       
 
 
 class ModelCheckpointKeepLastSaver(object):

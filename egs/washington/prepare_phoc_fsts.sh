@@ -20,7 +20,7 @@ outdir="$3";
 
 [ -s "$outdir/$cv.lat.ark" -a -s "$outdir/$cv.lat.scp" ] || {
   python steps/generate_phoc_lattice.py --add_sigmoid \
-	 train/dortmund/phoc_syms.txt \
+	 train/dortmund/syms_phoc.txt \
 	 data/imgs/dortmund \
 	 "data/lang/dortmund/char/${cv}_te.txt" \
 	 "$model" >(lattice-copy \

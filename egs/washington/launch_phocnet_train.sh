@@ -10,7 +10,7 @@ EOF
   exit 1;
 fi;
 
-export PYTHONPATH=$HOME/src/PyLaia:$PYTHONPATH;
+export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 TRAIN_TXT="data/lang/dortmund/char/${1}_tr.txt";
 VALID_TXT="data/lang/dortmund/char/${1}_te.txt";
@@ -36,12 +36,13 @@ if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
 fi;
 
 python ./steps/train_phocnet.py \
-       --max_epochs=220 \
+       --max_epochs=160 \
+       --train_samples_per_epoch=5000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --save_path="$OUTPUT_DIR" \
        $@ \
-       train/dortmund/phoc_syms.txt \
+       train/dortmund/syms_phoc.txt \
        data/imgs/dortmund \
        "$TRAIN_TXT" \
        "$VALID_TXT";

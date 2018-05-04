@@ -15,17 +15,19 @@ export PYTHONPATH=$HOME/src/PyLaia:$PYTHONPATH;
 cv="$1";
 model="$2";
 outdir="$3";
+maxbeam=20;
 
 [ -d "$outdir" ] || mkdir -p "$outdir";
 
 [ -s "$outdir/$cv.lat.ark" -a -s "$outdir/$cv.lat.scp" ] || {
   python steps/generate_ctc_lattice.py --add_softmax \
-	 train/dortmund/syms.txt \
+	 train/dortmund/syms_ctc.txt \
 	 data/imgs/dortmund \
 	 "data/lang/dortmund/char/${cv}_te.txt" \
 	 "$model" \
-	 >(lattice-remove-ctc-blank \
-	     1 ark:- "ark,scp:$outdir/$cv.lat.ark,$outdir/$cv.lat.scp");
+	 >(lattice-remove-ctc-blank 1 ark:- ark:- | \
+           lattice-prune --beam=$maxbeam \      
+	       ark:- "ark,scp:$outdir/$cv.lat.ark,$outdir/$cv.lat.scp");
 }
 
 # Get 1-best path
@@ -38,7 +40,7 @@ fn="$outdir/${cv}_b0.fst";
 }
 
 # Prune for different beam thresholds
-for beam in $(seq 20); do
+for beam in $(seq $maxbeam); do
   fn="$outdir/${cv}_b${beam}.fst";
   [ -s "$fn.ark" -a -s "$fn.scp" ] || {
     join -1 1 <(sort queries_$cv.lst) <(sort "$outdir/$cv.lat.scp") |

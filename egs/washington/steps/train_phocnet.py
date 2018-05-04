@@ -8,7 +8,7 @@ import laia.logging as log
 import laia.utils
 import torch
 from dortmund_utils import (build_dortmund_model, DortmundImageToTensor,
-                            ModelCheckpointKeepLastSaver)
+                            ModelCheckpointKeepLastSaver, DortmundBCELoss)
 from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
 from laia.hooks import Hook, HookCollection
@@ -20,13 +20,15 @@ if __name__ == '__main__':
                  'valid_samples_per_epoch', 'seed', 'save_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
-                 batch_size=1,
-                 learning_rate=0.015,
+                 learning_rate=0.0001,
                  momentum=0.9,
                  iterations_per_update=10,
                  show_progress_bar=True,
                  use_distortions=True,
                  weight_l2_penalty=0.00005)
+    add_argument('--load_checkpoint', type=str,
+                 help='Path to the checkpoint to load.')
+    add_argument('--continue_epoch', type=int)
     add_argument('--phoc_levels', type=int, default=[1, 2, 3, 4, 5], nargs='+',
                  help='PHOC levels used to encode the transcript')
     add_argument('--exclude_words_ap', type=FileType('r'),
@@ -46,6 +48,9 @@ if __name__ == '__main__':
 
     phoc_size = sum(args.phoc_levels) * len(syms)
     model = build_dortmund_model(phoc_size)
+    if args.load_checkpoint:
+        model_ckpt = torch.load(args.load_checkpoint)
+        model.load_state_dict(model_ckpt)
     model = model.cuda(args.gpu - 1) if args.gpu > 0 else model.cpu()
     log.info('Model has {} parameters',
              sum(param.data.numel() for param in model.parameters()))
@@ -67,13 +72,13 @@ if __name__ == '__main__':
         args.tr_txt_table, args.tr_img_dir, img_transform=tr_img_transform)
     if args.train_samples_per_epoch is None:
         tr_ds_loader = torch.utils.data.DataLoader(
-            tr_ds, batch_size=args.batch_size, num_workers=8, shuffle=True,
+            tr_ds, batch_size=1, num_workers=8, shuffle=True,
             collate_fn=laia.data.PaddingCollater({
                 'img': [1, None, None],
             }, sort_key=lambda x: -x['img'].size(2)))
     else:
         tr_ds_loader = torch.utils.data.DataLoader(
-            tr_ds, batch_size=args.batch_size, num_workers=8,
+            tr_ds, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
                                                args.train_samples_per_epoch),
             collate_fn=laia.data.PaddingCollater({
@@ -86,13 +91,13 @@ if __name__ == '__main__':
         img_transform=laia.utils.ImageToTensor())
     if args.valid_samples_per_epoch is None:
         va_ds_loader = torch.utils.data.DataLoader(
-            va_ds, args.batch_size, num_workers=8,
+            va_ds, batch_size=1, num_workers=8,
             collate_fn=laia.data.PaddingCollater({
                 'img': [1, None, None],
             }, sort_key=lambda x: -x['img'].size(2)))
     else:
         va_ds_loader = torch.utils.data.DataLoader(
-            va_ds, batch_size=args.batch_size, num_workers=8,
+            va_ds, batch_size=1, num_workers=8,
             sampler=laia.data.FixedSizeSampler(va_ds,
                                                args.valid_samples_per_epoch),
             collate_fn=laia.data.PaddingCollater({
@@ -101,8 +106,7 @@ if __name__ == '__main__':
 
     trainer = laia.engine.Trainer(
         model=model,
-        # Note: Criterion will be set automatically by the wrapper
-        criterion=None,
+        criterion=DortmundBCELoss(),
         optimizer=optimizer,
         data_loader=tr_ds_loader,
         progress_bar='Train' if args.show_progress_bar else False)
@@ -143,6 +147,9 @@ if __name__ == '__main__':
         trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
                               trainer.stop))
+
+    if args.continue_epoch:
+        trainer._epochs = args.continue_epoch        
 
     # Launch training
     engine_wrapper.run()
