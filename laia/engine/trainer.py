@@ -140,8 +140,6 @@ class Trainer(Engine):
 
         # Run model
         try:
-            if self._iterations > 2:
-                raise Exception('TEST!')
             batch_output = self._model(batch_input)
         except Exception as e:
             wrapper = Exception(dict(
