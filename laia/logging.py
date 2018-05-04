@@ -96,11 +96,17 @@ def get_logger(name=None):
 
 # Laia root logger
 root = get_logger()
+# Avoid "No handler found" warnings for py2.7
+root.addHandler(logging.NullHandler())
 
 
 def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
                  filemode='a', logging_also_to_stderr=ERROR):
     fmt = logging.Formatter(fmt)
+
+    for h in root.handlers:
+        if isinstance(h, logging.NullHandler):
+            root.removeHandler(h)
 
     handler = TqdmStreamHandler() if tqdm else logging.StreamHandler()
     handler.setFormatter(fmt)
@@ -173,7 +179,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         root.info('Laia stopped')
         return
-    root.exception('Uncaught Laia exception:', exc_info=(
+    root.exception('Uncaught exception:', exc_info=(
         exc_type, exc_value, exc_traceback))
 
 
