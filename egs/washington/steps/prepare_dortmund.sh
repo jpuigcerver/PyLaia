@@ -64,7 +64,7 @@ done;
 
 
 mkdir -p train/dortmund;
-[ -s train/dortmund/syms.txt ] ||
+[ -s train/dortmund/syms_ctc.txt ] ||
 awk '{ for(i=2; i <= NF; ++i) print $i; }' \
     data/lang/dortmund/char/cv1_{te,tr}.txt |
   sort -V | uniq |
@@ -73,9 +73,9 @@ awk '{ for(i=2; i <= NF; ++i) print $i; }' \
     printf("%-8s %d\n", "<ctc>", N++);
   }{
     printf("%-8s %d\n", $1, N++);
-  }' > train/dortmund/syms.txt;
+  }' > train/dortmund/syms_ctc.txt;
 
 # Prepare symbols table for PHOC training
-[ -s train/dortmund/phoc_syms.txt ] ||
+[ -s train/dortmund/syms_phoc.txt ] ||
 awk 'NR>1{ printf("%-5s %d\n", $1, NR - 2); }' \
-    train/dortmund/syms.txt > train/dortmund/phoc_syms.txt;
+    train/dortmund/syms_ctc.txt > train/dortmund/syms_phoc.txt;
