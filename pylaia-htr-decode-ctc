@@ -20,6 +20,8 @@ if __name__ == '__main__':
     add_argument('img_dir', help='Directory containing word images')
     add_argument('img_list', help='File or list containing images to decode')
     add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*')
+    add_argument('--print_img_ids', type=str2bool, nargs='?', const=True, default=True,
+                 help='Print output with the associated image id')
     add_argument('--use_letters', type=str2bool, nargs='?', const=True, default=False,
                  help='Print output with letters')
     add_argument('--space', type=str,
@@ -52,7 +54,7 @@ if __name__ == '__main__':
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
         batch_decode = decoder(batch_output)
-        for out in batch_decode:
+        for imgid, out in zip(batch['id'], batch_decode):
             if args.use_letters:
                 out = [str(syms[val]) for val in out]
                 if args.space:
@@ -60,4 +62,7 @@ if __name__ == '__main__':
                            for sym in out]
                 if args.join_str is not None:
                     out = args.join_str.join(out)
-            print(out)
+            if args.print_img_ids:
+                print('{} {}'.format(imgid, out))
+            else:
+                print(out)
