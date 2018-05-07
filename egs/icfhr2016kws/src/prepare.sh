@@ -10,8 +10,8 @@ DATASETS=(Botany Konzilsprotokolle);
 WPREFIX=(bt kt);
 for d in 0 1; do
   ds=${DATASETS[d]};
-  mkdir -p data/lang/${ds}/words/word;
-  [ -s data/lang/${ds}/words/word/tr.txt ] || {
+  mkdir -p data/lang/${ds}/words/{char,word};
+  [ -s data/lang/${ds}/words/word/tr+va.3.txt ] || {
     tmp=$(mktemp);
     for s in I II III; do
       awk '$1 == "<spot"' data/xmls/${ds}_Train_${s}_WL.xml
@@ -30,9 +30,11 @@ for d in 0 1; do
       }' "$t"
     done;
     wait;
-    awk '{ print $1, $2 }' "$tmp" > "data/lang/${ds}/words/word/tr.txt";
+    awk '{ print $1, $2 }' "$tmp" |
+    sed -r 's|&amp\;|\&|g;s|&quot\;|"|g' \
+	> "data/lang/${ds}/words/word/tr+va.3.txt";
   }
-  [ -s data/lang/${ds}/words/word/tr_ci.txt ] || {
+  [ -s data/lang/${ds}/words/word/tr+va_ci.3.txt ] || {
     tmp=$(mktemp);
     for s in I II III; do
       awk '$1 == "<spot"' data/xmls/${ds}_Train_${s}_WL_CASE_INSENSITIVE.xml
@@ -40,6 +42,62 @@ for d in 0 1; do
     sed -r 's|^.* word="([^"]+)" .*$|\1|g' |
     awk -v wp=${WPREFIX[d]} '{
       printf("%s%06d %s\n", wp, NR, toupper($1));
-    }' > data/lang/${ds}/words/word/tr_ci.txt;
+    }' |
+    sed -r 's|&AMP\;|\&|g;s|&QUOT\;|"|g' \
+	> "data/lang/${ds}/words/word/tr+va_ci.3.txt";
+  }
+  [ -s data/lang/${ds}/words/char/tr+va_ci.3.txt ] || {
+    awk '{
+      printf("%s", $1);
+      for (i=1; i <= length($2); ++i) {
+        printf(" %s", substr($2, i, 1));
+      }
+      printf("\n");
+    }' "data/lang/${ds}/words/word/tr+va_ci.3.txt" \
+    > "data/lang/${ds}/words/char/tr+va_ci.3.txt";
+  }
+  [ -s data/lang/${ds}/syms_ci_phoc.txt ] ||
+  cut -d\  -f2 "data/lang/${ds}/words/word/tr+va_ci.3.txt" |
+  awk '{ for(i=1;i<=length($0);++i) print substr($0, i, 1); }' |
+  sort -uV |
+  awk '{print $1, NR - 1; }' > "data/lang/${ds}/syms_ci_phoc.txt";
+done;
+
+head -n1684 data/lang/Botany/words/word/tr+va.3.txt \
+     > data/lang/Botany/words/word/tr+va.1.txt;
+head -n5295 data/lang/Botany/words/word/tr+va.3.txt \
+     > data/lang/Botany/words/word/tr+va.2.txt;
+
+head -n1849 data/lang/Konzilsprotokolle/words/word/tr+va.3.txt \
+     > data/lang/Konzilsprotokolle/words/word/tr+va.1.txt;
+head -n7817 data/lang/Konzilsprotokolle/words/word/tr+va.3.txt \
+     > data/lang/Konzilsprotokolle/words/word/tr+va.2.txt;
+
+WPREFIX=(bw kw);
+for d in 0 1; do
+  ds=${DATASETS[d]};
+  [ -s data/lang/$ds/words/word/te_words.txt ] || {
+    tmp=$(mktemp);
+    awk '$1 == "<spot"' "data/xmls/${ds}_Test_GT_SegBased_QbS.xml" |
+    sed -r 's|^.* word="([^"]+)" image="([^"]+).jpg" .*$|\2 \1|g' > "$tmp";
+    find data/images/word -name "${WPREFIX[d]}*" |
+    sed -r 's|^.*\/([a-z0-9]+)\.jpg$|\1|g' | sort |
+    awk -v TMPF="$tmp" 'BEGIN{
+      while((getline < TMPF) > 0) { TXT[$1]=$2; }
+    }{
+      if ($1 in TXT) print $1, TXT[$1];
+      else print $1, "---UNKNOWN---";
+    }' > data/lang/$ds/words/word/te_words.txt;
+    rm $tmp;
+  }
+  [ -s data/lang/$ds/words/word/te_queries.txt ] || {
+    tmp=$(mktemp);
+    awk '$1 == "<spot"' "data/xmls/${ds}_Test_GT_SegBased_QbE.xml" |
+    sed -r 's|^.* word="([^"]+).jpg" image="([^"]+).jpg" .*$|\2 \1|g' |
+    sort > "$tmp";
+    join -1 1 data/lang/${ds}/words/word/te_words.txt "$tmp" |
+    cut -d\  -f2-3 | awk '{print $2, $1}' |
+    sort -u > data/lang/$ds/words/word/te_queries.txt;
+    rm $tmp;
   }
 done;
