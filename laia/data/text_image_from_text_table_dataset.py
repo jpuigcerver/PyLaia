@@ -27,6 +27,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
     def __getitem__(self, index):
         """Returns the ID of the example, the image and its transcript from
         the dataset.
+
         Args:
           index (int): Index of the item to return.
 
