@@ -9,3 +9,6 @@
 	path = third_party/warp-ctc
 	url = https://github.com/jpuigcerver/warp-ctc.git
 	branch = pytorch_bindings
+[submodule "egs/icdar2015kws/src/htrsh"]
+	path = egs/icdar2015kws/src/htrsh
+	url = https://github.com/mauvilsa/htrsh.git
