@@ -85,9 +85,9 @@ for d in 0 1; do
   }
   # Download training GT
   for s in I II III; do
-    [ data/xmls/${ds}_Train_${s}_LL.xml -a \
-      data/xmls/${ds}_Train_${s}_WL.xml -a \
-      data/xmls/${ds}_Train_${s}_WL_CASE_INSENSITIVE.xml ] || {
+    [ -s data/xmls/${ds}_Train_${s}_LL.xml -a \
+      -s data/xmls/${ds}_Train_${s}_WL.xml -a \
+      -s data/xmls/${ds}_Train_${s}_WL_CASE_INSENSITIVE.xml ] || {
       wget --no-check-certificate -P data -N \
 	   ${BASEURL}/${ds}_Train_${s}_XML.zip;
       unzip -d data/xmls data/${ds}_Train_${s}_XML.zip;
