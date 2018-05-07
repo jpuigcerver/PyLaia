@@ -179,7 +179,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         root.info('Laia stopped')
         return
-    root.exception('Uncaught exception:', exc_info=(
+    root.error('Uncaught exception:', exc_info=(
         exc_type, exc_value, exc_traceback))
 
 
