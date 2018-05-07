@@ -100,8 +100,26 @@ root = get_logger()
 root.addHandler(logging.NullHandler())
 
 
+def handle_exception(exc_type, exc_value, exc_traceback):
+    import __main__ as main
+    if not len(root.handlers) or all(isinstance(h, logging.NullHandler) for h in root.handlers):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    if issubclass(exc_type, KeyboardInterrupt) or hasattr(main, '__file__'):
+        root.info('Laia stopped')
+        return
+    root.error('Uncaught exception:', exc_info=(
+        exc_type, exc_value, exc_traceback))
+
+
+def set_exception_handler(func=sys.__excepthook__):
+    sys.exepthook = func
+
+
 def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
-                 filemode='a', logging_also_to_stderr=ERROR):
+                 filemode='a', logging_also_to_stderr=ERROR,
+                 exception_handling_fn=handle_exception):
+    set_exception_handler(func=exception_handling_fn)
     fmt = logging.Formatter(fmt)
 
     for h in root.handlers:
@@ -173,14 +191,3 @@ def critical(msg, *args, **kwargs):
 
 def set_level(level):
     root.setLevel(level)
-
-
-def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        root.info('Laia stopped')
-        return
-    root.error('Uncaught exception:', exc_info=(
-        exc_type, exc_value, exc_traceback))
-
-
-sys.excepthook = handle_exception
