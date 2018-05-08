@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e;
-export LC_ALL=en_US.utf8
+export LC_ALL=en_US.utf8;
 export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 if [ $# -ne 2 ]; then
@@ -23,7 +23,6 @@ done;
 mkdir -p "$(dirname "$2")";
 
 compute_dist=1;
-
 if [ -s "$2" ]; then
   msg="Output \"$2\" already exists. Do you want to recompute it (y or n)? ";
   read -p "$msg" -n 1 -r; echo;
