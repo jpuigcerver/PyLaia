@@ -118,7 +118,8 @@ if [[ -z "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
         -t "1-$NT" -l "h_vmem=$maxvmem,h_rt=$maxrt" -j y -o "$wdir" \
         "${BASH_SOURCE[0]}" \
         -b "$beam" -c "$cache_size" -n "$normalize" -s "$scale" -t "$threads" \
-        -W "$wdir" -S "$swap" "$qscp" "$wscp" "$3");
+        -W "$wdir" -S "$swap" "$qscp" "$wscp" "$3" |
+        tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g');
     qsub -terse -cwd -l "h_vmem=1G,h_rt=$maxrt" -j y -o "$wdir" \
          -hold_jid "$jid" \
          "${BASH_SOURCE[0]}" -W "$wdir" -X "$1" "$2" "$3";
