@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import io
 from os import listdir
 
 from os.path import isfile, join, splitext
@@ -15,11 +16,12 @@ _logger = log.get_logger(__name__)
 
 class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(self, txt_table, imgs_dir, img_transform=None,
-                 txt_transform=None, img_extensions=IMAGE_EXTENSIONS):
+                 txt_transform=None, img_extensions=IMAGE_EXTENSIONS,
+                 encoding='utf8'):
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
-            txt_table, imgs_dir, img_extensions)
+            txt_table, imgs_dir, img_extensions, encoding=encoding)
         # Prepare dataset using the previous image filenames and transcripts.
         super(TextImageFromTextTableDataset, self).__init__(
             imgs, txts, img_transform, txt_transform)
@@ -61,9 +63,9 @@ def find_image_filename_from_id(img_id, img_dir, img_extensions):
     return None
 
 
-def _load_text_table_from_file(table_file):
+def _load_text_table_from_file(table_file, encoding='utf8'):
     if isinstance(table_file, string_classes):
-        with open(table_file, 'r') as f:
+        with io.open(table_file, 'r', encoding=encoding) as f:
             for n, line in enumerate((l.split() for l in f), 1):
                 # Skip empty lines and lines starting with #
                 if not len(line) or line[0].startswith('#'):
@@ -71,9 +73,9 @@ def _load_text_table_from_file(table_file):
                 yield n, line[0], line[1:]
 
 
-def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions):
+def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions, encoding='utf8'):
     ids, imgs, txts = [], [], []
-    for _, imgid, txt in _load_text_table_from_file(table_file):
+    for _, imgid, txt in _load_text_table_from_file(table_file, encoding=encoding):
         fname = find_image_filename_from_id(imgid, imgs_dir, img_extensions)
         if fname is None:
             _logger.warning('No image file was found in folder "{}" for image '

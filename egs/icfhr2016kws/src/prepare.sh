@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e;
+export LC_ALL=en_US.utf8;
 
 # Directory where the script is located.
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
