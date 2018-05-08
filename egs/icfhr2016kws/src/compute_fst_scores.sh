@@ -27,6 +27,7 @@ Options:
 Additional qsub options:
   -M MAX_VMEM
   -T MAX_RUNTIME
+  -S SWAP
 ";
 while [ "${1:0:1}" = "-" ]; do
   case "$1" in
@@ -88,31 +89,24 @@ fi;
 
 # fst-compose-sum options
 opts=(
-  "--print-args=false"
-  "--cache_size=$cache_size"
+  "--cache-size=$cache_size"
   "--normalize=$normalize"
-  "--num_threads=$threads"
+  "--num-threads=$threads"
   "--scale=$scale"
 );
 [ -n "$beam" ] && opts+=("--beam=$beam");
 
 if [[ -z "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
   if [[ "$use_qsub" = "true" ]]; then
-    NQ="$(wc -l "$1" | cut -d\  -f1)";
-    NW="$(wc -l "$2" | cut -d\  -f1)";
-
-    if [[ "$NQ" -gt "$NW" ]]; then
-        NT="$NQ";
-        qscp="$1";
-        wscp="$2";
-        swap=false;
+    if [[ "$swap" = true ]]; then
+      NT="$(wc -l "$2" | cut -d\  -f1)";
+      qscp="$2";
+      wscp="$1";
     else
-        NT="$NW";
-        qscp="$2";
-        wscp="$1";
-        swap=true;
+      NT="$(wc -l "$1" | cut -d\  -f1)";
+      qscp="$1";
+      wscp="$2";
     fi;
-
     [ -n "$wdir" ] || wdir="$(mktemp -d --tmpdir=$SCRATCH)";
     jid=$(qsub -terse -cwd -pe mp "$threads" \
         -t "1-$NT" -l "h_vmem=$maxvmem,h_rt=$maxrt" -j y -o "$wdir" \
@@ -120,10 +114,13 @@ if [[ -z "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
         -b "$beam" -c "$cache_size" -n "$normalize" -s "$scale" -t "$threads" \
         -W "$wdir" -S "$swap" "$qscp" "$wscp" "$3" |
         tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g');
-    qsub -terse -cwd -l "h_vmem=1G,h_rt=$maxrt" -j y -o "$wdir" \
+    jid2=$(qsub -terse -cwd -l "h_vmem=1G,h_rt=$maxrt" -j y -o "$wdir" \
          -hold_jid "$jid" \
-         "${BASH_SOURCE[0]}" -W "$wdir" -X "$1" "$2" "$3";
+         "${BASH_SOURCE[0]}" -W "$wdir" -X "$1" "$2" "$3" |
+         tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g');
+    echo "Launched jobs: $jid $jid2" >&2;
   else
+    mkdir -p "$(dirname "$3")";
     fst-compose-sum "${opts[@]}" "scp:$1" "scp:$2" |
     if [[ "${3:(-3)}" = ".gz" ]]; then
       gzip -9
@@ -133,7 +130,7 @@ if [[ -z "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
       cat
     fi > "$3";
   fi;
-elif [[ -n "$SGE_TASK_ID" ]]; then
+elif [[ -n "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
   [ ! -d "$wdir" ] && echo "Directory \"$wdir\" does not exist!" >&2 && exit 1;
   tmpscp="$(mktemp)";
   head -n$SGE_TASK_ID "$1" | tail -n1 > "$tmpscp";
@@ -146,6 +143,7 @@ elif [[ -n "$SGE_TASK_ID" ]]; then
   rm "$tmpscp";
 elif [[ "$merge" -eq 1 ]]; then
   [ ! -d "$wdir" ] && echo "Directory \"$wdir\" does not exist!" >&2 && exit 1;
+  mkdir -p "$(dirname "$3")";
   find "$wdir" -name "scores.*.txt" | xargs cat |
   if [[ "${3:(-3)}" = ".gz" ]]; then
     gzip -9
