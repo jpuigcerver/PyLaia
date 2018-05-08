@@ -114,7 +114,7 @@ if [[ -z "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
     fi;
 
     [ -n "$wdir" ] || wdir="$(mktemp -d --tmpdir=$SCRATCH)";
-    jid=$(qsub -terse -cwd -pe -mp "$threads" \
+    jid=$(qsub -terse -cwd -pe mp "$threads" \
         -t "1-$NT" -l "h_vmem=$maxvmem,h_rt=$maxrt" -j y -o "$wdir" \
         "${BASH_SOURCE[0]}" \
         -b "$beam" -c "$cache_size" -n "$normalize" -s "$scale" -t "$threads" \
