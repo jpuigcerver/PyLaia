@@ -102,3 +102,13 @@ for d in 0 1; do
     rm $tmp;
   }
 done;
+
+for d in 0 1; do
+  ds=${DATASETS[d]};
+  [ -s data/lang/${ds}/te_sb_qbe_rel_pairs.txt ] ||
+  gawk '$1 == "<spot"{
+    match($0, /^.* word="([a-z0-9]+).jpg" image="([a-z0-9]+).jpg".*$/, A);
+    print A[1], A[2]
+  }' data/xmls/${ds}_Test_GT_SegBased_QbE.xml \
+       > data/lang/${ds}/te_sb_qbe_rel_pairs.txt;
+done;
