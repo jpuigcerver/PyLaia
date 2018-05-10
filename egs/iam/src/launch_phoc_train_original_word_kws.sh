@@ -35,11 +35,11 @@ if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
     fi;
 fi;
 
-# 6000 samples/epoch -> 600 updates/epoch
-# 400 epochs needed for 240,000 updates.
+# 8000 samples/epoch -> 800 updates/epoch
+# 300 epochs needed for 240,000 updates.
 python ./src/python/train_phocnet.py \
-       --max_epochs=400 \
-       --train_samples_per_epoch=6000 \
+       --max_epochs=300 \
+       --train_samples_per_epoch=8000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --save_path="$OUTPUT_DIR" \

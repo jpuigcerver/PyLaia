@@ -23,7 +23,8 @@ for p in va te; do
         python src/python/generate_ctc_lattice.py --add_softmax \
 	        data/original/word_kws/lang/syms_ctc.txt \
 	        data/original/words \
-	        data/original/word_kws/lang/char/${p}_queries+stopwords.txt \
+                <(cat data/original/word_kws/lang/char/${p}_distractors.txt \
+                      data/original/word_kws/lang/char/${p}_queries.txt) \
 	        "$model" \
 	        >(lattice-remove-ctc-blank 1 ark:- ark:- |
                   lattice-prune --beam=$maxbeam \
