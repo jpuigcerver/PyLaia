@@ -109,8 +109,6 @@ class HtrEngineWrapper(object):
     def _train_reset_meters(self):
         self._train_timer.reset()
         self._train_loss.reset()
-        self._train_cer.reset()
-        self._train_wer.reset()
 
     @action
     def _valid_reset_meters(self):
