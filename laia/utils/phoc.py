@@ -2,7 +2,8 @@ from laia.utils.symbols_table import SymbolsTable
 import torch
 
 
-def unigram_phoc(sequence, unigram_map, unigram_levels):
+def unigram_phoc(sequence, unigram_map, unigram_levels,
+                 ignore_missing_unigram=False):
     r"""Compute the Pyramid of Histograms of Characters (PHOC) of a given
     sequence of characters (or arbitrary symbols).
 
@@ -37,8 +38,8 @@ def unigram_phoc(sequence, unigram_map, unigram_levels):
     # Compute PHOC
     num_chars = len(sequence)
     for i, ch in enumerate(sequence):
-        assert ch in unigram_map, (
-            'Character {!r} is not in the unigrams set'.format(ch))
+        if ch not in unigram_map and not ignore_missing_unigram:
+            raise KeyError('Character {!r} is not in the unigrams set'.format(ch))
         ch_occ = occupancy(i, num_chars)
         for j, level in enumerate(unigram_levels):
             for region in range(level):
