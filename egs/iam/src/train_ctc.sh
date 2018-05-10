@@ -22,9 +22,8 @@ for f in "$TRAIN_TXT" "$VALID_TXT"; do
 done;
 
 mkdir -p "$OUTPUT_DIR";
-
-if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
-    ckpt="$OUTPUT_DIR/model.ckpt";
+ckpt="$OUTPUT_DIR/model.ckpt-300";
+if [ -s "$ckpt" ]; then
     msg="Checkpoint \"$ckpt\" already exists. Continue (c) or abort (a)? ";
     read -p "$msg" -n 1 -r; echo;
     if [[ $REPLY =~ ^[Cc]$ ]]; then
@@ -35,11 +34,11 @@ if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
     fi;
 fi;
 
-# 6000 samples/epoch -> 600 updates/epoch
-# 400 epochs needed for 240,000 updates.
+# 8000 samples/epoch -> 800 updates/epoch
+# 300 epochs needed for 240,000 updates.
 python ./src/python/train_ctc.py \
-       --max_epochs=400 \
-       --train_samples_per_epoch=6000 \
+       --max_epochs=300 \
+       --train_samples_per_epoch=8000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --save_path="$OUTPUT_DIR" \
@@ -47,4 +46,4 @@ python ./src/python/train_ctc.py \
        data/almazan/lang/syms_ctc.txt \
        data/original/words \
        "$TRAIN_TXT" \
-       "$VALID_TXT";
+       <(sort -R --random-source="$VALID_TXT" "$VALID_TXT" | head -n3000);
