@@ -93,7 +93,7 @@ class Evaluate(object):
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'train_samples_per_epoch',
-                 'seed', 'save_path',
+                 'seed', 'train_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  learning_rate=0.0001,
@@ -180,4 +180,4 @@ if __name__ == '__main__':
     trainer.run()
 
     # Save model parameters after training
-    torch.save(model.state_dict(), os.path.join(args.save_path, 'model.ckpt'))
+    torch.save(model.state_dict(), os.path.join(args.train_path, 'model.ckpt'))

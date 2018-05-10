@@ -21,6 +21,13 @@ class RunningAverageMeterTest(unittest.TestCase):
         stddev = math.sqrt((25.0 ** 2 + 25.0 ** 2 + 70.0 ** 2 + 120 ** 2) / 4.0)
         self.assertEqual(m.value, (0.0, stddev))
 
+    def testStateDict(self):
+        m = RunningAverageMeter()
+        m.add([25, 25, 70])
+        m2 = RunningAverageMeter()
+        m2.load_state_dict(m.state_dict())
+        self.assertEqual(m.value, m2.value)
+
 
 if __name__ == '__main__':
     unittest.main()

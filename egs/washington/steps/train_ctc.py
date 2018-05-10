@@ -21,7 +21,7 @@ logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'train_samples_per_epoch',
-                 'valid_samples_per_epoch', 'seed', 'save_path',
+                 'valid_samples_per_epoch', 'seed', 'train_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
                  learning_rate=0.0001,
@@ -144,15 +144,15 @@ if __name__ == '__main__':
 
     lowest_cer_saver = ModelCheckpointKeepLastSaver(
         model,
-        os.path.join(args.save_path, 'model.ckpt-lowest-valid-cer'))
+        os.path.join(args.train_path, 'model.ckpt-lowest-valid-cer'))
     lowest_wer_saver = ModelCheckpointKeepLastSaver(
         model,
-        os.path.join(args.save_path, 'model.ckpt-lowest-valid-wer'))
+        os.path.join(args.train_path, 'model.ckpt-lowest-valid-wer'))
 
 
     @action
     def save_ckpt(epoch):
-        prefix = os.path.join(args.save_path, 'model.ckpt')
+        prefix = os.path.join(args.train_path, 'model.ckpt')
         torch.save(model.state_dict(), '{}-{}'.format(prefix, epoch))
 
 

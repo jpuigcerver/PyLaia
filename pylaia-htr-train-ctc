@@ -22,7 +22,7 @@ from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
 if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
-                 'max_epochs', 'show_progress_bar', 'save_path',
+                 'max_epochs', 'show_progress_bar', 'train_path',
                  'train_samples_per_epoch', 'iterations_per_update')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('img_dir', help='Directory containing word images')
@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     syms = SymbolsTable(args.syms)
 
-    model = ModelLoader(args.save_path, gpu=args.gpu).load()
+    model = ModelLoader(args.train_path, gpu=args.gpu).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     log.info('Model has {} parameters', sum(param.data.numel()
                                             for param in model.parameters()))
 
-    trainer = TrainerLoader(args.save_path, gpu=args.gpu).load()
+    trainer = TrainerLoader(args.train_path, gpu=args.gpu).load()
     if trainer is None:
         optimizer = RMSprop(model.parameters(),
                             lr=args.learning_rate,
@@ -57,7 +57,7 @@ if __name__ == '__main__':
             'batch_target_fn': ItemFeeder('txt'),
             'progress_bar': 'Train' if args.show_progress_bar else None}
         trainer = Trainer(**parameters)
-        TrainerSaver(args.save_path).save(Trainer, **parameters)
+        TrainerSaver(args.train_path).save(Trainer, **parameters)
 
     tr_ds = TextImageFromTextTableDataset(
         args.tr_txt_table, args.img_dir,
@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
 
     def ckpt_saver(filename):
-        return CheckpointSaver(os.path.join(args.save_path, filename))
+        return CheckpointSaver(os.path.join(args.train_path, filename))
 
 
     tr_saver_best_cer = RollingSaver(
@@ -163,8 +163,8 @@ if __name__ == '__main__':
 
     # Continue from last checkpoints with lowest valid cer, if possible
     TrainerCheckpointLoader(engine_wrapper, gpu=args.gpu).load_by(
-        os.path.join(args.save_path, 'engine-wrapper.ckpt.lowest-valid-cer*'))
+        os.path.join(args.train_path, 'engine-wrapper.ckpt.lowest-valid-cer*'))
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.save_path, 'model.ckpt.lowest-valid-cer*'))
+        os.path.join(args.train_path, 'model.ckpt.lowest-valid-cer*'))
 
     engine_wrapper.run()
