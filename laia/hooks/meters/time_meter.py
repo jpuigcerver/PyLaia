@@ -16,10 +16,6 @@ class TimeMeter(Meter):
         self._end = None
         return self
 
-    def start(self):
-        self.reset()
-        return self
-
     def stop(self):
         self._end = time.time()
         return self
