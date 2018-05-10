@@ -153,7 +153,7 @@ elif [[ -n "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
   tmpscp1="$(mktemp)";
   head "-n$SGE_TASK_ID" "$1" | tail -n1 > "$tmpscp1";
   tmpscp2="$(mktemp)";
-  tail "-n+$[SGE_TASK_ID + 1]" > "$tmpscp2";
+  tail "-n+$[SGE_TASK_ID + 1]" "$1" > "$tmpscp2";
   {
     if [ "$(wc -l "$tmpscp2" | cut -d\  -f1)" -gt 0 ]; then
       fst-compose-sum "${opts[@]}" "scp:$tmpscp1" "scp:$tmpscp2" |
