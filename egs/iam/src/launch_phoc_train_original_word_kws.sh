@@ -42,7 +42,7 @@ python ./src/python/train_phocnet.py \
        --train_samples_per_epoch=8000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
-       --save_path="$OUTPUT_DIR" \
+       --train_path="$OUTPUT_DIR" \
        $@ \
        data/original/word_kws/lang/syms_phoc.txt \
        data/original/words \

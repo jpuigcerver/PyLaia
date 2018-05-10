@@ -9,7 +9,7 @@ from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.utils import SymbolsTable
 
 if __name__ == '__main__':
-    add_defaults('save_path')
+    add_defaults('train_path')
     add_argument('--adaptive_pool_height', type=int, default=16,
                  help='Average adaptive pooling of the images before the LSTM layers')
     add_argument('--lstm_hidden_size', type=int, default=128)
@@ -41,4 +41,4 @@ if __name__ == '__main__':
                        [0.0, 0.0, 0.2, 0.2, 0.2],
                        [False] * 5,  # Batch normalization
                        256, 5, 0.5, 0.5)
-    ModelSaver(args.save_path).save(VggRnnFixedHeight, *hyperparameters)
+    ModelSaver(args.train_path).save(VggRnnFixedHeight, *hyperparameters)

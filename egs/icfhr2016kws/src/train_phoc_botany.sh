@@ -44,7 +44,7 @@ python3 ./src/python/train_phocnet.py \
        --train_samples_per_epoch=5000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
-       --save_path="$OUTPUT_DIR" \
+       --train_path="$OUTPUT_DIR" \
        $@ \
        data/lang/Botany/syms_ci_phoc.txt \
        data/images \

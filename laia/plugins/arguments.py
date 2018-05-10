@@ -176,8 +176,8 @@ _default_args = {
             'type': NumberInClosedRange(type=float, vmin=0),
             'help': 'Apply this L2 weight penalty to the loss function'
         }),
-    'save_path': (
-        ('--save_path', ),
+    'train_path': (
+        ('--train_path', ),
         {
             'type': str,
             'help': 'Save any files in this location'
