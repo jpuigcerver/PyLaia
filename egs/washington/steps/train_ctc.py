@@ -13,10 +13,9 @@ from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.engine.htr_engine_wrapper import HtrEngineWrapper
 from laia.engine.trainer import Trainer
-from laia.hooks import Hook, HookCollection
+from laia.hooks import Hook, HookCollection, action
 from laia.hooks.conditions import Lowest, GEqThan
 from laia.plugins.arguments import add_argument, add_defaults, args
-
 
 logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
 
@@ -150,6 +149,13 @@ if __name__ == '__main__':
         model,
         os.path.join(args.save_path, 'model.ckpt-lowest-valid-wer'))
 
+
+    @action
+    def save_ckpt(epoch):
+        prefix = os.path.join(args.save_path, 'model.ckpt')
+        torch.save(model.state_dict(), '{}-{}'.format(prefix, epoch))
+
+
     # Set hooks
     trainer.add_hook(EPOCH_END, HookCollection(
         Hook(Lowest(engine_wrapper.valid_cer(), name='Lowest CER'),
@@ -160,12 +166,13 @@ if __name__ == '__main__':
         trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
                               trainer.stop))
+        # Save last 10 epochs
+        trainer.add_hook(EPOCH_END, Hook(GEqThan(trainer.epochs,
+                                                 args.max_epochs - 10),
+                                         save_ckpt))
 
     if args.continue_epoch:
         trainer._epochs = args.continue_epoch
 
     # Launch training
     engine_wrapper.run()
-
-    # Save model parameters after training
-    torch.save(model.state_dict(), os.path.join(args.save_path, 'model.ckpt'))
