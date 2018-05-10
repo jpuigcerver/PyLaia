@@ -40,6 +40,15 @@ class SequenceErrorMeterTest(unittest.TestCase):
         err.add(['home'], ['house'])
         self.assertEqual(err.value, (2 + 1 + 2) / (4 + 4 + 4))
 
+    def testStateDict(self):
+        err = SequenceErrorMeter()
+        ref = [[1, 2, 3, 4]]
+        hyp = [[1, 2, 5, 6, 4]]
+        err.add(ref, hyp)
+        err2 = SequenceErrorMeter()
+        err2.load_state_dict(err.state_dict())
+        self.assertEqual(err.value, err2.value)
+
 
 if __name__ == '__main__':
     unittest.main()
