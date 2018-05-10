@@ -5,7 +5,7 @@ if [ $# -lt 1 ]; then
   cat <<EOF > /dev/stderr
 Usage: ${0##*/} OUTPUT_DIR [TRAIN_OPTIONS]
 
-Example: ${0##*/} train/dortmund/phocnet --gpu=2
+Example: ${0##*/} train/almazan/phoc --gpu=2
 EOF
   exit 1;
 fi;
@@ -22,9 +22,8 @@ for f in "$TRAIN_TXT" "$VALID_TXT"; do
 done;
 
 mkdir -p "$OUTPUT_DIR";
-
-if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
-    ckpt="$OUTPUT_DIR/model.ckpt";
+ckpt="$OUTPUT_DIR/model.ckpt";
+if [ -s "$ckpt" ]; then
     msg="Checkpoint \"$ckpt\" already exists. Continue (c) or abort (a)? ";
     read -p "$msg" -n 1 -r; echo;
     if [[ $REPLY =~ ^[Cc]$ ]]; then
