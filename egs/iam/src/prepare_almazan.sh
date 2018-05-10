@@ -43,75 +43,69 @@ awk 'BEGIN{
 
 # Prepare stop words list.
 [ -s data/almazan/lang/word/stopwords.txt ] ||
-cat data/almazan/swIAM.txt | tr \, \\n > data/almazan/lang/word/stopwords.txt;
-
-# Prepare character-level stop words list.
-[ -s data/almazan/lang/char/stopwords.txt ] ||
-awk '{
-  printf("%s", substr($1, 1, 1));
-  for (i=2; i<=length($1); ++i) printf(" %s", substr($1, i, 1));
-  printf("\n");
-}' data/almazan/lang/word/stopwords.txt > data/almazan/lang/char/stopwords.txt;
-
-# Prepare list of all stopword samples.
-[ -s data/almazan/lang/word/all_stopwords.txt ] ||
-awk 'BEGIN{
-  while ((getline < "data/almazan/lang/word/stopwords.txt") > 0) {
-    sw[$1] = 1;
-  }
-}sw[$2] == 1' data/almazan/lang/word/all.txt \
-    > data/almazan/lang/word/all_stopwords.txt;
+  cat data/almazan/swIAM.txt | tr \, \\n > data/almazan/lang/word/stopwords.txt;
 
 # Split into test, train and validation sets.
 for p in char word; do
-    for s in te tr va; do
-	[ -s data/almazan/lang/$p/$s.txt ] ||
-	awk -v SF=data/almazan/$s.txt 'BEGIN{
-          while((getline < SF) > 0) KEEP[$1] = 1;
-        }{
-          split($1, A, "/");
-          if (A[3] in KEEP) print;
-        }' data/almazan/lang/$p/all.txt > data/almazan/lang/$p/$s.txt;
-    done;
+  for s in te tr va; do
+    [ -s data/almazan/lang/$p/$s.txt ] ||
+      join -1 1 \
+	   <(sort data/almazan/lang/$p/all.txt) \
+	   <(awk '{ split($1, A, "-"); print A[1]"/"A[1]"-"A[2]"/"$1; }' \
+		 data/almazan/$s.txt | sort) \
+	   > data/almazan/lang/$p/$s.txt;
+  done;
 done;
 
-# List of sample queries and stopwords (exclude images of singleton labels)
 for s in te va; do
-  [ -s data/almazan/lang/word/${s}_queries+stopwords.txt ] ||
-  awk -v SF=data/almazan/$s.txt '{
-    if ($2 in INST) INST[$2] = INST[$2]" "$1;
-    else INST[$2] = $1;
-    COUNT[$2] = COUNT[$2] + 1;
+  # Get counts of the validation and test partitions
+  [ -s data/almazan/lang/word/$s.voc ] ||
+  cut -d\  -f2- data/almazan/lang/word/$s.txt |
+  sort | uniq -c > data/almazan/lang/word/$s.voc;
+  # Get distractor samples (stopwords + words with count < 2)
+  [ -s data/almazan/lang/word/${s}_distractors.txt ] || {
+    join -2 2 \
+    	 <(sort data/almazan/lang/word/stopwords.txt) \
+    	 <(sort -k2 data/almazan/lang/word/$s.txt);
+    join -1 2 \
+    	 <(sort -k2 data/almazan/lang/word/$s.txt) \
+    	 <(awk '$1 < 2{print $2}' data/almazan/lang/word/$s.voc | sort);
+  } | awk '{ print $2, $1; }' |
+  sort -u > data/almazan/lang/word/${s}_distractors.txt;
+  # Get query samples (the rest)
+  [ -s data/almazan/lang/word/${s}_queries.txt ] ||
+  comm -13 \
+       data/almazan/lang/word/${s}_distractors.txt \
+       data/almazan/lang/word/${s}.txt \
+       > data/almazan/lang/word/${s}_queries.txt;
+  # Get character-level transcription of the same files.
+  for f in distractors queries; do
+    inp="data/almazan/lang/word/${s}_${f}.txt";
+    out="data/almazan/lang/char/${s}_${f}.txt";
+    [ -s "$out" ] ||
+    join -1 1 \
+	 <(cut -d\  -f1 "$inp") \
+	 data/almazan/lang/char/${s}.txt \
+	 > "$out";
+  done;
+
+  [ -s "data/almazan/${s}_qbe_rel_pairs.txt" ] ||
+  awk '{
+    if ($2 in IMGS) {
+      IMGS[$2] = IMGS[$2]" "$1;
+    } else {
+      IMGS[$2] = $1;
+    }
   }END{
-    for (w in INST) {
-      if (COUNT[w] > 1) {
-        n = split(INST[w], A, " ");
-        for (i = 1; i <= n; ++i) { print A[i], w; }
+    for (w in IMGS) {
+      n = split(IMGS[w], A, " ");
+      for (i = 1; i <= n; ++i) {
+        for (j = i + 1; j <= n; ++j) {
+          print A[i], A[j];
+          print A[j], A[i];
+        }
       }
     }
-  }' data/almazan/lang/word/$s.txt |
-  sort > data/almazan/lang/word/${s}_queries+stopwords.txt;
-
-  [ -s data/almazan/lang/char/${s}_queries+stopwords.txt ] ||
-  join -1 1 \
-       <(cut -d\  -f1 data/almazan/lang/word/${s}_queries+stopwords.txt) \
-       <(sort data/almazan/lang/char/$s.txt) \
-       > data/almazan/lang/char/${s}_queries+stopwords.txt;
-done;
-
-# List of sample queries (exclude singletons and stopwords)
-for s in te va; do
-  # Word-level transcription
-  [ -s data/almazan/lang/word/${s}_queries.txt ] ||
-  awk -v swf=data/almazan/lang/word/stopwords.txt 'BEGIN{
-    while((getline < swf) > 0) SW[$1] = 1;
-  }SW[$2] == 0' data/almazan/lang/word/${s}_queries+stopwords.txt \
-  > data/almazan/lang/word/${s}_queries.txt;      
-
-  # Char-level transcription
-  [ -s data/almazan/lang/char/${s}_queries.txt ] ||
-  join -1 1 \
-       <(cut -d\  -f1 data/almazan/lang/word/${s}_queries.txt) \
-       <(sort data/almazan/lang/char/$s.txt) \
-       > data/almazan/lang/char/${s}_queries.txt;
+  }' "data/almazan/lang/word/${s}_queries.txt" \
+      > "data/almazan/${s}_qbe_rel_pairs.txt";
 done;

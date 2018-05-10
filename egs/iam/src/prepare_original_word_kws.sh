@@ -25,13 +25,14 @@ awk '$1 !~ /^#/{
   if (word == "") word = "-";
 
   split($1, arr, "-");
-  printf("%-27s %s\n", arr[1]"/"arr[1]"-"arr[2]"/"$1, word);
-}' data/original/ascii/words.txt > data/original/word_kws/lang/word/all.txt;
+  printf("%s %s\n", arr[1]"/"arr[1]"-"arr[2]"/"$1, word);
+}' data/original/ascii/words.txt |
+sort > data/original/word_kws/lang/word/all.txt;
 
 # Prepare char-level transcriptions.
 [ -s data/original/word_kws/lang/char/all.txt ] ||
 awk '{
-  printf("%-27s", $1);
+  printf("%s", $1);
   for (i=1;i<=length($2);++i) {
     printf(" %s", substr($2, i, 1));
   }
@@ -60,24 +61,6 @@ awk 'BEGIN{
 cat data/almazan/swIAM.txt |
 tr \, \\n > data/original/word_kws/lang/word/stopwords.txt;
 
-# Prepare character-level stop words list.
-[ -s data/original/word_kws/lang/char/stopwords.txt ] ||
-awk '{
-  printf("%s", substr($1, 1, 1));
-  for (i=2; i<=length($1); ++i) printf(" %s", substr($1, i, 1));
-  printf("\n");
-}' data/original/word_kws/lang/word/stopwords.txt \
-  > data/original/word_kws/lang/char/stopwords.txt;
-
-# Prepare list of all stopword samples.
-[ -s data/original/word_kws/lang/word/all_stopwords.txt ] ||
-awk 'BEGIN{
-  while ((getline < "data/original/word_kws/lang/word/stopwords.txt") > 0) {
-    sw[$1] = 1;
-  }
-}sw[$2] == 1' data/original/word_kws/lang/word/all.txt \
-    > data/original/word_kws/lang/word/all_stopwords.txt;
-
 # Split into test, train and validation sets.
 for p in char word; do
     for s in te tr va; do
@@ -101,45 +84,66 @@ for p in char word; do
     done;
 done;
 
-# List of sample queries and stopwords (exclude images of singleton labels)
 for s in te va; do
-  # Word-level transcription
-  [ -s data/original/word_kws/lang/word/${s}_queries+stopwords.txt ] ||
-  awk -v SF=data/original/word_kws/$s.txt '{
+  # Distractor samples with its word transcription.
+  # Distractors are stopwords and any word which only appears once in the set.
+  [ -s data/original/word_kws/lang/word/${s}_distractors.txt ] ||
+  awk -v swf=data/original/word_kws/lang/word/stopwords.txt 'BEGIN{
+    while ((getline < swf) > 0) {
+      STOPWORD[$1] = 1;
+    }
+  }{
     if ($2 in INST) INST[$2] = INST[$2]" "$1;
     else INST[$2] = $1;
     COUNT[$2] = COUNT[$2] + 1;
   }END{
     for (w in INST) {
-      if (COUNT[w] > 1) {
+      if (COUNT[w] < 2 || STOPWORD[w] == 1) {
         n = split(INST[w], A, " ");
         for (i = 1; i <= n; ++i) { print A[i], w; }
       }
     }
   }' data/original/word_kws/lang/word/$s.txt |
-  sort > data/original/word_kws/lang/word/${s}_queries+stopwords.txt;
+  sort > data/original/word_kws/lang/word/${s}_distractors.txt;
 
-  # Character-level transcription
-  [ -s data/original/word_kws/lang/char/${s}_queries+stopwords.txt ] ||
-  join -1 1 \
-       <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_queries+stopwords.txt) \
-       <(sort data/original/word_kws/lang/char/$s.txt) \
-       > data/original/word_kws/lang/char/${s}_queries+stopwords.txt;
-done;
-
-# List of sample queries (exclude singletons and stopwords)
-for s in te va; do
-  # Word-level transcription
+  # Query samples with its word transcription.
   [ -s data/original/word_kws/lang/word/${s}_queries.txt ] ||
-  awk -v swf=data/original/word_kws/lang/word/stopwords.txt 'BEGIN{
-    while((getline < swf) > 0) SW[$1] = 1;
-  }SW[$2] == 0' data/original/word_kws/lang/word/${s}_queries+stopwords.txt \
-  > data/original/word_kws/lang/word/${s}_queries.txt;      
+  join -1 1 \
+    data/original/word_kws/lang/word/${s}.txt \
+    <(comm -13 \
+        <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_distractors.txt) \
+        <(cut -d\  -f1 data/original/word_kws/lang/word/${s}.txt)) \
+    > data/original/word_kws/lang/word/${s}_queries.txt;
 
-  # Char-level transcription
+  # Character-level transcription of the distractors
+  [ -s data/original/word_kws/lang/char/${s}_distractors.txt ] ||
+  join -1 1 \
+    data/original/word_kws/lang/char/${s}.txt \
+    <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_distractors.txt) \
+    > data/original/word_kws/lang/char/${s}_distractors.txt;
+
+  # Character-level transcription of the queries
   [ -s data/original/word_kws/lang/char/${s}_queries.txt ] ||
   join -1 1 \
-       <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_queries.txt) \
-       <(sort data/original/word_kws/lang/char/$s.txt) \
-       > data/original/word_kws/lang/char/${s}_queries.txt;
+    data/original/word_kws/lang/char/${s}.txt \
+    <(cut -d\  -f1 data/original/word_kws/lang/word/${s}_queries.txt) \
+    > data/original/word_kws/lang/char/${s}_queries.txt;
+
+  # Build relevant query pairs to evaluate KWS performance.
+  [ -s data/original/word_kws/${s}_relevant_pairs.txt ] ||
+  awk '{
+    if ($2 in INST) INST[$2] = INST[$2]" "$1;
+    else INST[$2] = $1;
+  }END{
+    for (w in INST) {
+      n = split(INST[w], A, " ");
+      for (i = 1; i <= n; ++i) {
+        for (j = i + 1; j <= n; ++j) {
+          print A[i], A[j];
+          print A[j], A[i];
+        }
+      }
+    }
+  }' data/original/word_kws/lang/word/${s}_queries.txt |
+  sort > data/original/word_kws/${s}_relevant_pairs.txt;
 done;
