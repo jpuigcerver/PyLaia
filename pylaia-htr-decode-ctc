@@ -14,7 +14,7 @@ from laia.plugins.loader import ModelLoader, ModelCheckpointLoader
 from laia.utils import SymbolsTable, ImageToTensor
 
 if __name__ == '__main__':
-    add_defaults('batch_size', 'gpu', 'save_path',
+    add_defaults('batch_size', 'gpu', 'train_path',
                  logging_level='WARNING')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('img_dir', help='Directory containing word images')
@@ -32,14 +32,14 @@ if __name__ == '__main__':
 
     syms = SymbolsTable(args.syms)
 
-    model = ModelLoader(args.save_path, gpu=args.gpu).load()
+    model = ModelLoader(args.train_path, gpu=args.gpu).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.save_path, args.checkpoint))
+        os.path.join(args.train_path, args.checkpoint))
 
     te_ds = ImageFromListDataset(args.img_list, img_dir=args.img_dir,
                                  img_transform=ImageToTensor())
