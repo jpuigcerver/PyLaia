@@ -1,8 +1,6 @@
 from laia.utils.symbols_table import SymbolsTable
-from laia.logging import get_logger
 import torch
 
-_logger = get_logger(__name__)
 
 def unigram_phoc(sequence, unigram_map, unigram_levels,
                  ignore_missing=False):
@@ -19,6 +17,8 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
     Returns:
       A tuple representing the PHOC of the given sequence.
     """
+    global _num_warnings
+
     def occupancy(i, n):
         return (float(i) / n, float(i + 1) / n)
 
@@ -41,7 +41,7 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
 
     # Compute PHOC
     num_chars = len(sequence)
-    missing_count = {}
+    missing_count = {}  # This is not being used.
     for i, ch in enumerate(sequence):
         if ch not in unigram_map:
             if ignore_missing:
@@ -60,8 +60,6 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
                          region * len(unigram_map) +
                          unigram_map[ch])
                     phoc[z] = 1
-    if missing_count:
-        _logger.warning('The following unigrams were ignored: {!r}', unigram_map)
     return tuple(phoc)
 
 
