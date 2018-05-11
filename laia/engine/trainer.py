@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from torch._six import raise_from
-
 import laia.logging as log
+from future.utils import raise_from
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
+from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
 from laia.utils import check_inf, check_nan
 
@@ -142,11 +142,12 @@ class Trainer(Engine):
         try:
             batch_output = self._model(batch_input)
         except Exception as e:
-            wrapper = Exception(dict(
-                epochs=self._epochs,
-                iterations=self._iterations,
-                batch_ids=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input))
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input,
+                cause=e)
             raise_from(wrapper, e)
 
         # Note: These checks are only active when logging level >= DEBUG
@@ -165,11 +166,12 @@ class Trainer(Engine):
         try:
             batch_loss = self._criterion(batch_output, batch_target)
         except Exception as e:
-            wrapper = Exception(dict(
-                epochs=self._epochs,
-                iterations=self._iterations,
-                batch_ids=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input))
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input,
+                cause=e)
             raise_from(wrapper, e)
 
         # Make the loss and gradients w.r.t. output independent of the number
@@ -184,11 +186,12 @@ class Trainer(Engine):
         try:
             batch_loss.backward()
         except Exception as e:
-            wrapper = Exception(dict(
-                epochs=self._epochs,
-                iterations=self._iterations,
-                batch_ids=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input))
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input,
+                cause=e)
             raise_from(wrapper, e)
 
         self._iterations += 1
