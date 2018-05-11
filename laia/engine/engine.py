@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-from torch._six import string_classes, raise_from
-
 import laia.logging as log
+from future.utils import raise_from
+from laia.engine.engine_exception import EngineException
 from laia.hooks import action
+from torch._six import string_classes
 
 try:
     from tqdm import tqdm
@@ -187,11 +188,12 @@ class Engine(object):
         try:
             batch_output = self._model(batch_input)
         except Exception as e:
-            wrapper = Exception(dict(
-                epochs=self._epochs,
-                iterations=self._iterations,
-                batch_ids=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input))
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch_input)
+                if self._batch_id_fn else batch_input,
+                cause=e)
             raise_from(wrapper, e)
 
         self._iterations += 1
@@ -201,9 +203,11 @@ class Engine(object):
 
     def _prepare_input_and_target(self, batch):
         # Prepare input to the model.
-        batch_input = self._batch_input_fn(batch) if self._batch_input_fn else batch
+        batch_input = self._batch_input_fn(
+            batch) if self._batch_input_fn else batch
         # Prepare target to be passed to the loss function.
-        batch_target = self._batch_target_fn(batch) if self.batch_target_fn else None
+        batch_target = self._batch_target_fn(
+            batch) if self.batch_target_fn else None
         return batch_input, batch_target
 
     def _run_epoch(self):
@@ -215,7 +219,8 @@ class Engine(object):
         if self._progress_bar and tqdm:
             batch_iterator = tqdm(self._data_loader,
                                   desc=self._progress_bar
-                                  if isinstance(self._progress_bar, string_classes) else None)
+                                  if isinstance(self._progress_bar,
+                                                string_classes) else None)
         else:
             batch_iterator = self._data_loader
 
@@ -231,9 +236,11 @@ class Engine(object):
         return {
             'epochs': self._epochs,
             'iterations': self._iterations,
-            'hooks': {when: [hook.state_dict() if hasattr(hook, 'state_dict') else None
-                             for hook in hooks]
-                      for when, hooks in self._hooks.items()}}
+            'hooks': {
+                when: [
+                    hook.state_dict() if hasattr(hook, 'state_dict') else None
+                    for hook in hooks]
+                for when, hooks in self._hooks.items()}}
 
     def load_state_dict(self, state):
         self._epochs = state['epochs']
