@@ -1,9 +1,11 @@
 from laia.utils.symbols_table import SymbolsTable
+from laia.logging import get_logger
 import torch
 
+_logger = get_logger(__name__)
 
 def unigram_phoc(sequence, unigram_map, unigram_levels,
-                 ignore_missing_unigram=False):
+                 ignore_missing=False):
     r"""Compute the Pyramid of Histograms of Characters (PHOC) of a given
     sequence of characters (or arbitrary symbols).
 
@@ -11,6 +13,8 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
       sequence (list, tuple, str): sequence of characters.
       unigram_map (dict): map from symbols to positions in the histogram.
       unigram_levels (list): list of levels in the pyramid.
+      ignore_missing (bool): If True, will ignore elements the sequence not
+         present in the unigram_map dictionary.
 
     Returns:
       A tuple representing the PHOC of the given sequence.
@@ -37,9 +41,14 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
 
     # Compute PHOC
     num_chars = len(sequence)
+    missing_count = {}
     for i, ch in enumerate(sequence):
-        if ch not in unigram_map and not ignore_missing_unigram:
-            raise KeyError('Character {!r} is not in the unigrams set'.format(ch))
+        if ch not in unigram_map:
+            if ignore_missing:
+                missing_count[ch] = missing_count.get(ch, 0) + 1
+                continue
+            else:
+                raise KeyError('Unigram {!r} was not found in the unigram map'.format(ch))
         ch_occ = occupancy(i, num_chars)
         for j, level in enumerate(unigram_levels):
             for region in range(level):
@@ -51,6 +60,8 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
                          region * len(unigram_map) +
                          unigram_map[ch])
                     phoc[z] = 1
+    if missing_count:
+        _logger.warning('The following unigrams were ignored: {!r}', unigram_map)
     return tuple(phoc)
 
 

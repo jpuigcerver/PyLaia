@@ -27,6 +27,17 @@ class UnigramPHOCTest(unittest.TestCase):
         phoc = unigram_phoc('1234512345', unigram_map=d, unigram_levels=[2])
         self.assertEqual(phoc, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
 
+    def test_missing_unigram_exception(self):
+        d = {'1': 0, '2': 1, '4': 2, '5': 3}
+        with self.assertRaises(KeyError):
+            unigram_phoc('12345', unigram_map=d, unigram_levels=[1])
+
+    def test_missing_unigram_warning(self):
+        d = {'1': 0, '2': 1, '4': 2, '5': 3}
+        phoc = unigram_phoc('12345', unigram_map=d, unigram_levels=[1],
+                            ignore_missing=True)
+        self.assertEqual(phoc, (1, 1, 1, 1))
+
 
 if __name__ == '__main__':
     unittest.main()
