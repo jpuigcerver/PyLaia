@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e;
-export LC_ALL=en_US.utf8;
 export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 if [ $# -ne 2 ]; then
