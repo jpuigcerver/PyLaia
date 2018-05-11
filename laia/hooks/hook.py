@@ -56,7 +56,7 @@ class HookCollection(object):
 
     def load_state_dict(self, state):
         for i, hook in enumerate(self._hooks):
-            if i >= len(state):
+            if i >= len(state['hooks']):
                 break
             if hasattr(hook, 'load_state_dict'):
                 hook.load_state_dict(state['hooks'][i])
