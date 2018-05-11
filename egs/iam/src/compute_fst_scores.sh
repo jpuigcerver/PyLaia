@@ -130,6 +130,7 @@ if [[ -z "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
          tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g');
     echo "Launched jobs: $jid $jid2" >&2;
   else
+    mkdir -p "$(dirname "$3")";
     tmp="$(pairwise_scp "$1")";
     {
       NQ="$(wc -l "$1" | cut -d\  -f1)";
