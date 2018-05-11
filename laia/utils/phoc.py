@@ -1,5 +1,7 @@
 from laia.utils.symbols_table import SymbolsTable
 import torch
+import math
+from scipy.misc import logsumexp
 
 
 def unigram_phoc(sequence, unigram_map, unigram_levels,
@@ -48,7 +50,8 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
                 missing_count[ch] = missing_count.get(ch, 0) + 1
                 continue
             else:
-                raise KeyError('Unigram {!r} was not found in the unigram map'.format(ch))
+                raise KeyError(
+                    'Unigram {!r} was not found in the unigram map'.format(ch))
         ch_occ = occupancy(i, num_chars)
         for j, level in enumerate(unigram_levels):
             for region in range(level):
@@ -61,6 +64,28 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
                          unigram_map[ch])
                     phoc[z] = 1
     return tuple(phoc)
+
+
+def probabilistic_phoc_relevance(a, b):
+    """Compute the probabilistic PHOC relevance score.
+
+    Args:
+        a: vector of log-probabilities of the first sample, p(h_i = 1 | a)
+        b: vector of log-probabilities of the second sample, p(h_i = 1 | b)
+
+    Returns:
+        p(R = 1 \mid a, b) = \sum_{h} p(h | a) p(h | b)
+    """
+    assert torch.is_tensor(a) and torch.is_tensor(b)
+    a, b = a.cpu(), b.cpu()
+
+    result = 0.0
+    for i in range(a.size(0)):
+        h1 = a[i] + b[i]
+        h0 = math.log(-math.expm1(a[i])) + math.log(-math.expm1(b[i]))
+        result += logsumexp([h0, h1])
+
+    return result
 
 
 class TextToPHOC(object):
