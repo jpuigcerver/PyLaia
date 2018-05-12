@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from __future__ import division
 
 import os
@@ -11,7 +12,7 @@ from dortmund_utils import (build_dortmund_model, DortmundImageToTensor,
                             ModelCheckpointKeepLastSaver, DortmundBCELoss)
 from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.hooks import Hook, HookCollection
+from laia.hooks import Hook, HookCollection, action
 from laia.hooks.conditions import GEqThan, Highest
 from laia.plugins.arguments import add_argument, add_defaults, args
 
@@ -137,6 +138,13 @@ if __name__ == '__main__':
         model,
         os.path.join(args.train_path, 'model.ckpt-highest-valid-map'))
 
+    
+    @action
+    def save_ckpt(epoch):
+        prefix = os.path.join(args.train_path, 'model.ckpt')
+        torch.save(model.state_dict(), '{}-{}'.format(prefix, epoch))    
+
+        
     # Set hooks
     trainer.add_hook(EPOCH_END, HookCollection(
         Hook(Highest(engine_wrapper.valid_ap(), key=0, name='Highest gAP'),
@@ -147,12 +155,14 @@ if __name__ == '__main__':
         trainer.add_hook(EPOCH_START,
                          Hook(GEqThan(trainer.epochs, args.max_epochs),
                               trainer.stop))
+        # Save last 10 epochs
+        trainer.add_hook(EPOCH_END, Hook(GEqThan(trainer.epochs,
+                                                 args.max_epochs - 10),
+                                         save_ckpt))
+
 
     if args.continue_epoch:
-        trainer._epochs = args.continue_epoch        
+        trainer._epochs = args.continue_epoch
 
     # Launch training
     engine_wrapper.run()
-
-    # Save model parameters after training
-    torch.save(model.state_dict(), os.path.join(args.train_path, 'model.ckpt'))

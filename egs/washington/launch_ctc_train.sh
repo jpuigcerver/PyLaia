@@ -22,9 +22,8 @@ for f in "$TRAIN_TXT" "$VALID_TXT"; do
 done;
 
 mkdir -p "$OUTPUT_DIR";
-
-if [ -s "$OUTPUT_DIR/model.ckpt" ]; then
-    ckpt="$OUTPUT_DIR/model.ckpt";
+ckpt="$OUTPUT_DIR/model.ckpt-160";
+if [ -s "$ckpt" ]; then
     msg="Checkpoint \"$ckpt\" already exists. Continue (c) or abort (a)? ";
     read -p "$msg" -n 1 -r; echo;
     if [[ $REPLY =~ ^[Cc]$ ]]; then
