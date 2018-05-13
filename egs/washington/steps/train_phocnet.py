@@ -35,6 +35,7 @@ if __name__ == '__main__':
     add_argument('--exclude_words_ap', type=FileType('r'),
                  help='List of words to exclude in the Average Precision '
                       'computation')
+    add_argument('--use_new_phoc', action='store_true')
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -129,7 +130,8 @@ if __name__ == '__main__':
         train_engine=trainer,
         valid_engine=evaluator,
         gpu=args.gpu,
-        exclude_labels=exclude_words_ap)
+        exclude_labels=exclude_words_ap,
+        use_new_phoc=args.use_new_phoc)
 
     highest_gap_saver = ModelCheckpointKeepLastSaver(
         model,
