@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+from __future__ import division
+
 from laia.utils.symbols_table import SymbolsTable
 import torch
 import math
 from scipy.misc import logsumexp
 
 
-def unigram_phoc(sequence, unigram_map, unigram_levels,
-                 ignore_missing=False):
+def unigram_phoc(sequence, unigram_map, unigram_levels, ignore_missing=False):
     r"""Compute the Pyramid of Histograms of Characters (PHOC) of a given
     sequence of characters (or arbitrary symbols).
 
@@ -19,13 +21,12 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
     Returns:
       A tuple representing the PHOC of the given sequence.
     """
-    global _num_warnings
 
     def occupancy(i, n):
-        return (float(i) / n, float(i + 1) / n)
+        return i / n, (i + 1) / n
 
     def overlap(a, b):
-        return (max(a[0], b[0]), min(a[1], b[1]))
+        return max(a[0], b[0]), min(a[1], b[1])
 
     def size(o):
         return o[1] - o[0]
@@ -63,6 +64,36 @@ def unigram_phoc(sequence, unigram_map, unigram_levels,
                          region * len(unigram_map) +
                          unigram_map[ch])
                     phoc[z] = 1
+    return tuple(phoc)
+
+
+def new_unigram_phoc(sequence, unigram_map, unigram_levels,
+                     ignore_missing=False):
+    # Initialize histogram to 0
+    phoc_size = len(unigram_map) * sum(unigram_levels)
+    phoc = [0] * phoc_size
+
+    # Offset of each unigram level starts in the PHOC array.
+    level_offset = [0]
+    for i, level in enumerate(unigram_levels[1:], 1):
+        level_offset.append(
+            level_offset[i - 1] +
+            unigram_levels[i - 1] * len(unigram_map))
+
+    # Compute PHOC
+    for i, ch in enumerate(sequence):
+        if ch not in unigram_map:
+            if ignore_missing:
+                continue
+            else:
+                raise KeyError(
+                    'Unigram {!r} was not found in the unigram map'.format(ch))
+
+        for j, level in enumerate(unigram_levels):
+            r = int(i * level / len(sequence))
+            z = level_offset[j] + r * len(unigram_map) + unigram_map[ch]
+            phoc[z] = 1
+
     return tuple(phoc)
 
 
