@@ -21,7 +21,9 @@ class PHOCEngineWrapper(object):
                  check_va_hook_when=EPOCH_END,
                  va_hook_condition=None,
                  gpu=0,
-                 exclude_labels=None):
+                 exclude_labels=None,
+                 ignore_missing=False,
+                 use_new_phoc=False):
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
@@ -41,6 +43,8 @@ class PHOCEngineWrapper(object):
                                parent_feeder=PHOCFeeder(
                                    syms=symbols_table,
                                    levels=phoc_levels,
+                                   ignore_missing=ignore_missing,
+                                   new_phoc=use_new_phoc,
                                    parent_feeder=ItemFeeder('txt'))))
 
         self._train_timer = TimeMeter()
