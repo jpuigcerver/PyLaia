@@ -22,6 +22,8 @@ if __name__ == '__main__':
     add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*')
     add_argument('--print_img_ids', type=str2bool, nargs='?', const=True, default=True,
                  help='Print output with the associated image id')
+    add_argument('--separator', type=str, default=' ',
+                 help='Use this string as the separator between the ids and the output')
     add_argument('--use_letters', type=str2bool, nargs='?', const=True, default=False,
                  help='Print output with letters')
     add_argument('--space', type=str,
@@ -62,7 +64,4 @@ if __name__ == '__main__':
                            for sym in out]
                 if args.join_str is not None:
                     out = args.join_str.join(out)
-            if args.print_img_ids:
-                print('{} {}'.format(imgid, out))
-            else:
-                print(out)
+            print(imgid + args.separator + out if args.print_img_ids else out)
