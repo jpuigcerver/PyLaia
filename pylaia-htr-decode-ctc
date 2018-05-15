@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import argparse
 import os
 from builtins import str
 
@@ -16,16 +17,20 @@ from laia.utils import SymbolsTable, ImageToTensor
 if __name__ == '__main__':
     add_defaults('batch_size', 'gpu', 'train_path',
                  logging_level='WARNING')
-    add_argument('syms', help='Symbols table mapping from strings to integers')
-    add_argument('img_dir', help='Directory containing word images')
-    add_argument('img_list', help='File or list containing images to decode')
-    add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*')
+    add_argument('syms', type=argparse.FileType('r'),
+                 help='Symbols table mapping from strings to integers')
+    add_argument('img_dir', type=str,
+                 help='Directory containing word images')
+    add_argument('img_list', type=argparse.FileType('r'),
+                 help='File or list containing images to decode')
+    add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*',
+                 help='Name of the checkpoint to use, can be a glob pattern')
     add_argument('--print_img_ids', type=str2bool, nargs='?', const=True, default=True,
                  help='Print output with the associated image id')
     add_argument('--separator', type=str, default=' ',
                  help='Use this string as the separator between the ids and the output')
     add_argument('--use_letters', type=str2bool, nargs='?', const=True, default=False,
-                 help='Print output with letters')
+                 help='Print the output with letters')
     add_argument('--space', type=str,
                  help='Replace <space> with this. Used with --use_letters')
     add_argument('--join_str', type=str,

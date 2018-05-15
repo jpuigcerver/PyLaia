@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import argparse
 import os
 
 from torch.optim import RMSprop
@@ -14,6 +15,7 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook, HookCollection, action, Action, ActionCollection
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
 from laia.plugins.arguments import add_argument, args, add_defaults
+from laia.plugins.arguments_types import NumberInOpenRange
 from laia.plugins.loader import (TrainerLoader, ModelLoader,
                                  TrainerCheckpointLoader, ModelCheckpointLoader)
 from laia.plugins.saver import (TrainerSaver, CheckpointSaver, RollingSaver,
@@ -24,13 +26,17 @@ if __name__ == '__main__':
     add_defaults('batch_size', 'learning_rate', 'momentum', 'gpu',
                  'max_epochs', 'show_progress_bar', 'train_path',
                  'train_samples_per_epoch', 'iterations_per_update')
-    add_argument('syms', help='Symbols table mapping from strings to integers')
-    add_argument('img_dir', help='Directory containing word images')
-    add_argument('tr_txt_table', help='Character transcriptions of each training image')
-    add_argument('va_txt_table', help='Character transcriptions of each validation image')
-    add_argument('--delimiters', type=list, default=['<space>'],
+    add_argument('syms', type=argparse.FileType('r'),
+                 help='Symbols table mapping from strings to integers')
+    add_argument('img_dir',
+                 help='Directory containing word images')
+    add_argument('tr_txt_table', type=argparse.FileType('r'),
+                 help='Character transcriptions of each training image')
+    add_argument('va_txt_table', type=argparse.FileType('r'),
+                 help='Character transcriptions of each validation image')
+    add_argument('--delimiters', type=str, nargs='+', default=['<space>'],
                  help='Sequence of characters representing the word delimiters')
-    add_argument('--max_nondecreasing_epochs', type=int,
+    add_argument('--max_nondecreasing_epochs', type=NumberInOpenRange(int, vmin=0),
                  help='Stop the training once there has been this number '
                       'consecutive epochs without a new lowest validation CER')
     args = args()
