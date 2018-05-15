@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 import laia.logging
 from laia.plugins.arguments_types import (str2bool, NumberInClosedRange,
@@ -129,7 +128,7 @@ _default_args = {
             'type': str2bool,
             'nargs': '?',
             'const': True,
-            'default': True,
+            'default': False,
             'help': 'Whether or not to use dynamic distortions to augment the '
                     'training data'
         }),
@@ -177,7 +176,7 @@ _default_args = {
             'help': 'Apply this L2 weight penalty to the loss function'
         }),
     'train_path': (
-        ('--train_path', ),
+        ('--train_path',),
         {
             'type': str,
             'help': 'Save any files in this location'
