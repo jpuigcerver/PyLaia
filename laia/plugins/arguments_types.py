@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 from argparse import ArgumentTypeError
+from ast import literal_eval
 from collections import OrderedDict
 
 
@@ -72,3 +73,24 @@ class NumberInOpenRange(object):
     def __call__(self, v):
         return str2num_accept_open_range(
             v, self._type, self._vmin, self._vmax)
+
+
+class TupleList(object):
+    def __init__(self, type, dimensions=2):
+        assert dimensions >= 2
+        self._type = type
+        self._dimensions = dimensions
+
+    def __call__(self, v):
+        x = literal_eval(v)
+        if not isinstance(x, self._type):
+            if not isinstance(x, tuple):
+                raise ArgumentTypeError('{} is neither a tuple nor {}',
+                                        v, self._type)
+            if not all(type(v) == self._type for v in x):
+                raise ArgumentTypeError('An element of {} is not a {}',
+                                        x, self._type)
+            if len(x) != self._dimensions:
+                raise ArgumentTypeError('The given tuple does not '
+                                        'match the dimensions')
+        return x
