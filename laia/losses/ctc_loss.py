@@ -5,7 +5,13 @@ import itertools
 import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
-from warpctc_pytorch import CTCLoss as _CTCLoss
+
+try:
+    from warpctc_pytorch import CTCLoss as _CTCLoss
+except ImportError:
+    import warnings
+
+    warnings.warn('Missing CTC loss function library')
 
 from laia.losses.loss import Loss
 
