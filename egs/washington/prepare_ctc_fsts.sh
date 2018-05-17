@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e;
+export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
 if [ $# -ne 3 ]; then
   cat <<EOF > /dev/stderr
@@ -10,42 +11,38 @@ EOF
   exit 1;
 fi;
 
-export PYTHONPATH=$HOME/src/PyLaia:$PYTHONPATH;
+[ -d "$3" ] || mkdir -p "$3";
 
-cv="$1";
-model="$2";
-outdir="$3";
-maxbeam=20;
+MAXBEAM=15;
+TXT=data/lang/dortmund/word/${1}_te.txt;
+REL=data/lang/dortmund/${1}_rel_qbe.txt;
+for f in "$2" "$TXT" "$REL"; do
+  [ ! -s "$f" ] && echo "File \"$f\" was not found!" >&2 && exit 1;
+done;
 
-[ -d "$outdir" ] || mkdir -p "$outdir";
-
-[ -s "$outdir/$cv.lat.ark" -a -s "$outdir/$cv.lat.scp" ] || {
-  python steps/generate_ctc_lattice.py --add_softmax \
-	 train/dortmund/syms_ctc.txt \
+[ -s "$3/lat.ark" -a -s "$3/lat.scp" ] || {
+  python steps/generate_ctc_lattice.py \
+     --add_softmax \
+	 data/lang/dortmund/syms_ctc.txt \
 	 data/imgs/dortmund \
-	 "data/lang/dortmund/char/${cv}_te.txt" \
-	 "$model" \
+	 <(join -1 1 <(sort "$TXT") <(cut -d\  -f1 "$REL" | sort -u)) \
+	 "$2" \
 	 >(lattice-remove-ctc-blank 1 ark:- ark:- | \
-           lattice-prune --beam=$maxbeam \      
-	       ark:- "ark,scp:$outdir/$cv.lat.ark,$outdir/$cv.lat.scp");
+       lattice-prune --beam=$MAXBEAM ark:- "ark:$3/lat.ark");
 }
 
 # Get 1-best path
-fn="$outdir/${cv}_b0.fst";
-[ -s "$fn.ark" -a -s "$fn.scp" ] || {
-  join -1 1 <(sort queries_$cv.lst) <(sort "$outdir/$cv.lat.scp") |
-  lattice-1best scp:- ark:- |
+[ -s "$3/b0.fst.ark" -a -s "$3/b0.fst.scp" ] || {
+  lattice-1best "ark:$3/lat.ark" ark:- |
   lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
-		 ark:- "ark,scp:$fn.ark,$fn.scp";
+      ark:- "ark,scp:$3/b0.fst.ark,$3/b0.fst.scp";
 }
 
 # Prune for different beam thresholds
-for beam in $(seq $maxbeam); do
-  fn="$outdir/${cv}_b${beam}.fst";
-  [ -s "$fn.ark" -a -s "$fn.scp" ] || {
-    join -1 1 <(sort queries_$cv.lst) <(sort "$outdir/$cv.lat.scp") |
-    lattice-prune --beam=$beam scp:- ark:- |
+for b in $(seq $MAXBEAM); do
+  [ -s "$3/b$b.fst.ark" -a -s "$3/b$b.fst.scp" ] || {
+    lattice-prune --beam=$b "ark:$3/lat.ark" ark:- |
     lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
-		   ark:- "ark,scp:$fn.ark,$fn.scp";
+      ark:- "ark,scp:$3/b$b.fst.ark,$3/b$b.fst.scp";
   }
 done;
