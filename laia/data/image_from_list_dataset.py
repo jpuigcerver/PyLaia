@@ -32,12 +32,14 @@ def _load_image_list_from_file(img_list):
     if isinstance(img_list, string_classes):
         with open(img_list, 'r') as f:
             return [i.rstrip() for i in f.readlines()]
+    return img_list
 
 
 def _get_ids_and_images_from_img_list(img_list, img_dir, img_extensions):
     img_list = _load_image_list_from_file(img_list)
     ids, imgs = [], []
     for imgid in img_list:
+        imgid = imgid.rstrip()
         # If img_dir is None then img_list must contain whole paths to the images
         fname = find_image_filename_from_id(imgid, img_dir, img_extensions) \
             if img_dir is not None else imgid

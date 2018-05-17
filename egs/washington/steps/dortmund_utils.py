@@ -2,22 +2,19 @@ from __future__ import absolute_import
 from __future__ import division
 
 import math
-import os
 import operator
+import os
 from collections import OrderedDict
 from functools import reduce
 
 import cv2
 import numpy as np
 import torch
-from PIL import ImageOps
-
+from PIL import Image, ImageOps
 from laia.hooks import action
-from laia.losses.loss import Loss
 from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
 from laia.nn.image_to_sequence import ImageToSequence
 from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
-from laia.plugins import ModelCheckpointSaver
 from torch.nn import BCEWithLogitsLoss
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
@@ -217,9 +214,23 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
 
 
 class DortmundImageToTensor(object):
+    def __init__(self, fixed_height=None, fixed_width=None):
+        assert fixed_height is None or fixed_height > 0
+        assert fixed_width is None or fixed_width > 0
+        self._fh = fixed_height
+        self._fw = fixed_width
+
     def __call__(self, x):
+        assert isinstance(x, Image.Image)
         x = x.convert('L')
         x = ImageOps.invert(x)
+        # Optionally, resize image to a fixed size
+        if self._fh or self._fw:
+            cw, ch = x.size
+            nw = self._fw if self._fw else int(cw * self._fh / ch)
+            nh = self._fh if self._fh else int(ch * self._fw / cw)
+            x.resize((nw, nh), Image.BILINEAR)
+
         x = np.asarray(x, dtype=np.float32)
         x = dortmund_distort(x / 255.0)
         if x.shape != 3:

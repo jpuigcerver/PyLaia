@@ -115,7 +115,11 @@ class RollingSaver(Saver):
         path = self._saver.save(*args, **kwargs)
         if len(self._last_saved) >= self._keep:
             last = self._last_saved.popleft()
-            os.remove(last)
-            _logger.debug('{} checkpoint removed', last)
+            try:
+                os.remove(last)
+                _logger.debug('{} checkpoint removed', last)
+            except OSError:
+                # Someone else removed the checkpoint, not a big deal
+                pass
         self._last_saved.append(path)
         return path
