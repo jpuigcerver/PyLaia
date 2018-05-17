@@ -62,20 +62,41 @@ for f in data/lang/dortmund/word/cv*.txt; do
   }' "$f" > "${f/word/char}";
 done;
 
+for cv in cv1 cv2 cv3 cv4; do
+  [ -s data/lang/dortmund/${cv}_rel_qbe.txt ] ||
+  awk '{
+    if ($2 in IMGS) {
+      IMGS[$2] = IMGS[$2]" "$1;
+    } else {
+      IMGS[$2] = $1;
+    }
+  }END{
+    for (w in IMGS) {
+      n = split(IMGS[w], A, " ");
+      for (i=1; i<=n; ++i) {
+        for (j=i+1; j<=n; ++j) {
+          print A[i], A[j];
+          print A[j], A[i];
+        }
+      }
+    }
+  }' data/lang/dortmund/word/${cv}_te.txt \
+      > data/lang/dortmund/${cv}_rel_qbe.txt;
+done;
 
-mkdir -p train/dortmund;
-[ -s train/dortmund/syms_ctc.txt ] ||
+# Prepare symbols table for CTC training
+[ -s data/lang/dortmund/syms_ctc.txt ] ||
 awk '{ for(i=2; i <= NF; ++i) print $i; }' \
-    data/lang/dortmund/char/cv1_{te,tr}.txt |
+  data/lang/dortmund/char/cv1_{te,tr}.txt |
   sort -V | uniq |
   awk 'BEGIN{
     N=0;
     printf("%-8s %d\n", "<ctc>", N++);
   }{
     printf("%-8s %d\n", $1, N++);
-  }' > train/dortmund/syms_ctc.txt;
+  }' > data/lang/dortmund/syms_ctc.txt;
 
 # Prepare symbols table for PHOC training
-[ -s train/dortmund/syms_phoc.txt ] ||
+[ -s data/lang/dortmund/syms_phoc.txt ] ||
 awk 'NR>1{ printf("%-5s %d\n", $1, NR - 2); }' \
-    train/dortmund/syms_ctc.txt > train/dortmund/syms_phoc.txt;
+    data/lang/dortmund/syms_ctc.txt > data/lang/dortmund/syms_phoc.txt;
