@@ -5,10 +5,7 @@ import json
 import logging
 import sys
 
-try:
-    import tqdm
-except ImportError:
-    tqdm = None
+import tqdm
 
 # Inherit loglevels from Python's logging
 DEBUG = logging.DEBUG
@@ -126,7 +123,7 @@ def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
         if isinstance(h, logging.NullHandler):
             root.removeHandler(h)
 
-    handler = TqdmStreamHandler() if tqdm else logging.StreamHandler()
+    handler = TqdmStreamHandler()
     handler.setFormatter(fmt)
     if filename: handler.setLevel(logging_also_to_stderr)
     root.addHandler(handler)
