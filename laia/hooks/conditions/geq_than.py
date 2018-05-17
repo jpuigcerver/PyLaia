@@ -12,7 +12,7 @@ class GEqThan(LoggingCondition):
     """True if greater or equal than a target"""
 
     def __init__(self, obj, target, key=None, name=None):
-        # type: (Callable, int, Any, str) -> None
+        # type: (Callable, Any, Any, str) -> None
         super(GEqThan, self).__init__(obj, key, _logger, name)
         self._target = target
 
