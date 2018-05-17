@@ -1,10 +1,16 @@
 from __future__ import absolute_import
 from __future__ import division
 
-from laia.utils.symbols_table import SymbolsTable
 import torch
-import math
-from scipy.misc import logsumexp
+
+from laia.utils.symbols_table import SymbolsTable
+
+try:
+    from prob_phoc import cphoc, pphoc
+except ImportError:
+    import warnings
+
+    warnings.warn('Probabilistic PHOC methods could not be imported.')
 
 
 def unigram_phoc(sequence, unigram_map, unigram_levels, ignore_missing=False):
@@ -95,28 +101,6 @@ def new_unigram_phoc(sequence, unigram_map, unigram_levels,
             phoc[z] = 1
 
     return tuple(phoc)
-
-
-def probabilistic_phoc_relevance(a, b):
-    """Compute the probabilistic PHOC relevance score.
-
-    Args:
-        a: vector of log-probabilities of the first sample, p(h_i = 1 | a)
-        b: vector of log-probabilities of the second sample, p(h_i = 1 | b)
-
-    Returns:
-        p(R = 1 \mid a, b) = \sum_{h} p(h | a) p(h | b)
-    """
-    assert torch.is_tensor(a) and torch.is_tensor(b)
-    a, b = a.cpu(), b.cpu()
-
-    result = 0.0
-    for i in range(a.size(0)):
-        h1 = a[i] + b[i]
-        h0 = math.log(-math.expm1(a[i])) + math.log(-math.expm1(b[i]))
-        result += logsumexp([h0, h1])
-
-    return result
 
 
 class TextToPHOC(object):
