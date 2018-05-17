@@ -1,9 +1,6 @@
 import unittest
 
-import numpy as np
-import torch
-from laia.utils.phoc import (unigram_phoc, new_unigram_phoc,
-                             probabilistic_phoc_relevance)
+from laia.utils.phoc import unigram_phoc, new_unigram_phoc
 
 
 class UnigramPHOCTest(unittest.TestCase):
@@ -81,16 +78,6 @@ class NewUnigramPHOCTest(unittest.TestCase):
         phoc = new_unigram_phoc('12345', unigram_map=d, unigram_levels=[1],
                                 ignore_missing=True)
         self.assertEqual(phoc, (1, 1, 1, 1))
-
-
-class ProbabilisticPHOCTest(unittest.TestCase):
-    def test_probabilistic_phoc_relevance(self):
-        a = torch.DoubleTensor([0.5, 0.4, 0.4]).log_()
-        b = torch.DoubleTensor([0.3, 0.7, 0.9]).log_()
-        result = probabilistic_phoc_relevance(a, b)
-        expected = np.log(
-            (.5 * .3 + .5 * .7) * (.4 * .7 + .6 * .3) * (.4 * .9 + .6 * .1))
-        np.testing.assert_almost_equal(result, expected)
 
 
 if __name__ == '__main__':
