@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
-import laia.logging as log
 from future.utils import raise_from
+from torch._six import string_classes
+from tqdm import tqdm
+
+import laia.logging as log
 from laia.engine.engine_exception import EngineException
 from laia.hooks import action
-from torch._six import string_classes
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    tqdm = None
 
 _logger = log.get_logger(__name__)
 
@@ -37,7 +34,6 @@ class Engine(object):
       progress_bar (bool or str, optional): if ``True``, :mod:`tqdm` will be
           used to show a progress bar for each epoch. If a string is given,
           the content of the string will be shown before the progress bar.
-          If the module :mod:`tqdm` is not installed, this will be ignored.
           (default: None)
     """
 
@@ -216,7 +212,7 @@ class Engine(object):
         if self._must_stop:
             return
 
-        if self._progress_bar and tqdm:
+        if self._progress_bar:
             batch_iterator = tqdm(self._data_loader,
                                   desc=self._progress_bar
                                   if isinstance(self._progress_bar,
