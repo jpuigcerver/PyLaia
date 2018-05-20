@@ -23,6 +23,8 @@ if __name__ == '__main__':
                  help='Directory containing word images')
     add_argument('img_list', type=argparse.FileType('r'),
                  help='File or list containing images to decode')
+    add_argument('--model_filename', type=str, default='model',
+                 help='File name of the model')
     add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*',
                  help='Name of the checkpoint to use, can be a glob pattern')
     add_argument('--print_img_ids', type=str2bool, nargs='?', const=True, default=True,
@@ -39,7 +41,7 @@ if __name__ == '__main__':
 
     syms = SymbolsTable(args.syms)
 
-    model = ModelLoader(args.train_path, gpu=args.gpu).load()
+    model = ModelLoader(args.train_path, filename=args.model_filename, gpu=args.gpu).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
