@@ -29,7 +29,7 @@ if __name__ == '__main__':
                  help='Number of channels of the input images')
     add_argument('syms', type=argparse.FileType('r'),
                  help='Symbols table mapping from strings to integers')
-    add_argument('--filename', type=str, default='model',
+    add_argument('--model_filename', type=str, default='model',
                  help='Name of the saved model file')
     add_argument('--cnn_num_features', type=NumberInClosedRange(int, vmin=1),
                  nargs='+', default=[16, 16, 32, 32],
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                            args.cnn_poolsize, args.cnn_dropout, args.cnn_batchnorm))
     assert len(set(dimensions)), 'Wrong cnn layer dimensions'
 
-    ModelSaver(args.train_path, args.filename) \
+    ModelSaver(args.train_path, args.model_filename) \
         .save(VggRnnFixedHeight,
               args.input_height,
               args.num_input_channels,

@@ -12,8 +12,8 @@ _logger = get_logger(__name__)
 
 
 def batch_char_to_word_seq(batch_sequence_of_characters, delimiters):
-    return [map(lambda x: '_'.join(map(str, x)), char_to_word_seq(seq_chars, delimiters))
-            for seq_chars in batch_sequence_of_characters]
+    return [['_'.join(map(str, seq)) for seq in char_to_word_seq(batch, delimiters)]
+            for batch in batch_sequence_of_characters]
 
 
 class HtrEngineWrapper(object):

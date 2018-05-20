@@ -39,11 +39,13 @@ if __name__ == '__main__':
     add_argument('--max_nondecreasing_epochs', type=NumberInOpenRange(int, vmin=0),
                  help='Stop the training once there has been this number '
                       'consecutive epochs without a new lowest validation CER')
+    add_argument('--model_filename', type=str, default='model',
+                 help='File name of the model')
     args = args()
 
     syms = SymbolsTable(args.syms)
 
-    model = ModelLoader(args.train_path, gpu=args.gpu).load()
+    model = ModelLoader(args.train_path, filename=args.model_filename, gpu=args.gpu).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
