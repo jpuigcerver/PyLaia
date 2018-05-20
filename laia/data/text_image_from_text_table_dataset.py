@@ -15,13 +15,13 @@ _logger = log.get_logger(__name__)
 
 
 class TextImageFromTextTableDataset(TextImageDataset):
-    def __init__(self, txt_table, imgs_dir, img_transform=None,
+    def __init__(self, txt_table, img_dirs, img_transform=None,
                  txt_transform=None, img_extensions=IMAGE_EXTENSIONS,
                  encoding='utf8'):
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
-            txt_table, imgs_dir, img_extensions, encoding=encoding)
+            txt_table, img_dirs, img_extensions, encoding=encoding)
         # Prepare dataset using the previous image filenames and transcripts.
         super(TextImageFromTextTableDataset, self).__init__(
             imgs, txts, img_transform, txt_transform)
@@ -74,14 +74,18 @@ def _load_text_table_from_file(table_file, encoding='utf8'):
     table_file.close()
 
 
-def _get_images_and_texts_from_text_table(table_file, imgs_dir, img_extensions, encoding='utf8'):
+def _get_images_and_texts_from_text_table(table_file, img_dirs, img_extensions, encoding='utf8'):
+    assert len(img_dirs) > 0, 'No image directory provided'
     ids, imgs, txts = [], [], []
     for _, imgid, txt in _load_text_table_from_file(table_file, encoding=encoding):
         imgid = imgid.rstrip()
-        fname = find_image_filename_from_id(imgid.rstrip(), imgs_dir, img_extensions)
+        for dir in img_dirs:
+            fname = find_image_filename_from_id(imgid, dir, img_extensions)
+            if fname is not None:
+                break
         if fname is None:
-            _logger.warning('No image file was found in folder "{}" for image '
-                            'ID "{}", ignoring example...', imgs_dir, imgid)
+            _logger.warning('No image file was found for image '
+                            'ID "{}", ignoring example...', imgid)
             continue
         else:
             ids.append(imgid)
