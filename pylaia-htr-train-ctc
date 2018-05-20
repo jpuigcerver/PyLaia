@@ -28,7 +28,7 @@ if __name__ == '__main__':
                  'train_samples_per_epoch', 'iterations_per_update')
     add_argument('syms', type=argparse.FileType('r'),
                  help='Symbols table mapping from strings to integers')
-    add_argument('img_dir',
+    add_argument('img_dirs', type=str, nargs='+',
                  help='Directory containing word images')
     add_argument('tr_txt_table', type=argparse.FileType('r'),
                  help='Character transcriptions of each training image')
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         TrainerSaver(args.train_path).save(Trainer, **parameters)
 
     tr_ds = TextImageFromTextTableDataset(
-        args.tr_txt_table, args.img_dir,
+        args.tr_txt_table, args.img_dirs,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms))
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
                                            parent_feeder=ItemFeeder('img')))
 
     va_ds = TextImageFromTextTableDataset(
-        args.va_txt_table, args.img_dir,
+        args.va_txt_table, args.img_dirs,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms))
     va_ds_loader = ImageDataLoader(dataset=va_ds,
