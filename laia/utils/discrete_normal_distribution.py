@@ -8,9 +8,10 @@ _logger = log.get_logger(__name__)
 
 
 class DiscreteNormalDistribution(object):
+
     def __init__(self, mean, var, eps=1e-9):
-        assert mean >= 0, 'Mean must be a real value greater than or equal to 0'
-        assert var > 0, 'Variance must be real value greater than 0'
+        assert mean >= 0, "Mean must be a real value greater than or equal to 0"
+        assert var > 0, "Variance must be real value greater than 0"
         self._mean = mean
         self._var = var
         self._eps = eps
@@ -37,9 +38,14 @@ class DiscreteNormalDistribution(object):
             if math.fabs(acc - p_acc) / math.fabs(p_acc) < eps:
                 break
             p_acc = acc
-        _logger.debug('Computing Discrete Normal Distribution Constant. '
-                      'Mean = {:.6e}, var = {:.6e}, log_z = {.6e}, iters = {}',
-                      self._mean, self._var, acc, i)
+        _logger.debug(
+            "Computing Discrete Normal Distribution Constant. "
+            "Mean = {:.6e}, var = {:.6e}, log_z = {.6e}, iters = {}",
+            self._mean,
+            self._var,
+            acc,
+            i,
+        )
         return acc
 
     def pdf(self, x):
@@ -47,6 +53,6 @@ class DiscreteNormalDistribution(object):
 
     def log_pdf(self, x):
         if x < 0.0:
-            return -float('inf')
+            return -float("inf")
         else:
             return self.__unorm_log_pdf(x) - self._log_z

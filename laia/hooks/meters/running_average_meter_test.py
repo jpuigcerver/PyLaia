@@ -8,6 +8,7 @@ from laia.hooks.meters import RunningAverageMeter
 
 
 class RunningAverageMeterTest(unittest.TestCase):
+
     def testMeter(self):
         m = RunningAverageMeter()
         m.add(25)
@@ -29,5 +30,5 @@ class RunningAverageMeterTest(unittest.TestCase):
         self.assertEqual(m.value, m2.value)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -40,19 +40,26 @@ class Trainer(Engine):
           (default: None)
     """
 
-    def __init__(self, model, criterion, optimizer,
-                 data_loader=None,
-                 batch_input_fn=None,
-                 batch_target_fn=None,
-                 batch_id_fn=None,
-                 progress_bar=None,
-                 iterations_per_update=1):
-        super(Trainer, self).__init__(model=model,
-                                      data_loader=data_loader,
-                                      batch_input_fn=batch_input_fn,
-                                      batch_target_fn=batch_target_fn,
-                                      batch_id_fn=batch_id_fn,
-                                      progress_bar=progress_bar)
+    def __init__(
+        self,
+        model,
+        criterion,
+        optimizer,
+        data_loader=None,
+        batch_input_fn=None,
+        batch_target_fn=None,
+        batch_id_fn=None,
+        progress_bar=None,
+        iterations_per_update=1,
+    ):
+        super(Trainer, self).__init__(
+            model=model,
+            data_loader=data_loader,
+            batch_input_fn=batch_input_fn,
+            batch_target_fn=batch_target_fn,
+            batch_id_fn=batch_id_fn,
+            progress_bar=progress_bar,
+        )
         self._criterion = criterion
         self._optimizer = optimizer
         self._iterations_per_update = iterations_per_update
@@ -97,19 +104,25 @@ class Trainer(Engine):
             self.add_hook(
                 when,
                 Hook(condition, evaluator.run)
-                if condition is not None else evaluator.run)
+                if condition is not None
+                else evaluator.run,
+            )
         return self
 
     @action
     def run(self):
         r"""Run training """
         assert callable(self.criterion)
-        assert callable(self._batch_input_fn), (
-            'batch_input_fn (type: {!r}) is not callable'.format(
-                str(self._batch_target_fn)))
-        assert callable(self._batch_target_fn), (
-            'batch_target_fn (type: {!r}) is not callable'.format(
-                str(self._batch_target_fn)))
+        assert callable(
+            self._batch_input_fn
+        ), "batch_input_fn (type: {!r}) is not callable".format(
+            str(self._batch_target_fn)
+        )
+        assert callable(
+            self._batch_target_fn
+        ), "batch_target_fn (type: {!r}) is not callable".format(
+            str(self._batch_target_fn)
+        )
         while not self._must_stop:
             self._run_epoch()
         return self
@@ -118,12 +131,13 @@ class Trainer(Engine):
         batch_input, batch_target = self._prepare_input_and_target(batch)
 
         action_kwargs = {
-            'batch': batch,
-            'batch_num': batch_n,
-            'epoch': self._epochs,
-            'iteration': self._iterations,
-            'batch_input': batch_input,
-            'batch_target': batch_target}
+            "batch": batch,
+            "batch_num": batch_n,
+            "epoch": self._epochs,
+            "iteration": self._iterations,
+            "batch_input": batch_input,
+            "batch_target": batch_target,
+        }
         self._call_hooks(ITER_START, **action_kwargs)
 
         if self._must_stop:
@@ -135,7 +149,7 @@ class Trainer(Engine):
             self._optimizer.zero_grad()
 
         # Put model in training mode
-        if hasattr(self._model, 'train'):
+        if hasattr(self._model, "train"):
             self._model.train()
 
         # Run model
@@ -146,21 +160,33 @@ class Trainer(Engine):
                 epoch=self._epochs,
                 iteration=self._iterations,
                 batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input,
-                cause=e)
+                if self._batch_id_fn
+                else batch_input,
+                cause=e,
+            )
             raise_from(wrapper, e)
 
         # Note: These checks are only active when logging level >= DEBUG
-        check_inf(tensor=batch_output, logger=__name__,
-                  msg='Found {abs_num} ({rel_num:.2%}) INF values in the '
-                      'model output at epoch {epoch}, batch {batch} (absolute '
-                      'iteration {iteration})',
-                  epoch=self._epochs, batch=batch_n, iteration=self._iterations)
-        check_nan(tensor=batch_output, logger=__name__,
-                  msg='Found {abs_num} ({rel_num:.2%}) NAN values in the '
-                      'model output at epoch {epoch}, batch {batch} (absolute '
-                      'iteration {iteration})',
-                  epoch=self._epochs, batch=batch_n, iteration=self._iterations)
+        check_inf(
+            tensor=batch_output,
+            logger=__name__,
+            msg="Found {abs_num} ({rel_num:.2%}) INF values in the "
+            "model output at epoch {epoch}, batch {batch} (absolute "
+            "iteration {iteration})",
+            epoch=self._epochs,
+            batch=batch_n,
+            iteration=self._iterations,
+        )
+        check_nan(
+            tensor=batch_output,
+            logger=__name__,
+            msg="Found {abs_num} ({rel_num:.2%}) NAN values in the "
+            "model output at epoch {epoch}, batch {batch} (absolute "
+            "iteration {iteration})",
+            epoch=self._epochs,
+            batch=batch_n,
+            iteration=self._iterations,
+        )
 
         # Compute loss
         try:
@@ -170,8 +196,10 @@ class Trainer(Engine):
                 epoch=self._epochs,
                 iteration=self._iterations,
                 batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input,
-                cause=e)
+                if self._batch_id_fn
+                else batch_input,
+                cause=e,
+            )
             raise_from(wrapper, e)
 
         # Make the loss and gradients w.r.t. output independent of the number
@@ -180,9 +208,12 @@ class Trainer(Engine):
             batch_loss /= self.iterations_per_update
 
         # Compute gradients w.r.t. parameters
-        self.logger.debug('Start backward at epoch {}, batch {} '
-                          '(absolute iteration {})',
-                          self._epochs, batch_n, self._iterations)
+        self.logger.debug(
+            "Start backward at epoch {}, batch {} " "(absolute iteration {})",
+            self._epochs,
+            batch_n,
+            self._iterations,
+        )
         try:
             batch_loss.backward()
         except Exception as e:
@@ -190,8 +221,10 @@ class Trainer(Engine):
                 epoch=self._epochs,
                 iteration=self._iterations,
                 batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input,
-                cause=e)
+                if self._batch_id_fn
+                else batch_input,
+                cause=e,
+            )
             raise_from(wrapper, e)
 
         self._iterations += 1
@@ -199,23 +232,27 @@ class Trainer(Engine):
         # Update model parameters.
         if self._iterations % self.iterations_per_update == 0:
             self._updates += 1
-            self.logger.debug('Updating parameters at epoch {}, batch {} '
-                              '(absolute iteration {})',
-                              self._epochs, batch_n, self._iterations)
+            self.logger.debug(
+                "Updating parameters at epoch {}, batch {} " "(absolute iteration {})",
+                self._epochs,
+                batch_n,
+                self._iterations,
+            )
             self._optimizer.step()
 
-        action_kwargs['iterations'] = self._iterations
-        action_kwargs['batch_output'] = batch_output
-        action_kwargs['batch_loss'] = batch_loss
+        action_kwargs["iterations"] = self._iterations
+        action_kwargs["batch_output"] = batch_output
+        action_kwargs["batch_loss"] = batch_loss
         self._call_hooks(ITER_END, **action_kwargs)
 
     def state_dict(self):
         return {
-            'engine_state': super(Trainer, self).state_dict(),
-            'optimizer_state': self._optimizer.state_dict(),
-            'updates': self.updates()}
+            "engine_state": super(Trainer, self).state_dict(),
+            "optimizer_state": self._optimizer.state_dict(),
+            "updates": self.updates(),
+        }
 
     def load_state_dict(self, state):
-        super(Trainer, self).load_state_dict(state['engine_state'])
-        self._optimizer.load_state_dict(state['optimizer_state'])
-        self._updates = state['updates']
+        super(Trainer, self).load_state_dict(state["engine_state"])
+        self._optimizer.load_state_dict(state["optimizer_state"])
+        self._updates = state["updates"]

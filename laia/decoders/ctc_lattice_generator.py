@@ -8,6 +8,7 @@ import pywrapfst as fst
 
 
 class CTCLatticeGenerator(object):
+
     def __init__(self, normalize=False):
         self._normalize = normalize
 
@@ -18,7 +19,7 @@ class CTCLatticeGenerator(object):
         elif torch.is_tensor(x):
             xs = [x.size()[0]] * x.size()[1]
         else:
-            raise NotImplementedError('Not implemented for type %s' % type(x))
+            raise NotImplementedError("Not implemented for type {}".format(type(x)))
 
         # Normalize log-posterior matrices, if necessary
         if self._normalize:
@@ -38,10 +39,15 @@ class CTCLatticeGenerator(object):
                 f.add_state()
                 for j in range(D):
                     weight = fst.Weight(f.weight_type(), float(-logpost[t, j]))
-                    f.add_arc(t, fst.Arc(j + 1,   # input label
-                                         j + 1,   # output label
-                                         weight,    # -logpost[t, j]
-                                         t + 1))  # nextstate
+                    f.add_arc(
+                        t,
+                        fst.Arc(
+                            j + 1,  # input label
+                            j + 1,  # output label
+                            weight,  # -logpost[t, j]
+                            t + 1,  # nextstate
+                        ),
+                    )
             f.set_final(length, fst.Weight.One(f.weight_type()))
             f.verify()
             self._output.append(f)
@@ -50,4 +56,3 @@ class CTCLatticeGenerator(object):
     @property
     def output(self):
         return self._output
-

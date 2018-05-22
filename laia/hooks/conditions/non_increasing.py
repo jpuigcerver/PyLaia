@@ -26,29 +26,32 @@ class NonIncreasing(LoggingCondition):
         self._calls += 1
         if self._calls - self._highest_calls >= self._max_no_increase:
             if self._calls - self._highest_calls == self._max_no_increase:
-                self.info('Highest value {} DID NOT increase after {} calls',
-                          self._highest, self._max_no_increase)
+                self.info(
+                    "Highest value {} DID NOT increase after {} calls",
+                    self._highest,
+                    self._max_no_increase,
+                )
             return True
         value = self._process_value()
         if value is not None and value < self._highest:
-            self.info('New highest value {} (previous was {})',
-                      value, self._highest)
+            self.info("New highest value {} (previous was {})", value, self._highest)
             self._highest = value
             self._highest_calls += 1
         return False
 
     def state_dict(self):
         return {
-            'condition': super(NonIncreasing, self).state_dict(),
-            'highest': self._highest,
-            'highest_calls': self._highest_calls,
-            'calls': self._calls}
+            "condition": super(NonIncreasing, self).state_dict(),
+            "highest": self._highest,
+            "highest_calls": self._highest_calls,
+            "calls": self._calls,
+        }
 
     def load_state_dict(self, state):
-        super(NonIncreasing, self).load_state_dict(state['condition'])
-        self._highest = state['highest']
-        self._highest_calls = state['highest_calls']
-        self._calls = state['calls']
+        super(NonIncreasing, self).load_state_dict(state["condition"])
+        self._highest = state["highest"]
+        self._highest_calls = state["highest_calls"]
+        self._calls = state["calls"]
 
 
 class ConsecutiveNonIncreasing(LoggingCondition):
@@ -66,24 +69,27 @@ class ConsecutiveNonIncreasing(LoggingCondition):
         self._calls += 1
         if self._calls >= self._max_no_increase:
             if self._calls == self._max_no_increase:
-                self.info('Highest value {} DID NOT increase after {} '
-                          'consecutive calls', self._highest, self._max_no_increase)
+                self.info(
+                    "Highest value {} DID NOT increase after {} " "consecutive calls",
+                    self._highest,
+                    self._max_no_increase,
+                )
             return True
         value = self._process_value()
         if value is not None and value < self._highest:
-            self.info('New highest value {} (previous was {})',
-                      value, self._highest)
+            self.info("New highest value {} (previous was {})", value, self._highest)
             self._highest = value
             self._calls = 0
         return False
 
     def state_dict(self):
         return {
-            'condition': super(ConsecutiveNonIncreasing, self).state_dict(),
-            'highest': self._highest,
-            'calls': self._calls}
+            "condition": super(ConsecutiveNonIncreasing, self).state_dict(),
+            "highest": self._highest,
+            "calls": self._calls,
+        }
 
     def load_state_dict(self, state):
-        super(ConsecutiveNonIncreasing, self).load_state_dict(state['condition'])
-        self._highest = state['highest']
-        self._calls = state['calls']
+        super(ConsecutiveNonIncreasing, self).load_state_dict(state["condition"])
+        self._highest = state["highest"]
+        self._calls = state["calls"]

@@ -7,6 +7,7 @@ from laia.hooks.meters import TimeMeter
 
 
 class TimeMeterTest(unittest.TestCase):
+
     def testMeter(self):
         m = TimeMeter()
         time.sleep(1)
@@ -16,5 +17,5 @@ class TimeMeterTest(unittest.TestCase):
         self.assertLess(t, 1.1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

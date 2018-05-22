@@ -12,7 +12,7 @@ help:
 
 .PHONY: help Makefile
 
-# Usage (for html): make html 
+# Usage (for html): make html
 %: Makefile
 	$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 

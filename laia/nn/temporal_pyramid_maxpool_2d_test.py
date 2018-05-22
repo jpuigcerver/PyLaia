@@ -11,6 +11,7 @@ from torch.autograd import Variable
 
 
 class TemporalPyramidMaxPool2dTest(unittest.TestCase):
+
     def _test_tensor(self, use_nnutils):
         x = Variable(torch.randn(3, 5, 7, 8), requires_grad=True)
         layer = TemporalPyramidMaxPool2d(levels=2, use_nnutils=use_nnutils)
@@ -39,11 +40,21 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         np.testing.assert_allclose(expected_dx, dx.data)
 
     def _test_padded_tensor(self, use_nnutils):
-        x = Variable(torch.Tensor([[[[ 1,  2,  3,  4,  5,  6,  7,  8],
-                                     [ 9, 10, 11, 12, 13, 14, 15, 16],
-                                     [17, 18, 19, 20, 21, 22, 23, 24],
-                                     [25, 26, 27, 28, 29, 30, 31, 32]]]]),
-                     requires_grad=True)
+        x = Variable(
+            torch.Tensor(
+                [
+                    [
+                        [
+                            [1, 2, 3, 4, 5, 6, 7, 8],
+                            [9, 10, 11, 12, 13, 14, 15, 16],
+                            [17, 18, 19, 20, 21, 22, 23, 24],
+                            [25, 26, 27, 28, 29, 30, 31, 32],
+                        ]
+                    ]
+                ]
+            ),
+            requires_grad=True,
+        )
         xs = Variable(torch.LongTensor([[3, 4]]))
         layer = TemporalPyramidMaxPool2d(levels=2, use_nnutils=use_nnutils)
         y = layer(PaddedTensor(data=x, sizes=xs))
@@ -71,5 +82,5 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         self._test_padded_tensor(use_nnutils=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

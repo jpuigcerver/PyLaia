@@ -26,14 +26,16 @@ def action(func):
             argspec = inspect.getargspec(func)
 
         non_kwargs_num = len(argspec.args) - len(argspec.defaults or [])
-        return func(*args[:non_kwargs_num],
-                    **{k: v for k, v in kwargs.items()
-                       if k in argspec.args})
+        return func(
+            *args[:non_kwargs_num],
+            **{k: v for k, v in kwargs.items() if k in argspec.args}
+        )
 
     return wrapper
 
 
 class Action(object):
+
     def __init__(self, callable_, *args, **kwargs):
         # type: (Callable, Any, Any) -> None
         self._callable = callable_

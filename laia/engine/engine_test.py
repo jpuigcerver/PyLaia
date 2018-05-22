@@ -2,13 +2,12 @@ from __future__ import absolute_import
 
 import unittest
 
-from laia.engine.engine import (Engine,
-                                EPOCH_START, EPOCH_END,
-                                ITER_START, ITER_END)
+from laia.engine.engine import Engine, EPOCH_START, EPOCH_END, ITER_START, ITER_END
 from laia.hooks import action
 
 
 class DummyModel(object):
+
     def __init__(self):
         self.counter = 0
 
@@ -18,6 +17,7 @@ class DummyModel(object):
 
 
 class EngineTest(unittest.TestCase):
+
     def test_simple(self):
         model = DummyModel()
         engine = Engine(model=model, data_loader=[1, 2, 3, 4])
@@ -26,15 +26,15 @@ class EngineTest(unittest.TestCase):
 
     def test_progress_bar(self):
         model = DummyModel()
-        engine = Engine(model=model, data_loader=[1, 2, 3, 4],
-                        progress_bar=True)
+        engine = Engine(model=model, data_loader=[1, 2, 3, 4], progress_bar=True)
         engine.run()
         self.assertEqual(4, model.counter)
 
     def test_progress_bar_description(self):
         model = DummyModel()
-        engine = Engine(model=model, data_loader=[1, 2, 3, 4],
-                        progress_bar='Description')
+        engine = Engine(
+            model=model, data_loader=[1, 2, 3, 4], progress_bar="Description"
+        )
         engine.run()
         self.assertEqual(4, model.counter)
 
@@ -68,8 +68,7 @@ class EngineTest(unittest.TestCase):
         self.assertEqual([4, 2, 4, 2], counters)
 
     def test_reset(self):
-        engine = Engine(model=lambda x: x,
-                        data_loader=[1, 2, 3])
+        engine = Engine(model=lambda x: x, data_loader=[1, 2, 3])
         self.assertEqual(0, engine.epochs())
         self.assertEqual(0, engine.iterations())
         engine.run()
@@ -83,5 +82,5 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(0, engine.iterations())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

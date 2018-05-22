@@ -22,7 +22,6 @@ class MultipleOf(LoggingCondition):
         if value is None:
             return False
         if value % self._divisor == 0:
-            self.info('{} is a multiple of {}',
-                      value, self._divisor)
+            self.info("{} is a multiple of {}", value, self._divisor)
             return True
         return False
