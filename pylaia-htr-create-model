@@ -153,7 +153,7 @@ if __name__ == "__main__":
             args.cnn_batchnorm,
         ),
     )
-    assert len(set(dimensions)), "Wrong cnn layer dimensions"
+    assert len(set(dimensions)) == 1, "Wrong cnn layer dimensions"
 
     ModelSaver(args.train_path, args.model_filename).save(
         VggRnnFixedHeight if args.input_height else VggRnn,

@@ -1,3 +1,7 @@
+from __future__ import division
+
+import math
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -105,11 +109,24 @@ class ConvBlock(nn.Module):
                 "PaddedTensor.sizes must have 2 columns: Height and Width, "
                 "{} columns given instead.".format(xs.size(1))
             )
+            ys = xs.data.clone()
+            ys[:, 0] /= self.get_output_size(ys, 0)
+            ys[:, 1] /= self.get_output_size(ys, 1)
             if self.poolsize is not None:
-                ys = xs.data.clone()
                 ys[:, 0] /= self.poolsize[0]
                 ys[:, 1] /= self.poolsize[1]
-                ys = Variable(ys)
-            else:
-                ys = xs
-            return PaddedTensor(x, sizes=ys)
+            return PaddedTensor(x, sizes=Variable(ys))
+
+    def get_output_size(self, input_, dim):
+        return math.floor(
+            (
+                (
+                    input_[:, dim]
+                    + 2 * self.padding[dim]
+                    - self.dilation[dim] * (self.kernel_size[dim] - 1)
+                    - 1
+                )
+                / self.stride
+            )
+            + 1
+        )
