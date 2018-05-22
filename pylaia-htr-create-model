@@ -5,7 +5,7 @@ import argparse
 
 import torch.nn as nn
 
-from laia.models.htr import VggRnnFixedHeight
+from laia.models.htr import VggRnn, VggRnnFixedHeight
 from laia.plugins import ModelSaver
 from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.plugins.arguments_types import NumberInClosedRange, TupleList, str2bool
@@ -23,8 +23,9 @@ by a dropout layer.
 
 if __name__ == '__main__':
     add_defaults('train_path')
-    add_argument('input_height', type=NumberInClosedRange(int, vmin=1),
-                 help='Height of the input images')
+    add_argument('input_height', type=NumberInClosedRange(int, vmin=0),
+                 help='Height of the input images. '
+                      'If 0, a variable height model will be used')
     add_argument('num_input_channels', type=NumberInClosedRange(int, vmin=1),
                  help='Number of channels of the input images')
     add_argument('syms', type=argparse.FileType('r'),
@@ -40,9 +41,12 @@ if __name__ == '__main__':
                       'It can be a list of numbers if all the dimensions are equal '
                       'or a list of strings formatted as tuples '
                       'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"')
+    add_argument('--cnn_stride', type=NumberInClosedRange(int, vmin=1), nargs='+',
+                 default=[1, 1, 1, 1],
+                 help='Stride of each conv layer')
     add_argument('--cnn_dilation', type=NumberInClosedRange(int, vmin=1), nargs='+',
                  default=[1, 1, 1, 1],
-                 help='Spacing between each conv layer kernel elements.')
+                 help='Spacing between each conv layer kernel elements')
     add_argument('--cnn_activations', nargs='+',
                  choices=['ReLU', 'Tanh', 'LeakyReLU'], default=['ReLU'] * 4,
                  help='Type of the activation function in each conv layer')
@@ -75,12 +79,13 @@ if __name__ == '__main__':
     assert len(set(dimensions)), 'Wrong cnn layer dimensions'
 
     ModelSaver(args.train_path, args.model_filename) \
-        .save(VggRnnFixedHeight,
+        .save(VggRnnFixedHeight if args.input_height else VggRnn,
               args.input_height,
               args.num_input_channels,
               len(SymbolsTable(args.syms)),
               args.cnn_num_features,
               args.cnn_kernel_size,
+              args.cnn_stride,
               args.cnn_dilation,
               [getattr(nn, act) for act in args.cnn_activations],
               args.cnn_poolsize,
