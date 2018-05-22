@@ -22,13 +22,14 @@ class DummyModel(torch.nn.Module):
 
     Returns a PackedSequence (all samples have actually the same size).
     """
+
     def __init__(self, adaptive_size, num_output_labels, horizontal=True):
         super(DummyModel, self).__init__()
         self._horizontal = horizontal
         self._adaptive_size = adaptive_size
         self._linear = torch.nn.Linear(
-            adaptive_size[0] if horizontal else adaptive_size[1],
-            num_output_labels)
+            adaptive_size[0] if horizontal else adaptive_size[1], num_output_labels
+        )
 
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
@@ -40,9 +41,7 @@ class DummyModel(torch.nn.Module):
 
         if self._horizontal:
             xs = torch.IntTensor(batch_size).fill_(self._adaptive_size[1])
-            return pack_padded_sequence(input=x, lengths=xs.tolist(),
-                                        batch_first=False)
+            return pack_padded_sequence(input=x, lengths=xs.tolist(), batch_first=False)
         else:
             xs = torch.IntTensor(batch_size).fill_(self._adaptive_size[0])
-            return pack_padded_sequence(input=x, lengths=xs.tolist(),
-                                        batch_first=False)
+            return pack_padded_sequence(input=x, lengths=xs.tolist(), batch_first=False)

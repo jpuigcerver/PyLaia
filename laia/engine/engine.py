@@ -10,10 +10,10 @@ from laia.hooks import action
 
 _logger = log.get_logger(__name__)
 
-EPOCH_START = 'EPOCH_START'
-EPOCH_END = 'EPOCH_END'
-ITER_START = 'ITER_START'
-ITER_END = 'ITER_END'
+EPOCH_START = "EPOCH_START"
+EPOCH_END = "EPOCH_END"
+ITER_START = "ITER_START"
+ITER_END = "ITER_END"
 
 
 class Engine(object):
@@ -37,12 +37,15 @@ class Engine(object):
           (default: None)
     """
 
-    def __init__(self, model,
-                 data_loader=None,
-                 batch_input_fn=None,
-                 batch_target_fn=None,
-                 batch_id_fn=None,
-                 progress_bar=None):
+    def __init__(
+        self,
+        model,
+        data_loader=None,
+        batch_input_fn=None,
+        batch_target_fn=None,
+        batch_id_fn=None,
+        progress_bar=None,
+    ):
         self._model = model
         self._data_loader = data_loader
         self._batch_input_fn = batch_input_fn
@@ -53,15 +56,13 @@ class Engine(object):
         self._epochs = 0
         self._iterations = 0
         self._must_stop = False
-        self._hooks = {
-            EPOCH_START: [],
-            EPOCH_END: [],
-            ITER_START: [],
-            ITER_END: []}
+        self._hooks = {EPOCH_START: [], EPOCH_END: [], ITER_START: [], ITER_END: []}
 
         if progress_bar and not tqdm:
-            self.logger.debug('A progress bar cannot be shown because '
-                              'the "tqdm" module was not found.')
+            self.logger.debug(
+                "A progress bar cannot be shown because "
+                'the "tqdm" module was not found.'
+            )
 
     @property
     def batch_input_fn(self):
@@ -145,15 +146,14 @@ class Engine(object):
             ``ITER_END``, ``EPOCH_START``, ``EPOCH_END``).
           hook: `Hook` object.
         """
-        assert when in self._hooks, (
-            '{!r} is not a valid hook event'.format(when))
+        assert when in self._hooks, "{!r} is not a valid hook event".format(when)
         self._hooks[when].append(hook)
         return self
 
     @action
     def run(self):
         r"""Run a single epoch on the `dataset_loader`."""
-        assert self._data_loader is not None, 'A data loader must be set'
+        assert self._data_loader is not None, "A data loader must be set"
         self._run_epoch()
         return self
 
@@ -165,19 +165,20 @@ class Engine(object):
         batch_input, batch_target = self._prepare_input_and_target(batch)
 
         action_kwargs = {
-            'batch': batch,
-            'batch_num': batch_n,
-            'epoch': self._epochs,
-            'iteration': self._iterations,
-            'batch_input': batch_input,
-            'batch_target': batch_target}
+            "batch": batch,
+            "batch_num": batch_n,
+            "epoch": self._epochs,
+            "iteration": self._iterations,
+            "batch_input": batch_input,
+            "batch_target": batch_target,
+        }
         self._call_hooks(ITER_START, **action_kwargs)
 
         if self._must_stop:
             return
 
         # Put model in evaluation mode
-        if hasattr(self._model, 'eval'):
+        if hasattr(self._model, "eval"):
             self._model.eval()
 
         # Run model
@@ -188,22 +189,22 @@ class Engine(object):
                 epoch=self._epochs,
                 iteration=self._iterations,
                 batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn else batch_input,
-                cause=e)
+                if self._batch_id_fn
+                else batch_input,
+                cause=e,
+            )
             raise_from(wrapper, e)
 
         self._iterations += 1
-        action_kwargs['iteration'] = self._iterations
-        action_kwargs['batch_output'] = batch_output
+        action_kwargs["iteration"] = self._iterations
+        action_kwargs["batch_output"] = batch_output
         self._call_hooks(ITER_END, **action_kwargs)
 
     def _prepare_input_and_target(self, batch):
         # Prepare input to the model.
-        batch_input = self._batch_input_fn(
-            batch) if self._batch_input_fn else batch
+        batch_input = self._batch_input_fn(batch) if self._batch_input_fn else batch
         # Prepare target to be passed to the loss function.
-        batch_target = self._batch_target_fn(
-            batch) if self.batch_target_fn else None
+        batch_target = self._batch_target_fn(batch) if self.batch_target_fn else None
         return batch_input, batch_target
 
     def _run_epoch(self):
@@ -213,10 +214,12 @@ class Engine(object):
             return
 
         if self._progress_bar:
-            batch_iterator = tqdm(self._data_loader,
-                                  desc=self._progress_bar
-                                  if isinstance(self._progress_bar,
-                                                string_classes) else None)
+            batch_iterator = tqdm(
+                self._data_loader,
+                desc=self._progress_bar
+                if isinstance(self._progress_bar, string_classes)
+                else None,
+            )
         else:
             batch_iterator = self._data_loader
 
@@ -230,24 +233,27 @@ class Engine(object):
 
     def state_dict(self):
         return {
-            'epochs': self._epochs,
-            'iterations': self._iterations,
-            'hooks': {
+            "epochs": self._epochs,
+            "iterations": self._iterations,
+            "hooks": {
                 when: [
-                    hook.state_dict() if hasattr(hook, 'state_dict') else None
-                    for hook in hooks]
-                for when, hooks in self._hooks.items()}}
+                    hook.state_dict() if hasattr(hook, "state_dict") else None
+                    for hook in hooks
+                ]
+                for when, hooks in self._hooks.items()
+            },
+        }
 
     def load_state_dict(self, state):
-        self._epochs = state['epochs']
-        self._iterations = state['iterations']
-        'Note: The hooks must be in the same order as those in the saved state'
+        self._epochs = state["epochs"]
+        self._iterations = state["iterations"]
+        "Note: The hooks must be in the same order as those in the saved state"
         for when, hooks in self._hooks.items():
-            hook_states = state['hooks'][when]
+            hook_states = state["hooks"][when]
             for i, hook in enumerate(hooks):
                 if i >= len(hook_states):
                     break
-                if hasattr(hook, 'load_state_dict'):
+                if hasattr(hook, "load_state_dict"):
                     hook.load_state_dict(hook_states[i])
 
 

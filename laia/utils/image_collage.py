@@ -21,7 +21,7 @@ def image_collage(x, xs=None, scale=1.0, ncol=1, draw_boundary=False):
     n = 0
     for r in range(nrow):
         for c in range(ncol):
-            im[:, (r * H):(r * H + H), (c * W):(c * W + W)].copy_(x[n, :, :, :])
+            im[:, (r * H) : (r * H + H), (c * W) : (c * W + W)].copy_(x[n, :, :, :])
             n += 1
 
     if draw_boundary and xs is not None:
@@ -30,10 +30,10 @@ def image_collage(x, xs=None, scale=1.0, ncol=1, draw_boundary=False):
         for r in range(nrow):
             for c in range(ncol):
                 h, w = xs[n, 0], xs[n, 1]
-                im[:, (r * H):(r * H + h), (c * W)].copy_(magenta.view(3, 1))
-                im[:, (r * H), (c * W):(c * W + w)].copy_(magenta.view(3, 1))
-                im[:, (r * H):(r * H + h), (c * W + w - 1)].copy_(magenta.view(3, 1))
-                im[:, (r * H + h - 1), (c * W):(c * W + w)].copy_(magenta.view(3, 1))
+                im[:, (r * H) : (r * H + h), (c * W)].copy_(magenta.view(3, 1))
+                im[:, (r * H), (c * W) : (c * W + w)].copy_(magenta.view(3, 1))
+                im[:, (r * H) : (r * H + h), (c * W + w - 1)].copy_(magenta.view(3, 1))
+                im[:, (r * H + h - 1), (c * W) : (c * W + w)].copy_(magenta.view(3, 1))
                 n += 1
 
     im = im.permute(1, 2, 0).contiguous()

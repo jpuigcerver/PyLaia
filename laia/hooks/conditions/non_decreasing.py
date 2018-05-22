@@ -26,29 +26,32 @@ class NonDecreasing(LoggingCondition):
         self._calls += 1
         if self._calls - self._lowest_calls >= self._max_no_decrease:
             if self._calls - self._lowest_calls == self._max_no_decrease:
-                self.info('Lowest value {} DID NOT decrease after {} calls',
-                          self._lowest, self._max_no_decrease)
+                self.info(
+                    "Lowest value {} DID NOT decrease after {} calls",
+                    self._lowest,
+                    self._max_no_decrease,
+                )
             return True
         value = self._process_value()
         if value is not None and value < self._lowest:
-            self.info('New lowest value {} (previous was {})',
-                      value, self._lowest)
+            self.info("New lowest value {} (previous was {})", value, self._lowest)
             self._lowest = value
             self._lowest_calls += 1
         return False
 
     def state_dict(self):
         return {
-            'condition': super(NonDecreasing, self).state_dict(),
-            'lowest': self._lowest,
-            'lowest_calls': self._lowest_calls,
-            'calls': self._calls}
+            "condition": super(NonDecreasing, self).state_dict(),
+            "lowest": self._lowest,
+            "lowest_calls": self._lowest_calls,
+            "calls": self._calls,
+        }
 
     def load_state_dict(self, state):
-        super(NonDecreasing, self).load_state_dict(state['condition'])
-        self._lowest = state['lowest']
-        self._lowest_calls = state['lowest_calls']
-        self._calls = state['calls']
+        super(NonDecreasing, self).load_state_dict(state["condition"])
+        self._lowest = state["lowest"]
+        self._lowest_calls = state["lowest_calls"]
+        self._calls = state["calls"]
 
 
 class ConsecutiveNonDecreasing(LoggingCondition):
@@ -66,24 +69,27 @@ class ConsecutiveNonDecreasing(LoggingCondition):
         self._calls += 1
         if self._calls >= self._max_no_decrease:
             if self._calls == self._max_no_decrease:
-                self.info('Lowest value {} DID NOT decrease after {} '
-                          'consecutive calls', self._lowest, self._max_no_decrease)
+                self.info(
+                    "Lowest value {} DID NOT decrease after {} " "consecutive calls",
+                    self._lowest,
+                    self._max_no_decrease,
+                )
             return True
         value = self._process_value()
         if value is not None and value < self._lowest:
-            self.info('New lowest value {} (previous was {})',
-                      value, self._lowest)
+            self.info("New lowest value {} (previous was {})", value, self._lowest)
             self._lowest = value
             self._calls = 0
         return False
 
     def state_dict(self):
         return {
-            'condition': super(ConsecutiveNonDecreasing, self).state_dict(),
-            'lowest': self._lowest,
-            'calls': self._calls}
+            "condition": super(ConsecutiveNonDecreasing, self).state_dict(),
+            "lowest": self._lowest,
+            "calls": self._calls,
+        }
 
     def load_state_dict(self, state):
-        super(ConsecutiveNonDecreasing, self).load_state_dict(state['condition'])
-        self._lowest = state['lowest']
-        self._calls = state['calls']
+        super(ConsecutiveNonDecreasing, self).load_state_dict(state["condition"])
+        self._lowest = state["lowest"]
+        self._calls = state["calls"]

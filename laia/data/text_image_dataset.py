@@ -4,6 +4,7 @@ from laia.data.image_dataset import ImageDataset
 
 
 class TextImageDataset(ImageDataset):
+
     def __init__(self, imgs, txts, img_transform=None, txt_transform=None):
         super(TextImageDataset, self).__init__(imgs, img_transform)
         assert isinstance(txts, (list, tuple))
@@ -25,5 +26,5 @@ class TextImageDataset(ImageDataset):
         if self._txt_transform:
             txt = self._txt_transform(txt)
         # Return image and transcript
-        out['txt'] = txt
+        out["txt"] = txt
         return out

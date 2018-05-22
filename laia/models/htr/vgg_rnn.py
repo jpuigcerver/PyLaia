@@ -9,21 +9,26 @@ from laia.models.htr.conv_block import ConvBlock
 
 
 class VggRnn(nn.Module):
-    def __init__(self, num_input_channels, num_output_labels,
-                 cnn_num_features,
-                 cnn_kernel_size,
-                 cnn_stride,
-                 cnn_dilation,
-                 cnn_activation,
-                 cnn_poolsize,
-                 cnn_dropout,
-                 cnn_batchnorm,
-                 rnn_units,
-                 rnn_layers,
-                 rnn_dropout,
-                 lin_dropout,
-                 collapse='mean',
-                 inplace=False):
+
+    def __init__(
+        self,
+        num_input_channels,
+        num_output_labels,
+        cnn_num_features,
+        cnn_kernel_size,
+        cnn_stride,
+        cnn_dilation,
+        cnn_activation,
+        cnn_poolsize,
+        cnn_dropout,
+        cnn_batchnorm,
+        rnn_units,
+        rnn_layers,
+        rnn_dropout,
+        lin_dropout,
+        collapse="mean",
+        inplace=False,
+    ):
         super(VggRnn, self).__init__()
         self._rnn_dropout = rnn_dropout
         self._lin_dropout = lin_dropout
@@ -31,29 +36,53 @@ class VggRnn(nn.Module):
         self._conv_blocks = []
         ni = num_input_channels
         for i, (nh, ks, st, di, f, ps, dr, bn) in enumerate(
-                zip(cnn_num_features, cnn_kernel_size, cnn_stride, cnn_dilation,
-                    cnn_activation, cnn_poolsize, cnn_dropout, cnn_batchnorm)):
-            layer = ConvBlock(ni, nh, kernel_size=ks, stride=st, dilation=di,
-                              activation=f, poolsize=ps, dropout=dr,
-                              batchnorm=bn, inplace=inplace)
+            zip(
+                cnn_num_features,
+                cnn_kernel_size,
+                cnn_stride,
+                cnn_dilation,
+                cnn_activation,
+                cnn_poolsize,
+                cnn_dropout,
+                cnn_batchnorm,
+            )
+        ):
+            layer = ConvBlock(
+                ni,
+                nh,
+                kernel_size=ks,
+                stride=st,
+                dilation=di,
+                activation=f,
+                poolsize=ps,
+                dropout=dr,
+                batchnorm=bn,
+                inplace=inplace,
+            )
             ni = nh
-            self.add_module('conv_block{}'.format(i), layer)
+            self.add_module("conv_block{}".format(i), layer)
             self._conv_blocks.append(layer)
 
-        rnn = nn.LSTM(ni, rnn_units, rnn_layers, dropout=rnn_dropout,
-                      bidirectional=True, batch_first=False)
-        self.add_module('rnn', rnn)
+        rnn = nn.LSTM(
+            ni,
+            rnn_units,
+            rnn_layers,
+            dropout=rnn_dropout,
+            bidirectional=True,
+            batch_first=False,
+        )
+        self.add_module("rnn", rnn)
         self._rnn = rnn
 
         linear = nn.Linear(2 * rnn_units, num_output_labels)
-        self.add_module('linear', linear)
+        self.add_module("linear", linear)
         self._linear = linear
 
         collapse_funcs = {
-            'sum': self._collapse_sum,
-            'max': self._collapse_max,
-            'min': self._collapse_min,
-            'mean': self._collapse_mean
+            "sum": self._collapse_sum,
+            "max": self._collapse_max,
+            "min": self._collapse_min,
+            "mean": self._collapse_mean,
         }
         self._collapse = collapse_funcs.get(collapse.lower(), None)
         if self._collapse is None:

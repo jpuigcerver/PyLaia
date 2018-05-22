@@ -6,14 +6,10 @@ from laia.hooks.meters import PairwiseAveragePrecisionMeter
 
 
 class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
+
     def setUp(self):
-        self.batch1 = ([[1, 1],
-                        [2, 2]],
-                       [1, 2])
-        self.batch2 = ([[0, 0],
-                        [1, 1],
-                        [0, 2]],
-                       [3, 1, 2])
+        self.batch1 = ([[1, 1], [2, 2]], [1, 2])
+        self.batch2 = ([[0, 0], [1, 1], [0, 2]], [3, 1, 2])
 
     def test(self):
         meter = PairwiseAveragePrecisionMeter()
@@ -37,8 +33,9 @@ class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
         self.assertEqual((1.0 + 1.0 / 3.0 + 1.0 + 1.0 / 3.0 + 0.0) / 5, m_ap)
 
     def test_with_exclude_labels(self):
-        meter = PairwiseAveragePrecisionMeter(ignore_singleton=False,
-                                              exclude_labels=[3])
+        meter = PairwiseAveragePrecisionMeter(
+            ignore_singleton=False, exclude_labels=[3]
+        )
         # Add batches to the meter
         meter.add(*self.batch1)
         meter.add(*self.batch2)
@@ -48,5 +45,5 @@ class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
         self.assertEqual(8.0 / 12.0, m_ap)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

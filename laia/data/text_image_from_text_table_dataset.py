@@ -9,22 +9,31 @@ from torch._six import string_classes
 import laia.logging as log
 from laia.data.text_image_dataset import TextImageDataset
 
-IMAGE_EXTENSIONS = '.jpg', '.png', '.jpeg', '.pbm', '.pgm', '.ppm', '.bmp'
+IMAGE_EXTENSIONS = ".jpg", ".png", ".jpeg", ".pbm", ".pgm", ".ppm", ".bmp"
 
 _logger = log.get_logger(__name__)
 
 
 class TextImageFromTextTableDataset(TextImageDataset):
-    def __init__(self, txt_table, img_dirs, img_transform=None,
-                 txt_transform=None, img_extensions=IMAGE_EXTENSIONS,
-                 encoding='utf8'):
+
+    def __init__(
+        self,
+        txt_table,
+        img_dirs,
+        img_transform=None,
+        txt_transform=None,
+        img_extensions=IMAGE_EXTENSIONS,
+        encoding="utf8",
+    ):
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
-            txt_table, img_dirs, img_extensions, encoding=encoding)
+            txt_table, img_dirs, img_extensions, encoding=encoding
+        )
         # Prepare dataset using the previous image filenames and transcripts.
         super(TextImageFromTextTableDataset, self).__init__(
-            imgs, txts, img_transform, txt_transform)
+            imgs, txts, img_transform, txt_transform
+        )
 
     def __getitem__(self, index):
         """Returns the ID of the example, the image and its transcript from
@@ -38,7 +47,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
             the transcript ('txt') of the image.
         """
         out = super(TextImageFromTextTableDataset, self).__getitem__(index)
-        out['id'] = self._ids[index]
+        out["id"] = self._ids[index]
         return out
 
 
@@ -63,19 +72,21 @@ def find_image_filename_from_id(imgid, img_dir, img_extensions):
     return None
 
 
-def _load_text_table_from_file(table_file, encoding='utf8'):
+def _load_text_table_from_file(table_file, encoding="utf8"):
     if isinstance(table_file, string_classes):
-        table_file = io.open(table_file, 'r', encoding=encoding)
+        table_file = io.open(table_file, "r", encoding=encoding)
     for n, line in enumerate((l.split() for l in table_file), 1):
         # Skip empty lines and lines starting with #
-        if not len(line) or line[0].startswith('#'):
+        if not len(line) or line[0].startswith("#"):
             continue
         yield n, line[0], line[1:]
     table_file.close()
 
 
-def _get_images_and_texts_from_text_table(table_file, img_dirs, img_extensions, encoding='utf8'):
-    assert len(img_dirs) > 0, 'No image directory provided'
+def _get_images_and_texts_from_text_table(
+    table_file, img_dirs, img_extensions, encoding="utf8"
+):
+    assert len(img_dirs) > 0, "No image directory provided"
     ids, imgs, txts = [], [], []
     for _, imgid, txt in _load_text_table_from_file(table_file, encoding=encoding):
         imgid = imgid.rstrip()
@@ -84,8 +95,10 @@ def _get_images_and_texts_from_text_table(table_file, img_dirs, img_extensions, 
             if fname is not None:
                 break
         if fname is None:
-            _logger.warning('No image file was found for image '
-                            'ID "{}", ignoring example...', imgid)
+            _logger.warning(
+                "No image file was found for image " 'ID "{}", ignoring example...',
+                imgid,
+            )
             continue
         else:
             ids.append(imgid)

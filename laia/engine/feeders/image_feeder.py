@@ -25,12 +25,17 @@ class ImageFeeder(VariableFeeder):
           (default: None)
     """
 
-    def __init__(self, device, keep_padded_tensors=True,
-                 keep_channels_in_size=False, requires_grad=False,
-                 parent_feeder=None):
-        super(ImageFeeder, self).__init__(device=device,
-                                          requires_grad=requires_grad,
-                                          parent_feeder=parent_feeder)
+    def __init__(
+        self,
+        device,
+        keep_padded_tensors=True,
+        keep_channels_in_size=False,
+        requires_grad=False,
+        parent_feeder=None,
+    ):
+        super(ImageFeeder, self).__init__(
+            device=device, requires_grad=requires_grad, parent_feeder=parent_feeder
+        )
         self._keep_padded_tensors = keep_padded_tensors
         self._keep_channels_in_size = keep_channels_in_size
 
@@ -43,8 +48,10 @@ class ImageFeeder(VariableFeeder):
         elif batch.dim() == 4:
             pass
         else:
-            raise ValueError('Tensor with {} dimensions is not supported '
-                             'as an Image'.format(batch.dim()))
+            raise ValueError(
+                "Tensor with {} dimensions is not supported "
+                "as an Image".format(batch.dim())
+            )
         return batch
 
     def _feed(self, batch):
@@ -62,8 +69,10 @@ class ImageFeeder(VariableFeeder):
                 xs = batch.sizes.data
                 # Ensure that the size tensor is the expected
                 if xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3):
-                    raise ValueError('Size tensor in PaddedTensor has not an '
-                                     'expected shape: {!r}'.format(xs.size()))
+                    raise ValueError(
+                        "Size tensor in PaddedTensor has not an "
+                        "expected shape: {!r}".format(xs.size())
+                    )
 
                 if xs.size(1) == 3 and not self._keep_channels_in_size:
                     xs = xs[:, 1:]
@@ -74,4 +83,4 @@ class ImageFeeder(VariableFeeder):
             else:
                 return Variable(x, requires_grad=self._requires_grad)
         else:
-            raise ValueError('Type {!r} is not supported'.format(type(batch)))
+            raise ValueError("Type {!r} is not supported".format(type(batch)))

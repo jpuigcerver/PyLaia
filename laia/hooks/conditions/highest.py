@@ -23,21 +23,22 @@ class Highest(LoggingCondition):
         if value is None:
             return False
         if value > self._highest:
-            self.info('New highest value {} '
-                      '(previous was {})',
-                      value, self._highest)
+            self.info("New highest value {} " "(previous was {})", value, self._highest)
             self._highest = value
             return True
-        self.debug('Value IS NOT the highest '
-                   '(last: {} vs highest: {})',
-                   value, self._highest)
+        self.debug(
+            "Value IS NOT the highest " "(last: {} vs highest: {})",
+            value,
+            self._highest,
+        )
         return False
 
     def state_dict(self):
         return {
-            'condition': super(Highest, self).state_dict(),
-            'highest': self._highest}
+            "condition": super(Highest, self).state_dict(),
+            "highest": self._highest,
+        }
 
     def load_state_dict(self, state):
-        super(Highest, self).load_state_dict(state['condition'])
-        self._highest = state['highest']
+        super(Highest, self).load_state_dict(state["condition"])
+        self._highest = state["highest"]

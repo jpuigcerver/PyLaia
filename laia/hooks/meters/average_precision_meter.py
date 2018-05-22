@@ -8,6 +8,7 @@ _logger = log.get_logger(__name__)
 
 
 class AveragePrecisionMeter(Meter):
+
     def __init__(self, desc_sort=True, exceptions_threshold=5):
         super(AveragePrecisionMeter, self).__init__(exceptions_threshold)
         self._desc_sort = desc_sort
@@ -37,8 +38,8 @@ class AveragePrecisionMeter(Meter):
 
     @classmethod
     def _compute_ap_ranked_matches(cls, matches_tp_fp_fn):
-        NH = 0   # Total number of hypotheses
-        NR = 0   # Total number of references
+        NH = 0  # Total number of hypotheses
+        NR = 0  # Total number of references
         TTP = 0  # Total number of true positives
         acc = 0.0
         for (tp, fp, fn) in matches_tp_fp_fn:
@@ -55,6 +56,7 @@ class AveragePrecisionMeter(Meter):
         if not self._done:
             self._done = True
             self._matches.sort(reverse=self._desc_sort)
-            self._ap = self._compute_ap_ranked_matches(map(lambda x: x[1:],
-                                                       self._matches))
+            self._ap = self._compute_ap_ranked_matches(
+                map(lambda x: x[1:], self._matches)
+            )
         return self._ap

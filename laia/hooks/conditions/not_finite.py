@@ -11,6 +11,7 @@ _logger = log.get_logger(__name__)
 
 
 class NotFinite(LoggingCondition):
+
     def __init__(self, obj, key=None, name=None):
         # type: (Callable, Any,str) -> None
         super(NotFinite, self).__init__(obj, key, _logger, name)
@@ -20,6 +21,6 @@ class NotFinite(LoggingCondition):
         if value is None:
             return False
         if not np.isfinite(value):
-            self.info('Value read from meter ({}) is not finite!', value)
+            self.info("Value read from meter ({}) is not finite!", value)
             return True
         return False
