@@ -12,6 +12,7 @@ class VggRnn(nn.Module):
     def __init__(self, num_input_channels, num_output_labels,
                  cnn_num_features,
                  cnn_kernel_size,
+                 cnn_stride,
                  cnn_dilation,
                  cnn_activation,
                  cnn_poolsize,
@@ -29,14 +30,14 @@ class VggRnn(nn.Module):
         # Add convolutional blocks, in a VGG style.
         self._conv_blocks = []
         ni = num_input_channels
-        for i, (nh, ks, di, f, ps, dr, bn) in enumerate(
-                zip(cnn_num_features, cnn_kernel_size, cnn_dilation,
+        for i, (nh, ks, st, di, f, ps, dr, bn) in enumerate(
+                zip(cnn_num_features, cnn_kernel_size, cnn_stride, cnn_dilation,
                     cnn_activation, cnn_poolsize, cnn_dropout, cnn_batchnorm)):
-            layer = ConvBlock(ni, nh, kernel_size=ks, dilation=di,
+            layer = ConvBlock(ni, nh, kernel_size=ks, stride=st, dilation=di,
                               activation=f, poolsize=ps, dropout=dr,
                               batchnorm=bn, inplace=inplace)
             ni = nh
-            self.add_module('conv_block%d' % i, layer)
+            self.add_module('conv_block{}'.format(i), layer)
             self._conv_blocks.append(layer)
 
         rnn = nn.LSTM(ni, rnn_units, rnn_layers, dropout=rnn_dropout,

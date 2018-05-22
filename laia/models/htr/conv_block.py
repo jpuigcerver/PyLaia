@@ -13,7 +13,7 @@ def _get_channels(x):
 
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1,
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1,
                  activation=nn.LeakyReLU, poolsize=None, dropout=0.0,
                  batchnorm=False, inplace=False):
         super(ConvBlock, self).__init__()
@@ -45,9 +45,8 @@ class ConvBlock(nn.Module):
         # Add Conv2d layer (compute padding to perform a full convolution).
         padding = ((kernel_size[0] - 1) // 2 * dilation[0],
                    (kernel_size[1] - 1) // 2 * dilation[1])
-        self.add_module('conv',
-                        nn.Conv2d(in_channels, out_channels, kernel_size,
-                                  padding=padding, dilation=dilation))
+        self.add_module('conv', nn.Conv2d(in_channels, out_channels, kernel_size,
+                                          stride=stride, padding=padding, dilation=dilation))
 
         # Add Batch normalization
         if batchnorm:
@@ -65,8 +64,8 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         assert _get_channels(x) == self.in_channels, (
-            'Input image depth ({}) does not match the expected ({})'.format(
-                _get_channels(x), self.in_channels))
+            'Input image depth ({}) does not match the '
+            'expected ({})'.format(_get_channels(x), self.in_channels))
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         # Forward the input through all the modules in the conv block
         for module in self._modules.values():
@@ -76,8 +75,8 @@ class ConvBlock(nn.Module):
         else:
             assert xs.dim() == 2, 'PaddedTensor.sizes must be a matrix'
             assert xs.size(1) == 2, (
-                    'PaddedTensor.sizes must have 2 columns: Height and Width, '
-                    '%d columns given instead.' % xs.size(1))
+                'PaddedTensor.sizes must have 2 columns: Height and Width, '
+                '{} columns given instead.'.format(xs.size(1)))
             if self.poolsize is not None:
                 ys = xs.data.clone()
                 ys[:, 0] /= self.poolsize[0]
