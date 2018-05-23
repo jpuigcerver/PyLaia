@@ -10,10 +10,7 @@ from laia.data import PaddedTensor
 
 
 def _get_channels(x):
-    if isinstance(x, PaddedTensor):
-        return x.data.size(1)
-    else:
-        return x.size(1)
+    return x.data.size(1) if isinstance(x, PaddedTensor) else x.size(1)
 
 
 class ConvBlock(nn.Module):
@@ -27,12 +24,11 @@ class ConvBlock(nn.Module):
         dilation=1,
         activation=nn.LeakyReLU,
         poolsize=None,
-        dropout=0.0,
+        dropout=None,
         batchnorm=False,
         inplace=False,
     ):
         super(ConvBlock, self).__init__()
-        assert not dropout or dropout < 1.0, "Dropout rate must be lower than 1.0"
         if not isinstance(kernel_size, (list, tuple)):
             kernel_size = (kernel_size, kernel_size)
         if not isinstance(dilation, (list, tuple)):
@@ -58,14 +54,10 @@ class ConvBlock(nn.Module):
         )
 
         # First, add dropout module (optionally)
-        if dropout and dropout > 0.0:
+        if dropout:
             self.add_module("dropout", nn.Dropout(dropout, inplace=inplace))
 
         # Add Conv2d layer (compute padding to perform a full convolution).
-        padding = (
-            (kernel_size[0] - 1) // 2 * dilation[0],
-            (kernel_size[1] - 1) // 2 * dilation[1],
-        )
         self.add_module(
             "conv",
             nn.Conv2d(
@@ -73,7 +65,9 @@ class ConvBlock(nn.Module):
                 out_channels,
                 kernel_size,
                 stride=stride,
-                padding=padding,
+                padding=tuple(
+                    (kernel_size[dim] - 1) // 2 * dilation[dim] for dim in (0, 1)
+                ),
                 dilation=dilation,
             ),
         )
@@ -82,11 +76,8 @@ class ConvBlock(nn.Module):
         if batchnorm:
             self.add_module("batchnorm", nn.BatchNorm2d(out_channels))
 
-        if inplace:
-            # Activation function must support inplace operations.
-            self.add_module("activation", activation(inplace=True))
-        else:
-            self.add_module("activation", activation())
+        # Activation function must support inplace operations.
+        self.add_module("activation", activation(inplace=inplace))
 
         # Add maxpool layer
         if self.poolsize is not None:
@@ -110,11 +101,10 @@ class ConvBlock(nn.Module):
                 "{} columns given instead.".format(xs.size(1))
             )
             ys = xs.data.clone()
-            ys[:, 0] /= self.get_output_size(ys, 0)
-            ys[:, 1] /= self.get_output_size(ys, 1)
-            if self.poolsize is not None:
-                ys[:, 0] /= self.poolsize[0]
-                ys[:, 1] /= self.poolsize[1]
+            for dim in 0, 1:
+                # ys[:, dim] /= self.get_output_size(ys, dim)
+                if self.poolsize is not None:
+                    ys[:, dim] /= self.poolsize[dim]
             return PaddedTensor(x, sizes=Variable(ys))
 
     def get_output_size(self, input_, dim):
@@ -122,11 +112,11 @@ class ConvBlock(nn.Module):
             (
                 (
                     input_[:, dim]
-                    + 2 * self.padding[dim]
-                    - self.dilation[dim] * (self.kernel_size[dim] - 1)
+                    + 2 * self.conv.padding[dim]
+                    - self.conv.dilation[dim] * (self.conv.kernel_size[dim] - 1)
                     - 1
                 )
-                / self.stride
+                / self.conv.stride[dim]
             )
             + 1
         )
