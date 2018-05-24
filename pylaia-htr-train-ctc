@@ -102,7 +102,7 @@ if __name__ == "__main__":
             "criterion": None,  # Set automatically by HtrEngineWrapper
             "optimizer": optimizer,
             "batch_target_fn": ItemFeeder("txt"),
-            "progress_bar": "Train" if args.show_progress_bar else None,
+            "batch_id_fn": ItemFeeder("id"),  # Print image ids on exception
         }
         trainer = Trainer(**parameters)
         TrainerSaver(args.train_path).save(Trainer, **parameters)
@@ -127,6 +127,7 @@ if __name__ == "__main__":
 
     # Set all these separately because they might change between executions
     trainer.iterations_per_update = args.iterations_per_update
+    trainer.set_progress_bar("Train" if args.show_progress_bar else None)
     trainer.set_data_loader(tr_ds_loader)
     trainer.set_batch_input_fn(
         ImageFeeder(
@@ -151,8 +152,9 @@ if __name__ == "__main__":
         data_loader=va_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
-        progress_bar="Valid" if args.show_progress_bar else None,
+        batch_id_fn=ItemFeeder("id"),
     )
+    evaluator.set_progress_bar("Valid" if args.show_progress_bar else None)
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
     # Set word delimiters to compute the WER

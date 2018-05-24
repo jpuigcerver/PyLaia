@@ -58,12 +58,6 @@ class Engine(object):
         self._must_stop = False
         self._hooks = {EPOCH_START: [], EPOCH_END: [], ITER_START: [], ITER_END: []}
 
-        if progress_bar and not tqdm:
-            self.logger.debug(
-                "A progress bar cannot be shown because "
-                'the "tqdm" module was not found.'
-            )
-
     @property
     def batch_input_fn(self):
         return self._batch_input_fn
@@ -135,6 +129,10 @@ class Engine(object):
         self._batch_target_fn = fn
         return self
 
+    def set_progress_bar(self, progress_bar):
+        self._progress_bar = progress_bar
+        return self
+
     def add_hook(self, when, hook):
         r"""Add a hook to be executed at some point during the run.
 
@@ -188,9 +186,7 @@ class Engine(object):
             wrapper = EngineException(
                 epoch=self._epochs,
                 iteration=self._iterations,
-                batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn
-                else batch_input,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
                 cause=e,
             )
             raise_from(wrapper, e)
