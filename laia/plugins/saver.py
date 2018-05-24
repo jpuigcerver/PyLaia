@@ -14,6 +14,7 @@ _logger = get_logger(__name__)
 
 
 class Saver(object):
+
     def __call__(self, *args, **kwargs):
         return self.save(*args, **kwargs)
 
@@ -22,6 +23,7 @@ class Saver(object):
 
 
 class BasicSaver(Saver):
+
     def save(self, obj, filepath):
         dirname = os.path.dirname(os.path.normpath(filepath))
         if not os.path.exists(dirname):
@@ -31,55 +33,67 @@ class BasicSaver(Saver):
 
 
 class ObjectSaver(Saver):
+
     def __init__(self, filepath):
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
     def save(self, func_or_class, *args, **kwargs):
-        return self._basic_saver.save({
-            'module': inspect.getmodule(func_or_class).__name__,
-            'name': func_or_class.__name__,
-            'args': args,
-            'kwargs': kwargs}, self._filepath)
+        return self._basic_saver.save(
+            {
+                "module": inspect.getmodule(func_or_class).__name__,
+                "name": func_or_class.__name__,
+                "args": args,
+                "kwargs": kwargs,
+            },
+            self._filepath,
+        )
 
 
 class ModelSaver(ObjectSaver):
-    def __init__(self, save_path, filename='model'):
+
+    def __init__(self, save_path, filename="model"):
         super(ModelSaver, self).__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
         path = super(ModelSaver, self).save(func, *args, **kwargs)
-        _logger.debug('Saved model {}', path)
+        _logger.debug("Saved model {}", path)
         return path
 
 
 class TrainerSaver(ObjectSaver):
-    def __init__(self, save_path, filename='trainer'):
+
+    def __init__(self, save_path, filename="trainer"):
         super(TrainerSaver, self).__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
         path = super(TrainerSaver, self).save(func, *args, **kwargs)
-        _logger.debug('Saved trainer {}', path)
+        _logger.debug("Saved trainer {}", path)
         return path
 
 
 class CheckpointSaver(Saver):
+
     def __init__(self, filepath):
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
     def get_ckpt(self, suffix):
-        ckpt_filepath = '{}-{}'.format(self._filepath, suffix) \
-            if suffix is not None else self._filepath
+        ckpt_filepath = (
+            "{}-{}".format(self._filepath, suffix)
+            if suffix is not None
+            else self._filepath
+        )
         return ckpt_filepath
 
     def save(self, state, suffix=None):
         path = self._basic_saver.save(state, self.get_ckpt(suffix))
-        _logger.debug('Saved checkpoint {}', path)
+        _logger.debug("Saved checkpoint {}", path)
         return path
 
 
 class ModelCheckpointSaver(Saver):
+
     def __init__(self, ckpt_saver, model):
         # type: (CheckpointSaver, torch.nn.Module) -> None
         self._ckpt_saver = ckpt_saver
@@ -90,14 +104,16 @@ class ModelCheckpointSaver(Saver):
 
 
 class TrainerCheckpointSaver(Saver):
+
     def __init__(self, ckpt_saver, trainer, gpu=None):
         self._ckpt_saver = ckpt_saver
         self._trainer = trainer
         self._gpu = gpu
 
     def save(self, suffix=None):
-        state = dict(rng_state=get_rng_state(gpu=self._gpu),
-                     **self._trainer.state_dict())
+        state = dict(
+            rng_state=get_rng_state(gpu=self._gpu), **self._trainer.state_dict()
+        )
         return self._ckpt_saver.save(state, suffix=suffix)
 
 
@@ -117,7 +133,7 @@ class RollingSaver(Saver):
             last = self._last_saved.popleft()
             try:
                 os.remove(last)
-                _logger.debug('{} checkpoint removed', last)
+                _logger.debug("{} checkpoint removed", last)
             except OSError:
                 # Someone else removed the checkpoint, not a big deal
                 pass

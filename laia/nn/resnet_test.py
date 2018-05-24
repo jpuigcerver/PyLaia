@@ -10,6 +10,7 @@ from laia.nn.resnet import ResnetConv2dBlock
 
 
 class ResnetConv2dBlockTest(unittest.TestCase):
+
     def test_equal_planes(self):
         x = Variable(torch.randn(4, 16, 8, 12), requires_grad=True)
         layer = ResnetConv2dBlock(16, 16)
@@ -28,10 +29,7 @@ class ResnetConv2dBlockTest(unittest.TestCase):
 
     def test_padded_tensor(self):
         x = Variable(torch.randn(4, 16, 48, 32), requires_grad=True)
-        xs = Variable(torch.LongTensor([[30, 30],
-                                        [40, 32],
-                                        [10, 32],
-                                        [48, 10]]))
+        xs = Variable(torch.LongTensor([[30, 30], [40, 32], [10, 32], [48, 10]]))
         x = PaddedTensor(data=x, sizes=xs)
         layer = ResnetConv2dBlock(16, 32)
         y = layer(x)
@@ -39,5 +37,5 @@ class ResnetConv2dBlockTest(unittest.TestCase):
         np.testing.assert_allclose(xs.data, y.sizes.data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

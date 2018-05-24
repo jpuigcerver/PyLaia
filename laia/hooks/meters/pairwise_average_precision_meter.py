@@ -32,8 +32,13 @@ class PairwiseAveragePrecisionMeter(Meter):
           whose label is not shared with any other object.
     """
 
-    def __init__(self, metric='euclidean', ignore_singleton=True,
-                 exceptions_threshold=5, exclude_labels=None):
+    def __init__(
+        self,
+        metric="euclidean",
+        ignore_singleton=True,
+        exceptions_threshold=5,
+        exclude_labels=None,
+    ):
         super(PairwiseAveragePrecisionMeter, self).__init__(exceptions_threshold)
         self._metric = metric
         self._features = []
@@ -75,22 +80,20 @@ class PairwiseAveragePrecisionMeter(Meter):
         # Concatenate all feature tensors (batches).
         all_features = np.concatenate(self._features)
         if self._ignore_singleton:
-            mask = [i for i, c in enumerate(self._labels)
-                    if self._label_count[c] > 1]
+            mask = [i for i, c in enumerate(self._labels) if self._label_count[c] > 1]
             all_features = all_features[mask]
-            all_labels = [c for c in self._labels
-                          if self._label_count[c] > 1]
+            all_labels = [c for c in self._labels if self._label_count[c] > 1]
         else:
             all_labels = self._labels
         if self._exclude_labels:
-            mask = [i for i, c in enumerate(all_labels)
-                    if c not in self._exclude_labels]
+            mask = [
+                i for i, c in enumerate(all_labels) if c not in self._exclude_labels
+            ]
             all_features = all_features[mask]
-            all_labels = [c for c in all_labels
-                          if c not in self._exclude_labels]
+            all_labels = [c for c in all_labels if c not in self._exclude_labels]
 
         n = all_features.shape[0]  # number of objects
-        self.logger.debug('Compute Average Precision over {} samples', n)
+        self.logger.debug("Compute Average Precision over {} samples", n)
         distances = pdist(all_features, self._metric)
         # Sort pairs of examples in increasing order
         inds = [(i, j) for i in range(n) for j in range(i + 1, n)]
@@ -111,8 +114,7 @@ class PairwiseAveragePrecisionMeter(Meter):
         if events:
             # Compute Global and Mean Average Precision
             g_ap = self._compute_ap_ranked_events(events)
-            aps = [self._compute_ap_ranked_events(e)
-                   for e in events_i if len(e) > 0]
+            aps = [self._compute_ap_ranked_events(e) for e in events_i if len(e) > 0]
             m_ap = sum(aps) / len(aps)
             return g_ap, m_ap
         return 0.0, 0.0

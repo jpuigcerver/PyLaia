@@ -16,6 +16,7 @@ class FixedSizeSampler(Sampler):
         data_source (Dataset): dataset to sample from
         num_samples (int): number of samples to resample from the dataset
     """
+
     def __init__(self, data_source, num_samples):
         super(FixedSizeSampler, self).__init__(data_source)
         self._data_source = data_source
@@ -25,7 +26,7 @@ class FixedSizeSampler(Sampler):
         idxs = []
         while len(idxs) < self._num_samples:
             idxs.extend(torch.randperm(len(self._data_source)).tolist())
-        return iter(idxs[:self._num_samples])
+        return iter(idxs[: self._num_samples])
 
     def __len__(self):
         return self._num_samples

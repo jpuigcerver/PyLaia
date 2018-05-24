@@ -5,10 +5,7 @@ import json
 import logging
 import sys
 
-try:
-    import tqdm
-except ImportError:
-    tqdm = None
+import tqdm
 
 # Inherit loglevels from Python's logging
 DEBUG = logging.DEBUG
@@ -17,8 +14,10 @@ WARNING = logging.WARNING
 ERROR = logging.ERROR
 CRITICAL = logging.CRITICAL
 
-BASIC_FORMAT = '%(asctime)s %(levelname)s %(name)s : %(message)s'
-DETAILED_FORMAT = '%(asctime)s %(levelname)s %(name)s [%(pathname)s:%(lineno)d] : %(message)s'
+BASIC_FORMAT = "%(asctime)s %(levelname)s %(name)s : %(message)s"
+DETAILED_FORMAT = (
+    "%(asctime)s %(levelname)s %(name)s [%(pathname)s:%(lineno)d] : %(message)s"
+)
 
 
 class TqdmStreamHandler(logging.StreamHandler):
@@ -38,6 +37,7 @@ class TqdmStreamHandler(logging.StreamHandler):
 
 
 class FormatMessage(object):
+
     def __init__(self, fmt, *args, **kwargs):
         self.fmt = fmt
         self.args = args
@@ -48,27 +48,29 @@ class FormatMessage(object):
 
 
 class Logger(logging.Logger):
+
     def __init__(self, name, level=logging.NOTSET):
         super(Logger, self).__init__(name, level)
 
     def _log(self, level, msg, args, **kwargs):
-        if 'exc_info' in kwargs:
-            exc_info = kwargs['exc_info']
-            del kwargs['exc_info']
+        if "exc_info" in kwargs:
+            exc_info = kwargs["exc_info"]
+            del kwargs["exc_info"]
         else:
             exc_info = None
 
-        if 'extra' in kwargs:
-            extra = kwargs['extra']
-            del kwargs['extra']
+        if "extra" in kwargs:
+            extra = kwargs["extra"]
+            del kwargs["extra"]
         else:
             extra = None
 
         if args or kwargs:
             msg = FormatMessage(msg, *args, **kwargs)
 
-        super(Logger, self)._log(level=level, msg=msg, args=(),
-                                 exc_info=exc_info, extra=extra)
+        super(Logger, self)._log(
+            level=level, msg=msg, args=(), exc_info=exc_info, extra=extra
+        )
 
 
 def get_logger(name=None):
@@ -88,7 +90,7 @@ def get_logger(name=None):
     backup_class = logging.getLoggerClass()
     logging.setLoggerClass(Logger)
     # Use 'laia' as the root logger
-    logger = logging.getLogger(name if name else 'laia')
+    logger = logging.getLogger(name if name else "laia")
     logging.setLoggerClass(backup_class)
     logging._releaseLock()
     return logger
@@ -102,23 +104,30 @@ root.addHandler(logging.NullHandler())
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     import __main__ as main
-    if not len(root.handlers) or all(isinstance(h, logging.NullHandler) for h in root.handlers):
+
+    if not len(root.handlers) or all(
+        isinstance(h, logging.NullHandler) for h in root.handlers
+    ):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    if issubclass(exc_type, KeyboardInterrupt) or hasattr(main, '__file__'):
-        root.info('Laia stopped')
+    if issubclass(exc_type, KeyboardInterrupt) or hasattr(main, "__file__"):
+        root.info("Laia stopped")
         return
-    root.error('Uncaught exception:', exc_info=(
-        exc_type, exc_value, exc_traceback))
+    root.error("Uncaught exception:", exc_info=(exc_type, exc_value, exc_traceback))
 
 
 def set_exception_handler(func=sys.__excepthook__):
     sys.exepthook = func
 
 
-def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
-                 filemode='a', logging_also_to_stderr=ERROR,
-                 exception_handling_fn=handle_exception):
+def basic_config(
+    fmt=BASIC_FORMAT,
+    level=INFO,
+    filename=None,
+    filemode="a",
+    logging_also_to_stderr=ERROR,
+    exception_handling_fn=handle_exception,
+):
     set_exception_handler(func=exception_handling_fn)
     fmt = logging.Formatter(fmt)
 
@@ -126,9 +135,10 @@ def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
         if isinstance(h, logging.NullHandler):
             root.removeHandler(h)
 
-    handler = TqdmStreamHandler() if tqdm else logging.StreamHandler()
+    handler = TqdmStreamHandler()
     handler.setFormatter(fmt)
-    if filename: handler.setLevel(logging_also_to_stderr)
+    if filename:
+        handler.setLevel(logging_also_to_stderr)
     root.addHandler(handler)
 
     if filename:
@@ -139,30 +149,41 @@ def basic_config(fmt=BASIC_FORMAT, level=INFO, filename=None,
     root.setLevel(level)
 
 
-def config(fmt=BASIC_FORMAT, level=INFO, filename=None,
-           filemode='a', logging_also_to_stderr=ERROR, config_dict=None):
+def config(
+    fmt=BASIC_FORMAT,
+    level=INFO,
+    filename=None,
+    filemode="a",
+    logging_also_to_stderr=ERROR,
+    config_dict=None,
+):
     if config_dict:
         try:
-            with io.open(config_dict, 'r') as f:
+            with io.open(config_dict, "r") as f:
                 config_dict = json.load(f)
             logging.config.dictConfig(config_dict)
         except Exception:
             basic_config()
-            root.exception(
-                'Logging configuration could not be parsed, using default')
+            root.exception("Logging configuration could not be parsed, using default")
     else:
-        basic_config(fmt=fmt, level=level,
-                     filename=filename, filemode=filemode,
-                     logging_also_to_stderr=logging_also_to_stderr)
+        basic_config(
+            fmt=fmt,
+            level=level,
+            filename=filename,
+            filemode=filemode,
+            logging_also_to_stderr=logging_also_to_stderr,
+        )
 
 
 def config_from_args(args, fmt=BASIC_FORMAT):
-    config(config_dict=args.logging_config,
-           filemode='w' if args.logging_overwrite else 'a',
-           filename=args.logging_file,
-           fmt=fmt,
-           level=args.logging_level,
-           logging_also_to_stderr=args.logging_also_to_stderr)
+    config(
+        config_dict=args.logging_config,
+        filemode="w" if args.logging_overwrite else "a",
+        filename=args.logging_file,
+        fmt=fmt,
+        level=args.logging_level,
+        logging_also_to_stderr=args.logging_also_to_stderr,
+    )
 
 
 def log(level, msg, *args, **kwargs):

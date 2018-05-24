@@ -40,10 +40,14 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
     for i, sym in enumerate(seq):
         canonical.append(sym)
         canonical.append(ctc_sym)
-        assert sym < NS, ('Reference symbol ({}) at position {} is too large '
-                          'for the given matrix {}x{}'.format(sym, i, NT, NS))
-        assert sym != ctc_sym, ('Reference includes the CTC symbol ({}) at '
-                                'position {}'.format(ctc_sym, i))
+        assert sym < NS, (
+            "Reference symbol ({}) at position {} is too large "
+            "for the given matrix {}x{}".format(sym, i, NT, NS)
+        )
+        assert sym != ctc_sym, (
+            "Reference includes the CTC symbol ({}) at "
+            "position {}".format(ctc_sym, i)
+        )
 
     best_logp = np.ndarray((NT, len(canonical)))
     best_logp.fill(-np.inf)
@@ -66,12 +70,15 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         # TODO(jpuigcerver): Some of these iterations can be avoided.
         for k, s in enumerate(canonical[1:], 1):
             if s == ctc_sym or k == 1 or s == canonical[k - 2]:
-                prev_logp, prev_k = max((best_logp[t - 1, k - 1], k - 1),
-                                        (best_logp[t - 1, k], k))
+                prev_logp, prev_k = max(
+                    (best_logp[t - 1, k - 1], k - 1), (best_logp[t - 1, k], k)
+                )
             else:
-                prev_logp, prev_k = max((best_logp[t - 1, k - 2], k - 2),
-                                        (best_logp[t - 1, k - 1], k - 1),
-                                        (best_logp[t - 1, k], k))
+                prev_logp, prev_k = max(
+                    (best_logp[t - 1, k - 2], k - 2),
+                    (best_logp[t - 1, k - 1], k - 1),
+                    (best_logp[t - 1, k], k),
+                )
             best_logp[t, k] = logpost_matrix[t, s] + prev_logp
             best_alig[t, k] = prev_k
 

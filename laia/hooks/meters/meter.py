@@ -36,7 +36,7 @@ class Meter(object):
     @property
     def value(self):
         """Access the latest value of the meter."""
-        raise NotImplementedError('This method should be overridden.')
+        raise NotImplementedError("This method should be overridden.")
 
     def __call__(self):
         # Try to get the meter's last value, if some exception occurs,
@@ -45,18 +45,19 @@ class Meter(object):
         value = None
         try:
             value = self.value
-            assert value is not None, 'Meter returned None'
+            assert value is not None, "Meter returned None"
         except Exception:
             self._exceptions += 1
             if self._exceptions % self._exceptions_threshold == 0:
                 _logger.warn(
-                    'No value fetched from meter after a while '
-                    '({} exceptions like this occurred so far)',
-                    self._exceptions)
+                    "No value fetched from meter after a while "
+                    "({} exceptions like this occurred so far)",
+                    self._exceptions,
+                )
         return value
 
     def state_dict(self):
-        return {'exceptions': self._exceptions}
+        return {"exceptions": self._exceptions}
 
     def load_state_dict(self, state):
-        self._exceptions = state['exceptions']
+        self._exceptions = state["exceptions"]

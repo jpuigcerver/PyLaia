@@ -6,8 +6,10 @@ import torch
 
 
 class PHOCFeeder(Feeder):
-    def __init__(self, syms, levels, ignore_missing=True, new_phoc=False,
-                 parent_feeder=None):
+
+    def __init__(
+        self, syms, levels, ignore_missing=True, new_phoc=False, parent_feeder=None
+    ):
         super(PHOCFeeder, self).__init__(parent_feeder)
         assert isinstance(syms, (dict, SymbolsTable))
         assert isinstance(levels, (list, tuple))
@@ -21,6 +23,9 @@ class PHOCFeeder(Feeder):
 
     def _feed(self, batch):
         assert isinstance(batch, (list, tuple))
-        return torch.Tensor([self._phoc_func(x, self._syms, self._levels,
-                                             self._ignore_missing)
-                             for x in batch])
+        return torch.Tensor(
+            [
+                self._phoc_func(x, self._syms, self._levels, self._ignore_missing)
+                for x in batch
+            ]
+        )

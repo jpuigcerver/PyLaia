@@ -7,14 +7,10 @@ from laia.hooks.meters.average_precision_meter import AveragePrecisionMeter
 
 
 class AveragePrecisionMeterTest(unittest.TestCase):
+
     def setUp(self):
-        self.batch1 = ([[1, 1],
-                        [2, 2]],
-                       [1, 2])
-        self.batch2 = ([[0, 0],
-                        [1, 1],
-                        [0, 2]],
-                       [3, 1, 2])
+        self.batch1 = ([[1, 1], [2, 2]], [1, 2])
+        self.batch2 = ([[0, 0], [1, 1], [0, 2]], [3, 1, 2])
 
     def test(self):
         meter = AveragePrecisionMeter()
@@ -50,5 +46,5 @@ class AveragePrecisionMeterTest(unittest.TestCase):
         self.assertEqual((2 / 3 + 3 / 5 + 4 / 10) / 6, meter.value)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

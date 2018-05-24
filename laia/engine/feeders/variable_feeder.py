@@ -67,4 +67,4 @@ class VariableFeeder(Feeder):
             return PackedSequence(x, batch_sizes=xs)
 
         else:
-            raise ValueError('Type {!r} is not supported'.format(type(batch)))
+            raise ValueError("Type {!r} is not supported".format(type(batch)))
