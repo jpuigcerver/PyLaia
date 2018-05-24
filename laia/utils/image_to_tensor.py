@@ -5,9 +5,9 @@ from PIL import Image, ImageOps
 
 
 class ImageToTensor(object):
-    def __init__(self, invert=True, mode='L',
-                 fixed_height=None, fixed_width=None):
-        assert mode in ('L', 'RGB', 'RGBA')
+
+    def __init__(self, invert=True, mode="L", fixed_height=None, fixed_width=None):
+        assert mode in ("L", "RGB", "RGBA")
         assert fixed_height is None or fixed_height > 0
         assert fixed_width is None or fixed_width > 0
         self._invert = invert

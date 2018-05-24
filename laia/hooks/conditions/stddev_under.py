@@ -29,10 +29,11 @@ class StdDevUnder(LoggingCondition):
 
     def __init__(self, obj, threshold, num_values_to_keep, key=None, name=None):
         # type: (Callable, float, int, Any, str) -> None
-        assert threshold > 0, 'Standard deviation should be a positive value'
+        assert threshold > 0, "Standard deviation should be a positive value"
         assert num_values_to_keep > 1, (
-            'The number of values to keep must be greater than 1 to compute '
-            'the standard deviation')
+            "The number of values to keep must be greater than 1 to compute "
+            "the standard deviation"
+        )
         super(StdDevUnder, self).__init__(obj, key, _logger, name)
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
@@ -56,9 +57,7 @@ class StdDevUnder(LoggingCondition):
 
         std = np.std(np.asarray(self._values, dtype=np.float32))
         if std < self._threshold:
-            self.info('Standard deviation {} < Threshold {}',
-                      std, self._threshold)
+            self.info("Standard deviation {} < Threshold {}", std, self._threshold)
             return True
-        self.debug('Standard deviation {} >= Threshold {}',
-                   std, self._threshold)
+        self.debug("Standard deviation {} >= Threshold {}", std, self._threshold)
         return False

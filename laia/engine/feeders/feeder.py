@@ -20,7 +20,7 @@ class Feeder(object):
         return self._feed(batch)
 
     def _feed(self, batch):
-        raise NotImplementedError('Abstract class.')
+        raise NotImplementedError("Abstract class.")
 
 
 class ItemFeeder(Feeder):

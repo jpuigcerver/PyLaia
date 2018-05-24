@@ -7,10 +7,11 @@ from laia.hooks.meters import SequenceErrorMeter
 
 
 class SequenceErrorMeterTest(unittest.TestCase):
+
     def testSingleString(self):
         err = SequenceErrorMeter()
-        ref = ['home']
-        hyp = ['house']
+        ref = ["home"]
+        hyp = ["house"]
         err.add(ref, hyp)
         self.assertEqual(err.value, 0.5)
 
@@ -23,21 +24,17 @@ class SequenceErrorMeterTest(unittest.TestCase):
 
     def testMultiple(self):
         err = SequenceErrorMeter()
-        ref = [['the', 'house', 'is', 'blue'],
-               ['my', 'dog', 'is', 'black']]
-        hyp = [['the', 'home', 'is', 'white'],
-               ['my', 'dog', 'is', 'not', 'black']]
+        ref = [["the", "house", "is", "blue"], ["my", "dog", "is", "black"]]
+        hyp = [["the", "home", "is", "white"], ["my", "dog", "is", "not", "black"]]
         err.add(ref, hyp)
         self.assertEqual(err.value, (2 + 1) / (4 + 4))
 
     def testMultipleCalls(self):
         err = SequenceErrorMeter()
-        ref = [['the', 'house', 'is', 'blue'],
-               ['my', 'dog', 'is', 'black']]
-        hyp = [['the', 'home', 'is', 'white'],
-               ['my', 'dog', 'is', 'not', 'black']]
+        ref = [["the", "house", "is", "blue"], ["my", "dog", "is", "black"]]
+        hyp = [["the", "home", "is", "white"], ["my", "dog", "is", "not", "black"]]
         err.add(ref, hyp)
-        err.add(['home'], ['house'])
+        err.add(["home"], ["house"])
         self.assertEqual(err.value, (2 + 1 + 2) / (4 + 4 + 4))
 
     def testStateDict(self):
@@ -50,5 +47,5 @@ class SequenceErrorMeterTest(unittest.TestCase):
         self.assertEqual(err.value, err2.value)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

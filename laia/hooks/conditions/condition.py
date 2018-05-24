@@ -23,7 +23,7 @@ class Condition(object):
         self._key = key
 
     def __call__(self):
-        raise NotImplementedError('This method should be overridden.')
+        raise NotImplementedError("This method should be overridden.")
 
     def _process_value(self):
         value = self._obj()
@@ -34,15 +34,16 @@ class Condition(object):
 
     def state_dict(self):
         return {
-            'obj': self._obj.state_dict() if hasattr(self._obj, 'state_dict') else None
+            "obj": self._obj.state_dict() if hasattr(self._obj, "state_dict") else None
         }
 
     def load_state_dict(self, state):
-        if hasattr(self._obj, 'load_state_dict'):
-            self._obj.load_state_dict(state['obj'])
+        if hasattr(self._obj, "load_state_dict"):
+            self._obj.load_state_dict(state["obj"])
 
 
 class LoggingCondition(Condition):
+
     def __init__(self, obj, key, logger, name=None):
         # type: (obj, AnyT, Logger, str) -> None
         super(LoggingCondition, self).__init__(obj, key)
@@ -50,7 +51,7 @@ class LoggingCondition(Condition):
         self._name = name
 
     def __call__(self):
-        raise NotImplementedError('This method should be overridden.')
+        raise NotImplementedError("This method should be overridden.")
 
     @property
     def logger(self):
@@ -64,7 +65,9 @@ class LoggingCondition(Condition):
         self._logger.log(
             level,
             'Condition "{}": {}'.format(self.name, msg) if self.name else msg,
-            *args, **kwargs)
+            *args,
+            **kwargs
+        )
 
     def debug(self, msg, *args, **kwargs):
         self.log(DEBUG, msg, *args, **kwargs)
@@ -105,7 +108,7 @@ class MultinaryCondition(object):
         self._conditions = conditions
 
     def __call__(self):
-        raise NotImplementedError('This method should be overridden.')
+        raise NotImplementedError("This method should be overridden.")
 
 
 class Any(MultinaryCondition):

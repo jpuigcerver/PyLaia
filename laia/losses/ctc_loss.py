@@ -5,12 +5,19 @@ import itertools
 import torch
 from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
-from warpctc_pytorch import CTCLoss as _CTCLoss
+
+try:
+    from warpctc_pytorch import CTCLoss as _CTCLoss
+except ImportError:
+    import warnings
+
+    warnings.warn("Missing CTC loss function library")
 
 from laia.losses.loss import Loss
 
 
 class CTCLoss(Loss):
+
     def __init__(self, size_average=True, length_average=False):
         super(CTCLoss, self).__init__()
         self._ctc = _CTCLoss(size_average, length_average)
@@ -20,8 +27,8 @@ class CTCLoss(Loss):
             x, xs = pad_packed_sequence(output)
         else:
             x, xs = output, [output.size(0)]
-        assert xs[0] == x.size(0), 'Maximum length does not match'
-        assert len(target) == x.size(1), 'Batch size does not match'
+        assert xs[0] == x.size(0), "Maximum length does not match"
+        assert len(target) == x.size(1), "Batch size does not match"
 
         # Prepare tensors of the correct type
         y = torch.IntTensor(list(itertools.chain.from_iterable(target)))

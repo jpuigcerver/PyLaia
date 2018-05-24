@@ -37,11 +37,13 @@ def image_to_sequence(x, columnwise=True, return_packed=False):
 
 
 class ImageToSequence(torch.nn.Module):
+
     def __init__(self, columnwise=True, return_packed=False):
         super(ImageToSequence, self).__init__()
         self._columnwise = columnwise
         self._return_packed = return_packed
 
     def forward(self, x):
-        return image_to_sequence(x, columnwise=self._columnwise,
-                                 return_packed=self._return_packed)
+        return image_to_sequence(
+            x, columnwise=self._columnwise, return_packed=self._return_packed
+        )

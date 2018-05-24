@@ -1,7 +1,16 @@
 from __future__ import absolute_import
 
-__all__ = ['data', 'decoders', 'engine', 'logging', 'losses',
-           'hooks', 'plugins', 'random', 'utils']
+__all__ = [
+    "data",
+    "decoders",
+    "engine",
+    "logging",
+    "losses",
+    "hooks",
+    "plugins",
+    "random",
+    "utils",
+]
 
 import laia.data
 import laia.decoders

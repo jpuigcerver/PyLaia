@@ -8,8 +8,11 @@ import laia.logging as log
 
 _TENSOR_REAL = (torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor)
 if torch.cuda.is_available():
-    _TENSOR_REAL += (torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
-                     torch.cuda.HalfTensor)
+    _TENSOR_REAL += (
+        torch.cuda.FloatTensor,
+        torch.cuda.DoubleTensor,
+        torch.cuda.HalfTensor,
+    )
 
 
 def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
@@ -39,7 +42,7 @@ def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
         if num_inf > 0:
             per_inf = num_inf / tensor.numel()
             if msg is None:
-                msg = '{:d} ({:.2%}) INF values found'.format(num_inf, per_inf)
+                msg = "{:d} ({:.2%}) INF values found".format(num_inf, per_inf)
             else:
                 msg = msg.format(abs_num=num_inf, rel_num=per_inf, **kwargs)
 
@@ -80,7 +83,7 @@ def check_nan(tensor, msg=None, name=None, raise_exception=False, **kwargs):
         if num_nan > 0:
             per_nan = num_nan / tensor.numel()
             if msg is None:
-                msg = '{:d} ({:.2%}) INF values found'.format(num_nan, per_nan)
+                msg = "{:d} ({:.2%}) INF values found".format(num_nan, per_nan)
             else:
                 msg = msg.format(abs_num=num_nan, rel_num=per_nan, **kwargs)
 

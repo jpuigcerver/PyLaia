@@ -5,7 +5,7 @@ import argparse
 
 import torch.nn as nn
 
-from laia.models.htr import VggRnnFixedHeight
+from laia.models.htr import VggRnn, VggRnnFixedHeight
 from laia.plugins import ModelSaver
 from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.plugins.arguments_types import NumberInClosedRange, TupleList, str2bool
@@ -21,73 +21,156 @@ Also, each block, rnn layer and the final linear layer may be preceded
 by a dropout layer.
 """
 
-if __name__ == '__main__':
-    add_defaults('train_path')
-    add_argument('input_height', type=NumberInClosedRange(int, vmin=1),
-                 help='Height of the input images')
-    add_argument('num_input_channels', type=NumberInClosedRange(int, vmin=1),
-                 help='Number of channels of the input images')
-    add_argument('syms', type=argparse.FileType('r'),
-                 help='Symbols table mapping from strings to integers')
-    add_argument('--filename', type=str, default='model',
-                 help='Name of the saved model file')
-    add_argument('--cnn_num_features', type=NumberInClosedRange(int, vmin=1),
-                 nargs='+', default=[16, 16, 32, 32],
-                 help='Number of features in each conv layer')
-    add_argument('--cnn_kernel_size', type=TupleList(int, dimensions=2),
-                 nargs='+', default=[3, 3, 3, 3],
-                 help='Kernel size of each conv layer. '
-                      'It can be a list of numbers if all the dimensions are equal '
-                      'or a list of strings formatted as tuples '
-                      'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"')
-    add_argument('--cnn_dilation', type=NumberInClosedRange(int, vmin=1), nargs='+',
-                 default=[1, 1, 1, 1],
-                 help='Spacing between each conv layer kernel elements.')
-    add_argument('--cnn_activations', nargs='+',
-                 choices=['ReLU', 'Tanh', 'LeakyReLU'], default=['ReLU'] * 4,
-                 help='Type of the activation function in each conv layer')
-    add_argument('--cnn_poolsize', type=TupleList(int, dimensions=2), nargs='+',
-                 default=[2, 2, 0, 2],
-                 help='MaxPooling size after each conv layer. '
-                      'It can be a list of numbers if all the dimensions are equal '
-                      'or a list of strings formatted as tuples '
-                      'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"')
-    add_argument('--cnn_dropout', type=NumberInClosedRange(float, vmin=0, vmax=1),
-                 nargs='+', default=[0, 0, 0, 0],
-                 help='Dropout probability at the input of each conv layer')
-    add_argument('--cnn_batchnorm', type=str2bool, nargs='+', default=[False] * 4,
-                 help='Batch normalization before the activation in each conv layer')
-    add_argument('--rnn_units', type=NumberInClosedRange(int, vmin=1), default=256,
-                 help='Number of units the recurrent layers')
-    add_argument('--rnn_layers', type=NumberInClosedRange(int, vmin=1), default=3,
-                 help='Number of recurrent layers')
-    add_argument('--rnn_dropout', type=NumberInClosedRange(float, vmin=0, vmax=1), default=0.5,
-                 help='Dropout probability at the input of each recurrent layer')
-    add_argument('--lin_dropout', type=NumberInClosedRange(float, vmin=0, vmax=1), default=0.5,
-                 help='Dropout probability at the input of the final linear layer')
-    add_argument('--rnn_type', choices=['LSTM', 'GRU'], default='LSTM',
-                 help='Type of the recurrent layers')
+if __name__ == "__main__":
+    add_defaults("train_path")
+    add_argument(
+        "input_height",
+        type=NumberInClosedRange(int, vmin=0),
+        help="Height of the input images. "
+        "If 0, a variable height model will be used",
+    )
+    add_argument(
+        "num_input_channels",
+        type=NumberInClosedRange(int, vmin=1),
+        help="Number of channels of the input images",
+    )
+    add_argument(
+        "syms",
+        type=argparse.FileType("r"),
+        help="Symbols table mapping from strings to integers",
+    )
+    add_argument(
+        "--model_filename",
+        type=str,
+        default="model",
+        help="Name of the saved model file",
+    )
+    add_argument(
+        "--cnn_num_features",
+        type=NumberInClosedRange(int, vmin=1),
+        nargs="+",
+        default=[16, 16, 32, 32],
+        help="Number of features in each conv layer",
+    )
+    add_argument(
+        "--cnn_kernel_size",
+        type=TupleList(int, dimensions=2),
+        nargs="+",
+        default=[3, 3, 3, 3],
+        help="Kernel size of each conv layer. "
+        "It can be a list of numbers if all the "
+        "dimensions are equal or a list of strings "
+        "formatted as tuples "
+        'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"',
+    )
+    add_argument(
+        "--cnn_stride",
+        type=NumberInClosedRange(int, vmin=1),
+        nargs="+",
+        default=[1, 1, 1, 1],
+        help="Stride of each conv layer",
+    )
+    add_argument(
+        "--cnn_dilation",
+        type=NumberInClosedRange(int, vmin=1),
+        nargs="+",
+        default=[1, 1, 1, 1],
+        help="Spacing between each conv layer kernel elements",
+    )
+    add_argument(
+        "--cnn_activations",
+        nargs="+",
+        choices=["ReLU", "Tanh", "LeakyReLU"],
+        default=["ReLU"] * 4,
+        help="Type of the activation function in each conv layer",
+    )
+    add_argument(
+        "--cnn_poolsize",
+        type=TupleList(int, dimensions=2),
+        nargs="+",
+        default=[2, 2, 0, 2],
+        help="MaxPooling size after each conv layer. "
+        "It can be a list of numbers if all the "
+        "dimensions are equal or a list of strings "
+        "formatted as tuples "
+        'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"',
+    )
+    add_argument(
+        "--cnn_dropout",
+        type=NumberInClosedRange(float, vmin=0, vmax=1),
+        nargs="+",
+        default=[0, 0, 0, 0],
+        help="Dropout probability at the input of each conv layer",
+    )
+    add_argument(
+        "--cnn_batchnorm",
+        type=str2bool,
+        nargs="+",
+        default=[False] * 4,
+        help="Batch normalization before the activation in each conv layer",
+    )
+    add_argument(
+        "--rnn_units",
+        type=NumberInClosedRange(int, vmin=1),
+        default=256,
+        help="Number of units the recurrent layers",
+    )
+    add_argument(
+        "--rnn_layers",
+        type=NumberInClosedRange(int, vmin=1),
+        default=3,
+        help="Number of recurrent layers",
+    )
+    add_argument(
+        "--rnn_dropout",
+        type=NumberInClosedRange(float, vmin=0, vmax=1),
+        default=0.5,
+        help="Dropout probability at the input of each recurrent layer",
+    )
+    add_argument(
+        "--lin_dropout",
+        type=NumberInClosedRange(float, vmin=0, vmax=1),
+        default=0.5,
+        help="Dropout probability at the input of the final linear layer",
+    )
+    add_argument(
+        "--rnn_type",
+        choices=["LSTM", "GRU"],
+        default="LSTM",
+        help="Type of the recurrent layers",
+    )
     args = args()
 
-    dimensions = map(len, (args.cnn_num_features, args.cnn_kernel_size,
-                           args.cnn_dilation, args.cnn_activations,
-                           args.cnn_poolsize, args.cnn_dropout, args.cnn_batchnorm))
-    assert len(set(dimensions)), 'Wrong cnn layer dimensions'
+    dimensions = map(
+        len,
+        (
+            args.cnn_num_features,
+            args.cnn_kernel_size,
+            args.cnn_dilation,
+            args.cnn_activations,
+            args.cnn_poolsize,
+            args.cnn_dropout,
+            args.cnn_batchnorm,
+        ),
+    )
+    assert len(set(dimensions)) == 1, "Wrong cnn layer dimensions"
 
-    ModelSaver(args.train_path, args.filename) \
-        .save(VggRnnFixedHeight,
-              args.input_height,
-              args.num_input_channels,
-              len(SymbolsTable(args.syms)),
-              args.cnn_num_features,
-              args.cnn_kernel_size,
-              args.cnn_dilation,
-              [getattr(nn, act) for act in args.cnn_activations],
-              args.cnn_poolsize,
-              args.cnn_dropout,
-              args.cnn_batchnorm,
-              args.rnn_units,
-              args.rnn_layers,
-              args.rnn_dropout,
-              args.lin_dropout,
-              rnn_type=getattr(nn, args.rnn_type))
+    ModelSaver(args.train_path, args.model_filename).save(
+        VggRnnFixedHeight if args.input_height else VggRnn,
+        args.input_height,
+        args.num_input_channels,
+        len(SymbolsTable(args.syms)),
+        args.cnn_num_features,
+        args.cnn_kernel_size,
+        args.cnn_stride,
+        args.cnn_dilation,
+        [getattr(nn, act) for act in args.cnn_activations],
+        args.cnn_poolsize,
+        args.cnn_dropout,
+        args.cnn_batchnorm,
+        args.rnn_units,
+        args.rnn_layers,
+        args.rnn_dropout,
+        args.lin_dropout,
+        rnn_type=getattr(nn, args.rnn_type),
+    )

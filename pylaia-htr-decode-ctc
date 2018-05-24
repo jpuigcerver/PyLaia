@@ -14,59 +14,94 @@ from laia.plugins.arguments_types import str2bool
 from laia.plugins.loader import ModelLoader, ModelCheckpointLoader
 from laia.utils import SymbolsTable, ImageToTensor
 
-if __name__ == '__main__':
-    add_defaults('batch_size', 'gpu', 'train_path',
-                 logging_level='WARNING')
-    add_argument('syms', type=argparse.FileType('r'),
-                 help='Symbols table mapping from strings to integers')
-    add_argument('img_dir', type=str,
-                 help='Directory containing word images')
-    add_argument('img_list', type=argparse.FileType('r'),
-                 help='File or list containing images to decode')
-    add_argument('--checkpoint', type=str, default='model.ckpt.lowest-valid-cer*',
-                 help='Name of the checkpoint to use, can be a glob pattern')
-    add_argument('--print_img_ids', type=str2bool, nargs='?', const=True, default=True,
-                 help='Print output with the associated image id')
-    add_argument('--separator', type=str, default=' ',
-                 help='Use this string as the separator between the ids and the output')
-    add_argument('--use_letters', type=str2bool, nargs='?', const=True, default=False,
-                 help='Print the output with letters')
-    add_argument('--space', type=str,
-                 help='Replace <space> with this. Used with --use_letters')
-    add_argument('--join_str', type=str,
-                 help='Join the output using this. Used with --use_letters')
+if __name__ == "__main__":
+    add_defaults("batch_size", "gpu", "train_path", logging_level="WARNING")
+    add_argument(
+        "syms",
+        type=argparse.FileType("r"),
+        help="Symbols table mapping from strings to integers",
+    )
+    add_argument(
+        "img_dirs", type=str, nargs="+", help="Directory containing word images"
+    )
+    add_argument(
+        "img_list",
+        type=argparse.FileType("r"),
+        help="File or list containing images to decode",
+    )
+    add_argument(
+        "--model_filename", type=str, default="model", help="File name of the model"
+    )
+    add_argument(
+        "--checkpoint",
+        type=str,
+        default="model.ckpt.lowest-valid-cer*",
+        help="Name of the checkpoint to use, can be a glob pattern",
+    )
+    add_argument(
+        "--print_img_ids",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=True,
+        help="Print output with the associated image id",
+    )
+    add_argument(
+        "--separator",
+        type=str,
+        default=" ",
+        help="Use this string as the separator between the ids and the output",
+    )
+    add_argument(
+        "--use_letters",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Print the output with letters",
+    )
+    add_argument(
+        "--space", type=str, help="Replace <space> with this. Used with --use_letters"
+    )
+    add_argument(
+        "--join_str",
+        type=str,
+        help="Join the output using this. Used with --use_letters",
+    )
     args = args()
 
     syms = SymbolsTable(args.syms)
 
-    model = ModelLoader(args.train_path, gpu=args.gpu).load()
+    model = ModelLoader(
+        args.train_path, filename=args.model_filename, gpu=args.gpu
+    ).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, args.checkpoint))
+        os.path.join(args.train_path, args.checkpoint)
+    )
 
-    te_ds = ImageFromListDataset(args.img_list, img_dir=args.img_dir,
-                                 img_transform=ImageToTensor())
-    te_ds_loader = ImageDataLoader(dataset=te_ds,
-                                   image_channels=1,
-                                   batch_size=args.batch_size,
-                                   num_workers=8)
-    batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder('img'))
+    te_ds = ImageFromListDataset(
+        args.img_list, img_dirs=args.img_dirs, img_transform=ImageToTensor()
+    )
+    te_ds_loader = ImageDataLoader(
+        dataset=te_ds, image_channels=1, batch_size=args.batch_size, num_workers=8
+    )
+    batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img"))
 
     decoder = CTCGreedyDecoder()
     for batch in te_ds_loader:
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
         batch_decode = decoder(batch_output)
-        for imgid, out in zip(batch['id'], batch_decode):
+        for imgid, out in zip(batch["id"], batch_decode):
             if args.use_letters:
                 out = [str(syms[val]) for val in out]
                 if args.space:
-                    out = [args.space if sym == '<space>' else sym
-                           for sym in out]
+                    out = [args.space if sym == "<space>" else sym for sym in out]
                 if args.join_str is not None:
                     out = args.join_str.join(out)
-            print(imgid + args.separator + out if args.print_img_ids else out)
+            print(imgid + args.separator + str(out) if args.print_img_ids else out)

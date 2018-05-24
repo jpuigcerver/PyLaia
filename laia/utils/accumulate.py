@@ -5,6 +5,7 @@ import operator
 try:
     from itertools import accumulate
 except ImportError:
+
     def accumulate(iterable, func=operator.add):
         r"""Make an iterator that returns accumulated sums.
 
