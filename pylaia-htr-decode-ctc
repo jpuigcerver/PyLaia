@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import argparse
 import os
-from builtins import str
 
 import laia.logging as log
 from laia.data import ImageDataLoader, ImageFromListDataset
