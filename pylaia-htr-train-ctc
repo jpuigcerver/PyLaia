@@ -76,6 +76,12 @@ if __name__ == "__main__":
     add_argument(
         "--model_filename", type=str, default="model", help="File name of the model"
     )
+    add_argument(
+        "--checkpoint",
+        type=str,
+        default="ckpt.lowest-valid-cer*",
+        help="Suffix of the checkpoint to use, can be a glob pattern",
+    )
     args = args()
 
     syms = SymbolsTable(args.syms)
@@ -245,12 +251,12 @@ if __name__ == "__main__":
             EPOCH_START, Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop)
         )
 
-    # Continue from last checkpoints with lowest valid cer, if possible
+    # Continue from the given checkpoint, if possible
     TrainerCheckpointLoader(engine_wrapper, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, "engine-wrapper.ckpt.lowest-valid-cer*")
+        os.path.join(args.train_path, "engine-wrapper.{}".format(args.checkpoint))
     )
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, "model.ckpt.lowest-valid-cer*")
+        os.path.join(args.train_path, "model.{}".format(args.checkpoint))
     )
 
     engine_wrapper.run()
