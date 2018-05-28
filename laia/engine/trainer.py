@@ -164,7 +164,7 @@ class Trainer(Engine):
             )
             raise_from(wrapper, e)
 
-        # Note: These checks are only active when logging level >= DEBUG
+        # Note: These checks are only active when logging level <= DEBUG
         check_inf(
             tensor=batch_output,
             logger=__name__,

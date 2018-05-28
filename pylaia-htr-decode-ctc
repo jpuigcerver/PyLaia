@@ -32,10 +32,10 @@ if __name__ == "__main__":
         "--model_filename", type=str, default="model", help="File name of the model"
     )
     add_argument(
-        "--checkpoint",
+        "--model_checkpoint",
         type=str,
         default="model.ckpt.lowest-valid-cer*",
-        help="Name of the checkpoint to use, can be a glob pattern",
+        help="Name of the model checkpoint to use, can be a glob pattern",
     )
     add_argument(
         "--print_img_ids",
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, args.checkpoint)
+        os.path.join(args.train_path, args.model_checkpoint)
     )
 
     te_ds = ImageFromListDataset(
