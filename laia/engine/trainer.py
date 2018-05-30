@@ -159,14 +159,12 @@ class Trainer(Engine):
             wrapper = EngineException(
                 epoch=self._epochs,
                 iteration=self._iterations,
-                batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn
-                else batch_input,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
                 cause=e,
             )
             raise_from(wrapper, e)
 
-        # Note: These checks are only active when logging level >= DEBUG
+        # Note: These checks are only active when logging level <= DEBUG
         check_inf(
             tensor=batch_output,
             logger=__name__,
@@ -195,9 +193,7 @@ class Trainer(Engine):
             wrapper = EngineException(
                 epoch=self._epochs,
                 iteration=self._iterations,
-                batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn
-                else batch_input,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
                 cause=e,
             )
             raise_from(wrapper, e)
@@ -220,9 +216,7 @@ class Trainer(Engine):
             wrapper = EngineException(
                 epoch=self._epochs,
                 iteration=self._iterations,
-                batch=self.batch_id_fn(batch_input)
-                if self._batch_id_fn
-                else batch_input,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
                 cause=e,
             )
             raise_from(wrapper, e)
