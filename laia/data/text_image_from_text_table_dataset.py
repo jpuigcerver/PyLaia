@@ -72,7 +72,7 @@ def find_image_filename_from_id(imgid, img_dir, img_extensions):
     return None
 
 
-def _load_text_table_from_file(table_file, encoding="utf8"):
+def _load_text_table_from_file(table_file, encoding="utf-8"):
     if isinstance(table_file, string_classes):
         table_file = io.open(table_file, "r", encoding=encoding)
     for n, line in enumerate((l.split() for l in table_file), 1):

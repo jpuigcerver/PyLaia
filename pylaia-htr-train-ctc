@@ -76,6 +76,12 @@ if __name__ == "__main__":
     add_argument(
         "--model_filename", type=str, default="model", help="File name of the model"
     )
+    add_argument(
+        "--checkpoint",
+        type=str,
+        default="ckpt.lowest-valid-cer*",
+        help="Suffix of the checkpoint to use, can be a glob pattern",
+    )
     args = args()
 
     syms = SymbolsTable(args.syms)
@@ -102,7 +108,7 @@ if __name__ == "__main__":
             "criterion": None,  # Set automatically by HtrEngineWrapper
             "optimizer": optimizer,
             "batch_target_fn": ItemFeeder("txt"),
-            "progress_bar": "Train" if args.show_progress_bar else None,
+            "batch_id_fn": ItemFeeder("id"),  # Print image ids on exception
         }
         trainer = Trainer(**parameters)
         TrainerSaver(args.train_path).save(Trainer, **parameters)
@@ -127,6 +133,7 @@ if __name__ == "__main__":
 
     # Set all these separately because they might change between executions
     trainer.iterations_per_update = args.iterations_per_update
+    trainer.set_progress_bar("Train" if args.show_progress_bar else None)
     trainer.set_data_loader(tr_ds_loader)
     trainer.set_batch_input_fn(
         ImageFeeder(
@@ -151,8 +158,9 @@ if __name__ == "__main__":
         data_loader=va_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
-        progress_bar="Valid" if args.show_progress_bar else None,
+        batch_id_fn=ItemFeeder("id"),
     )
+    evaluator.set_progress_bar("Valid" if args.show_progress_bar else None)
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)
     # Set word delimiters to compute the WER
@@ -243,12 +251,12 @@ if __name__ == "__main__":
             EPOCH_START, Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop)
         )
 
-    # Continue from last checkpoints with lowest valid cer, if possible
+    # Continue from the given checkpoint, if possible
     TrainerCheckpointLoader(engine_wrapper, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, "engine-wrapper.ckpt.lowest-valid-cer*")
+        os.path.join(args.train_path, "engine-wrapper.{}".format(args.checkpoint))
     )
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, "model.ckpt.lowest-valid-cer*")
+        os.path.join(args.train_path, "model.{}".format(args.checkpoint))
     )
 
     engine_wrapper.run()
