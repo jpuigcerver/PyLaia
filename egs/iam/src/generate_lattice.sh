@@ -11,12 +11,13 @@ determinize_lattice=true;
 lattice_beam=15;
 max_active=2147483647;
 min_active=200;
-qsub="";
+qsub_opts="";
+qsub_tasks=0;
 retry_beam="";
 symbol_table="";
 threads=1;
 # Hidden options used by qsub jobs
-qsub_merge=false;
+qsub_merge=true;
 qsub_wdir="";
 help_message="
 Usage: ${0##*/} [options] <model> <HCL> <G> <loglike_scp> <lattice_wspec>
@@ -39,7 +40,7 @@ Options:
                      Decoder max active states.
   --min_active     : (type = int, value = $min_active)
                      Decoder minimum #active states.
-  --qsub           : (type = string, value = $qsub)
+  --qsub_opts      : (type = string, value = $qsub_opts)
                      Qsub options to parallelize in a cluster.
   --retry_beam     : (type = string, value = \"$retry_beam\")
                      List of beam to try when decoding fails.
@@ -49,7 +50,10 @@ Options:
                      When running locally, use this number of threads.
 ";
 source "$SDIR/parse_options.inc.sh" || exit 1;
-[ $# -ne 5 ] && echo "$help_message" >&2 && exit 1;
+[ $# -ne 5 ] &&
+echo "ERROR: The program expected 5 arguments, but $# were given.
+
+$help_message" >&2 && exit 1;
 
 for f in "$1" "$2" "$3" "$4"; do
   [ ! -s "$f" ] &&
@@ -66,27 +70,75 @@ opts=(
   --retry-beam="$retry_beam"
   --word-symbol-table="$symbol_table"
 );
+opts2=(
+  --acoustic_scale "$acoustic_scale"
+  --beam "$beam"
+  --determinize_lattice "$determinize_lattice"
+  --lattice_beam "$lattice_beam"
+  --max_active "$max_active"
+  --min_active "$min_active"
+  --retry_beam "$retry_beam"
+  --symbol_table "$symbol_table"
+  --qsub_tasks "$qsub_tasks"
+);
 
 if [[ -n "$SGE_TASK_ID" ]]; then
   [ -z "$qsub_wdir" ] && echo "ERROR: Empty working dir!" >&2 && exit 1;
-  latgen-lazylm-faster-mapped "${opts[@]}" "$1" "$2" "$3" \
-			      "scp:head -n$SGE_TASK_ID $4 | tail -n1|" \
-			      "ark:${qsub_wdir}/${SGE_TASK_ID}.ark";
-elif [[ "$qsub_merge" = true ]]; then
+  N=$(wc -l "$4" | cut -d\  -f1);
+  D=$(echo "$N / $qsub_tasks" | bc);
+  R=$(echo "$N % $qsub_tasks" | bc);
+  if [ "$SGE_TASK_ID" -gt "$R" ]; then
+    h="$[R * (D + 1) + (SGE_TASK_ID - R) * D]";
+    t="$D";
+  else
+    h="$[SGE_TASK_ID * (D + 1)]";
+    t="$[D + 1]";
+  fi;
+  egrep -s -q "^LOG \(.+\) Overall log-likelihood per frame" \
+    "${qsub_wdir}/${SGE_TASK_ID}.log" ||
+  latgen-lazylm-faster-mapped \
+    "${opts[@]}" "$1" "$2" "$3" \
+    "scp:head -n$h $4 | tail -n$t|" \
+    "ark:${qsub_wdir}/${SGE_TASK_ID}.ark" \
+    2> "${qsub_wdir}/${SGE_TASK_ID}.log";
+elif [[ -n "$SGE_CELL" && "$qsub_merge" = true ]]; then
   [ -z "$qsub_wdir" ] && echo "ERROR: Empty working dir!" >&2 && exit 1;
+  completed=$(egrep -s -l "^LOG \(.+\) Overall log-likelihood" \
+    "$qsub_wdir"/*.log | wc -l);
+  if [[ "$completed" != "$qsub_tasks" ]]; then
+    echo "ERROR: Some tasks were not completed, check: $qsub_wdir!" >&2 &&
+    exit 1;
+  fi;
   find "$qsub_wdir" -name "*.ark" | sort -V |
   xargs -n1 -I{} lattice-copy ark:{} ark:- |
   lattice-copy ark:- "$5";
   rm -r "$qsub_wdir";
-elif [[ -n "$qsub" ]]; then
-  if [ -z "$qsub_wdir" ]; then qsub_wdir="$(mktemp -p "$SCRATCH")"; fi;
-  N=$(wc -l "$4" | cut -d\  -f1);
-  jid1=$(qsub -terse $qsub -cwd -t "1-$N" -j y -o "$qsub_wdir" \
-         "${BASH_SOURCE[0]}" "$@" |
-         tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g');
-  jid2=$(qsub -terse -cwd -j y -o "$qsub_wdir"
-	 "${BASH_SOURCE[0]}" --qsub_merge true "$@" |
-         tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g');
+elif [[ "$qsub_tasks" -gt 0 ]]; then
+  if [ -z "$qsub_wdir" ]; then qsub_wdir="$(mktemp -d --tmpdir="$SCRATCH")"; fi;
+  opts2+=(--qsub_wdir "$qsub_wdir");
+  jid1=$(cat <<EOF | qsub | tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g'
+#\$ -N ${0##*/}
+#\$ -j y -o "$qsub_wdir"
+#\$ -t 1-${qsub_tasks}
+#\$ $qsub_opts
+#\$ -terse
+#\$ -cwd
+set -e;
+${BASH_SOURCE[0]} --qsub_merge false $(printf '%q ' "${opts2[@]}" "$@")
+EOF
+  );
+  [ "$qsub_merge" = false ] ||
+  jid2=$(cat <<EOF | qsub | tail -n1 | sed -r 's|.[0-9]+-[0-9]+:[0-9]+$||g'
+#\$ -N ${0##*/}
+#\$ -j y -o "$qsub_wdir"
+#\$ $qsub_opts
+#\$ -terse
+#\$ -cwd
+#\$ -hold_jid $jid1
+set -e;
+${BASH_SOURCE[0]} --qsub_merge true $(printf '%q ' "${opts2[@]}" "$@")
+EOF
+  );
   echo "Launched jobs: $jid1 $jid2" >&2;
 else
   if [ "$threads" -gt 1 ]; then

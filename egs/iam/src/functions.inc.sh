@@ -17,3 +17,11 @@ function ask_owerwrite () {
   fi;
   return 1;
 }
+
+function memusg_wrap () {
+  if which memusg &> /dev/null; then
+    memusg "$@";
+  else
+    "$@";
+  fi;
+}
