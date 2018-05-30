@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from io import open
+
 from torch._six import string_classes
 
 import laia.logging as log
@@ -40,10 +42,11 @@ class ImageFromListDataset(ImageDataset):
         return out
 
 
-def _load_image_list_from_file(img_list):
+def _load_image_list_from_file(img_list, encoding="utf-8"):
     if isinstance(img_list, string_classes):
-        with open(img_list, "r") as f:
-            return [i.rstrip() for i in f.readlines()]
+        f = open(img_list, "r", encoding=encoding)
+        img_list = [i.rstrip() for i in f.readlines()]
+        f.close()
     return img_list
 
 

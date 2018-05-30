@@ -83,7 +83,7 @@ def check_nan(tensor, msg=None, name=None, raise_exception=False, **kwargs):
         if num_nan > 0:
             per_nan = num_nan / tensor.numel()
             if msg is None:
-                msg = "{:d} ({:.2%}) INF values found".format(num_nan, per_nan)
+                msg = "{:d} ({:.2%}) NaN values found".format(num_nan, per_nan)
             else:
                 msg = msg.format(abs_num=num_nan, rel_num=per_nan, **kwargs)
 
