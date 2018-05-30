@@ -25,6 +25,8 @@ class TextImageFromTextTableDataset(TextImageDataset):
         img_extensions=IMAGE_EXTENSIONS,
         encoding="utf8",
     ):
+        if isinstance(img_dirs, string_classes):
+            img_dirs = [img_dirs]
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
