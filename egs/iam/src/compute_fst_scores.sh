@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e;
+export LC_NUMERIC=C;
 
 beam=;
 cache_size=100;
@@ -104,6 +105,14 @@ function pairwise_scp () {
   return 0;
 }
 
+function memusg_wrap () {
+  if which memusg &> /dev/null; then
+    memusg "$@";
+  else
+    "$@";
+  fi;
+}
+
 # fst-compose-sum options
 opts=(
   "--print-args=false"
@@ -157,11 +166,11 @@ elif [[ -n "$SGE_TASK_ID" && "$merge" -eq 0 ]]; then
   tail "-n+$[SGE_TASK_ID + 1]" "$1" > "$tmpscp2";
   {
     if [ "$(wc -l "$tmpscp2" | cut -d\  -f1)" -gt 0 ]; then
-      fst-compose-sum "${opts[@]}" "scp:$tmpscp1" "scp:$tmpscp2" |
+      memusg_wrap fst-compose-sum "${opts[@]}" "scp:$tmpscp1" "scp:$tmpscp2" |
       awk '{ print; print $2, $1, $3; }';
     fi;
     if [ -n "$2" ]; then
-        fst-compose-sum "${opts[@]}" "scp:$tmpscp1" "scp:$2";
+      memusg_wrap fst-compose-sum "${opts[@]}" "scp:$tmpscp1" "scp:$2";
     fi;
   } > "$wdir/scores.${SGE_TASK_ID}.txt";
   rm "$tmpscp1" "$tmpscp2";
