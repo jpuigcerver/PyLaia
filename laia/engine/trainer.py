@@ -172,7 +172,7 @@ class Trainer(Engine):
             "model output at epoch {epoch}, batch {batch} (absolute "
             "iteration {iteration})",
             epoch=self._epochs,
-            batch=batch_n,
+            batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
             iteration=self._iterations,
         )
         check_nan(
@@ -182,7 +182,7 @@ class Trainer(Engine):
             "model output at epoch {epoch}, batch {batch} (absolute "
             "iteration {iteration})",
             epoch=self._epochs,
-            batch=batch_n,
+            batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
             iteration=self._iterations,
         )
 
@@ -205,7 +205,7 @@ class Trainer(Engine):
 
         # Compute gradients w.r.t. parameters
         self.logger.debug(
-            "Start backward at epoch {}, batch {} " "(absolute iteration {})",
+            "Start backward at epoch {}, batch {} (absolute iteration {})",
             self._epochs,
             batch_n,
             self._iterations,
@@ -227,7 +227,7 @@ class Trainer(Engine):
         if self._iterations % self.iterations_per_update == 0:
             self._updates += 1
             self.logger.debug(
-                "Updating parameters at epoch {}, batch {} " "(absolute iteration {})",
+                "Updating parameters at epoch {}, batch {} (absolute iteration {})",
                 self._epochs,
                 batch_n,
                 self._iterations,
