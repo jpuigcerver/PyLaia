@@ -7,40 +7,41 @@ SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 
 boov="<unk>";
 bos="<s>";
-char_prefix="*";
 ctc="<ctc>";
 eps="<eps>";
+eps_on_replace=true;
 eoov="</unk>";
 eos="</s>";
 loop_scale=1;
 oov_penalty=0;
+oov_scale=1.0;
 oov_thresh=2;
 overwrite=false;
-srilm_opts="-order 7 -wbdiscount";
+ngram_order=5;
+ngram_method=kneser_ney;
 transition_scale=1;
 help_message="
-Usage: ${0##*/} [options] <syms> <char_gt> <word_gt> <output_dir>
+Usage: ${0##*/} [options] <syms> <char_gt> <output_dir>
 
 Arguments:
   syms         : Table of symbols used for the CTC training.
   char_gt      : File with the char-transcript of each training sample.
-  word_gt      : File with the word-transcript of each training sample.
   output_dir   : Output directory where the files will be written.
 
 Options:
   --boov             : (type = string, value = \"$boov\")
-                       Symbol used to represent the start of out-of-vocabulary words.
+                       Symbol used to represent the start of OOV words.
   --bos              : (type = string, value = \"$bos\")
                        Begin-of-sentence symbol.
-  --char_prefix      : (type = string, value = \"$char_prefix\")
-                       Add this prefix to the characters, to use them in the
-                       combined Char+Word LM.
   --ctc              : (type = string, value = \"$ctc\")
                        Symbol representing the CTC blank.
   --eps              : (type = string, value = \"$eps\")
                        Symbol representing the epsilon (no-symbol).
+  --eps_on_replace   : (type = string, value = \"$eps_on_replace\")
+                       If false, emit <boov> and <eoov> symbols when traversing
+                       the OOV model.
   --eoov             : (type = string, value = \"$eoov\")
-                       Symbol used to represent the end of out-of-vocabulary words.
+                       Symbol used to represent the end of OOV words.
   --eos              : (type = string, value = \"$eos\")
                        End-of-sentence symbol.
   --loop_scale       : (type = float, value = $loop_scale)
@@ -59,220 +60,203 @@ Options:
                        Scaling factor applied to the outgoing arcs in the HMMs.
 ";
 source "$SDIR/parse_options.inc.sh" || exit 1;
-[ $# -ne 4 ] && echo "$help_message" >&2 && exit 1;
+[ $# -ne 3 ] && echo "$help_message" >&2 && exit 1;
 
-for f in "$1" "$2" "$3"; do
+for f in "$1" "$2"; do
   [ ! -s "$f" ] &&
   echo "ERROR: File \"$f\" does not exist or is empty!" >&2 && exit 1;
 done
-mkdir -p "$4";
+mkdir -p "$3";
 
 # Get the word vocabulary, and split it into in-voc words and out-voc words.
 voc="$(mktemp)";
-cut -d\  -f2 "$3" | sort | uniq -c > "$voc";
+cut -d\  -f2- "$2" | sort | uniq -c > "$voc";
 awk -v t="$oov_thresh" '$1 >= t' "$voc" > "$voc.in";
 awk -v t="$oov_thresh" '$1 < t' "$voc" > "$voc.out";
 
-# Get transcriptions of the in-vocabulary samples.
-wtxt_in="$(mktemp)";
-join -1 2 <(sort -k2 "$3") <(awk '{print $2}' "$voc.in" | sort) |
-awk '{print $2, $1}' | sort > "$wtxt_in";
-ctxt_in="$(mktemp)";
-join -1 1 <(cut -d\  -f1 "$wtxt_in") <(sort "$2") | sort > "$ctxt_in";
+# Split transcriptions into in-voc and out-of-voc samples.
+txt_in="$(mktemp)";
+txt_out="$(mktemp)";
+awk -v txt_in="$txt_in" -v txt_out="$txt_out" -v voc_in="$voc.in" '
+BEGIN{
+  while ((getline < voc_in) > 0) {
+    w = $2;
+    for (i = 3; i <= NF; ++i) { w=w" "$i; }
+    VOC[w] = 1;
+  }
+}{
+  w = $2;
+  for (i = 3; i <= NF; ++i) { w=w" "$i; }
+  if (w in VOC) {
+    print $1, w > txt_in;
+  } else {
+    print $1, w > txt_out;
+  }
+}' "$2";
 
-# Get transcriptions of the out-of-vocabulary samples.
-wtxt_out="$(mktemp)";
-comm -23 <(sort "$3") "$wtxt_in" | sort > "$wtxt_out";
-ctxt_out="$(mktemp)";
-comm -23 <(sort "$2") "$ctxt_in" | sort > "$ctxt_out";
-
-
-[[ "$overwrite" = false && -s "$4/lexiconp.txt" ]] || (
-  # Lexicon contains the in-vocabulary words
-  join -1 1 "$wtxt_in" "$ctxt_in" |
-  awk -v bos="$bos" -v ctc="$ctc" '{
-    $1 = "";
-    CP[$0]++;
-    CW[$2]++;
-  }END{
-    for (wp in CP) {
-      n = split(wp, A, " ");
-      w = A[1];
-
-      printf("%-15s %f", w, CP[wp] / CW[w]);
-      for (i = 2; i <= n; ++i) {
-        printf(" %s", A[i]);
-      }
-      printf("\n");
-    }
-  }END{
-    printf("%-15s %f %s\n", bos, 1.0, ctc);
-  }' | sort;
-  # ... and all characters from the out-of-vocabulary words.
-  cut -d\  -f2- "$ctxt_out" | tr \  \\n | awk 'NF > 0' | sort -u |
-  awk -v p="$char_prefix" '{
-    printf("%-15s %f %s\n", p""$1, 1.0, $1);
-  }';
-) > "$4/lexiconp.txt";
+[[ "$overwrite" = false && -s "$3/lexiconp.txt" ]] ||
+awk -v bos="$bos" -v ctc="$ctc" '
+$1 != ctc{
+  printf("%-5s %f %s\n", $1, 1.0, $1);
+}END{
+  printf("%-5s %f %s\n", bos, 1.0, ctc);
+}' "$1" > "$3/lexiconp.txt";
 
 # Add disambiguation symbols
 tmp="$(mktemp)";
-ndisambig=$("$SDIR/add_lex_disambig.pl" --pron-probs "$4/lexiconp.txt" "$tmp");
-if [[ "$overwrite" = true || ! -s "$4/lexiconp_disambig.txt" ]] ||
-     ! cmp -s "$tmp" "$4/lexiconp_disambig.txt"; then
-  mv "$tmp" "$4/lexiconp_disambig.txt";
+ndisambig=$("$SDIR/add_lex_disambig.pl" --pron-probs "$3/lexiconp.txt" "$tmp");
+if [[ "$overwrite" = true || ! -s "$3/lexiconp_disambig.txt" ]] ||
+     ! cmp -s "$tmp" "$3/lexiconp_disambig.txt"; then
+  mv "$tmp" "$3/lexiconp_disambig.txt";
   overwrite=true;
 fi;
 
 # Character symbols
-[[ "$overwrite" = false && -s "$4/chars.txt" ]] ||
+[[ "$overwrite" = false && -s "$3/syms.txt" ]] ||
 sort -nk2 "$1" |
-awk -v eps="$eps" -v nd="$ndisambig" 'BEGIN{
+awk -v eps="$eps" -v bos="$bos" -v eos="$eos" -v boov="$boov" -v eoov="$eoov" \
+    -v nd="$ndisambig" '
+BEGIN{
   N = 0;
-  printf("%-5s %d\n", eps, N++);
+  printf("%-10s %d\n", eps, N++);
 }{
-  printf("%-5s %d\n", $1, N++);
+  printf("%-10s %d\n", $1, N++);
 }END{
-  for (d = 1; d <= nd; ++d) {
-    printf("#%-4d %d\n", d, N++);
+  printf("%-10s %d\n", bos, N++);
+  printf("%-10s %d\n", eos, N++);
+  printf("%-10s %d\n", boov, N++);
+  printf("%-10s %d\n", eoov, N++);
+  for (d = 0; d <= nd; ++d) {
+    printf("#%-9d %d\n", d, N++);
   }
-}' > "$4/chars.txt";
-
-# Word symbols
-[[ "$overwrite" = false && -s "$4/words.txt" ]] ||
-cut -d\  -f1 "$4/lexiconp.txt" |
-awk -v bos="$bos" -v eos="$eos" -v eps="$eps" -v boov="$boov" -v eoov="$eoov" 'BEGIN{
-  N = 0;
-  printf("%-15s %d\n", eps, N++);
-  VOC[eps] = 1;
-}$1 != bos && $1 != eos && $1 != eps && !($1 in VOC){
-  printf("%-15s %d\n", $1, N++);
-}END{
-  printf("%-15s %d\n", bos, N++);
-  printf("%-15s %d\n", eos, N++);
-  printf("%-15s %d\n", boov, N++);
-  printf("%-15s %d\n", eoov, N++);
-  printf("%-15s %d\n", "#0", N++);
-}' > "$4/words.txt";
+}' > "$3/syms.txt";
 
 # Create integer list of disambiguation symbols.
-gawk '$1 ~ /^#.+/{ print $2 }' "$4/chars.txt" > "$4/chars_disambig.int";
-# Create integer list of disambiguation symbols.
-gawk '$1 ~ /^#.+/{ print $2 }' "$4/words.txt" > "$4/words_disambig.int";
+gawk '$1 ~ /^#.+/{ print $2 }' "$3/syms.txt" > "$3/syms_disambig.int";
 
 # Create HMM model and tree
 "$SDIR/create_ctc_hmm_model.sh" \
   --eps "$eps" --ctc "$ctc" --overwrite "$overwrite" \
-  "$4/chars.txt" "$4/model" "$4/tree";
+  --dregex "^(#.+|$bos|$eos|$boov|$eoov)" \
+  "$3/syms.txt" "$3/model" "$3/tree";
+
 
 # Create the lexicon FST with disambiguation symbols.
-[[ "$overwrite" = false && -s "$4/L.fst" ]] ||
-"$SDIR/make_lexicon_fst.pl" --pron-probs "$4/lexiconp_disambig.txt" |
-fstcompile --isymbols="$4/chars.txt" --osymbols="$4/words.txt" |
+[[ "$overwrite" = false && -s "$3/L.fst" ]] ||
+"$SDIR/make_lexicon_fst.pl" --pron-probs "$3/lexiconp_disambig.txt" |
+fstcompile --isymbols="$3/syms.txt" --osymbols="$3/syms.txt" |
 fstdeterminizestar --use-log=true |
 fstminimizeencoded |
-fstarcsort --sort_type=ilabel > "$4/L.fst" ||
-{ echo "Failed $4/L.fst creation!" >&2 && exit 1; }
+fstarcsort --sort_type=ilabel > "$3/L.fst" ||
+{ echo "Failed $3/L.fst creation!" >&2 && exit 1; }
 
 # Compose the context-dependent and the L transducers.
-[[ "$overwrite" = false && -s "$4/CL.fst" ]] ||
+[[ "$overwrite" = false && -s "$3/CL.fst" ]] ||
 fstcomposecontext --context-size=1 --central-position=0 \
-		  --read-disambig-syms="$4/chars_disambig.int" \
-		  --write-disambig-syms="$4/ilabels_disambig.int" \
-		  "$4/ilabels" "$4/L.fst" |
-fstarcsort --sort_type=ilabel > "$4/CL.fst" ||
-{ echo "Failed $4/CL.fst creation!" >&2 && exit 1; }
+		  --read-disambig-syms="$3/syms_disambig.int" \
+		  --write-disambig-syms="$3/ilabels_disambig.int" \
+		  "$3/ilabels" "$3/L.fst" |
+fstarcsort --sort_type=ilabel > "$3/CL.fst" ||
+{ echo "Failed $3/CL.fst creation!" >&2 && exit 1; }
 
 # Create Ha transducer
-[[ "$overwrite" = false && -s "$4/Ha.fst" ]] ||
+[[ "$overwrite" = false && -s "$3/Ha.fst" ]] ||
 make-h-transducer \
-    --disambig-syms-out="$4/tid_disambig.int" \
+    --disambig-syms-out="$3/tid_disambig.int" \
     --transition-scale="$transition_scale" \
-    "$4/ilabels" "$4/tree" "$4/model" > "$4/Ha.fst" ||
-{ echo "Failed $4/Ha.fst creation!" >&2 && exit 1; }
+    "$3/ilabels" "$3/tree" "$3/model" > "$3/Ha.fst" ||
+{ echo "Failed $3/Ha.fst creation!" >&2 && exit 1; }
 
 # Create HaCL transducer.
-[[ "$overwrite" = false && -s "$4/HCL.fst" ]] ||
-fsttablecompose "$4/Ha.fst" "$4/CL.fst" |
+[[ "$overwrite" = false && -s "$3/HCL.fst" ]] ||
+fsttablecompose "$3/Ha.fst" "$3/CL.fst" |
 fstdeterminizestar --use-log=true |
-fstrmsymbols "$4/tid_disambig.int" |
+fstrmsymbols "$3/tid_disambig.int" |
 fstrmepslocal |
-fstminimizeencoded > "$4/HaCL.fst" ||
-{ echo "Failed $4/HaCL.fst creation!" >&2 && exit 1; }
+fstminimizeencoded > "$3/HaCL.fst" ||
+{ echo "Failed $3/HaCL.fst creation!" >&2 && exit 1; }
 
 # Create HCL transducer.
-[[ "$overwrite" = false && -s "$4/HCL.fst" ]] ||
+[[ "$overwrite" = false && -s "$3/HCL.fst" ]] ||
 add-self-loops --self-loop-scale="$loop_scale" --reorder=true \
-	       "$4/model" "$4/HaCL.fst" |
-fstarcsort --sort_type=olabel > "$4/HCL.fst" ||
-{ echo "Failed $4/HCL.fst creation!" >&2 && exit 1; }
+	       "$3/model" "$3/HaCL.fst" |
+fstarcsort --sort_type=olabel > "$3/HCL.fst" ||
+{ echo "Failed $3/HCL.fst creation!" >&2 && exit 1; }
 
 # Create Gw transducer from words (inc. oov token).
-[[ "$overwrite" = false && -s "$4/Gw.fst" ]] ||
-cut -d\  -f2 "$3" |
-awk -v lex="$4/lexiconp.txt" -v eps="$eps" -v bos="$bos" -v eos="$eos" \
-    -v oov="$boov" \
-'BEGIN{
-  while ((getline < lex) > 0) {
-    LEX[$1] = 1;
+[[ "$overwrite" = false && -s "$3/Gw.fst" ]] ||
+cut -d\  -f2- "$2" | sed -r 's|^ +||g;s| +$||g' |
+awk -v bos="$bos" -v unk="$boov" -v voc="$voc.in" '
+BEGIN{
+  while ((getline < voc) > 0) {
+    w = $2;
+    for (i = 3; i <= NF; ++i) { w=w" "$i; }
+    VOC[w] = 1;
   }
-  if (bos in LEX) { has_bos = 1; }
-  if (eos in LEX) { has_eos = 1; }
+
+  TW = 0;
+  print 0, 1, bos;
+  N = 1;
 }{
-  if (!($1 in LEX)) $1 = oov;
-  CW[$1]++;
-  CT++;
+  if ($0 in VOC) { CW[$0]++; }
+  else { CW[unk]++; }
+  TW++;
 }END{
-  print 0, 1, (has_bos ? bos : eps), eps;
   for (w in CW) {
-    print 1, 2, w, w, log(CT) - log(CW[w]);
+    n = split(w, aw, " ");
+    print 1, ++N, aw[1], log(TW) - log(CW[w]);
+    for (i = 2; i <= n; ++i) {
+      printf("%d %d %s\n", N, ++N, aw[i]);
+    }
+    print N;
   }
-  print 2, 3, (has_eos ? eos : eps), eps;
-  print 3;
 }' |
-fstcompile --isymbols="$4/words.txt" --osymbols="$4/words.txt" |
-fstrmepslocal --use-log=true |
-fstarcsort --sort_type=ilabel > "$4/Gw.fst";
+fstcompile --acceptor --isymbols="$3/syms.txt" |
+fstarcsort --sort_type=ilabel > "$3/Gw.fst" ||
+{ echo "ERROR: Creating Gw.fst!" >&2 && exit 1; }
 
 # Create Gc transducer from out-vocabulary words (inc. oov token).
-bos_int="$(grep -w "$bos" "$4/words.txt" | cut -d\  -f2)";
-eos_int="$(grep -w "$eos" "$4/words.txt" | cut -d\  -f2)";
-rmsyms="$(echo "$bos_int $eos_int" | tr \  \\n)";
-[[ "$overwrite" = false && -s "$4/Gc.fst" ]] ||
-cut -d\  -f2-  "$ctxt_out" |
-awk -v p="$char_prefix" '{ for (i=1; i<=NF; ++i) {$i=p""$i; } print; }' |
-ngram-count $srilm_opts -text - -lm - |
-arpa2fst --bos-symbol="$bos" --eos-symbol="$eos" --keep-symbols=false \
-	 --disambig-symbol="#0" --read-symbol-table="$4/words.txt" /dev/stdin |
-fstrmsymbols <(echo "$rmsyms") |
-fstdeterminizestar --use-log=true |
-fstminimizeencoded |
-fstpushspecial |
-fstrmsymbols <(gawk '$1 == "#0"{ print $2 }' "$4/words.txt") |
-fstrmepslocal --use-log=true |
-fstarcsort --sort_type=ilabel > "$4/Gc.fst";
+bos_int="$(grep -w "$bos" "$3/syms.txt" | awk '{print $2}')";
+eos_int="$(grep -w "$eos" "$3/syms.txt" | awk '{print $2}')";
+noov="$(wc -l "$txt_out" | awk '{print $1}')";
+[[ "$overwrite" = false && -s "$3/Gc.fst" ]] ||
+cut -d\  -f2- "$txt_out" |
+farcompilestrings --generate_keys="$noov" \
+		 --symbols="$3/syms.txt" --keep_symbols=false |
+ngramcount --order="$ngram_order" --require_symbols=false |
+ngrammake --method="$ngram_method" > "$3/Gc.fst" ||
+{ echo "ERROR: Creating Gc.fst!" >&2 && exit 1; }
 
 # Replace OOV ark in Gw, with the Gc.
 # Note1: We can do this explicitly because there is only one OOV arc in Gw.
 # If Gw was a word n-gram, we could not do this statically.
-# Note2: We do not use Gc directly, but only accept paths with at least 1 char.
-boov_int="$(awk -v oov="$boov" '$1 == oov{print $2}' "$4/words.txt")";
-eoov_int="$(awk -v oov="$eoov" '$1 == oov{print $2}' "$4/words.txt")";
-[[ "$overwrite" = false && -s "$4/G_p$oov_penalty.fst" ]] ||
+# Note2: We do not use Gc directly, but only accept paths with at least
+# 1 character (see fstdifference).
+boov_int="$(grep -w "$boov" "$3/syms.txt" | awk '{print $2}')";
+eoov_int="$(grep -w "$eoov" "$3/syms.txt" | awk '{print $2}')";
+boff_int="$(grep -w "#0" "$3/syms.txt" | awk '{print $2}')";
+[[ "$overwrite" = false && -s "$3/G_p${oov_penalty}_s${oov_scale}.fst" ]] ||
 fstreplace --call_arc_labeling=output --return_arc_labeling=output \
-  	   --return_label="$eoov_int" \
-	   <(fstprint "$4/Gw.fst" | \
+  	   --return_label="$eoov_int" --epsilon_on_replace="$eps_on_replace" \
+	   <(fstprint "$3/Gw.fst" | \
 	     awk -v boov="$boov_int" -v p="$oov_penalty" '{
                if (NF >= 4 && $3 == boov) { $5 = (NF == 4 ? p : $5 + p); }
                print;
-             }' | fstcompile) -1 \
-	   <(fstcompose \
-	       <(awk -v ex="^$char_prefix" '$1 ~ ex{
-                   print 0, 1, $1;
-                   print 1, 1, $1;
-                 }END{
-                   print 1;
-                 }' "$4/words.txt" |
-		 fstcompile --acceptor --isymbols="$4/words.txt" |
-		 fstarcsort --sort_type=olabel) "$4/Gc.fst") "$boov_int" \
-| fstarcsort --sort_type=ilabel > "$4/G_p$oov_penalty.fst";
+             }' | fstcompile) \
+	   -1 \
+	   <(fstprint --acceptor "$3/Gc.fst" |
+	     awk -v scale="$oov_scale" -v boff="$boff_int" '{
+               if (NF == 4 || NF == 2) { $NF = $NF * scale; }
+               if ($3 == 0) { $3 = boff; }
+               print;
+             }' | fstcompile --acceptor |
+	     fstdifference - <(echo -e "0 0 $boff_int\n0" |
+			       fstcompile --acceptor)) \
+	   "$boov_int" |
+fstdeterminizestar --use-log=true |
+fstminimizeencoded |
+fstpushspecial |
+fstrmsymbols <(echo "$boff_int") |
+fstrmsymbols --apply-to-output=true <(echo "$boff_int") |
+fstarcsort --sort_type=ilabel > "$3/G_p${oov_penalty}_s${oov_scale}.fst" ||
+{ echo "ERROR: Creating G_p${oov_penalty}_s${oov_scale}.fst!" >&2 && exit 1; }

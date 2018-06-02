@@ -4,7 +4,7 @@ export LC_NUMERIC=C;
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 
 acoustic_scale=1;
-beam=1;
+beam=inf;
 graph_scale=1;
 model="";
 help_message="
@@ -83,7 +83,7 @@ if [ -n "$model" ]; then
 else
   cat;
 fi |
-if [ "$beam" != "1" -a "$beam" != "1.0" ]; then
+if [ "$beam" != "inf" ]; then
   lattice-prune --beam="$beam" ark:- ark:-;
 else
   cat;
