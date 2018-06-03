@@ -189,6 +189,13 @@ class Trainer(Engine):
         # Compute loss
         try:
             batch_loss = self._criterion(batch_output, batch_target)
+            if isinstance(batch_loss, tuple):
+                batch_loss, errors = batch_loss
+                if errors:
+                    self.logger.warn(
+                        "Ignored the following samples whilst calculating the loss: {}",
+                        self.batch_id_fn(errors) if self.batch_id_fn else errors,
+                    )
         except Exception as e:
             wrapper = EngineException(
                 epoch=self._epochs,
