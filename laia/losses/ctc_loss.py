@@ -6,7 +6,6 @@ from typing import List, Union, Sequence
 import torch
 from torch.autograd import Variable, Function
 from torch.nn import Module
-from torch.nn.modules.loss import _assert_no_grad
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 
 try:
@@ -18,16 +17,18 @@ except ImportError:
 
 
 def copy_valid_indices(
-    acts,  # type: torch.Tensor
-    labels,  # type: torch.IntTensor
-    act_lens,  # type: torch.IntTensor
-    label_lens,  # type: torch.IntTensor
+    acts,  # type: Union[torch.Tensor, Variable]
+    labels,  # type: List[List[int]]
+    act_lens,  # type: List[int]
+    label_lens,  # type: List[int]
     valid_indices,  # type: List[int]
 ):
-    # type: (...) -> (torch.Tensor, List[int], List[int], List[int])
+    # type: (...) -> (torch.Tensor, List[List[int]], List[int], List[int])
     """Copy the CTC inputs without the erroneous samples"""
     if len(valid_indices) == 0:
-        return acts.new(0), [], [], []
+        return None, [], [], []
+    if isinstance(acts, Variable):
+        acts = acts.data
     # Note: The batch size must be in the second dimension
     seq_length, _, output_dim = acts.size()
     acts_copy = acts.new(seq_length, len(valid_indices), output_dim)
@@ -49,7 +50,7 @@ def set_zeros_in_errors(size, input, valid_indices):
 
 
 def get_valids_and_errors(act_lens, label_lens):
-    # type: (torch.IntTensor, torch.IntTensor) -> (List[int], List[int])
+    # type: (List[int], List[int]) -> (List[int], List[int])
     """Check for errors by comparing the size of the
     output against the size of the target."""
     assert len(act_lens) == len(label_lens)
@@ -65,62 +66,49 @@ def get_valids_and_errors(act_lens, label_lens):
 class CTC(Function):
 
     @staticmethod
-    def forward(
-        ctx,
-        acts,  # type: torch.Tensor
-        labels,  # type: torch.IntTensor
-        act_lens,  # type: torch.IntTensor
-        label_lens,  # type: torch.IntTensor
-        valid_indices,  # type: List[int]
-        err_indices,  # type: List[int]
-        size_average=False,  # type: bool
-        length_average=False,  # type: bool
-    ):
-        # type: (...) -> Union[float, torch.FloatTensor]
-        """
-        Arguments:
-            acts: Contains the output from the network.
-                Size seqLength x batchSize x outputDim
-            labels: Contains all the targets of the batch
-                in one sequence. 1 dimensional
-            act_lens: Contains the size of each output
-                sequence from the network. Size batchSize
-            label_lens: Contains the label length of each
-                sample. Size batchSize
-            valid_indices: Indices of the samples to use
-            err_indices: Indices of the samples to ignore
-        """
-        ctx.saved = (valid_indices, err_indices, acts.size())
+    def forward(ctx, output, target):
+        # type: (torch.Tensor, List[List[int]]) -> (torch.Tensor, torch.IntTensor * 4)
+        acts, act_lens = (
+            pad_packed_sequence(output)
+            if isinstance(output, PackedSequence)
+            else (output, [output.size(0)] * output.size(1))
+        )
+        assert act_lens[0] == acts.size(0), "Maximum length does not match"
+        assert len(target) == acts.size(1), "Batch size does not match"
 
-        x, y, xs, ys = (
-            copy_valid_indices(acts, labels, act_lens, label_lens, valid_indices)
+        label_lens = [len(y) for y in target]
+        valid_indices, err_indices = get_valids_and_errors(act_lens, label_lens)
+
+        acts, labels, act_lens, label_lens = (
+            copy_valid_indices(acts, target, act_lens, label_lens, valid_indices)
             if err_indices
-            else (acts, labels, act_lens, label_lens)
+            else (acts, target, act_lens, label_lens)
         )
 
-        x = Variable(x)
-        y = Variable(y)
-        xs = Variable(xs)
-        ys = Variable(ys)
+        # Prepare tensors of the correct type
+        act_lens = torch.IntTensor(act_lens)
+        labels = torch.IntTensor(list(itertools.chain.from_iterable(labels)))
+        label_lens = torch.IntTensor(label_lens)
+        err_indices = torch.IntTensor(err_indices)
 
-        # Compute Loss
-        return _CTC.apply(x, y, xs, ys, size_average, length_average).data
+        ctx.saved = valid_indices, err_indices, acts.size()
+        return (
+            acts.data if isinstance(acts, Variable) else acts,
+            labels,
+            act_lens,
+            label_lens,
+            err_indices,
+        )
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output, *_):
+        if isinstance(grad_output, Variable):
+            grad_output = grad_output.data
         valid_indices, err_indices, original_size = ctx.saved
-        # TODO: grad_output doesnt seem right
-        print("CTC BACKWARD", grad_output, ctx.saved)
         return (
             set_zeros_in_errors(original_size, grad_output, valid_indices)
             if err_indices
             else grad_output,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
             None,
         )
 
@@ -138,12 +126,11 @@ class CTCLoss(Module):
     def __init__(self, size_average=True, length_average=False):
         # type: (bool, bool) -> None
         super(CTCLoss, self).__init__()
-        self._ctc = CTC.apply
         self._size_average = size_average
         self._length_average = length_average
 
     def forward(self, output, target):
-        # type: (torch.Tensor, List[List[int]]) -> Union[float, torch.FloatTensor]
+        # type: (torch.Tensor, List[List[int]]) -> (Union[float, torch.FloatTensor], List[int])
         """
         Arguments:
             output: Size seqLength x outputDim, contains
@@ -152,36 +139,25 @@ class CTCLoss(Module):
             target: Contains the size of each output
                 sequence from the network. Size batchSize
         """
-        acts, act_lens = (
-            pad_packed_sequence(output)
-            if isinstance(output, PackedSequence)
-            else (output, [output.size(0)] * output.size(1))
-        )
-        assert act_lens[0] == acts.size(0), "Maximum length does not match"
-        assert len(target) == acts.size(1), "Batch size does not match"
-
-        # Prepare tensors of the correct type
-        act_lens = torch.IntTensor(act_lens)
-        labels = torch.IntTensor(list(itertools.chain.from_iterable(target)))
-        label_lens = torch.IntTensor([len(y_) for y_ in target])
-
-        valid_indices, err_indices = get_valids_and_errors(act_lens, label_lens)
-
-        act_lens = Variable(act_lens)
-        labels = Variable(labels)
-        label_lens = Variable(label_lens)
-
-        _assert_no_grad(labels)
-        _assert_no_grad(act_lens)
-        _assert_no_grad(label_lens)
-
-        return self._ctc(
-            acts,
-            labels,
-            act_lens,
-            label_lens,
-            valid_indices,
-            err_indices,
-            self._size_average,
-            self._length_average,
+        acts, labels, act_lens, label_lens, err_indices = CTC.apply(output, target)
+        """
+        acts: Contains the output from the network.
+            Size seqLength x batchSize x outputDim
+        labels: Contains all the targets of the batch
+            in one sequence. 1 dimensional
+        act_lens: Contains the size of each output
+            sequence from the network. Size batchSize
+        label_lens: Contains the label length of each
+            sample. Size batchSize
+        """
+        return (
+            _CTC.apply(
+                acts,
+                labels,
+                act_lens,
+                label_lens,
+                self._size_average,
+                self._length_average,
+            ),
+            err_indices.data.tolist(),
         )
