@@ -16,6 +16,19 @@ except ImportError:
     warnings.warn("Missing CTC loss function library")
 
 
+def transform_output(output):
+    # Size: T x N x D
+    if isinstance(output, PackedSequence):
+        acts, act_lens = pad_packed_sequence(output)
+    elif torch.is_tensor(output):
+        acts, act_lens = output, [output.size(0)] * output.size(1)
+    else:
+        raise NotImplementedError("Not implemented for type {}".format(type(output)))
+    if isinstance(acts, Variable):
+        acts = acts.data
+    return acts, act_lens
+
+
 def copy_valid_indices(
     acts,  # type: Union[torch.Tensor, Variable]
     labels,  # type: List[List[int]]
@@ -27,8 +40,6 @@ def copy_valid_indices(
     """Copy the CTC inputs without the erroneous samples"""
     if len(valid_indices) == 0:
         return None, [], [], []
-    if isinstance(acts, Variable):
-        acts = acts.data
     # Note: The batch size must be in the second dimension
     seq_length, _, output_dim = acts.size()
     acts_copy = acts.new(seq_length, len(valid_indices), output_dim)
@@ -68,11 +79,7 @@ class CTC(Function):
     @staticmethod
     def forward(ctx, output, target):
         # type: (torch.Tensor, List[List[int]]) -> (torch.Tensor, torch.IntTensor * 4)
-        acts, act_lens = (
-            pad_packed_sequence(output)
-            if isinstance(output, PackedSequence)
-            else (output, [output.size(0)] * output.size(1))
-        )
+        acts, act_lens = transform_output(output)
         assert act_lens[0] == acts.size(0), "Maximum length does not match"
         assert len(target) == acts.size(1), "Batch size does not match"
 
@@ -92,13 +99,7 @@ class CTC(Function):
         err_indices = torch.IntTensor(err_indices)
 
         ctx.saved = valid_indices, err_indices, acts.size()
-        return (
-            acts.data if isinstance(acts, Variable) else acts,
-            labels,
-            act_lens,
-            label_lens,
-            err_indices,
-        )
+        return (acts, labels, act_lens, label_lens, err_indices)
 
     @staticmethod
     def backward(ctx, grad_output, *_):
