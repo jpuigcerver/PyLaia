@@ -1,9 +1,16 @@
 from __future__ import absolute_import
 
+import torch
+
 from laia.decoders import CTCGreedyDecoder
 from laia.engine.engine import EPOCH_START, EPOCH_END, ITER_END
 from laia.hooks import action
-from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
+from laia.hooks.meters import (
+    RunningAverageMeter,
+    SequenceErrorMeter,
+    TimeMeter,
+    MemoryMeter,
+)
 from laia.logging import get_logger
 from laia.losses import CTCLoss
 from laia.utils.char_to_word_seq import char_to_word_seq
@@ -164,6 +171,7 @@ class HtrEngineWrapper(object):
             "VA WER = {valid_wer.value:5.1%}" if wer and valid else None,
             "TR Time = {train_timer.value:.2f}s",
             "VA Time = {valid_timer.value:.2f}s" if valid else None,
+            "Memory = {memory.value}",
         ]
         params = {
             # Note: We cannot add the epochs here, sine trainer.epochs is a method.
@@ -176,6 +184,7 @@ class HtrEngineWrapper(object):
             "valid_wer": self._valid_wer if wer and valid else None,
             "train_timer": self._train_timer,
             "valid_timer": self._valid_timer if valid else None,
+            "memory": MemoryMeter(),
         }
         return [f for f in fmt if f is not None], {
             k: v for k, v in params.items() if v is not None
