@@ -78,10 +78,10 @@ if __name__ == "__main__":
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
-
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
         os.path.join(args.train_path, args.model_checkpoint)
     )
+    model.eval()
 
     te_ds = ImageFromListDataset(
         args.img_list, img_dirs=args.img_dirs, img_transform=ImageToTensor()

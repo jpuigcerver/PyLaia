@@ -157,7 +157,7 @@ class Engine(object):
 
     def _call_hooks(self, when, *args, **kwargs):
         for hook in self._hooks[when]:
-            hook(*args, **kwargs)
+            hook(*args, caller=self, **kwargs)
 
     def _run_iteration(self, batch_n, batch):
         batch_input, batch_target = self._prepare_input_and_target(batch)
