@@ -40,6 +40,7 @@ if __name__ == "__main__":
         "show_progress_bar",
         "train_path",
         "train_samples_per_epoch",
+        "valid_samples_per_epoch",
         "iterations_per_update",
     )
     add_argument(
@@ -150,7 +151,13 @@ if __name__ == "__main__":
         txt_transform=TextToTensor(syms),
     )
     va_ds_loader = ImageDataLoader(
-        dataset=va_ds, image_channels=1, batch_size=args.batch_size, num_workers=8
+        dataset=va_ds,
+        image_channels=1,
+        batch_size=args.batch_size,
+        num_workers=8,
+        sampler=FixedSizeSampler(va_ds, args.valid_samples_per_epoch)
+        if args.valid_samples_per_epoch
+        else None,
     )
 
     evaluator = Evaluator(
