@@ -7,6 +7,7 @@ from tqdm import tqdm
 import laia.logging as log
 from laia.engine.engine_exception import EngineException
 from laia.hooks import action
+from laia.losses.ctc_loss import LossException
 
 _logger = log.get_logger(__name__)
 

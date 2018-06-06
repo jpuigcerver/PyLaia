@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-import laia.logging as log
 from future.utils import raise_from
+
+import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
+from laia.losses.ctc_loss import LossException
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -186,24 +188,9 @@ class Trainer(Engine):
             iteration=self._iterations,
         )
 
-        # Compute loss
-        try:
-            batch_loss = self._criterion(batch_output, batch_target)
-            if isinstance(batch_loss, tuple):
-                batch_loss, errors = batch_loss
-                if errors:
-                    self.logger.warn(
-                        "Ignored the following samples whilst calculating the loss: {}",
-                        self.batch_id_fn(errors) if self.batch_id_fn else errors,
-                    )
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
+        batch_loss = self.compute_loss(batch, batch_output, batch_target)
+        if batch_loss is None:
+            return
 
         # Make the loss and gradients w.r.t. output independent of the number
         # of accumulated iterations.
@@ -245,6 +232,37 @@ class Trainer(Engine):
         action_kwargs["batch_output"] = batch_output
         action_kwargs["batch_loss"] = batch_loss
         self._call_hooks(ITER_END, **action_kwargs)
+
+    def compute_loss(self, batch, batch_output, batch_target):
+        try:
+            batch_loss = self._criterion(batch_output, batch_target)
+            if isinstance(batch_loss, tuple):
+                batch_loss, error_indices = batch_loss
+                if error_indices:
+                    errors = {
+                        key: [values[i] for i in error_indices]
+                        for key, values in batch.items()
+                    }
+                    self.logger.warn(
+                        "Ignored the following samples whilst calculating the loss: {}",
+                        self.batch_id_fn(errors) if self.batch_id_fn else errors,
+                    )
+            return batch_loss
+        except LossException as e:
+            self.logger.warn(
+                "Ignored the following samples whilst calculating the loss: {}. "
+                "Exception: {}",
+                self.batch_id_fn(batch) if self.batch_id_fn else batch,
+                e,
+            )
+        except Exception as e:
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
+                cause=e,
+            )
+            raise_from(wrapper, e)
 
     def state_dict(self):
         return {
