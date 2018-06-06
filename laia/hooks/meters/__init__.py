@@ -8,3 +8,4 @@ from laia.hooks.meters.pairwise_average_precision_meter import (
 from laia.hooks.meters.running_average_meter import RunningAverageMeter
 from laia.hooks.meters.sequence_error_meter import SequenceErrorMeter
 from laia.hooks.meters.time_meter import TimeMeter
+from laia.hooks.meters.memory_meter import MemoryMeter
