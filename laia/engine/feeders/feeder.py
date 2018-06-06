@@ -37,5 +37,7 @@ class ItemFeeder(Feeder):
         self._key = key
 
     def _feed(self, batch):
-        assert self._key in batch
+        assert self._key in batch, "Could not find batch[{}] for batch {}".format(
+            self._key, batch
+        )
         return batch[self._key]

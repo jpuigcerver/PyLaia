@@ -6,6 +6,7 @@ from laia.hooks import action
 from laia.hooks.meters import RunningAverageMeter, SequenceErrorMeter, TimeMeter
 from laia.logging import get_logger
 from laia.losses import CTCLoss
+from laia.losses.ctc_loss import LossException
 from laia.utils.char_to_word_seq import char_to_word_seq
 
 _logger = get_logger(__name__)
@@ -137,9 +138,10 @@ class HtrEngineWrapper(object):
         self._train_timer.stop()
 
     @action
-    def _valid_update_meters(self, batch_output, batch_target):
-        batch_loss = self._tr_engine.criterion(batch_output, batch_target)
-        self._valid_loss.add(batch_loss)
+    def _valid_update_meters(self, batch, batch_output, batch_target):
+        batch_loss = self._tr_engine.compute_loss(batch, batch_output, batch_target)
+        if batch_loss is not None:
+            self._valid_loss.add(batch_loss)
         # Compute character error rate
         batch_decode = self._ctc_decoder(batch_output)
         self._valid_cer.add(batch_target, batch_decode)
@@ -153,7 +155,7 @@ class HtrEngineWrapper(object):
 
     def _prepare_epoch_summary(self):
         valid = bool(self._va_engine)
-        wer = not self._word_delimiters is None
+        wer = self._word_delimiters is not None
         fmt = [
             "Epoch {epoch:4d}",
             "TR Loss = {train_loss.value[0]:.3e}",
