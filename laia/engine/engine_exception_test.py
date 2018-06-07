@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-# from future.utils import raise_from
 import unittest
-from laia.engine.engine_exception import EngineException
+
 from torch._six import raise_from
+
+from laia.engine.engine_exception import EngineException
 
 
 class EngineExceptionTest(unittest.TestCase):

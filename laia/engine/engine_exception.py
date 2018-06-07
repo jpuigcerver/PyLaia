@@ -1,6 +1,4 @@
-import sys
-
-PY3 = sys.version_info[0] == 3
+from __future__ import absolute_import
 
 
 class EngineException(Exception):
@@ -12,18 +10,12 @@ class EngineException(Exception):
         self._cause = cause
 
     def __str__(self):
-        if not self._cause:
-            msg = (
-                "Exception raised during epoch {}, iteration {}. "
-                "The batch that caused the exception was: {}".format(
-                    self._epoch, self._iteration, self._batch
-                )
+        return (
+            "Exception {}raised during epoch {}, iteration {}. "
+            "The batch that caused the exception was: {}".format(
+                '"{!r}" '.format(self._cause) if self._cause else "",
+                self._epoch,
+                self._iteration,
+                self._batch,
             )
-        else:
-            msg = (
-                'Exception "{!r}" raised during epoch {}, iteration {}. '
-                "The batch that caused the exception was: {}".format(
-                    self._cause, self._epoch, self._iteration, self._batch
-                )
-            )
-        return msg
+        )
