@@ -1,10 +1,15 @@
 from __future__ import absolute_import
 
-import laia.logging as log
+from typing import Callable, Union, Iterable
+
+import torch
 from future.utils import raise_from
+
+import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
+from laia.losses.ctc_loss import LossException
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -15,49 +20,56 @@ class Trainer(Engine):
 
     See :class:`laia.engine.Engine` for more information.
 
-    Arguments:
-      model: model to train.
-      data_loader (iterable): iterable object from which batches are read.
-      batch_input_fn (callable, optional): function used to extract the input
-          for the model (e.g. a ``torch.Tensor``), from the batch loaded by
-          the ``data_loader``. If ``None``, the batch is fed as-is to the
-          model. (default: None)
-      batch_target_fn (callable, optional): if given, this callable object
-          is used to extract the targets from the batch, which are
-          passed to the `ITER_START` and `ITER_END` hooks.
-      batch_id_fn (callable, optional): if given, this callable object is
-          used to extract the batch ids to be used in a possible exception.
-      criterion (callable): used criterion to train the model.
-      optimizer (:class:`torch.Optimizer`): optimizer object that will update
-          the parameters of the model.
-      progress_bar (bool or str): if ``True``, :mod:`tqdm` will be
-          used to show a progress bar for each epoch. If a string is given,
-          the content of the string will be shown before the progress bar.
-          If the module :mod:`tqdm` is not installed, this will be ignored.
-          (default: None)
-      iterations_per_update (int): Number of successive mini-batch
-          parameter gradients to accumulate before updating the parameters.
-          (default: None)
+    Args:
+        model: model to train.
+        criterion: used criterion to train the model.
+        optimizer: optimizer object that will update the parameters of the model.
+        data_loader: iterable object from which batches are read.
+            (default: None)
+        batch_input_fn (optional): function used to extract the input
+            for the model (e.g. a ``torch.Tensor``), from the batch loaded by
+            the ``data_loader``. If ``None``, the batch is fed as-is to the
+            model. (default: None)
+        batch_target_fn (optional): if given, this callable object
+            is used to extract the targets from the batch, which are
+            passed to the `ITER_START` and `ITER_END` hooks.
+            (default: None)
+        batch_id_fn (optional): if given, this callable object is
+            used to extract the batch ids to be used in a possible exception.
+            (default: None)
+        batch_ith_fn (optional): if given, this callable object is
+            used to extract the ith sample from the batch to be used
+            in a possible exception. (default: None)
+        progress_bar (optional): if ``True``, :mod:`tqdm` will be
+            used to show a progress bar for each epoch. If a string is given,
+            the content of the string will be shown before the progress bar.
+            (default: None)
+        iterations_per_update (optional): Number of successive mini-batch
+            parameter gradients to accumulate before updating the parameters.
+            (default: 1)
     """
 
     def __init__(
         self,
-        model,
-        criterion,
-        optimizer,
-        data_loader=None,
-        batch_input_fn=None,
-        batch_target_fn=None,
-        batch_id_fn=None,
-        progress_bar=None,
-        iterations_per_update=1,
+        model,  # type: torch.nn.Module
+        criterion,  # type: Callable
+        optimizer,  # type: torch.optim.Optimizer
+        data_loader=None,  # type: Iterable
+        batch_input_fn=None,  # type: Callable
+        batch_target_fn=None,  # type: Callable
+        batch_id_fn=None,  # type: Callable
+        batch_ith_fn=None,  # type: Callable
+        progress_bar=None,  # type: Union[bool, str]
+        iterations_per_update=1,  # type: int
     ):
+        # type: (...) -> None
         super(Trainer, self).__init__(
             model=model,
             data_loader=data_loader,
             batch_input_fn=batch_input_fn,
             batch_target_fn=batch_target_fn,
             batch_id_fn=batch_id_fn,
+            batch_ith_fn=batch_ith_fn,
             progress_bar=progress_bar,
         )
         self._criterion = criterion
@@ -112,7 +124,6 @@ class Trainer(Engine):
     @action
     def run(self):
         r"""Run training """
-        assert callable(self.criterion)
         assert callable(
             self._batch_input_fn
         ), "batch_input_fn (type: {!r}) is not callable".format(
@@ -186,17 +197,9 @@ class Trainer(Engine):
             iteration=self._iterations,
         )
 
-        # Compute loss
-        try:
-            batch_loss = self._criterion(batch_output, batch_target)
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
+        batch_loss = self.compute_loss(batch, batch_output, batch_target)
+        if batch_loss is None:
+            return
 
         # Make the loss and gradients w.r.t. output independent of the number
         # of accumulated iterations.
@@ -238,6 +241,47 @@ class Trainer(Engine):
         action_kwargs["batch_output"] = batch_output
         action_kwargs["batch_loss"] = batch_loss
         self._call_hooks(ITER_END, **action_kwargs)
+
+    def compute_loss(self, batch, batch_output, batch_target):
+        try:
+            batch_loss = self._criterion(batch_output, batch_target)
+            if isinstance(batch_loss, tuple):
+                batch_loss, error_indices = batch_loss
+                if error_indices:
+                    samples = (
+                        [self.batch_ith_fn(batch, i) for i in error_indices]
+                        if self.batch_ith_fn
+                        else batch  # Usually a dict
+                    )
+                    if self.batch_id_fn:
+                        samples = (
+                            [self.batch_id_fn(sample) for sample in samples]
+                            if isinstance(samples, list) or isinstance(samples, tuple)
+                            else self.batch_id_fn(samples)
+                        )
+                    message = "samples {}{}".format(
+                        samples,
+                        " in the indices {}".format(error_indices)
+                        if not self.batch_ith_fn
+                        else "",
+                    )
+                    self.logger.warn("Failed to compute the loss for the {}", message)
+            return batch_loss
+        except LossException as e:
+            self.logger.warn(
+                "Ignored the following samples whilst calculating the loss: {}. "
+                "Exception: {}",
+                self.batch_id_fn(batch) if self.batch_id_fn else batch,
+                e,
+            )
+        except Exception as e:
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
+                cause=e,
+            )
+            raise_from(wrapper, e)
 
     def state_dict(self):
         return {

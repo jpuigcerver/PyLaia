@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 from functools import reduce
 
-import torch
 from torch.autograd import Variable
-from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
+
+from laia.losses.ctc_loss import transform_output
 
 
 class CTCGreedyDecoder(object):
@@ -13,16 +13,9 @@ class CTCGreedyDecoder(object):
         self._output = None
 
     def __call__(self, x):
-        # Shape x: T x N x D
-        if isinstance(x, PackedSequence):
-            x, xs = pad_packed_sequence(x)
-        elif torch.is_tensor(x):
-            xs = [x.size()[0]] * x.size()[1]
-        else:
-            raise NotImplementedError("Not implemented for type %s" % type(x))
+        x, xs = transform_output(x)
         if isinstance(x, Variable):
             x = x.data
-
         _, idx = x.max(dim=2)
         idx = idx.t().tolist()
         x = [idx_n[: int(xs[n])] for n, idx_n in enumerate(idx)]
