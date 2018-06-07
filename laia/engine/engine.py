@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from typing import Iterable, Callable, Union
+
+import torch
 from future.utils import raise_from
 from torch._six import string_classes
 from tqdm import tqdm
@@ -7,7 +10,6 @@ from tqdm import tqdm
 import laia.logging as log
 from laia.engine.engine_exception import EngineException
 from laia.hooks import action
-from laia.losses.ctc_loss import LossException
 
 _logger = log.get_logger(__name__)
 
@@ -20,38 +22,47 @@ ITER_END = "ITER_END"
 class Engine(object):
     r"""Wrapper class to train a model.
 
-    Arguments:
-      model: model to train.
-      data_loader (iterable): iterable object from which batches are read.
-      batch_input_fn (callable, optional): function used to extract the input
-          for the model (e.g. a ``torch.Tensor``), from the batch loaded by
-          the ``data_loader``. If ``None``, the batch is fed as-is to the
-          model. (default: None)
-      batch_target_fn (callable, optional): if given, this callable object
-          is used to extract the targets from the batch, which are
-          passed to the `ITER_START` and `ITER_END` hooks.
-      batch_id_fn (callable, optional): if given, this callable object is
-          used to extract the batch ids to be used in a possible exception.
-      progress_bar (bool or str, optional): if ``True``, :mod:`tqdm` will be
-          used to show a progress bar for each epoch. If a string is given,
-          the content of the string will be shown before the progress bar.
-          (default: None)
+    Args:
+        model: model to train.
+        data_loader: iterable object from which batches are read.
+            (default: None)
+        batch_input_fn (optional): function used to extract the input
+            for the model (e.g. a ``torch.Tensor``), from the batch loaded by
+            the ``data_loader``. If ``None``, the batch is fed as-is to the
+            model. (default: None)
+        batch_target_fn (optional): if given, this callable object
+            is used to extract the targets from the batch, which are
+            passed to the `ITER_START` and `ITER_END` hooks.
+            (default: None)
+        batch_id_fn (optional): if given, this callable object is
+            used to extract the batch ids to be used in a possible exception.
+            (default: None)
+        batch_ith_fn (optional): if given, this callable object is
+            used to extract the ith sample from the batch to be used
+            in a possible exception. (default: None)
+        progress_bar (optional): if ``True``, :mod:`tqdm` will be
+            used to show a progress bar for each epoch. If a string is given,
+            the content of the string will be shown before the progress bar.
+            (default: None)
     """
 
     def __init__(
         self,
-        model,
-        data_loader=None,
-        batch_input_fn=None,
-        batch_target_fn=None,
-        batch_id_fn=None,
-        progress_bar=None,
+        model,  # type: torch.nn.Module
+        data_loader=None,  # type: Iterable
+        batch_input_fn=None,  # type: Callable
+        batch_target_fn=None,  # type: Callable
+        batch_id_fn=None,  # type: Callable
+        batch_ith_fn=None,  # type: Callable
+        progress_bar=None,  # type: Union[bool, str]
     ):
+        # type: (...) -> None
         self._model = model
         self._data_loader = data_loader
         self._batch_input_fn = batch_input_fn
         self._batch_target_fn = batch_target_fn
         self._batch_id_fn = batch_id_fn
+        self._batch_ith_fn = batch_ith_fn
         self._progress_bar = progress_bar
 
         self._epochs = 0
@@ -70,6 +81,10 @@ class Engine(object):
     @property
     def batch_id_fn(self):
         return self._batch_id_fn
+
+    @property
+    def batch_ith_fn(self):
+        return self._batch_ith_fn
 
     @property
     def model(self):
