@@ -7,7 +7,7 @@ import os
 import torch
 
 import laia.utils
-from dortmund_utils import (build_ctc_model, build_ctc_model2,
+from dortmund_utils import (DortmundCTCModule, build_ctc_model2,
                             DortmundImageToTensor, ModelCheckpointKeepLastSaver)
 from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
@@ -24,6 +24,7 @@ if __name__ == '__main__':
                  'valid_samples_per_epoch', 'seed', 'train_path',
                  # Override default values for these arguments, but use the
                  # same help/checks:
+                 batch_size=1,
                  learning_rate=0.0001,
                  momentum=0.9,
                  iterations_per_update=10,
@@ -57,9 +58,9 @@ if __name__ == '__main__':
     # If --use_distortions is given, apply the same affine distortions used by
     # Dortmund University.
     if args.use_distortions:
-        tr_img_transform = DortmundImageToTensor()
+        tr_img_transform = DortmundImageToTensor(min_width=16, min_height=16)
     else:
-        tr_img_transform = laia.utils.ImageToTensor()
+        tr_img_transform = laia.utils.ImageToTensor(min_width=16, min_height=16)
 
     # Training data
     tr_ds = laia.data.TextImageFromTextTableDataset(
@@ -68,24 +69,24 @@ if __name__ == '__main__':
         txt_transform=laia.utils.TextToTensor(syms))
     if args.train_samples_per_epoch is None:
         tr_ds_loader = laia.data.ImageDataLoader(
-            tr_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
+            tr_ds, image_channels=1, batch_size=args.batch_size, num_workers=8, shuffle=True)
     else:
         tr_ds_loader = laia.data.ImageDataLoader(
-            tr_ds, image_channels=1, batch_size=1, num_workers=8,
+            tr_ds, image_channels=1, batch_size=args.batch_size, num_workers=8,
             sampler=laia.data.FixedSizeSampler(tr_ds,
                                                args.train_samples_per_epoch))
 
     # Validation data
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor(),
+        img_transform=laia.utils.ImageToTensor(min_width=16, min_height=16),
         txt_transform=laia.utils.TextToTensor(syms))
     if args.valid_samples_per_epoch is None:
         va_ds_loader = laia.data.ImageDataLoader(
-            va_ds, image_channels=1, batch_size=1, num_workers=8, shuffle=True)
+            va_ds, image_channels=1, batch_size=args.batch_size, num_workers=8, shuffle=True)
     else:
         va_ds_loader = laia.data.ImageDataLoader(
-            va_ds, image_channels=1, batch_size=1, num_workers=8,
+            va_ds, image_channels=1, batch_size=args.batch_size, num_workers=8,
             sampler=laia.data.FixedSizeSampler(va_ds,
                                                args.valid_samples_per_epoch))
 
@@ -98,7 +99,7 @@ if __name__ == '__main__':
             lstm_num_layers=args.lstm_num_layers,
             num_outputs=len(syms))
     else:
-        model = build_ctc_model(
+        model = DortmundCTCModule(
             adaptive_pool_height=args.adaptive_pool_height,
             lstm_hidden_size=args.lstm_hidden_size,
             lstm_num_layers=args.lstm_num_layers,
@@ -122,9 +123,9 @@ if __name__ == '__main__':
         'optimizer': optimizer,
         'data_loader': tr_ds_loader,
         'batch_input_fn': ImageFeeder(device=args.gpu,
-                                      keep_padded_tensors=False,
                                       parent_feeder=ItemFeeder('img')),
         'batch_target_fn': ItemFeeder('txt'),
+        'batch_id_fn': ItemFeeder('id'),  # Print image ids on exception
         'progress_bar': 'Train' if args.show_progress_bar else False,
     }
     trainer = Trainer(**parameters)
@@ -134,9 +135,9 @@ if __name__ == '__main__':
         model=model,
         data_loader=va_ds_loader,
         batch_input_fn=ImageFeeder(device=args.gpu,
-                                   keep_padded_tensors=False,
                                    parent_feeder=ItemFeeder('img')),
         batch_target_fn=ItemFeeder('txt'),
+        batch_id_fn=ItemFeeder('id'),  # Print image ids on exception
         progress_bar='Valid' if args.show_progress_bar else False)
 
     engine_wrapper = HtrEngineWrapper(trainer, evaluator)

@@ -10,6 +10,7 @@ from functools import reduce
 import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
 from PIL import Image, ImageOps
 from laia.hooks import action
 from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
@@ -17,6 +18,7 @@ from laia.nn.image_to_sequence import ImageToSequence
 from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 from torch.nn import BCEWithLogitsLoss
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
+from laia.data.padding_collater import PaddedTensor
 
 
 def build_conv_model():
@@ -130,6 +132,53 @@ class PackedSequenceWrapper(torch.nn.Module):
         return repr(self._module)
 
 
+class DortmundCTCModule(torch.nn.Module):
+    def __init__(self, num_outputs, adaptive_pool_height=16,
+                 lstm_hidden_size=128, lstm_num_layers=1):
+        super(DortmundCTCModule, self).__init__()
+        self.conv = build_conv_model()
+        self.adap_pool = AdaptiveAvgPool2d(output_size=(adaptive_pool_height, None))
+        self.collapse = ImageToSequence(return_packed=True)
+        self.blstm = torch.nn.LSTM(input_size= 512 * adaptive_pool_height,
+                                   hidden_size=lstm_hidden_size,
+                                   num_layers=lstm_num_layers,
+                                   dropout=0.5,
+                                   bidirectional=True)
+        self.linear = torch.nn.Linear(2 * lstm_hidden_size, num_outputs)
+
+    def dropout(self, x, p=0.5):
+        if isinstance(x, PackedSequence):
+            return PackedSequence(data=F.dropout(x.data, p, self.training),
+                                  batch_sizes=x.batch_sizes)
+        elif isinstance(x, PaddedTensor):
+            return PaddedTensor(data=F.dropout(x.data, p, self.training),
+                                sizes=x.sizes)
+        else:
+            return F.dropout(x, p, self.training)
+
+    def size_after_conv(self, xs):
+        xs = xs.float()
+        xs = torch.ceil((xs - 2) / 2.0 + 1)
+        xs = torch.ceil((xs - 2) / 2.0 + 1)
+        return xs.long()
+
+    def forward(self, x):
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
+        x = self.conv(x)
+        if xs is not None:
+            xs = self.size_after_conv(xs)
+        x = self.adap_pool(x if xs is None else PaddedTensor(data=x, sizes=xs))
+        x = self.collapse(x)
+        x = self.dropout(x)
+        x, _ = self.blstm(x)
+        x = self.dropout(x)
+        if isinstance(x, PackedSequence):
+            return PackedSequence(data=self.linear(x.data),
+                                  batch_sizes=x.batch_sizes)
+        else:
+            return self.linear(x)
+
+
 def build_ctc_model(num_outputs,
                     adaptive_pool_height=16,
                     lstm_hidden_size=128,
@@ -214,22 +263,37 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
 
 
 class DortmundImageToTensor(object):
-    def __init__(self, fixed_height=None, fixed_width=None):
+    def __init__(self, fixed_height=None, fixed_width=None,
+                 min_height=None, min_width=None):
         assert fixed_height is None or fixed_height > 0
         assert fixed_width is None or fixed_width > 0
+        assert min_height is None or min_height > 0
+        assert min_width is None or min_width > 0
         self._fh = fixed_height
         self._fw = fixed_width
+        self._mh = min_height
+        self._mw = min_width
 
     def __call__(self, x):
         assert isinstance(x, Image.Image)
         x = x.convert('L')
         x = ImageOps.invert(x)
-        # Optionally, resize image to a fixed size
         if self._fh or self._fw:
+            # Optionally, resize image to a fixed size
             cw, ch = x.size
             nw = self._fw if self._fw else int(cw * self._fh / ch)
             nh = self._fh if self._fh else int(ch * self._fw / cw)
             x.resize((nw, nh), Image.BILINEAR)
+        elif self._mh or self._mw:
+            # Optionally, pad image to have the minimum size
+            cw, ch = x.size
+            nw = cw if self._mw is None or cw >= self._mw else self._mw
+            nh = ch if self._mh is None or ch >= self._mh else self._mh
+            if cw != nw or ch != nh:
+                nx = Image.new('L', (nw, nh))
+                nx.paste(x, ((nw - cw) // 2,
+                             (nh - ch) // 2))
+                x = nx
 
         x = np.asarray(x, dtype=np.float32)
         x = dortmund_distort(x / 255.0)
@@ -245,7 +309,7 @@ class DortmundBCELoss(BCEWithLogitsLoss):
 
     def forward(self, output, target):
         loss = super(DortmundBCELoss, self).forward(output, target)
-        return loss / output.size(0)                                       
+        return loss / output.size(0)
 
 
 class ModelCheckpointKeepLastSaver(object):
