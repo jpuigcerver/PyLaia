@@ -44,6 +44,7 @@ if __name__ == '__main__':
     add_argument('--cnn_maxpool_size', type=int, nargs='*', default=[2, 2])
     add_argument('--lstm_hidden_size', type=int, default=128)
     add_argument('--lstm_num_layers', type=int, default=1)
+    add_argument('--min_size', type=int, default=None)
     add_argument('syms', help='Symbols table mapping from strings to integers')
     add_argument('tr_img_dir', help='Directory containing word images')
     add_argument('tr_txt_table',
@@ -58,9 +59,11 @@ if __name__ == '__main__':
     # If --use_distortions is given, apply the same affine distortions used by
     # Dortmund University.
     if args.use_distortions:
-        tr_img_transform = DortmundImageToTensor(min_width=16, min_height=16)
+        tr_img_transform = DortmundImageToTensor(min_width=args.min_size,
+                                                 min_height=args.min_size)
     else:
-        tr_img_transform = laia.utils.ImageToTensor(min_width=16, min_height=16)
+        tr_img_transform = laia.utils.ImageToTensor(min_width=args.min_size,
+                                                    min_height=args.min_size)
 
     # Training data
     tr_ds = laia.data.TextImageFromTextTableDataset(
@@ -79,7 +82,8 @@ if __name__ == '__main__':
     # Validation data
     va_ds = laia.data.TextImageFromTextTableDataset(
         args.va_txt_table, args.tr_img_dir,
-        img_transform=laia.utils.ImageToTensor(min_width=16, min_height=16),
+        img_transform=laia.utils.ImageToTensor(min_width=args.min_size,
+                                               min_height=args.min_size),
         txt_transform=laia.utils.TextToTensor(syms))
     if args.valid_samples_per_epoch is None:
         va_ds_loader = laia.data.ImageDataLoader(
