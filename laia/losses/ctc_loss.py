@@ -59,16 +59,25 @@ def set_zeros_in_errors(size, input, valid_indices):
     return out.cuda() if torch.cuda.is_available() else out
 
 
-def get_valids_and_errors(act_lens, label_lens):
-    # type: (List[int], List[int]) -> (List[int], List[int])
-    """Check for errors by comparing the size of the
-    output against the size of the target.
+def get_valids_and_errors(act_lens, labels):
+    # type: (List[int], List[List[int]]) -> (List[int], List[int])
+    """Check for sequences which are too short to produce the given
+    target, according to CTC model.
 
-    The check comes from Baidu's Warp CTC.
-    Its necessary to avoid buffer overflow
+    Necessary to avoid potential buffer overflows in CTC.
     """
-    assert len(act_lens) == len(label_lens)
-    check = [act_lens[i] > 2 * label_lens[i] + 1 for i in range(len(act_lens))]
+    assert len(act_lens) == len(labels)
+
+    def count_minimum_frames(y):
+        # type: List[int] -> int
+        repeat = 0
+        for i, c in enumerate(y[1:], 1):
+            if y[i] == y[i - 1]:
+                repeat += 1
+        return len(y) + repeat
+
+    check = [act_lens[i] >= count_minimum_frames(labels[i])
+             for i in range(len(act_lens))]
     return (
         # Indices of OK samples
         [i for i, valid in enumerate(check) if valid],
@@ -103,7 +112,7 @@ class CTC(Function):
             label_lens: Contains the label length of each sample.
                 Size batchSize
         """
-        valid_indices, err_indices = get_valids_and_errors(act_lens, label_lens)
+        valid_indices, err_indices = get_valids_and_errors(act_lens, target)
 
         # Save for backward
         ctx.saved = valid_indices, err_indices, acts.size()
