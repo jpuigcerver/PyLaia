@@ -13,8 +13,7 @@ class MemoryMeter(Meter):
 
     def get_gpu_memory(self):
         # type: () -> str
-        import os
-        import subprocess
+        import subprocess, sys, os
 
         result = str(
             subprocess.check_output(
@@ -24,8 +23,10 @@ class MemoryMeter(Meter):
                     "--format=csv,noheader",
                 ]
             )
+            .decode(sys.stdout.encoding)
+            .strip()
         )
-        for out in result.strip().split("\n"):
+        for out in result.split("\n"):
             pid, mem = out.split(", ")
             if int(pid) == os.getpid():
                 return mem
