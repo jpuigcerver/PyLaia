@@ -15,6 +15,9 @@ except ImportError:
 
     warnings.warn("Missing CTC loss function library")
 
+Size = Union[torch.Size, Sequence[int]]
+FloatScalar = Union[float, torch.FloatTensor]
+
 
 def transform_output(output):
     # Size: T x N x D
@@ -52,7 +55,7 @@ def copy_valid_indices(
 
 
 def set_zeros_in_errors(size, input, valid_indices):
-    # type: (Union[torch.Size, Sequence[int]], torch.Tensor, Sequence[int]) -> torch.Tensor
+    # type: (Size, torch.Tensor, Sequence[int]) -> torch.Tensor
     """Copy the tensor with zeros in the erroneous indices"""
     # Note: The batch size must be in the second dimension
     out = torch.zeros(size).index_copy_(1, torch.LongTensor(valid_indices), input.cpu())
@@ -69,15 +72,16 @@ def get_valids_and_errors(act_lens, labels):
     assert len(act_lens) == len(labels)
 
     def count_minimum_frames(y):
-        # type: List[int] -> int
+        # type: (List[int]) -> int
         repeat = 0
         for i, c in enumerate(y[1:], 1):
             if y[i] == y[i - 1]:
                 repeat += 1
         return len(y) + repeat
 
-    check = [act_lens[i] >= count_minimum_frames(labels[i])
-             for i in range(len(act_lens))]
+    check = [
+        act_lens[i] >= count_minimum_frames(labels[i]) for i in range(len(act_lens))
+    ]
     return (
         # Indices of OK samples
         [i for i, valid in enumerate(check) if valid],
@@ -91,7 +95,6 @@ class LossException(Exception):
 
 
 class CTC(Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -170,7 +173,7 @@ class CTCLoss(Module):
         self._length_average = length_average
 
     def forward(self, output, target):
-        # type: (torch.Tensor, List[List[int]]) -> (Union[float, torch.FloatTensor], List[int])
+        # type: (torch.Tensor, List[List[int]]) -> (FloatScalar, List[int])
         """
         Args:
             output: Size seqLength x outputDim, contains

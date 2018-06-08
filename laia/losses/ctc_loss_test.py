@@ -17,7 +17,6 @@ from laia.losses.ctc_loss import (
 
 
 class HookTest(unittest.TestCase):
-
     def test_copy_valid_indices(self):
         acts = torch.Tensor(
             [
@@ -88,10 +87,10 @@ class HookTest(unittest.TestCase):
         x = Variable(
             torch.Tensor(
                 [
-                    [[0, 1, 2],   [2, 3, 1],   [0, 0, 1]],
+                    [[0, 1, 2], [2, 3, 1], [0, 0, 1]],
                     [[-1, -1, 1], [-3, -2, 2], [1, 0, 0]],
-                    [[0, 0, 0],   [0, 0, 1],   [1, 1, 1]],
-                    [[0, 0, 2],   [0, 0, -1],  [0, 2, 1]],
+                    [[0, 0, 0], [0, 0, 1], [1, 1, 1]],
+                    [[0, 0, 2], [0, 0, -1], [0, 2, 1]],
                 ]
             )
         )
@@ -112,14 +111,12 @@ class HookTest(unittest.TestCase):
                 (0, 0, 0, 1),
             ]
         ]
-        paths2 = [
-            xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2]
-        ]
+        paths2 = [xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2]]
         loss, errors = ctc(x, y)
         self.assertEqual(errors, [1])
-        self.assertAlmostEqual(loss.data[0],
-                               -(logsumexp(paths0) + logsumexp(paths2)),
-                               places=5)
+        self.assertAlmostEqual(
+            loss.data[0], -(logsumexp(paths0) + logsumexp(paths2)), places=5
+        )
 
     def test_backward(self):
         ctc = CTCLoss(size_average=False, length_average=False)
@@ -127,10 +124,10 @@ class HookTest(unittest.TestCase):
         x = Variable(
             torch.Tensor(
                 [
-                    [[0, 1, 2],   [2, 3, 1],   [0, 0, 1]],
+                    [[0, 1, 2], [2, 3, 1], [0, 0, 1]],
                     [[-1, -1, 1], [-3, -2, 2], [1, 0, 0]],
-                    [[0, 0, 0],   [0, 0, 1],   [1, 1, 1]],
-                    [[0, 0, 2],   [0, 0, -1],  [0, 2, 1]],
+                    [[0, 0, 0], [0, 0, 1], [1, 1, 1]],
+                    [[0, 0, 2], [0, 0, -1], [0, 2, 1]],
                 ]
             )
         )
