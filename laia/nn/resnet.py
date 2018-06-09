@@ -7,7 +7,6 @@ from laia.data import PaddedTensor
 
 
 class ResnetConv2dBlock(nn.Module):
-
     def __init__(self, in_planes, out_planes, stride=1, batch_norm=True):
         super(ResnetConv2dBlock, self).__init__()
         self.conv1 = nn.Conv2d(

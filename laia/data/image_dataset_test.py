@@ -13,7 +13,6 @@ from laia.data.image_dataset import ImageDataset
 
 
 class TestImageDataset(unittest.TestCase):
-
     def test_empty(self):
         dataset = ImageDataset([])
         self.assertEqual(0, len(dataset))

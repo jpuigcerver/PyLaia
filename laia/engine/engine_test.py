@@ -7,7 +7,6 @@ from laia.hooks import action
 
 
 class DummyModel(object):
-
     def __init__(self):
         self.counter = 0
 
@@ -17,7 +16,6 @@ class DummyModel(object):
 
 
 class EngineTest(unittest.TestCase):
-
     def test_simple(self):
         model = DummyModel()
         engine = Engine(model=model, data_loader=[1, 2, 3, 4])

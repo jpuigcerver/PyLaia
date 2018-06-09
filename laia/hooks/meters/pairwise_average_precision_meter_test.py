@@ -6,7 +6,6 @@ from laia.hooks.meters import PairwiseAveragePrecisionMeter
 
 
 class AllPairsMetricAveragePrecisionMeterTest(unittest.TestCase):
-
     def setUp(self):
         self.batch1 = ([[1, 1], [2, 2]], [1, 2])
         self.batch2 = ([[0, 0], [1, 1], [0, 2]], [3, 1, 2])

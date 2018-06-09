@@ -4,7 +4,6 @@ from laia.data.image_dataset import ImageDataset
 
 
 class TextImageDataset(ImageDataset):
-
     def __init__(self, imgs, txts, img_transform=None, txt_transform=None):
         super(TextImageDataset, self).__init__(imgs, img_transform)
         assert isinstance(txts, (list, tuple))

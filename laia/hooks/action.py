@@ -35,7 +35,6 @@ def action(func):
 
 
 class Action(object):
-
     def __init__(self, callable_, *args, **kwargs):
         # type: (Callable, Any, Any) -> None
         self._callable = callable_

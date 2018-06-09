@@ -35,7 +35,6 @@ def F():
 
 
 class HookTest(unittest.TestCase):
-
     def test_with_args(self):
         self.assertEqual("X", Hook(T, action_with_arg, "X")())
         self.assertEqual("X", Hook(T, action_with_arg)("X"))

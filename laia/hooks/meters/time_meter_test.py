@@ -7,7 +7,6 @@ from laia.hooks.meters import TimeMeter
 
 
 class TimeMeterTest(unittest.TestCase):
-
     def testMeter(self):
         m = TimeMeter()
         time.sleep(1)

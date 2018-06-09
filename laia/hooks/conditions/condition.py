@@ -43,7 +43,6 @@ class Condition(object):
 
 
 class LoggingCondition(Condition):
-
     def __init__(self, obj, key, logger, name=None):
         # type: (obj, AnyT, Logger, str) -> None
         super(LoggingCondition, self).__init__(obj, key)

@@ -37,7 +37,6 @@ def collapse_min(x, xs):
 
 
 class VggRnn(nn.Module):
-
     def __init__(
         self,
         num_input_channels,

@@ -7,14 +7,12 @@ from laia.hooks.meters import Meter
 
 
 class ExceptionMeter(Meter):
-
     @property
     def value(self):
         raise Exception
 
 
 class MockMeter(Meter):
-
     def __init__(self):
         super(MockMeter, self).__init__()
         self._value = None
@@ -28,7 +26,6 @@ class MockMeter(Meter):
 
 
 class StdDevUnderTest(unittest.TestCase):
-
     def test_exception(self):
         meter = ExceptionMeter()
         cond = StdDevUnder(meter, 0.1, 25)
