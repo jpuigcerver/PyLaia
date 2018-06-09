@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 
 class EngineException(Exception):
-
     def __init__(self, epoch, iteration, batch, cause=None):
         self._epoch = epoch
         self._iteration = iteration

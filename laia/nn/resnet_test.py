@@ -10,7 +10,6 @@ from laia.nn.resnet import ResnetConv2dBlock
 
 
 class ResnetConv2dBlockTest(unittest.TestCase):
-
     def test_equal_planes(self):
         x = Variable(torch.randn(4, 16, 8, 12), requires_grad=True)
         layer = ResnetConv2dBlock(16, 16)

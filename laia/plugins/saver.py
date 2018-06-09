@@ -14,7 +14,6 @@ _logger = get_logger(__name__)
 
 
 class Saver(object):
-
     def __call__(self, *args, **kwargs):
         return self.save(*args, **kwargs)
 
@@ -23,7 +22,6 @@ class Saver(object):
 
 
 class BasicSaver(Saver):
-
     def save(self, obj, filepath):
         dirname = os.path.dirname(os.path.normpath(filepath))
         if not os.path.exists(dirname):
@@ -33,7 +31,6 @@ class BasicSaver(Saver):
 
 
 class ObjectSaver(Saver):
-
     def __init__(self, filepath):
         self._filepath = filepath
         self._basic_saver = BasicSaver()
@@ -51,7 +48,6 @@ class ObjectSaver(Saver):
 
 
 class ModelSaver(ObjectSaver):
-
     def __init__(self, save_path, filename="model"):
         super(ModelSaver, self).__init__(os.path.join(save_path, filename))
 
@@ -62,7 +58,6 @@ class ModelSaver(ObjectSaver):
 
 
 class TrainerSaver(ObjectSaver):
-
     def __init__(self, save_path, filename="trainer"):
         super(TrainerSaver, self).__init__(os.path.join(save_path, filename))
 
@@ -73,7 +68,6 @@ class TrainerSaver(ObjectSaver):
 
 
 class CheckpointSaver(Saver):
-
     def __init__(self, filepath):
         self._filepath = filepath
         self._basic_saver = BasicSaver()
@@ -93,7 +87,6 @@ class CheckpointSaver(Saver):
 
 
 class ModelCheckpointSaver(Saver):
-
     def __init__(self, ckpt_saver, model):
         # type: (CheckpointSaver, torch.nn.Module) -> None
         self._ckpt_saver = ckpt_saver
@@ -104,7 +97,6 @@ class ModelCheckpointSaver(Saver):
 
 
 class TrainerCheckpointSaver(Saver):
-
     def __init__(self, ckpt_saver, trainer, gpu=None):
         self._ckpt_saver = ckpt_saver
         self._trainer = trainer

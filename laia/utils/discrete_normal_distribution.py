@@ -8,7 +8,6 @@ _logger = log.get_logger(__name__)
 
 
 class DiscreteNormalDistribution(object):
-
     def __init__(self, mean, var, eps=1e-9):
         assert mean >= 0, "Mean must be a real value greater than or equal to 0"
         assert var > 0, "Variance must be real value greater than 0"

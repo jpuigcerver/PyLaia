@@ -8,7 +8,6 @@ _logger = log.get_logger(__name__)
 
 
 class AveragePrecisionMeter(Meter):
-
     def __init__(self, desc_sort=True, exceptions_threshold=5):
         super(AveragePrecisionMeter, self).__init__(exceptions_threshold)
         self._desc_sort = desc_sort

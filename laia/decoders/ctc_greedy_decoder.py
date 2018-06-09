@@ -8,7 +8,6 @@ from laia.losses.ctc_loss import transform_output
 
 
 class CTCGreedyDecoder(object):
-
     def __init__(self):
         self._output = None
 

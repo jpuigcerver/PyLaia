@@ -91,7 +91,6 @@ class LossException(Exception):
 
 
 class CTC(Function):
-
     @staticmethod
     def forward(
         ctx,

@@ -21,7 +21,6 @@ def empty_action():
 
 
 class ActionTest(unittest.TestCase):
-
     def test_normal_usage(self):
         self.assertEqual("X", action_with_arg("X"))
         self.assertEqual("X", action_with_kwargs(v="X"))

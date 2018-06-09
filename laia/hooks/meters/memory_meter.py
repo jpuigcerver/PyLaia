@@ -6,7 +6,6 @@ from laia.hooks.meters import Meter
 
 
 class MemoryMeter(Meter):
-
     def __init__(self, exceptions_threshold=5):
         # type: (int) -> None
         super(MemoryMeter, self).__init__(exceptions_threshold)

@@ -17,7 +17,6 @@ _logger = get_logger(__name__)
 
 
 class Loader(object):
-
     def __call__(self, *args, **kwargs):
         return self.load(*args, **kwargs)
 
@@ -26,7 +25,6 @@ class Loader(object):
 
 
 class BasicLoader(Loader):
-
     def load(self, filepath, gpu=None):
         device = "cuda:{}".format(gpu - 1) if gpu else "cpu"
         try:
@@ -37,7 +35,6 @@ class BasicLoader(Loader):
 
 
 class ObjectLoader(Loader):
-
     def __init__(self, filepath, gpu=None):
         self._filepath = filepath
         self._gpu = gpu
@@ -55,7 +52,6 @@ class ObjectLoader(Loader):
 
 
 class ModelLoader(ObjectLoader):
-
     def __init__(self, load_path, filename="model", gpu=None):
         self._path = os.path.join(load_path, filename)
         super(ModelLoader, self).__init__(self._path, gpu=gpu)
@@ -68,7 +64,6 @@ class ModelLoader(ObjectLoader):
 
 
 class TrainerLoader(ObjectLoader):
-
     def __init__(self, load_path, filename="trainer", gpu=None):
         self._path = os.path.join(load_path, filename)
         super(TrainerLoader, self).__init__(self._path, gpu=gpu)
@@ -81,7 +76,6 @@ class TrainerLoader(ObjectLoader):
 
 
 class CheckpointLoader(Loader):
-
     def __init__(self, gpu=None):
         self._gpu = gpu
         self._loader = BasicLoader()
@@ -103,7 +97,6 @@ class CheckpointLoader(Loader):
 
 
 class ModelCheckpointLoader(CheckpointLoader):
-
     def __init__(self, model, gpu=None):
         super(ModelCheckpointLoader, self).__init__(gpu=gpu)
         self._model = model
@@ -122,7 +115,6 @@ class ModelCheckpointLoader(CheckpointLoader):
 
 
 class TrainerCheckpointLoader(CheckpointLoader):
-
     def __init__(self, trainer, gpu=None):
         super(TrainerCheckpointLoader, self).__init__(gpu=gpu)
         self._trainer = trainer
