@@ -9,7 +9,6 @@ from laia.nn.image_to_sequence import image_to_sequence
 
 
 class ImagePoolingSequencer(torch.nn.Module):
-
     def __init__(self, sequencer, columnwise=True):
         super(ImagePoolingSequencer, self).__init__()
 

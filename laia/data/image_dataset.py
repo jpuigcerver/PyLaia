@@ -5,7 +5,6 @@ from torch.utils import data
 
 
 class ImageDataset(data.Dataset):
-
     def __init__(self, imgs, transform=None):
         assert isinstance(imgs, (list, tuple))
         super(ImageDataset, self).__init__()

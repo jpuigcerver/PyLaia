@@ -6,7 +6,6 @@ import torch
 
 
 class PHOCFeeder(Feeder):
-
     def __init__(
         self, syms, levels, ignore_missing=True, new_phoc=False, parent_feeder=None
     ):

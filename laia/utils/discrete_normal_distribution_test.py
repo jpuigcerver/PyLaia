@@ -11,7 +11,6 @@ from laia.utils.discrete_normal_distribution import DiscreteNormalDistribution
 
 
 class DiscreteNormalDistributionTest(unittest.TestCase):
-
     def testConstructor(self):
         d = DiscreteNormalDistribution(25, 1)
         self.assertEqual(d.mean, 25)

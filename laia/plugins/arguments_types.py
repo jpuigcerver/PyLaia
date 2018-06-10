@@ -54,7 +54,6 @@ def str2loglevel(v):
 
 
 class NumberInClosedRange(object):
-
     def __init__(self, type, vmin=None, vmax=None):
         self._type = type
         self._vmin = vmin
@@ -65,7 +64,6 @@ class NumberInClosedRange(object):
 
 
 class NumberInOpenRange(object):
-
     def __init__(self, type, vmin=None, vmax=None):
         self._type = type
         self._vmin = vmin
@@ -76,7 +74,6 @@ class NumberInOpenRange(object):
 
 
 class TupleList(object):
-
     def __init__(self, type, dimensions=2):
         assert dimensions >= 2
         self._type = type

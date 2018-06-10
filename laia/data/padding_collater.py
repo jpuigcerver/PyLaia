@@ -39,7 +39,6 @@ def _get_max_size_and_check_batch_tensor(batch, expected_shape):
 
 
 class PaddingCollater(object):
-
     def __init__(self, padded_shapes, sort_key=None):
         self._padded_shapes = padded_shapes
         self._sort_key = sort_key

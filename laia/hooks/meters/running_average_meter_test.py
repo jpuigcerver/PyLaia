@@ -8,7 +8,6 @@ from laia.hooks.meters import RunningAverageMeter
 
 
 class RunningAverageMeterTest(unittest.TestCase):
-
     def testMeter(self):
         m = RunningAverageMeter()
         m.add(25)

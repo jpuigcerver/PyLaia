@@ -10,7 +10,6 @@ from laia.nn.adaptive_pool_2d_base import AdaptivePool2dBase
 
 
 class DummyPool2d(torch.autograd.Function):
-
     @classmethod
     def forward(cls, ctx, batch_input, output_sizes, batch_sizes):
         ctx.save_for_backward(batch_sizes)
@@ -28,7 +27,6 @@ class DummyPool2d(torch.autograd.Function):
 
 
 class AdaptivePool2dBaseTest(unittest.TestCase):
-
     def test_simple(self):
         x = Variable(
             torch.FloatTensor(

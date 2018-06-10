@@ -7,7 +7,6 @@ from laia.hooks.meters import SequenceErrorMeter
 
 
 class SequenceErrorMeterTest(unittest.TestCase):
-
     def testSingleString(self):
         err = SequenceErrorMeter()
         ref = ["home"]

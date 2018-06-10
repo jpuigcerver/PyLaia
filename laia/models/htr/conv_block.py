@@ -12,7 +12,6 @@ def _get_channels(x):
 
 
 class ConvBlock(nn.Module):
-
     def __init__(
         self,
         in_channels,

@@ -12,7 +12,6 @@ try:
     import pywrapfst as fst
 
     class CTCLatticeGeneratorTest(unittest.TestCase):
-
         def setUp(self):
             self._x = torch.Tensor(
                 [

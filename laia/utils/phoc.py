@@ -103,7 +103,6 @@ def new_unigram_phoc(sequence, unigram_map, unigram_levels, ignore_missing=False
 
 
 class TextToPHOC(object):
-
     def __init__(self, syms, levels):
         assert isinstance(syms, (dict, SymbolsTable))
         assert isinstance(levels, (list, tuple))

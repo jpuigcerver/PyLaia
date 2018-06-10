@@ -11,7 +11,6 @@ from torch.autograd import Variable
 
 
 class TemporalPyramidMaxPool2dTest(unittest.TestCase):
-
     def _test_tensor(self, use_nnutils):
         x = Variable(torch.randn(3, 5, 7, 8), requires_grad=True)
         layer = TemporalPyramidMaxPool2d(levels=2, use_nnutils=use_nnutils)

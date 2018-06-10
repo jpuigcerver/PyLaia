@@ -12,7 +12,6 @@ Module = Callable[..., torch.nn.Module]
 
 
 class GatedConv2d(torch.nn.Module):
-
     def __init__(
         self, in_channels, out_channels, kernel_size, activation, stride=1, padding=0
     ):
@@ -47,7 +46,6 @@ class GatedConv2d(torch.nn.Module):
 
 
 class GatedEncoder(torch.nn.Module):
-
     def __init__(
         self,
         in_channels,  # type: int
@@ -167,7 +165,6 @@ class GatedEncoder(torch.nn.Module):
 
 
 class RNNDecoder(torch.nn.Module):
-
     def __init__(
         self,
         input_size,  # type: int
@@ -212,7 +209,6 @@ class RNNDecoder(torch.nn.Module):
 
 
 class GatedCRNN(torch.nn.Module):
-
     def __init__(
         self,
         in_channels,  # type: int

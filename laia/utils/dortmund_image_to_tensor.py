@@ -29,7 +29,6 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
 
 
 class DortmundImageToTensor(object):
-
     def __init__(self, fixed_height=None, fixed_width=None):
         assert fixed_height is None or fixed_height > 0
         assert fixed_width is None or fixed_width > 0
