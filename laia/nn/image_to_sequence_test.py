@@ -11,7 +11,6 @@ from laia.nn.image_to_sequence import ImageToSequence
 
 
 class ImageToSequenceTest(unittest.TestCase):
-
     def test_forward(self):
         x = Variable(torch.FloatTensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]))
         m = ImageToSequence(columnwise=True)

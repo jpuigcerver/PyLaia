@@ -188,9 +188,10 @@ class HtrEngineWrapper(object):
             "valid_timer": self._valid_timer if valid else None,
             "memory": MemoryMeter(),
         }
-        return [f for f in fmt if f is not None], {
-            k: v for k, v in params.items() if v is not None
-        }
+        return (
+            [f for f in fmt if f is not None],
+            {k: v for k, v in params.items() if v is not None},
+        )
 
     @action
     def _epoch_summary(self, epoch):

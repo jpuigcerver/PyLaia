@@ -73,11 +73,7 @@ def get_valids_and_errors(act_lens, labels):
 
     def count_minimum_frames(y):
         # type: (List[int]) -> int
-        repeat = 0
-        for i, c in enumerate(y[1:], 1):
-            if y[i] == y[i - 1]:
-                repeat += 1
-        return len(y) + repeat
+        return len(y) + sum(y[i] == y[i - 1] for i in range(1, len(y)))
 
     check = [
         act_lens[i] >= count_minimum_frames(labels[i]) for i in range(len(act_lens))

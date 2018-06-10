@@ -10,7 +10,6 @@ import unittest
 
 
 class MaskImageFromSizeTest(unittest.TestCase):
-
     def test_tensor(self):
         x = Variable(torch.randn(3, 5, 7, 9), requires_grad=True)
         layer = MaskImageFromSize(mask_value=-99)

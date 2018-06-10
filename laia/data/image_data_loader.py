@@ -10,7 +10,6 @@ def sort_by_descending_width(x):
 
 
 class ImageDataLoader(DataLoader):
-
     def __init__(
         self,
         dataset,

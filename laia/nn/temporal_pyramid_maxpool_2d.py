@@ -42,7 +42,6 @@ def _adaptive_maxpool_2d(batch_input, output_sizes, batch_sizes, use_nnutils):
 
 
 class TemporalPyramidMaxPool2d(torch.nn.Module):
-
     def __init__(self, levels, vertical=False, use_nnutils=True):
         super(TemporalPyramidMaxPool2d, self).__init__()
         assert levels > 0

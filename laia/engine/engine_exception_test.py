@@ -8,9 +8,7 @@ from laia.engine.engine_exception import EngineException
 
 
 class EngineExceptionTest(unittest.TestCase):
-
     def test_raise(self):
-
         def f():
             raise EngineException(
                 epoch=15,
@@ -21,7 +19,6 @@ class EngineExceptionTest(unittest.TestCase):
         self.assertRaises(EngineException, f)
 
     def test_raise_from(self):
-
         def f1():
             raise TypeError("Original Exception")
 

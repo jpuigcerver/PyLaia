@@ -37,7 +37,6 @@ class TqdmStreamHandler(logging.StreamHandler):
 
 
 class FormatMessage(object):
-
     def __init__(self, fmt, *args, **kwargs):
         self.fmt = fmt
         self.args = args
@@ -48,7 +47,6 @@ class FormatMessage(object):
 
 
 class Logger(logging.Logger):
-
     def __init__(self, name, level=logging.NOTSET):
         super(Logger, self).__init__(name, level)
 

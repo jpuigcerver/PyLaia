@@ -16,7 +16,6 @@ def _get_height(x):
 
 
 class VggRnnFixedHeight(nn.Module):
-
     def __init__(
         self,
         input_height,

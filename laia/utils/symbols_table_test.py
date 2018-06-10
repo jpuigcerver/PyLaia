@@ -9,7 +9,6 @@ from laia.utils.symbols_table import SymbolsTable
 
 
 class SymbolsTableTest(unittest.TestCase):
-
     def test_empty(self):
         st = SymbolsTable()
         self.assertEqual(len(st), 0)

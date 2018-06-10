@@ -15,7 +15,6 @@ _logger = log.get_logger(__name__)
 
 
 class TextImageFromTextTableDataset(TextImageDataset):
-
     def __init__(
         self,
         txt_table,

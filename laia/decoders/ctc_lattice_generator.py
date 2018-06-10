@@ -8,7 +8,6 @@ import pywrapfst as fst
 
 
 class CTCLatticeGenerator(object):
-
     def __init__(self, normalize=False):
         self._normalize = normalize
 

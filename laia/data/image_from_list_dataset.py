@@ -15,7 +15,6 @@ _logger = log.get_logger(__name__)
 
 
 class ImageFromListDataset(ImageDataset):
-
     def __init__(
         self,
         img_list,

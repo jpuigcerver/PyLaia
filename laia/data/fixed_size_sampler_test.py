@@ -6,7 +6,6 @@ import unittest
 
 
 class DummyDataset(object):
-
     def __init__(self, size):
         self._size = size
 
@@ -15,7 +14,6 @@ class DummyDataset(object):
 
 
 class FixedSizeSamplerTest(unittest.TestCase):
-
     def test_simple(self):
         sampler = FixedSizeSampler(DummyDataset(2), 2)
         self.assertEqual(2, len(sampler))

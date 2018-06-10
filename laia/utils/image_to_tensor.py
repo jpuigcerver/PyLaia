@@ -6,15 +6,16 @@ from PIL import Image, ImageOps
 
 
 class ImageToTensor(object):
-
-    def __init__(self,
-                 invert=True,
-                 mode="L",
-                 fixed_height=None,
-                 fixed_width=None,
-                 min_height=None,
-                 min_width=None,
-                 pad_color=0):
+    def __init__(
+        self,
+        invert=True,
+        mode="L",
+        fixed_height=None,
+        fixed_width=None,
+        min_height=None,
+        min_width=None,
+        pad_color=0,
+    ):
         assert mode in ("L", "RGB", "RGBA")
         assert fixed_height is None or fixed_height > 0
         assert fixed_width is None or fixed_width > 0
@@ -46,9 +47,8 @@ class ImageToTensor(object):
             nw = cw if self._mw is None or cw >= self._mw else self._mw
             nh = ch if self._mh is None or ch >= self._mh else self._mh
             if cw != nw or ch != nh:
-                nx = Image.new('L', size=(nw, nh), color=self._pad_color)
-                nx.paste(x, ((nw - cw) // 2,
-                             (nh - ch) // 2))
+                nx = Image.new("L", size=(nw, nh), color=self._pad_color)
+                nx.paste(x, ((nw - cw) // 2, (nh - ch) // 2))
                 x = nx
 
         x = np.asarray(x, dtype=np.float32)

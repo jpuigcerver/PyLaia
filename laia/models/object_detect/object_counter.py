@@ -5,7 +5,6 @@ import torch.nn.functional as F
 
 
 class ObjectCounter(nn.Module):
-
     def __init__(
         self,
         num_input_channels,

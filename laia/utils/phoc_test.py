@@ -4,7 +4,6 @@ from laia.utils.phoc import unigram_phoc, new_unigram_phoc
 
 
 class UnigramPHOCTest(unittest.TestCase):
-
     def test_level_1(self):
         d = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
 
@@ -43,7 +42,6 @@ class UnigramPHOCTest(unittest.TestCase):
 
 
 class NewUnigramPHOCTest(unittest.TestCase):
-
     def test_level_1(self):
         d = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
 
