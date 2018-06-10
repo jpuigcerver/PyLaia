@@ -5,9 +5,6 @@ set -e;
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 cd "${SDIR}/..";
 
-[ -s data/gw_20p_wannot/3090309_boxes.txt ] ||
-{ echo "Missing \"data/gw_20p_wannot/*_boxes.txt\" files!" >&2 && exit 1; }
-
 which convert identify &> /dev/null ||
 { echo "ImageMagick does not seem installed in your system!" >&2 && exit 1; }
 
