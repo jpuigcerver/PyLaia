@@ -14,7 +14,6 @@ from laia.hooks import action
 from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
 from laia.nn.image_to_sequence import ImageToSequence
 from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
-from torch.nn import BCEWithLogitsLoss
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 
