@@ -13,7 +13,6 @@ from laia.hooks.meters import (
 )
 from laia.logging import get_logger
 from laia.losses import CTCLoss
-from laia.losses.ctc_loss import LossException
 from laia.utils.char_to_word_seq import char_to_word_seq
 
 _logger = get_logger(__name__)
