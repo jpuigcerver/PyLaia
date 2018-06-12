@@ -53,6 +53,7 @@ class VggRnn(nn.Module):
         rnn_layers,
         rnn_dropout,
         lin_dropout,
+        rnn_type=nn.LSTM,
         collapse="mean",  # Can be a function as well
         inplace=False,
     ):
@@ -89,7 +90,7 @@ class VggRnn(nn.Module):
             self.add_module("conv_block{}".format(i), layer)
             self._conv_blocks.append(layer)
 
-        rnn = nn.LSTM(
+        rnn = rnn_type(
             ni,
             rnn_units,
             rnn_layers,
