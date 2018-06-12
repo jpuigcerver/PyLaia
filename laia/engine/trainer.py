@@ -9,8 +9,8 @@ import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
-from laia.losses.ctc_loss import LossException
 from laia.utils import check_inf, check_nan
+from laia.losses.loss import Loss
 
 _logger = log.get_logger(__name__)
 
@@ -244,36 +244,10 @@ class Trainer(Engine):
 
     def compute_loss(self, batch, batch_output, batch_target):
         try:
-            batch_loss = self._criterion(batch_output, batch_target)
-            if isinstance(batch_loss, tuple):
-                batch_loss, error_indices = batch_loss
-                if error_indices:
-                    samples = (
-                        [self.batch_ith_fn(batch, i) for i in error_indices]
-                        if self.batch_ith_fn
-                        else batch  # Usually a dict
-                    )
-                    if self.batch_id_fn:
-                        samples = (
-                            [self.batch_id_fn(sample) for sample in samples]
-                            if isinstance(samples, list) or isinstance(samples, tuple)
-                            else self.batch_id_fn(samples)
-                        )
-                    message = "samples {}{}".format(
-                        samples,
-                        " in the indices {}".format(error_indices)
-                        if not self.batch_ith_fn
-                        else "",
-                    )
-                    self.logger.warn("Failed to compute the loss for the {}", message)
-            return batch_loss
-        except LossException as e:
-            self.logger.warn(
-                "Ignored the following samples whilst calculating the loss: {}. "
-                "Exception: {}",
-                self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                e,
-            )
+            kwargs = {}
+            if isinstance(self._criterion, Loss) and self.batch_id_fn:
+                kwargs = {"batch_ids": self.batch_id_fn(batch)}
+            return self._criterion(batch_output, batch_target, **kwargs)
         except Exception as e:
             wrapper = EngineException(
                 epoch=self._epochs,
