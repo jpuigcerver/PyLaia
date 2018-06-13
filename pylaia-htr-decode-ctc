@@ -52,12 +52,7 @@ if __name__ == "__main__":
         help="Use this string as the separator between the ids and the output",
     )
     add_argument(
-        "--use_letters",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="Print the output with letters",
+        "--use_letters", action="store_true", help="Print the output with letters"
     )
     add_argument(
         "--space", type=str, help="Replace <space> with this. Used with --use_letters"
@@ -96,11 +91,11 @@ if __name__ == "__main__":
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
         batch_decode = decoder(batch_output)
-        for imgid, out in zip(batch["id"], batch_decode):
+        for img_id, out in zip(batch["id"], batch_decode):
             if args.use_letters:
                 out = [str(syms[val]) for val in out]
                 if args.space:
                     out = [args.space if sym == "<space>" else sym for sym in out]
                 if args.join_str is not None:
                     out = args.join_str.join(out)
-            print(imgid + args.separator + str(out) if args.print_img_ids else out)
+            print(img_id + args.separator + str(out) if args.print_img_ids else out)

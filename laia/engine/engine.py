@@ -37,9 +37,6 @@ class Engine(object):
         batch_id_fn (optional): if given, this callable object is
             used to extract the batch ids to be used in a possible exception.
             (default: None)
-        batch_ith_fn (optional): if given, this callable object is
-            used to extract the ith sample from the batch to be used
-            in a possible exception. (default: None)
         progress_bar (optional): if ``True``, :mod:`tqdm` will be
             used to show a progress bar for each epoch. If a string is given,
             the content of the string will be shown before the progress bar.
@@ -53,7 +50,6 @@ class Engine(object):
         batch_input_fn=None,  # type: Callable
         batch_target_fn=None,  # type: Callable
         batch_id_fn=None,  # type: Callable
-        batch_ith_fn=None,  # type: Callable
         progress_bar=None,  # type: Union[bool, str]
     ):
         # type: (...) -> None
@@ -62,7 +58,6 @@ class Engine(object):
         self._batch_input_fn = batch_input_fn
         self._batch_target_fn = batch_target_fn
         self._batch_id_fn = batch_id_fn
-        self._batch_ith_fn = batch_ith_fn
         self._progress_bar = progress_bar
 
         self._epochs = 0
@@ -81,10 +76,6 @@ class Engine(object):
     @property
     def batch_id_fn(self):
         return self._batch_id_fn
-
-    @property
-    def batch_ith_fn(self):
-        return self._batch_ith_fn
 
     @property
     def model(self):

@@ -37,9 +37,6 @@ class Trainer(Engine):
         batch_id_fn (optional): if given, this callable object is
             used to extract the batch ids to be used in a possible exception.
             (default: None)
-        batch_ith_fn (optional): if given, this callable object is
-            used to extract the ith sample from the batch to be used
-            in a possible exception. (default: None)
         progress_bar (optional): if ``True``, :mod:`tqdm` will be
             used to show a progress bar for each epoch. If a string is given,
             the content of the string will be shown before the progress bar.
@@ -58,7 +55,6 @@ class Trainer(Engine):
         batch_input_fn=None,  # type: Callable
         batch_target_fn=None,  # type: Callable
         batch_id_fn=None,  # type: Callable
-        batch_ith_fn=None,  # type: Callable
         progress_bar=None,  # type: Union[bool, str]
         iterations_per_update=1,  # type: int
     ):
@@ -69,7 +65,6 @@ class Trainer(Engine):
             batch_input_fn=batch_input_fn,
             batch_target_fn=batch_target_fn,
             batch_id_fn=batch_id_fn,
-            batch_ith_fn=batch_ith_fn,
             progress_bar=progress_bar,
         )
         self._criterion = criterion

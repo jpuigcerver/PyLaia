@@ -30,11 +30,6 @@ from laia.plugins.saver import (
 )
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
-
-def batch_ith_fn(batch, i):
-    return {key: values[i] for key, values in batch.items() if key != "img"}
-
-
 if __name__ == "__main__":
     add_defaults(
         "batch_size",
@@ -115,7 +110,6 @@ if __name__ == "__main__":
             "optimizer": optimizer,
             "batch_target_fn": ItemFeeder("txt"),
             "batch_id_fn": ItemFeeder("id"),  # Print image ids on exception
-            "batch_ith_fn": batch_ith_fn,  # Select the correct sample on exception
         }
         trainer = Trainer(**parameters)
         TrainerSaver(args.train_path).save(Trainer, **parameters)
@@ -172,7 +166,6 @@ if __name__ == "__main__":
         batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),
-        batch_ith_fn=batch_ith_fn,
     )
     evaluator.set_progress_bar("Valid" if args.show_progress_bar else None)
 

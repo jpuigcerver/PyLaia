@@ -16,7 +16,6 @@ except ImportError:
 
     warnings.warn("Missing CTC loss function library")
 
-Size = Union[torch.Size, Sequence[int]]
 FloatScalar = Union[float, torch.FloatTensor]
 
 # TODO(jpuigcerver): Properly tests the logged messages.
@@ -44,19 +43,11 @@ def copy_valid_indices(
     """Copy the CTC inputs without the erroneous samples"""
     if len(valid_indices) == 0:
         return None, [], [], []
-    # Note: The batch size must be in the second dimension
-    seq_length, _, output_dim = acts.size()
-
-    aux1 = torch.LongTensor(valid_indices)
-    aux2 = acts.new(*aux1.shape).long().copy_(aux1)
-    acts_copy = torch.index_select(acts, 1, aux2)
-    """
-    acts_copy = acts.new(seq_length, len(valid_indices), output_dim)
-    for new_idx, ok_idx in enumerate(valid_indices):
-        acts_copy[:, new_idx, :] = acts[:, ok_idx, :]
-    """
+    valid_indices = torch.LongTensor(valid_indices)
+    aux = acts.new(*valid_indices.shape).long().copy_(valid_indices)
     return (
-        acts_copy,
+        # Note: The batch size must be in the second dimension
+        torch.index_select(acts, 1, aux),
         [target[i] for i in valid_indices],
         [act_lens[i] for i in valid_indices],
     )
@@ -67,10 +58,13 @@ def set_zeros_in_errors(size, input, valid_indices):
     """Copy the tensor with zeros in the erroneous indices"""
     if not isinstance(size, (list, tuple)):
         size = list(size)
+    valid_indices = (
+        torch.cuda.LongTensor(valid_indices)
+        if input.is_cuda
+        else torch.LongTensor(valid_indices)
+    )
     # Note: The batch size must be in the second dimension
-    valid_indices = torch.LongTensor(valid_indices)
-    out = input.new(*size).zero_().index_copy_(1, valid_indices, input)
-    return out
+    return input.new(*size).zero_().index_copy_(1, valid_indices, input)
 
 
 def get_valids_and_errors(act_lens, labels):
