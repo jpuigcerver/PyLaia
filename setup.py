@@ -26,5 +26,6 @@ setup(
         "pylaia-htr-create-model",
         "pylaia-htr-decode-ctc",
         "pylaia-htr-train-ctc",
+        "pylaia-htr-netout",
     ],
 )
