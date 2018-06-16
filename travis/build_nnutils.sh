@@ -5,10 +5,10 @@ set -e;
 cd third_party/nnutils;
 mkdir -p build;
 cd build;
-cmake -DWITH_CUDA=OFF -DWITH_PYTORCH=ON ..;
+cmake -DWITH_CUDA=OFF ..;
 make VERBOSE=1;
 
 # Install PyTorch wrapper
-cd pytorch;
+cd ../pytorch;
 python setup.py bdist_wheel;
 pip install $(find dist/ -name "*.whl");
