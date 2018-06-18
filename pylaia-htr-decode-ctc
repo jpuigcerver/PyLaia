@@ -98,4 +98,4 @@ if __name__ == "__main__":
                     out = [args.space if sym == "<space>" else sym for sym in out]
                 if args.join_str is not None:
                     out = args.join_str.join(out)
-            print(img_id + args.separator + str(out) if args.print_img_ids else out)
+            print(img_id + args.separator + str(" ".join(out)) if args.print_img_ids else " ".join(out))
