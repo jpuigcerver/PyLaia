@@ -17,7 +17,7 @@ from laia.plugins.loader import ModelLoader, ModelCheckpointLoader
 from laia.utils import ImageToTensor
 
 
-def _add_boundary_blank(cols):
+def boundary_blank(cols):
     # type: (int) -> str
     matrix = "0 "
     matrix += " ".join(["-1e+30"] * (cols - 1))
@@ -34,7 +34,7 @@ def output_matrix(
     # type: (...) -> str
     output = output.cpu()
     matrix = "{} [\n".format(img_id)
-    boundary = _add_boundary_blank(output.size(1)) if add_boundary_ctc_blank else ""
+    boundary = boundary_blank(output.size(1)) if add_boundary_ctc_blank else ""
     matrix += boundary
     matrix += (
         "\n".join(
