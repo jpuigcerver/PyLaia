@@ -51,16 +51,12 @@ if __name__ == "__main__":
         default=" ",
         help="Use this string as the separator between the ids and the output",
     )
+    add_argument("--join_str", type=str, help="Join the output using this")
     add_argument(
         "--use_letters", action="store_true", help="Print the output with letters"
     )
     add_argument(
         "--space", type=str, help="Replace <space> with this. Used with --use_letters"
-    )
-    add_argument(
-        "--join_str",
-        type=str,
-        help="Join the output using this. Used with --use_letters",
     )
     args = args()
 
@@ -96,6 +92,10 @@ if __name__ == "__main__":
                 out = [str(syms[val]) for val in out]
                 if args.space:
                     out = [args.space if sym == "<space>" else sym for sym in out]
-                if args.join_str is not None:
-                    out = args.join_str.join(out)
-            print(img_id + args.separator + str(" ".join(out)) if args.print_img_ids else " ".join(out))
+            if args.join_str is not None:
+                out = args.join_str.join(str(x) for x in out)
+            print(
+                "{}{}{}".format(img_id, args.separator, out)
+                if args.print_img_ids
+                else out
+            )
