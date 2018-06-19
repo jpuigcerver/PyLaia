@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-
-from __future__ import division
-
 import argparse
 
+import numpy as np
 import torch
+from scipy.spatial.distance import pdist
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -15,7 +13,6 @@ from laia.data import TextImageFromTextTableDataset
 from laia.models.kws.dortmund_phocnet import DortmundPHOCNet
 from laia.plugins.arguments import add_argument, add_defaults, args
 from laia.utils import ImageToTensor
-from laia.utils.phoc import cphoc, pphoc
 
 if __name__ == "__main__":
     add_defaults("gpu")
@@ -40,12 +37,13 @@ if __name__ == "__main__":
         nargs="*",
         help="Spatial Pyramid Pooling levels",
     )
-    add_argument("--distractors", help="Transcription of each distractor image")
     add_argument("syms", help="Symbols table mapping from strings to integers")
     add_argument("img_dir", help="Directory containing word images")
     add_argument("queries", help="Transcription of each query image")
     add_argument("model_checkpoint", help="Filepath of the model checkpoint")
-    add_argument("output", type=argparse.FileType("w"), help="Output file")
+    add_argument(
+        "output", type=argparse.FileType("w"), help="Filepath of the output file"
+    )
     args = args()
 
     syms = laia.utils.SymbolsTable(args.syms)
@@ -61,45 +59,34 @@ if __name__ == "__main__":
     model = model.cuda(args.gpu - 1) if args.gpu > 0 else model.cpu()
     model.eval()
 
+    queries_dataset = TextImageFromTextTableDataset(
+        args.queries, args.img_dir, img_transform=ImageToTensor()
+    )
+    queries_loader = DataLoader(queries_dataset)
+
     def process_image(sample):
         sample = Variable(sample, requires_grad=False)
         sample = sample.cuda(args.gpu - 1) if args.gpu > 0 else sample.cpu()
-        phoc = torch.nn.functional.logsigmoid(model(sample))
-        return phoc.data.cpu().squeeze()
+        phoc = torch.nn.functional.sigmoid(model(sample))
+        return phoc.data.cpu().numpy()
 
-    def process_dataset(filename):
-        dataset = TextImageFromTextTableDataset(
-            filename, args.img_dir, img_transform=ImageToTensor()
-        )
-        data_loader = DataLoader(dataset)
-        phocs = []
-        samples = []
-        for sample in tqdm(data_loader):
-            phocs.append(process_image(sample["img"]))
-            samples.append(sample["id"][0])
-        return torch.stack(phocs).type("torch.DoubleTensor"), samples
+    # Predict PHOC vectors
+    phocs = []
+    labels = []
+    samples = []
+    for query in tqdm(queries_loader):
+        phocs.append(process_image(query["img"]))
+        labels.append(query["txt"][0])
+        samples.append(query["id"][0])
 
-    # Process queries
-    phocs, samples = process_dataset(args.queries)
     n = len(phocs)
-    log.info("Computing pairwise relevance probabilities among {} queries", n)
-    logprobs = pphoc(phocs)
-    for i in range(n):
-        for j in range(i + 1, n):  # Note: this skips the pair (i, i)
-            k = i * n - i * (i - 1) // 2 + (j - i)
-            args.output.write("{} {} {}\n".format(samples[i], samples[j], logprobs[k]))
-            args.output.write("{} {} {}\n".format(samples[j], samples[i], logprobs[k]))
+    log.info("Computing pairwise distances among {} queries", n)
+    distances = pdist(np.concatenate(phocs), "braycurtis")
+    # Sort pairs of examples in increasing order
+    inds = [(i, j) for i in range(n) for j in range(i + 1, n)]
+    inds = [(inds[k], k) for k in np.argsort(distances)]
 
-    # Process distractors
-    if args.distractors:
-        phocs2, samples2 = process_dataset(args.distractors)
-        n2 = len(phocs2)
-        log.info("Computing distances between {} queries and {} distractors", n, n2)
-        logprobs = cphoc(phocs, phocs2)
-        for i in range(n):
-            for j in range(n2):
-                args.output.write(
-                    "{} {} {}\n".format(samples[i], samples2[j], logprobs[i, j])
-                )
-
+    for (i, j), k in inds:
+        args.output.write("{} {} {}\n".format(samples[i], samples[j], distances[k]))
+        args.output.write("{} {} {}\n".format(samples[j], samples[i], distances[k]))
     log.info("Done.")

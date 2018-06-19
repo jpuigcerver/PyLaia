@@ -3,8 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-from laia.utils.phoc import unigram_phoc
+
 from future.utils import viewitems
+
+from laia.utils.phoc import unigram_phoc
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input_text', type=argparse.FileType('r'))
@@ -24,7 +26,7 @@ alphabet = sorted(list(alphabet))
 
 # Obtain the different PHOCs and count how many words produce the
 # same PHOC code.
-unigram_map = { c: i for i, c in enumerate(alphabet) }
+unigram_map = {c: i for i, c in enumerate(alphabet)}
 
 phoc_levels = 1
 done = False

@@ -1,1 +1,1 @@
-../../../washington/steps/train_phocnet.py
+../../../washington/src/python/train_phocnet.py

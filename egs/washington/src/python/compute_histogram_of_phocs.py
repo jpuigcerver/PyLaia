@@ -2,12 +2,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
-from laia.utils.phoc import unigram_phoc
+
 from future.utils import viewitems
 
+from laia.utils.phoc import unigram_phoc
+
 parser = argparse.ArgumentParser()
-parser.add_argument('input_text', type=argparse.FileType('r'))
-parser.add_argument('phoc_levels', type=int)
+parser.add_argument("input_text", type=argparse.FileType("r"))
+parser.add_argument("phoc_levels", type=int)
 args = parser.parse_args()
 
 # Load George Washington vocabulary
@@ -24,7 +26,7 @@ alphabet = sorted(list(alphabet))
 
 # Obtain the different PHOCs and count how many words produce the
 # same PHOC code.
-unigram_map = { c: i for i, c in enumerate(alphabet) }
+unigram_map = {c: i for i, c in enumerate(alphabet)}
 phoc_counter = {}
 for word in vocabulary:
     phoc = unigram_phoc(word, unigram_map, list(range(1, args.phoc_levels + 1)))
