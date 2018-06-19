@@ -6,7 +6,7 @@ if [ $# -lt 2 ]; then
   cat <<EOF > /dev/stderr
 Usage: ${0##*/} PARTITION_ID OUTPUT_DIR [TRAIN_OPTIONS]
 
-Example: ${0##*/} cv1 train/dortmund/phoc/cv1 --gpu=2
+Example: ${0##*/} cv1 train/dortmund/ctc/cv1 --gpu=2
 EOF
   exit 1;
 fi;
@@ -33,14 +33,14 @@ if [ -s "$ckpt" ]; then
     fi;
 fi;
 
-python ./steps/train_phocnet.py \
+python ./src/python/train_ctc.py \
        --max_epochs=160 \
        --train_samples_per_epoch=5000 \
        --logging_also_to_stderr=INFO \
        --logging_file="$OUTPUT_DIR/train.log" \
        --train_path="$OUTPUT_DIR" \
        $@ \
-       data/lang/dortmund/syms_phoc.txt \
+       data/lang/dortmund/syms_ctc.txt \
        data/imgs/dortmund \
        "$TRAIN_TXT" \
        "$VALID_TXT";

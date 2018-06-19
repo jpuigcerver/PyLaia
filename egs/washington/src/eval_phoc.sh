@@ -30,7 +30,11 @@ if [ -s "$3" ]; then
 fi;
 
 [ "$compute_dist" -eq 1 ] &&
-python steps/pairwise_prob_phoc.py \
+python src/python/pairwise_phocnet.py \
+       --phoc_levels 1 2 3 4 5 \
+       --tpp_levels 1 2 3 4 5 \
+       --spp_levels \
+       -- \
        data/lang/dortmund/syms_phoc.txt \
        data/imgs/dortmund \
        <(join -1 1 <(sort "$TXT") <(cut -d\  -f1 "$REL" | sort -u)) \
@@ -41,6 +45,6 @@ SimpleKwsEval \
   --collapse_matches true \
   --trapezoid_integral false \
   --interpolated_precision false \
-  --sort desc \
+  --sort asc \
   "$REL" \
   "$3";

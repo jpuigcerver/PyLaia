@@ -14,25 +14,20 @@ from laia.utils import ImageToTensor, TextToTensor
 from laia.utils.symbols_table import SymbolsTable
 
 
-def dump_output_matrix(img_ids, outputs, fileout, add_boundary_blank):
+def ctc_lattice(img_ids, outputs, fileout):
     for img_id, output in zip(img_ids, outputs):
         output = output.cpu()
-        print("{} [".format(img_id), file=fileout)
-        if add_boundary_blank:
-            print("{:.10g}".format(0.0), file=fileout, end=" ")
-            for k in range(1, output.size(1)):
-                print("{:.10g}".format(-1e30), file=fileout, end=" ")
-            print("", file=fileout)
+        print(img_id, file=fileout)
         for t in range(output.size(0)):
             for k in range(output.size(1)):
-                print("{:.10g}".format(float(output[t, k])), file=fileout, end=" ")
-            print("", file=fileout)
-        if add_boundary_blank:
-            print("{:.10g}".format(0.0), file=fileout, end=" ")
-            for k in range(1, output.size(1)):
-                print("{:.10g}".format(-1e30), file=fileout, end=" ")
-            print("", file=fileout)
-        print("]", file=fileout)
+                print(
+                    "{:d}\t{:d}\t{:d}\t0,{:.10g},{:d}".format(
+                        t, t + 1, k + 1, -float(output[t, k]), k + 1
+                    ),
+                    file=fileout,
+                )
+        print(output.size(0), file=fileout)
+        print("", file=fileout)
 
 
 if __name__ == "__main__":
@@ -46,7 +41,6 @@ if __name__ == "__main__":
     add_argument("--lstm_hidden_size", type=int, default=128)
     add_argument("--lstm_num_layers", type=int, default=1)
     add_argument("--add_softmax", action="store_true")
-    add_argument("--add_boundary_blank", action="store_true")
     add_argument("syms", help="Symbols table mapping from strings to integers")
     add_argument("img_dir", help="Directory containing word images")
     add_argument("gt_file", help="")
@@ -94,4 +88,4 @@ if __name__ == "__main__":
             y = model(torch.autograd.Variable(x)).data
             if args.add_softmax:
                 y = torch.nn.functional.log_softmax(y, dim=-1)
-            dump_output_matrix(batch["id"], [y], args.output, args.add_boundary_blank)
+            ctc_lattice(batch["id"], [y], args.output)
