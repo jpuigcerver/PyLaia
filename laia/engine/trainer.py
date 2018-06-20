@@ -3,11 +3,9 @@ from __future__ import absolute_import
 from typing import Callable, Union, Iterable, Optional
 
 import torch
-from future.utils import raise_from
 
 import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
-from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
 from laia.losses.loss import Loss
 from laia.utils import check_inf, check_nan
@@ -154,16 +152,8 @@ class Trainer(Engine):
             self._model.train()
 
         # Run model
-        try:
+        with self.exception_catcher(batch):
             batch_output = self._model(batch_input)
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
         # Note: These checks are only active when logging level <= DEBUG
         check_inf(
@@ -203,16 +193,8 @@ class Trainer(Engine):
             batch_n,
             self._iterations,
         )
-        try:
+        with self.exception_catcher(batch):
             batch_loss.backward()
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
         self._iterations += 1
 
@@ -233,19 +215,11 @@ class Trainer(Engine):
         self._call_hooks(ITER_END, **action_kwargs)
 
     def compute_loss(self, batch, batch_output, batch_target):
-        try:
+        with self.exception_catcher(batch):
             kwargs = {}
             if isinstance(self._criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
             return self._criterion(batch_output, batch_target, **kwargs)
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
     def state_dict(self):
         return {

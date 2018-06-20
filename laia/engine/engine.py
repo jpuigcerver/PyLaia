@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from contextlib import contextmanager
 from typing import Iterable, Callable, Union, Optional
 
 import torch
@@ -187,16 +188,8 @@ class Engine(object):
             self._model.eval()
 
         # Run model
-        try:
+        with self.exception_catcher(batch):
             batch_output = self._model(batch_input)
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
         self._iterations += 1
         action_kwargs["iteration"] = self._iterations
@@ -233,6 +226,19 @@ class Engine(object):
         else:
             self._epochs += 1
             self._call_hooks(EPOCH_END, epoch=self._epochs)
+
+    @contextmanager
+    def exception_catcher(self, batch):
+        try:
+            yield
+        except Exception as e:
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
+                cause=e,
+            )
+            raise_from(wrapper, e)
 
     def state_dict(self):
         return {
