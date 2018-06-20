@@ -2,6 +2,7 @@
 set -e;
 export LC_NUMERIC=C;
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+export PATH="$SDIR/../../utils:$PATH";
 
 function txt2voc () {
   sed -r 's|\s+| |g;s|^ +||g;s| +$||g' |
@@ -67,7 +68,7 @@ Options:
   --nshortest
   --syms
 ";
-source "$SDIR/parse_options.inc.sh" || exit 1;
+source "$SDIR/../../utils/parse_options.inc.sh" || exit 1;
 [ $# -lt 2 ] && echo "$help_message" >&2 && exit 1;
 
 G="$1";
@@ -138,7 +139,7 @@ print(total_cost)
 fi;
 
 if [ -n "$syms" ]; then
-  "$SDIR/sym2int.pl" -f 2- "$syms" "$voc";
+  sym2int.pl -f 2- "$syms" "$voc";
 else
   cat "$voc";
 fi |
