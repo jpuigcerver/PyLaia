@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from typing import Callable, Union, Iterable
+from typing import Callable, Union, Iterable, Optional
 
 import torch
 from future.utils import raise_from
@@ -9,8 +9,8 @@ import laia.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
-from laia.utils import check_inf, check_nan
 from laia.losses.loss import Loss
+from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
 
@@ -25,37 +25,32 @@ class Trainer(Engine):
         criterion: used criterion to train the model.
         optimizer: optimizer object that will update the parameters of the model.
         data_loader: iterable object from which batches are read.
-            (default: None)
-        batch_input_fn (optional): function used to extract the input
+        batch_input_fn: function used to extract the input
             for the model (e.g. a ``torch.Tensor``), from the batch loaded by
             the ``data_loader``. If ``None``, the batch is fed as-is to the
-            model. (default: None)
-        batch_target_fn (optional): if given, this callable object
+            model.
+        batch_target_fn: if given, this callable object
             is used to extract the targets from the batch, which are
             passed to the `ITER_START` and `ITER_END` hooks.
-            (default: None)
-        batch_id_fn (optional): if given, this callable object is
+        batch_id_fn: if given, this callable object is
             used to extract the batch ids to be used in a possible exception.
-            (default: None)
-        progress_bar (optional): if ``True``, :mod:`tqdm` will be
+        progress_bar: if ``True``, :mod:`tqdm` will be
             used to show a progress bar for each epoch. If a string is given,
             the content of the string will be shown before the progress bar.
-            (default: None)
-        iterations_per_update (optional): Number of successive mini-batch
+        iterations_per_update: Number of successive mini-batch
             parameter gradients to accumulate before updating the parameters.
-            (default: 1)
     """
 
     def __init__(
         self,
         model,  # type: torch.nn.Module
-        criterion,  # type: Callable
+        criterion,  # type: Optional[Callable]
         optimizer,  # type: torch.optim.Optimizer
-        data_loader=None,  # type: Iterable
-        batch_input_fn=None,  # type: Callable
-        batch_target_fn=None,  # type: Callable
-        batch_id_fn=None,  # type: Callable
-        progress_bar=None,  # type: Union[bool, str]
+        data_loader=None,  # type: Optional[Iterable]
+        batch_input_fn=None,  # type: Optional[Callable]
+        batch_target_fn=None,  # type: Optional[Callable]
+        batch_id_fn=None,  # type: Optional[Callable]
+        progress_bar=None,  # type: Optional[Union[bool, str]]
         iterations_per_update=1,  # type: int
     ):
         # type: (...) -> None

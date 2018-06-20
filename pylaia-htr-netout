@@ -17,13 +17,6 @@ from laia.plugins.loader import ModelLoader, ModelCheckpointLoader
 from laia.utils import ImageToTensor
 
 
-def boundary_blank(cols):
-    # type: (int) -> str
-    matrix = "0 "
-    matrix += " ".join(["-1e+30"] * (cols - 1))
-    return matrix + "\n"
-
-
 def output_matrix(
     img_id,  # type: str
     output,  # type: torch.Tensor
@@ -34,6 +27,13 @@ def output_matrix(
     # type: (...) -> str
     output = output.cpu()
     matrix = "{} [\n".format(img_id)
+
+    def boundary_blank(cols):
+        # type: (int) -> str
+        matrix = "0 "
+        matrix += " ".join(["-1e+30"] * (cols - 1))
+        return matrix + "\n"
+
     boundary = boundary_blank(output.size(1)) if add_boundary_ctc_blank else ""
     matrix += boundary
     matrix += (

@@ -58,15 +58,15 @@ class DortmundCRNN(torch.nn.Module):
         if xs is not None:
             xs = size_after_conv(xs)
             assert [x.size(2), x.size(3)] == xs.cpu()[0].data.tolist()
-
         x = self.sequencer(x if xs is None else PaddedTensor(data=x, sizes=xs))
         x = self.dropout(x, p=self._dropout)
         x, _ = self.blstm(x)
         x = self.dropout(x, p=self._dropout)
-        if isinstance(x, PackedSequence):
-            return PackedSequence(data=self.linear(x.data), batch_sizes=x.batch_sizes)
-        else:
-            return self.linear(x)
+        return (
+            PackedSequence(data=self.linear(x.data), batch_sizes=x.batch_sizes)
+            if isinstance(x, PackedSequence)
+            else self.linear(x)
+        )
 
 
 def convert_old_parameters(params):
@@ -74,7 +74,7 @@ def convert_old_parameters(params):
     # type: OrderedDict -> OrderedDict
     new_params = []
     for k, v in params.items():
-        if k[:4] == "conv":
+        if k.startswith("conv"):
             new_params.append(("conv.{}".format(k), v))
         elif k == "linear._module.weight":
             new_params.append(("linear.weight", v))

@@ -190,10 +190,7 @@ if __name__ == "__main__":
             cnn_dilation=args.cnn_dilation,
             cnn_poolsize=args.cnn_poolsize,
         )
-        if args.vertical_text:
-            fixed_size_after_conv = fixed_size_after_conv[1]
-        else:
-            fixed_size_after_conv = fixed_size_after_conv[0]
+        fixed_size_after_conv = fixed_size_after_conv[1 if args.vertical_text else 0]
         assert fixed_size_after_conv > 0, "The image size after the convolution is zero"
         image_sequencer = "none-{}".format(fixed_size_after_conv)
     else:
