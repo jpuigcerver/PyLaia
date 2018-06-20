@@ -67,3 +67,35 @@ class DortmundImageToTensor(object):
             x = np.expand_dims(x, axis=-1)
         x = np.transpose(x, (2, 0, 1))
         return torch.from_numpy(x)
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    import laia.random
+    from laia.data import TextImageFromTextTableDataset, ImageDataLoader
+    from laia.plugins.arguments import add_argument, add_defaults, args
+
+    add_defaults("seed")
+    add_argument("--num_images", type=int, help="Show only this number of images")
+    add_argument("--shuffle", action="store_true", help="Shuffle the list of images")
+    add_argument("img_dir", help="Directory containing images")
+    add_argument("txt_table", help="Transcriptions of each image")
+    args = args()
+    laia.random.manual_seed(args.seed)
+
+    dataset = TextImageFromTextTableDataset(
+        args.txt_table, args.img_dir, img_transform=DortmundImageToTensor()
+    )
+    dataset_loader = ImageDataLoader(
+        dataset=dataset, image_channels=1, shuffle=args.shuffle
+    )
+
+    for i, batch in enumerate(dataset_loader, 1):
+        if args.num_images and i > args.num_images:
+            break
+        # Note: batch['img'] is a PaddedTensor
+        img = batch["img"].data.squeeze().numpy()
+        imgplt = plt.imshow(img, cmap="gray")
+        imgplt.axes.set_title(" ".join(batch["txt"][0]))
+        plt.show()
