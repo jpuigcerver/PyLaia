@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from typing import Optional, Union, Tuple
+from itertools import product
 
 from laia.data import PaddedTensor
 from laia.nn.mask_image_from_size import mask_image_from_size
@@ -32,23 +33,17 @@ class ConvBlock(nn.Module):
         if not isinstance(kernel_size, (list, tuple)):
             kernel_size = (kernel_size, kernel_size)
         if not isinstance(dilation, (list, tuple)):
-            dilation = (dilation, dilation)
+            dilation = (dilation,) * 2
+
         # Prepare poolsize
         if poolsize and not isinstance(poolsize, (list, tuple)):
             poolsize = (poolsize, poolsize)
         elif isinstance(poolsize, (list, tuple)):
-            if (
-                poolsize == (0, 0)
-                or poolsize == (1, 1)
-                or poolsize == (0, 1)
-                or poolsize == (1, 0)
-            ):
-                poolsize = None
-            else:
-                poolsize = (
-                    poolsize[0] if poolsize[0] else 1,
-                    poolsize[1] if poolsize[1] else 1,
-                )
+            poolsize = (
+                None
+                if poolsize in product((0, 1), repeat=2)
+                else tuple(poolsize[dim] if poolsize[dim] else 1 for dim in (0, 1))
+            )
 
         self.dropout = dropout
         self.in_channels = in_channels
@@ -68,10 +63,7 @@ class ConvBlock(nn.Module):
         )
 
         # Add Batch normalization
-        if batchnorm:
-            self.batchnorm = nn.BatchNorm2d(out_channels)
-        else:
-            self.batchnorm = None
+        self.batchnorm = nn.BatchNorm2d(out_channels) if batchnorm else None
 
         # Activation function must support inplace operations.
         self.activation = activation(inplace=inplace)
@@ -119,10 +111,9 @@ class ConvBlock(nn.Module):
         if self.pool:
             x = self.pool(x)
 
-        if xs is None:
-            return x
-        else:
-            return PaddedTensor(x, sizes=self.get_output_batch_size(xs))
+        return (
+            x if xs is None else PaddedTensor(x, sizes=self.get_output_batch_size(xs))
+        )
 
     def get_output_batch_size(self, xs):
         if isinstance(xs, Variable):
@@ -158,7 +149,7 @@ class ConvBlock(nn.Module):
         size = (size + 2 * padding - dilation * (kernel_size - 1) - 1) / stride + 1
         size = size.floor() if torch.is_tensor(size) else math.floor(size)
         if poolsize:
-            size = size / poolsize
+            size /= poolsize
         if torch.is_tensor(size):
             return size.floor().long()
         else:

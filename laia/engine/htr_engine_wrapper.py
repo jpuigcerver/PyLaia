@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-import torch
+from typing import Callable, Optional, Sequence
 
 from laia.decoders import CTCGreedyDecoder
-from laia.engine.engine import EPOCH_START, EPOCH_END, ITER_END
+from laia.engine.trainer import Trainer
+from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, ITER_END
 from laia.hooks import action
 from laia.hooks.meters import (
     RunningAverageMeter,
@@ -30,18 +31,19 @@ class HtrEngineWrapper(object):
 
     def __init__(
         self,
-        train_engine,
-        valid_engine=None,
-        check_va_hook_when=EPOCH_END,
-        va_hook_condition=None,
-        word_delimiters=None,
+        train_engine,  # type: Trainer
+        valid_engine=None,  # type: Optional[Evaluator]
+        check_va_hook_when=EPOCH_END,  # type: Optional[str]
+        va_hook_condition=None,  # type: Optional[Callable]
+        word_delimiters=None,  # type: Optional[Sequence]
     ):
+        # type: (...) -> None
         self._tr_engine = train_engine
         self._va_engine = valid_engine
         self._word_delimiters = word_delimiters
 
-        # If the trainer was created without any criterion, or it is not
-        # the CTCLoss, set it properly.
+        # If the trainer was created without any criterion,
+        # or it is not the CTCLoss, set it properly.
         if not self._tr_engine.criterion:
             self._tr_engine.criterion = CTCLoss()
         elif not isinstance(self._tr_engine.criterion, CTCLoss):
@@ -57,7 +59,7 @@ class HtrEngineWrapper(object):
         self._tr_engine.add_hook(EPOCH_START, self._train_reset_meters)
         self._tr_engine.add_hook(ITER_END, self._train_update_meters)
 
-        if valid_engine:
+        if self._va_engine:
             self._valid_timer = TimeMeter()
             self._valid_loss = RunningAverageMeter()
             self._valid_cer = SequenceErrorMeter()

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from typing import Iterable, Callable, Union
+from typing import Iterable, Callable, Union, Optional
 
 import torch
 from future.utils import raise_from
@@ -46,11 +46,11 @@ class Engine(object):
     def __init__(
         self,
         model,  # type: torch.nn.Module
-        data_loader=None,  # type: Iterable
-        batch_input_fn=None,  # type: Callable
-        batch_target_fn=None,  # type: Callable
-        batch_id_fn=None,  # type: Callable
-        progress_bar=None,  # type: Union[bool, str]
+        data_loader=None,  # type: Optional[Iterable]
+        batch_input_fn=None,  # type: Optional[Callable]
+        batch_target_fn=None,  # type: Optional[Callable]
+        batch_id_fn=None,  # type: Optional[Callable]
+        progress_bar=None,  # type: Optional[Union[bool, str]]
     ):
         # type: (...) -> None
         self._model = model

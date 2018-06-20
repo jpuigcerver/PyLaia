@@ -47,7 +47,7 @@ class LaiaCRNNTest(unittest.TestCase):
         # Check output size
         self.assertListEqual(ys, [300 // 8, 5, 30])
         # Check number of parameters
-        self.assertEqual(sum([p.numel() for p in m.parameters()]), 2422094)
+        self.assertEqual(sum(p.numel() for p in m.parameters()), 2422094)
         # Check gradient
         dx, = torch.autograd.grad([y.sum()], [x])
         self.assertNotAlmostEqual(torch.sum(dx.data), 0.0)
@@ -86,7 +86,7 @@ class LaiaCRNNTest(unittest.TestCase):
         # Check output size
         self.assertListEqual(ys, [300 // 8, 290 // 8, 200 // 8, 200 // 8, 20 // 8])
         # Check number of parameters
-        self.assertEqual(sum([p.numel() for p in m.parameters()]), 2422094)
+        self.assertEqual(sum(p.numel() for p in m.parameters()), 2422094)
         # Check gradient
         dx, = torch.autograd.grad([y.sum()], [x])
         self.assertNotAlmostEqual(torch.sum(dx.data), 0.0)

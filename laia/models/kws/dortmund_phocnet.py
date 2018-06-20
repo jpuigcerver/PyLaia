@@ -97,9 +97,7 @@ class DortmundPHOCNet(torch.nn.Module):
         self.spp = PyramidMaxPool2d(levels=spp_levels) if spp_levels else None
 
         # Size after the temporal and spatial pooling layers
-        fc_input_dim = 512 * (
-            sum(tpp_levels) + sum([2 ** (lv - 1) * 2 ** (lv - 1) for lv in spp_levels])
-        )
+        fc_input_dim = 512 * (sum(tpp_levels) + sum(4 ** (lv - 1) for lv in spp_levels))
         self.fc = torch.nn.Sequential(
             OrderedDict(
                 [
@@ -135,11 +133,9 @@ class DortmundPHOCNet(torch.nn.Module):
             xs = size_after_conv(xs)
             x = PaddedTensor(data=x, sizes=xs)
         if self.tpp and self.spp:
-            x = torch.cat([self.tpp(x), self.spp(x)], dim=1)
-        elif self.tpp:
-            x = self.tpp(x)
+            x = torch.cat((self.tpp(x), self.spp(x)), dim=1)
         else:
-            x = self.spp(x)
+            x = self.tpp(x) if self.tpp else self.spp(x)
         return self.fc(x)
 
 
@@ -148,9 +144,9 @@ def convert_old_parameters(params):
     # type: OrderedDict -> OrderedDict
     new_params = []
     for k, v in params.items():
-        if k[:4] == "conv":
+        if k.startswith("conv"):
             new_params.append(("conv.{}".format(k), v))
-        elif k[:2] == "fc":
+        elif k.startswith("fc"):
             new_params.append(("fc.{}".format(k), v))
         else:
             new_params.append((k, v))

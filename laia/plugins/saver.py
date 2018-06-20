@@ -6,7 +6,6 @@ from collections import deque
 
 import torch
 
-import laia
 from laia.logging import get_logger
 from laia.random import get_rng_state
 
