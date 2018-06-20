@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import argparse
 import os
+from functools import partial
 
 from torch.optim import RMSprop
 
@@ -42,6 +43,8 @@ if __name__ == "__main__":
         "train_samples_per_epoch",
         "valid_samples_per_epoch",
         "iterations_per_update",
+        "save_checkpoint_interval",
+        "num_rolling_checkpoints",
     )
     add_argument(
         "syms",
@@ -176,40 +179,31 @@ if __name__ == "__main__":
     def ckpt_saver(filename):
         return CheckpointSaver(os.path.join(args.train_path, filename))
 
-    tr_saver_best_cer = RollingSaver(
+    saver = partial(RollingSaver, keep=args.num_rolling_checkpoints)
+    tr_saver_best_cer = saver(
         TrainerCheckpointSaver(
             ckpt_saver("engine-wrapper.ckpt.lowest-valid-cer"),
             engine_wrapper,
             gpu=args.gpu,
-        ),
-        keep=2,
+        )
     )
-    tr_saver_best_wer = RollingSaver(
+    tr_saver_best_wer = saver(
         TrainerCheckpointSaver(
             ckpt_saver("engine-wrapper.ckpt.lowest-valid-wer"),
             engine_wrapper,
             gpu=args.gpu,
-        ),
-        keep=2,
-    )
-    tr_saver = RollingSaver(
-        TrainerCheckpointSaver(
-            ckpt_saver("engine-wrapper.ckpt"), engine_wrapper, gpu=args.gpu
         )
     )
-    mo_saver_best_cer = RollingSaver(
-        ModelCheckpointSaver(ckpt_saver("model.ckpt.lowest-valid-cer"), model), keep=2
+    mo_saver_best_cer = saver(
+        ModelCheckpointSaver(ckpt_saver("model.ckpt.lowest-valid-cer"), model)
     )
-    mo_saver_best_wer = RollingSaver(
-        ModelCheckpointSaver(ckpt_saver("model.ckpt.lowest-valid-wer"), model), keep=2
+    mo_saver_best_wer = saver(
+        ModelCheckpointSaver(ckpt_saver("model.ckpt.lowest-valid-wer"), model)
     )
-    mo_saver = RollingSaver(ModelCheckpointSaver(ckpt_saver("model.ckpt"), model))
 
     @action
     def save(saver, epoch):
         saver.save(suffix=epoch)
-
-    log.get_logger("laia.hooks.conditions.multiple_of").setLevel(log.WARNING)
 
     # Set hooks
     trainer.add_hook(
@@ -231,18 +225,29 @@ if __name__ == "__main__":
                     Action(save, saver=mo_saver_best_wer),
                 ),
             ),
-            # Save every 5 epochs
+        ),
+    )
+    if args.save_checkpoint_interval:
+        # Save every `save_checkpoint_interval` epochs
+        tr_saver = saver(
+            TrainerCheckpointSaver(
+                ckpt_saver("engine-wrapper.ckpt"), engine_wrapper, gpu=args.gpu
+            )
+        )
+        mo_saver = saver(ModelCheckpointSaver(ckpt_saver("model.ckpt"), model))
+        log.get_logger("laia.hooks.conditions.multiple_of").setLevel(log.WARNING)
+        trainer.add_hook(
+            EPOCH_END,
             Hook(
-                MultipleOf(trainer.epochs, 5),
+                MultipleOf(trainer.epochs, args.save_checkpoint_interval),
                 ActionCollection(
                     Action(save, saver=tr_saver), Action(save, saver=mo_saver)
                 ),
             ),
-        ),
-    )
-
+        )
     if args.max_nondecreasing_epochs:
-        # Stop if the validation CER hasn't improved in n epochs
+        # Stop when the validation CER hasn't improved in
+        # `max_nondecreasing_epochs` consecutive epochs
         trainer.add_hook(
             EPOCH_END,
             Hook(
@@ -253,7 +258,7 @@ if __name__ == "__main__":
             ),
         )
     if args.max_epochs:
-        # Stop if the number of epochs has been reached
+        # Stop when `max_epochs` has been reached
         trainer.add_hook(
             EPOCH_START, Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop)
         )
