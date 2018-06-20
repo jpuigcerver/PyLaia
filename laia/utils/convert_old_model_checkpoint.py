@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import argparse
 import os
 import re
-import torch
 from collections import OrderedDict
+
+import torch
 
 
 def convert_old_parameters(params):
@@ -30,7 +31,16 @@ if __name__ == "__main__":
     parser.add_argument("input_checkpoint", help="File path of the input checkpoint")
     parser.add_argument("output_checkpoint", help="File path of the output checkpoint")
     args = parser.parse_args()
-    assert os.path.isfile(args.input_checkpoint)
+    # Check input checkpoint
+    assert os.path.isfile(args.input_checkpoint), "{!r} is not a file".format(
+        args.input_checkpoint
+    )
+    # Prepare directory for the output checkpoint
+    outdir = os.path.dirname(args.output_checkpoint)
+    if os.path.exists(outdir):
+        assert os.path.isdir(outdir), "{!r} is not a directory".format(outdir)
+    else:
+        os.makedirs(outdir)
 
     params = torch.load(args.input_checkpoint)
     params = convert_old_parameters(params)
