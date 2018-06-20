@@ -17,7 +17,7 @@ Options:
   --model             : (type = string, value = \"$model\")
                         Model to extract the characters from the lattice.
 ";
-source "$SDIR/parse_options.inc.sh" || exit 1;
+source "$SDIR/../../utils/parse_options.inc.sh" || exit 1;
 [ $# -lt 2 ] && echo "$help_message" >&2 && exit 1;
 
 files=();

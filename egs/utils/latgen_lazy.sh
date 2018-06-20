@@ -56,6 +56,11 @@ Options:
 source "$SDIR/parse_options.inc.sh" || exit 1;
 [ $# -ne 5 ] && echo "$help_message" >&2 && exit 1;
 
+which latgen-lazylm-faster-mapped &> /dev/null || {
+  echo "Program latgen-lazylm-faster-mapped was not found in your PATH!" >&2;
+  exit 1;
+}
+
 function wait_background_jobs () {
   local j=0;
   for j in $(seq 1 $#); do wait "${!j}" || return "$j"; done
