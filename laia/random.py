@@ -15,7 +15,7 @@ def manual_seed(seed):
 
 def get_rng_state(gpu=None):
     return {
-        "np": np.random.get_state(),
+        "numpy": np.random.get_state(),
         "torch_cpu": torch.get_rng_state(),
         "torch_cuda": torch.cuda.get_rng_state(device=gpu - 1) if gpu else None,
         "python": random.getstate(),
@@ -23,7 +23,7 @@ def get_rng_state(gpu=None):
 
 
 def set_rng_state(state, gpu=None):
-    np.random.set_state(state["np"])
+    np.random.set_state(state["numpy"])
     if not gpu:
         torch.set_rng_state(state["torch_cpu"])
     elif state["torch_cuda"] is not None:

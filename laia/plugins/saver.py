@@ -62,16 +62,6 @@ class ModelSaver(ObjectSaver):
         return path
 
 
-class TrainerSaver(ObjectSaver):
-    def __init__(self, save_path, filename="trainer"):
-        super(TrainerSaver, self).__init__(os.path.join(save_path, filename))
-
-    def save(self, func, *args, **kwargs):
-        path = super(TrainerSaver, self).save(func, *args, **kwargs)
-        _logger.debug("Saved trainer {}", path)
-        return path
-
-
 class CheckpointSaver(Saver):
     def __init__(self, filepath):
         # type: (str) ->  None
@@ -103,16 +93,17 @@ class ModelCheckpointSaver(Saver):
         return self._ckpt_saver.save(self._model.state_dict(), suffix=suffix)
 
 
-class TrainerCheckpointSaver(Saver):
-    def __init__(self, ckpt_saver, trainer, gpu=None):
+class StateCheckpointSaver(Saver):
+    def __init__(self, ckpt_saver, obj, gpu=None):
+        # type: (CheckpointSaver, Any, Optional[int]) -> None
         self._ckpt_saver = ckpt_saver
-        self._trainer = trainer
+        self._obj = obj
         self._gpu = gpu
 
     def save(self, suffix=None):
-        state = dict(
-            rng_state=get_rng_state(gpu=self._gpu), **self._trainer.state_dict()
-        )
+        # type: (Optional[str]) -> str
+        state = self._obj.state_dict()
+        state["rng"] = get_rng_state(gpu=self._gpu)
         return self._ckpt_saver.save(state, suffix=suffix)
 
 

@@ -32,11 +32,10 @@ class Highest(LoggingCondition):
         return False
 
     def state_dict(self):
-        return {
-            "condition": super(Highest, self).state_dict(),
-            "highest": self._highest,
-        }
+        state = super(Highest, self).state_dict()
+        state["highest"] = self._highest
+        return state
 
     def load_state_dict(self, state):
-        super(Highest, self).load_state_dict(state["condition"])
+        super(Highest, self).load_state_dict(state)
         self._highest = state["highest"]
