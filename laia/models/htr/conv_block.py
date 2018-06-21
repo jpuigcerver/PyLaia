@@ -94,7 +94,7 @@ class ConvBlock(nn.Module):
             "expected ({})".format(x.size(1), self.in_channels)
         )
 
-        if 0.0 < self.dropout < 1.0:
+        if self.dropout and 0.0 < self.dropout < 1.0:
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         x = self.conv(x)
