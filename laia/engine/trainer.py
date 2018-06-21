@@ -222,13 +222,12 @@ class Trainer(Engine):
             return self._criterion(batch_output, batch_target, **kwargs)
 
     def state_dict(self):
-        return {
-            "engine_state": super(Trainer, self).state_dict(),
-            "optimizer_state": self._optimizer.state_dict(),
-            "updates": self.updates(),
-        }
+        state = super(Trainer, self).state_dict()
+        state["optimizer"] = self._optimizer.state_dict()
+        state["updates"] = self._updates
+        return state
 
     def load_state_dict(self, state):
-        super(Trainer, self).load_state_dict(state["engine_state"])
-        self._optimizer.load_state_dict(state["optimizer_state"])
+        super(Trainer, self).load_state_dict(state)
+        self._optimizer.load_state_dict(state["optimizer"])
         self._updates = state["updates"]
