@@ -70,7 +70,7 @@ class ConsecutiveNonDecreasing(LoggingCondition):
         if self._calls >= self._max_no_decrease:
             if self._calls == self._max_no_decrease:
                 self.info(
-                    "Lowest value {} DID NOT decrease after {} " "consecutive calls",
+                    "Lowest value {} DID NOT decrease after {} consecutive calls",
                     self._lowest,
                     self._max_no_decrease,
                 )

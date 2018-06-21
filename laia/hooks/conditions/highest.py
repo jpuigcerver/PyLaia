@@ -23,13 +23,11 @@ class Highest(LoggingCondition):
         if value is None:
             return False
         if value > self._highest:
-            self.info("New highest value {} " "(previous was {})", value, self._highest)
+            self.info("New highest value {} (previous was {})", value, self._highest)
             self._highest = value
             return True
         self.debug(
-            "Value IS NOT the highest " "(last: {} vs highest: {})",
-            value,
-            self._highest,
+            "Value IS NOT the highest (last: {} vs highest: {})", value, self._highest
         )
         return False
 
