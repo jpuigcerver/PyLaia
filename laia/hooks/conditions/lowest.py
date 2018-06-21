@@ -23,11 +23,11 @@ class Lowest(LoggingCondition):
         if value is None:
             return False
         if value < self._lowest:
-            self.info("New lowest value {} " "(previous was {})", value, self._lowest)
+            self.info("New lowest value {} (previous was {})", value, self._lowest)
             self._lowest = value
             return True
         self.debug(
-            "Value IS NOT the lowest " "(last: {} vs lowest: {})", value, self._lowest
+            "Value IS NOT the lowest (last: {} vs lowest: {})", value, self._lowest
         )
         return False
 

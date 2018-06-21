@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import inspect
 import os
 from collections import deque
+from typing import Any, Optional, Callable
 
 import torch
 
@@ -22,6 +23,7 @@ class Saver(object):
 
 class BasicSaver(Saver):
     def save(self, obj, filepath):
+        # type: (Any, str) -> str
         dirname = os.path.dirname(os.path.normpath(filepath))
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
@@ -31,10 +33,12 @@ class BasicSaver(Saver):
 
 class ObjectSaver(Saver):
     def __init__(self, filepath):
+        # type: (str) -> None
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
     def save(self, func_or_class, *args, **kwargs):
+        # type: (Callable, *Any, **Any) -> str
         return self._basic_saver.save(
             {
                 "module": inspect.getmodule(func_or_class).__name__,
@@ -48,9 +52,11 @@ class ObjectSaver(Saver):
 
 class ModelSaver(ObjectSaver):
     def __init__(self, save_path, filename="model"):
+        # type: (str, str) ->  None
         super(ModelSaver, self).__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
+        # type: (Callable, *Any, **Any) -> str
         path = super(ModelSaver, self).save(func, *args, **kwargs)
         _logger.debug("Saved model {}", path)
         return path
@@ -68,18 +74,20 @@ class TrainerSaver(ObjectSaver):
 
 class CheckpointSaver(Saver):
     def __init__(self, filepath):
+        # type: (str) ->  None
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
     def get_ckpt(self, suffix):
-        ckpt_filepath = (
+        # type: (str) -> str
+        return (
             "{}-{}".format(self._filepath, suffix)
             if suffix is not None
             else self._filepath
         )
-        return ckpt_filepath
 
     def save(self, state, suffix=None):
+        # type: (Any, Optional[str]) -> str
         path = self._basic_saver.save(state, self.get_ckpt(suffix))
         _logger.debug("Saved checkpoint {}", path)
         return path
@@ -119,6 +127,7 @@ class RollingSaver(Saver):
         self._last_saved = deque()
 
     def save(self, *args, **kwargs):
+        # type: (*Any, **Any) -> str
         path = self._saver.save(*args, **kwargs)
         if len(self._last_saved) >= self._keep:
             last = self._last_saved.popleft()

@@ -23,7 +23,7 @@ class Condition(object):
         self._key = key
 
     def __call__(self):
-        raise NotImplementedError("This method should be overridden.")
+        raise NotImplementedError
 
     def _process_value(self):
         value = self._obj()
@@ -50,7 +50,7 @@ class LoggingCondition(Condition):
         self._name = name
 
     def __call__(self):
-        raise NotImplementedError("This method should be overridden.")
+        raise NotImplementedError
 
     @property
     def logger(self):
@@ -107,7 +107,7 @@ class MultinaryCondition(object):
         self._conditions = conditions
 
     def __call__(self):
-        raise NotImplementedError("This method should be overridden.")
+        raise NotImplementedError
 
 
 class Any(MultinaryCondition):
