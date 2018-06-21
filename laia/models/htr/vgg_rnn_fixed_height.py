@@ -1,6 +1,5 @@
 from itertools import count
 
-import re
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence

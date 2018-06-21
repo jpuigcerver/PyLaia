@@ -129,7 +129,7 @@ if __name__ == "__main__":
         args.train_path, filename=args.model_filename, gpu=args.gpu
     ).load()
     if model is None:
-        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
+        log.error("Could not find the model")
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
     ModelCheckpointLoader(model, gpu=args.gpu).load_by(
