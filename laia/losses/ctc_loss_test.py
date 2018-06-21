@@ -1,10 +1,15 @@
 from __future__ import absolute_import
 
+import sys
 import unittest
 
 import numpy as np
 import torch
-from scipy.misc import logsumexp
+
+if sys.version_info[:2] == (2, 7):
+    from scipy.misc import logsumexp
+else:
+    from scipy.special import logsumexp
 from torch.autograd import Variable, gradcheck
 from torch.nn.functional import log_softmax
 
