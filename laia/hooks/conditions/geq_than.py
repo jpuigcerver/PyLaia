@@ -22,7 +22,7 @@ class GEqThan(LoggingCondition):
             return False
         if value >= self._target:
             self.info(
-                "The target {} has been reached " "with value {}", self._target, value
+                "The target {} has been reached with value {}", self._target, value
             )
             return True
         return False
