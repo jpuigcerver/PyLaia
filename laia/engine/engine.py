@@ -242,6 +242,7 @@ class Engine(object):
 
     def state_dict(self):
         return {
+            "model": self._model.state_dict(),
             "epochs": self._epochs,
             "iterations": self._iterations,
             "hooks": {
@@ -254,6 +255,7 @@ class Engine(object):
         }
 
     def load_state_dict(self, state):
+        self._model.load_state_dict(state["model"])
         self._epochs = state["epochs"]
         self._iterations = state["iterations"]
         "Note: The hooks must be in the same order as those in the saved state"

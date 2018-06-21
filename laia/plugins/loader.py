@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 from glob import glob
 from importlib import import_module
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 import torch
 
@@ -70,18 +70,6 @@ class ModelLoader(ObjectLoader):
         return model
 
 
-class TrainerLoader(ObjectLoader):
-    def __init__(self, load_path, filename="trainer", gpu=None):
-        self._path = os.path.join(load_path, filename)
-        super(TrainerLoader, self).__init__(self._path, gpu=gpu)
-
-    def load(self):
-        trainer = super(TrainerLoader, self).load()
-        if trainer is not None:
-            _logger.info("Loaded trainer {}", self._path)
-        return trainer
-
-
 class CheckpointLoader(Loader):
     def __init__(self, gpu=None):
         # type: (int) -> None
@@ -125,21 +113,24 @@ class ModelCheckpointLoader(CheckpointLoader):
             self._model.load_state_dict(state)
 
 
-class TrainerCheckpointLoader(CheckpointLoader):
-    def __init__(self, trainer, gpu=None):
-        super(TrainerCheckpointLoader, self).__init__(gpu=gpu)
-        self._trainer = trainer
+class StateCheckpointLoader(CheckpointLoader):
+    def __init__(self, obj, gpu=None):
+        # type: (Any, int) -> None
+        super(StateCheckpointLoader, self).__init__(gpu=gpu)
+        self._obj = obj
 
     def load(self, filepath):
-        state = super(TrainerCheckpointLoader, self).load(filepath)
+        # type: (str) -> Optional
+        state = super(StateCheckpointLoader, self).load(filepath)
         if state is not None:
-            set_rng_state(state.pop("rng_state"), self._gpu)
-            self._trainer.load_state_dict(state)
+            set_rng_state(state.pop("rng"), self._gpu)
+            self._obj.load_state_dict(state)
 
     def load_by(self, pattern, key=None, reverse=True):
-        state = super(TrainerCheckpointLoader, self).load_by(
+        # type: (str, Optional[Callable], bool) -> Optional
+        state = super(StateCheckpointLoader, self).load_by(
             pattern, key=key, reverse=reverse
         )
         if state is not None:
-            set_rng_state(state.pop("rng_state"))
-            self._trainer.load_state_dict(state)
+            set_rng_state(state.pop("rng"))
+            self._obj.load_state_dict(state)
