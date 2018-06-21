@@ -11,7 +11,7 @@ from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeS
 from laia.engine import Trainer, Evaluator
 from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.experiments.htr_experiment import HtrExperiment
+from laia.experiments.htr_experiment import HTRExperiment
 from laia.hooks import Hook, HookCollection, action, Action
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
 from laia.plugins.arguments import add_argument, args, add_defaults
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     )
     trainer = Trainer(
         model=model,
-        criterion=None,  # Set automatically by HtrExperiment
+        criterion=None,  # Set automatically by HTRExperiment
         optimizer=RMSprop(
             model.parameters(), lr=args.learning_rate, momentum=args.momentum
         ),
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         progress_bar="Valid" if args.show_progress_bar else None,
     )
 
-    experiment = HtrExperiment(
+    experiment = HTRExperiment(
         trainer, evaluator, word_delimiters=[syms[sym] for sym in args.delimiters]
     )
 

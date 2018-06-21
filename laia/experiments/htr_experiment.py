@@ -22,7 +22,7 @@ def batch_char_to_word_seq(batch_sequence_of_characters, delimiters):
     ]
 
 
-class HtrExperiment(Experiment):
+class HTRExperiment(Experiment):
     def __init__(
         self,
         train_engine,  # type: Trainer
@@ -44,7 +44,7 @@ class HtrExperiment(Experiment):
         ),  # type: Sequence[str]
     ):
         # type: (...) -> None
-        super(HtrExperiment, self).__init__(
+        super(HTRExperiment, self).__init__(
             train_engine,
             valid_engine=valid_engine,
             check_valid_hook_when=check_valid_hook_when,
@@ -93,13 +93,13 @@ class HtrExperiment(Experiment):
 
     @action
     def train_reset_meters(self):
-        super(HtrExperiment, self).train_reset_meters()
+        super(HTRExperiment, self).train_reset_meters()
         self._tr_timer.reset()
         self._tr_loss.reset()
 
     @action
     def valid_reset_meters(self):
-        super(HtrExperiment, self).valid_reset_meters()
+        super(HTRExperiment, self).valid_reset_meters()
         self._va_cer.reset()
         self._va_wer.reset()
 
@@ -141,7 +141,7 @@ class HtrExperiment(Experiment):
 
     def epoch_summary(self, summary_order=None):
         # type: (Optional[Sequence[str]]) -> List[dict]
-        summary = super(HtrExperiment, self).epoch_summary(summary_order=summary_order)
+        summary = super(HTRExperiment, self).epoch_summary(summary_order=summary_order)
         summary.append(
             dict(label="TR CER", format="{.value:5.1%}", source=self._tr_cer)
         )
@@ -165,7 +165,7 @@ class HtrExperiment(Experiment):
 
     def state_dict(self):
         # type: () -> dict
-        state = super(HtrExperiment, self).state_dict()
+        state = super(HTRExperiment, self).state_dict()
         for k, v in (
             ("tr_cer", self._tr_cer),
             ("va_cer", self._va_cer),
@@ -180,7 +180,7 @@ class HtrExperiment(Experiment):
         # type: (dict) -> None
         if state is None:
             return
-        super(HtrExperiment, self).load_state_dict(state)
+        super(HTRExperiment, self).load_state_dict(state)
         for k, v in (
             ("tr_cer", self._tr_cer),
             ("va_cer", self._va_cer),
