@@ -6,7 +6,7 @@ import torch
 
 import laia.utils
 from laia.engine.engine import EPOCH_START, EPOCH_END
-from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
+from laia.experiments.phoc_experiment import PHOCExperiment
 from laia.hooks import Hook, HookCollection, action, Action
 from laia.hooks.conditions import GEqThan, Highest, MultipleOf, Any
 from laia.losses.dortmund_bce_loss import DortmundBCELoss
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     else:
         exclude_words_ap = None
 
-    engine_wrapper = PHOCEngineWrapper(
+    engine_wrapper = PHOCExperiment(
         symbols_table=syms,
         phoc_levels=args.phoc_levels,
         train_engine=trainer,

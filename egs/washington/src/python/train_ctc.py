@@ -6,7 +6,7 @@ import torch
 import laia.utils
 from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.engine.htr_engine_wrapper import HtrEngineWrapper
+from laia.experiments.htr_experiment import HTRExperiment
 from laia.engine.trainer import Trainer
 from laia.hooks import Hook, HookCollection, action, Action
 from laia.hooks.conditions import Any, GEqThan, Lowest, MultipleOf
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         progress_bar="Valid" if args.show_progress_bar else False,
     )
 
-    engine_wrapper = HtrEngineWrapper(trainer, evaluator)
+    engine_wrapper = HTRExperiment(trainer, evaluator)
     engine_wrapper.set_word_delimiters([])
 
     lowest_cer_saver = RollingSaver(
