@@ -2,6 +2,7 @@ from itertools import count
 
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import Sequential
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 from laia.data import PaddedTensor
@@ -71,7 +72,7 @@ class VggRnnFixedHeight(nn.Module):
                 poolsize=ps_h,
             )
             conv_blocks.append(layer)
-        self.conv = Sequential(*conv_block)
+        self.conv = Sequential(*conv_blocks)
 
         self.rnn = rnn_type(
             input_height * ni,
