@@ -267,6 +267,11 @@ class Engine(object):
                 if hasattr(hook, "load_state_dict"):
                     hook.load_state_dict(hook_states[i])
 
+    @staticmethod
+    def get_model_state_dict(state):
+        # type: (dict) -> dict
+        return state["model"]
+
 
 # If we decide to extend the Evaluator class, we can move it to
 # a different file and extend from the Engine class, but
