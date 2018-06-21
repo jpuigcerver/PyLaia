@@ -21,8 +21,8 @@ class ConvBlock(nn.Module):
         kernel_size=3,  # type: Union[int, Tuple[int, int]]
         stride=1,  # type: Union[int, Tuple[int, int]]
         dilation=1,  # type: Union[int, Tuple[int, int]]
-        activation=nn.LeakyReLU,  # type: nn.Module
-        poolsize=None,  # type: Optional[Tuple[int, int]]
+        activation=nn.LeakyReLU,  # type: Optional[nn.Module]
+        poolsize=None,  # type: Optional[Union[int, Tuple[int, int]]]
         dropout=None,  # type: Optional[float]
         batchnorm=False,  # type: bool
         inplace=False,  # type: bool
@@ -66,7 +66,7 @@ class ConvBlock(nn.Module):
         self.batchnorm = nn.BatchNorm2d(out_channels) if batchnorm else None
 
         # Activation function must support inplace operations.
-        self.activation = activation(inplace=inplace)
+        self.activation = activation(inplace=inplace) if activation else None
 
         # Add maxpool layer
         if self.poolsize:
@@ -104,7 +104,9 @@ class ConvBlock(nn.Module):
         if self.batchnorm:
             x = self.batchnorm(x)
 
-        x = self.activation(x)
+        if self.activation:
+            x = self.activation(x)
+
         if self.use_masks is not None:
             x = mask_image_from_size(x, batch_sizes=xs, mask_value=0, inplace=True)
 
@@ -125,8 +127,8 @@ class ConvBlock(nn.Module):
         for dim in 0, 1:
             ys[:, dim] = self.get_output_size(
                 size=xs[:, dim],
-                dilation=self.conv.dilation[dim],
                 kernel_size=self.conv.kernel_size[dim],
+                dilation=self.conv.dilation[dim],
                 stride=self.conv.stride[dim],
                 poolsize=self.poolsize[dim] if self.poolsize else None,
                 padding=self.conv.padding[dim],
@@ -136,8 +138,8 @@ class ConvBlock(nn.Module):
     @staticmethod
     def get_output_size(
         size,  # type: Union[torch.LongTensor, int]
-        dilation,  # type: int
         kernel_size,  # type: int
+        dilation,  # type: int
         stride,  # type: int
         poolsize,  # type: int
         padding=None,  # type: Optional[int]

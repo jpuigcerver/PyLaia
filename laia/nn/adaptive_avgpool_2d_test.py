@@ -138,6 +138,6 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
         def wrap_func(x):
             return m(
                 PaddedTensor(data=x, sizes=Variable(torch.LongTensor([[2, 2], [1, 3]])))
-            )
+            ).sum()
 
         gradcheck(func=wrap_func, inputs=(self.x,))
