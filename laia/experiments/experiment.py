@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from collections import Sequence
 from typing import Callable, Optional, List
 
-from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, ITER_END
+from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, ITER_END, Engine
 from laia.engine.trainer import Trainer
 from laia.hooks import action
 from laia.hooks.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
@@ -141,3 +141,8 @@ class Experiment(object):
         ):
             if hasattr(v, "load_state_dict"):
                 v.load_state_dict(state[k])
+
+    @staticmethod
+    def get_model_state_dict(state):
+        # type: (dict) -> dict
+        return Engine.get_model_state_dict(state["tr_engine"])
