@@ -129,9 +129,9 @@ class LaiaCRNN(nn.Module):
             cnn_kernel_size, cnn_stride, cnn_dilation, cnn_poolsize
         ):
             size_h = ConvBlock.get_output_size(
-                size_h, dilation=di[0], kernel_size=ks[0], stride=st[0], poolsize=ps[0]
+                size_h, kernel_size=ks[0], dilation=di[0], stride=st[0], poolsize=ps[0]
             )
             size_w = ConvBlock.get_output_size(
-                size_w, dilation=di[1], kernel_size=ks[1], stride=st[1], poolsize=ps[1]
+                size_w, kernel_size=ks[1], dilation=di[1], stride=st[1], poolsize=ps[1]
             )
         return size_h, size_w
