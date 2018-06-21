@@ -3,31 +3,25 @@ from __future__ import absolute_import
 
 import argparse
 import os
-from functools import partial
 
 from torch.optim import RMSprop
 
 import laia.logging as log
 from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeSampler
-from laia.engine import Trainer, Evaluator, HtrEngineWrapper
+from laia.engine import Trainer, Evaluator
 from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook, HookCollection, action, Action, ActionCollection
+from laia.experiments.htr_experiment import HtrExperiment
+from laia.hooks import Hook, HookCollection, action, Action
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
 from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.plugins.arguments_types import NumberInOpenRange
-from laia.plugins.loader import (
-    TrainerLoader,
-    ModelLoader,
-    TrainerCheckpointLoader,
-    ModelCheckpointLoader,
-)
+from laia.plugins.loader import ModelLoader, StateCheckpointLoader
 from laia.plugins.saver import (
-    TrainerSaver,
     CheckpointSaver,
     RollingSaver,
     ModelCheckpointSaver,
-    TrainerCheckpointSaver,
+    StateCheckpointSaver,
 )
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
@@ -97,109 +91,77 @@ if __name__ == "__main__":
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
-    log.info(
-        "Model has {} parameters",
-        sum(param.data.numel() for param in model.parameters()),
-    )
 
-    trainer = TrainerLoader(args.train_path, gpu=args.gpu).load()
-    if trainer is None:
-        optimizer = RMSprop(
-            model.parameters(), lr=args.learning_rate, momentum=args.momentum
-        )
-        parameters = {
-            "model": model,
-            "criterion": None,  # Set automatically by HtrEngineWrapper
-            "optimizer": optimizer,
-            "batch_target_fn": ItemFeeder("txt"),
-            "batch_id_fn": ItemFeeder("id"),  # Print image ids on exception
-        }
-        trainer = Trainer(**parameters)
-        TrainerSaver(args.train_path).save(Trainer, **parameters)
-
-    tr_ds = TextImageFromTextTableDataset(
+    tr_dataset = TextImageFromTextTableDataset(
         args.tr_txt_table,
         args.img_dirs,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms),
     )
-
-    tr_ds_loader = ImageDataLoader(
-        dataset=tr_ds,
+    tr_dataset_loader = ImageDataLoader(
+        dataset=tr_dataset,
         image_channels=1,
         batch_size=args.batch_size,
         num_workers=8,
         shuffle=not bool(args.train_samples_per_epoch),
-        sampler=FixedSizeSampler(tr_ds, args.train_samples_per_epoch)
+        sampler=FixedSizeSampler(tr_dataset, args.train_samples_per_epoch)
         if args.train_samples_per_epoch
         else None,
     )
-
-    # Set all these separately because they might change between executions
-    trainer.iterations_per_update = args.iterations_per_update
-    trainer.set_progress_bar("Train" if args.show_progress_bar else None)
-    trainer.set_data_loader(tr_ds_loader)
-    trainer.set_batch_input_fn(
-        ImageFeeder(
-            device=args.gpu,
-            # keep_padded_tensors=False,
-            parent_feeder=ItemFeeder("img"),
-        )
+    trainer = Trainer(
+        model=model,
+        criterion=None,  # Set automatically by HtrExperiment
+        optimizer=RMSprop(
+            model.parameters(), lr=args.learning_rate, momentum=args.momentum
+        ),
+        data_loader=tr_dataset_loader,
+        batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
+        batch_target_fn=ItemFeeder("txt"),
+        batch_id_fn=ItemFeeder("id"),  # Print image ids on exception
+        progress_bar="Train" if args.show_progress_bar else None,
+        iterations_per_update=args.iterations_per_update,
     )
 
-    va_ds = TextImageFromTextTableDataset(
+    va_dataset = TextImageFromTextTableDataset(
         args.va_txt_table,
         args.img_dirs,
         img_transform=ImageToTensor(),
         txt_transform=TextToTensor(syms),
     )
-    va_ds_loader = ImageDataLoader(
-        dataset=va_ds,
+    va_dataset_loader = ImageDataLoader(
+        dataset=va_dataset,
         image_channels=1,
         batch_size=args.batch_size,
         num_workers=8,
-        sampler=FixedSizeSampler(va_ds, args.valid_samples_per_epoch)
+        sampler=FixedSizeSampler(va_dataset, args.valid_samples_per_epoch)
         if args.valid_samples_per_epoch
         else None,
     )
-
     evaluator = Evaluator(
         model=model,
-        data_loader=va_ds_loader,
+        data_loader=va_dataset_loader,
         batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),
+        progress_bar="Valid" if args.show_progress_bar else None,
     )
-    evaluator.set_progress_bar("Valid" if args.show_progress_bar else None)
 
-    engine_wrapper = HtrEngineWrapper(trainer, evaluator)
-    # Set word delimiters to compute the WER
-    engine_wrapper.set_word_delimiters([syms[sym] for sym in args.delimiters])
+    experiment = HtrExperiment(
+        trainer, evaluator, word_delimiters=[syms[sym] for sym in args.delimiters]
+    )
 
-    def ckpt_saver(filename):
-        return CheckpointSaver(os.path.join(args.train_path, filename))
-
-    saver = partial(RollingSaver, keep=args.num_rolling_checkpoints)
-    tr_saver_best_cer = saver(
-        TrainerCheckpointSaver(
-            ckpt_saver("engine-wrapper.ckpt.lowest-valid-cer"),
-            engine_wrapper,
-            gpu=args.gpu,
+    def ckpt_saver(filename, obj):
+        return RollingSaver(
+            StateCheckpointSaver(
+                CheckpointSaver(os.path.join(args.train_path, filename)),
+                obj,
+                gpu=args.gpu,
+            ),
+            keep=args.num_rolling_checkpoints,
         )
-    )
-    tr_saver_best_wer = saver(
-        TrainerCheckpointSaver(
-            ckpt_saver("engine-wrapper.ckpt.lowest-valid-wer"),
-            engine_wrapper,
-            gpu=args.gpu,
-        )
-    )
-    mo_saver_best_cer = saver(
-        ModelCheckpointSaver(ckpt_saver("model.ckpt.lowest-valid-cer"), model)
-    )
-    mo_saver_best_wer = saver(
-        ModelCheckpointSaver(ckpt_saver("model.ckpt.lowest-valid-wer"), model)
-    )
+
+    saver_best_cer = ckpt_saver("experiment.ckpt.lowest-valid-cer", experiment)
+    saver_best_wer = ckpt_saver("experiment.ckpt.lowest-valid-wer", experiment)
 
     @action
     def save(saver, epoch):
@@ -210,39 +172,19 @@ if __name__ == "__main__":
         EPOCH_END,
         HookCollection(
             # Save on best CER
-            Hook(
-                Lowest(engine_wrapper.valid_cer()),
-                ActionCollection(
-                    Action(save, saver=tr_saver_best_cer),
-                    Action(save, saver=mo_saver_best_cer),
-                ),
-            ),
+            Hook(Lowest(experiment.valid_cer()), Action(save, saver=saver_best_cer)),
             # Save on best WER
-            Hook(
-                Lowest(engine_wrapper.valid_wer()),
-                ActionCollection(
-                    Action(save, saver=tr_saver_best_wer),
-                    Action(save, saver=mo_saver_best_wer),
-                ),
-            ),
+            Hook(Lowest(experiment.valid_wer()), Action(save, saver=saver_best_wer)),
         ),
     )
     if args.save_checkpoint_interval:
         # Save every `save_checkpoint_interval` epochs
-        tr_saver = saver(
-            TrainerCheckpointSaver(
-                ckpt_saver("engine-wrapper.ckpt"), engine_wrapper, gpu=args.gpu
-            )
-        )
-        mo_saver = saver(ModelCheckpointSaver(ckpt_saver("model.ckpt"), model))
         log.get_logger("laia.hooks.conditions.multiple_of").setLevel(log.WARNING)
         trainer.add_hook(
             EPOCH_END,
             Hook(
                 MultipleOf(trainer.epochs, args.save_checkpoint_interval),
-                ActionCollection(
-                    Action(save, saver=tr_saver), Action(save, saver=mo_saver)
-                ),
+                Action(save, saver=ckpt_saver("experiment.ckpt", experiment)),
             ),
         )
     if args.max_nondecreasing_epochs:
@@ -252,7 +194,7 @@ if __name__ == "__main__":
             EPOCH_END,
             Hook(
                 ConsecutiveNonDecreasing(
-                    engine_wrapper.valid_cer(), args.max_nondecreasing_epochs
+                    experiment.valid_cer(), args.max_nondecreasing_epochs
                 ),
                 trainer.stop,
             ),
@@ -264,11 +206,13 @@ if __name__ == "__main__":
         )
 
     # Continue from the given checkpoint, if possible
-    TrainerCheckpointLoader(engine_wrapper, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, "engine-wrapper.{}".format(args.checkpoint))
-    )
-    ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, "model.{}".format(args.checkpoint))
+    StateCheckpointLoader(experiment, gpu=args.gpu).load_by(
+        os.path.join(args.train_path, "experiment.{}".format(args.checkpoint))
     )
 
-    engine_wrapper.run()
+    experiment.run()
+
+    # Experiment finished. Save the model separately
+    ModelCheckpointSaver(
+        CheckpointSaver(os.path.join(args.train_path, "model.ckpt")), model
+    ).save(suffix="last")
