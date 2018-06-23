@@ -47,15 +47,19 @@ class ImagePoolingSequencer(torch.nn.Module):
             if isinstance(x, PaddedTensor):
                 xs = x.sizes  # batch sizes matrix (N x 2)
                 ns = xs.size(0)  # number of samples in the batch
-                if self._columnwise and torch.sum(xs[:, 0] == self._fix_size) != ns:
+                if (
+                    self._columnwise
+                    and torch.sum(xs[:, 0] == self._fix_size).data[0] != ns
+                ):
                     raise ValueError(
                         "Input images must have a fixed height of {} pixels".format(
                             self._fix_size
                         )
                     )
-                elif (not self._columnwise) and torch.sum(
-                    xs[:, 1] == self._fix_size
-                ) != ns:
+                elif (
+                    not self._columnwise
+                    and torch.sum(xs[:, 1] == self._fix_size).data[0] != ns
+                ):
                     raise ValueError(
                         "Input images must have a fixed width of {} pixels".format(
                             self._fix_size
