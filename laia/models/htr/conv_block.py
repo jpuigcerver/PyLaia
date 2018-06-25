@@ -60,6 +60,9 @@ class ConvBlock(nn.Module):
                 (kernel_size[dim] - 1) // 2 * dilation[dim] for dim in (0, 1)
             ),
             dilation=dilation,
+            # Note: If batchnorm is used, the bias does not affect the output
+            # of the unit.
+            bias=not batchnorm,
         )
 
         # Add Batch normalization
