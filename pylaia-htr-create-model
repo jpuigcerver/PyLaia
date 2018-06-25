@@ -173,6 +173,7 @@ if __name__ == "__main__":
         (
             args.cnn_num_features,
             args.cnn_kernel_size,
+            args.cnn_stride,
             args.cnn_dilation,
             args.cnn_activations,
             args.cnn_poolsize,

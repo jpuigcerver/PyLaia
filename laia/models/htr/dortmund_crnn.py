@@ -57,7 +57,6 @@ class DortmundCRNN(torch.nn.Module):
         x = self.conv(x)
         if xs is not None:
             xs = size_after_conv(xs)
-            assert [x.size(2), x.size(3)] == xs.cpu()[0].data.tolist()
         x = self.sequencer(x if xs is None else PaddedTensor(data=x, sizes=xs))
         x = self.dropout(x, p=self._dropout)
         x, _ = self.blstm(x)

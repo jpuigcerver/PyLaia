@@ -94,8 +94,8 @@ class HTRExperiment(Experiment):
     @action
     def train_reset_meters(self):
         super(HTRExperiment, self).train_reset_meters()
-        self._tr_timer.reset()
-        self._tr_loss.reset()
+        self._tr_cer.reset()
+        self._tr_wer.reset()
 
     @action
     def valid_reset_meters(self):

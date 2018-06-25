@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+import sys
 import unittest
 
 from torch._six import raise_from
 
 from laia.engine.engine_exception import EngineException
+
+if sys.version_info[:2] == (2, 7):
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class EngineExceptionTest(unittest.TestCase):
@@ -30,7 +34,7 @@ class EngineExceptionTest(unittest.TestCase):
                     EngineException(epoch=1, iteration=2, batch="Batch", cause=exc), exc
                 )
 
-        self.assertRaisesRegexp(EngineException, '^Exception "TypeError\(.*$', f2)
+        self.assertRaisesRegex(EngineException, '^Exception "TypeError\(.*$', f2)
 
 
 if __name__ == "__main__":
