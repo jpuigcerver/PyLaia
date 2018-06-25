@@ -2,7 +2,7 @@
 set -e;
 export PYTHONPATH=$PWD/../..:$PYTHONPATH;
 
-train_path=$PWD/train_fixed_1;
+train_path=$PWD/train_fixed_bs3_same_images;
 rm -f "$train_path"/*;
 mkdir -p "$train_path";
 
@@ -19,14 +19,13 @@ mkdir -p "$train_path";
   --rnn_dropout 0 \
   --lin_dropout 0 \
   --train_path=$train_path \
-  --fixed_input_height=78 \
-  -- 1 syms1.txt;
+  -- 78 1 syms1.txt;
 
 ../../pylaia-htr-train-ctc \
   --logging_also_to_stderr info \
   --logging_level info \
-  --batch_size 1 \
+  --batch_size 3 \
   --learning_rate 0.001 \
   --gpu 0 \
   --train_path=$train_path \
-  -- syms1.txt imgs_h78 gt1.txt gt1.txt
+  -- syms1.txt imgs_h78 gt1_3.txt gt1_3.txt;
