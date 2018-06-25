@@ -18,21 +18,23 @@ class MemoryMeter(Meter):
     def get_gpu_memory(self):
         # type: () -> str
 
-        result = str(
-            subprocess.check_output(
+        result = subprocess.check_output(
                 [
                     "nvidia-smi",
                     "--query-compute-apps=pid,used_memory",
                     "--format=csv,noheader",
                 ]
             )
-            .decode(sys.stdout.encoding)
-            .strip()
-        )
-        for out in result.split("\n"):
-            pid, mem = out.split(", ")
-            if int(pid) == os.getpid():
-                return mem
+        if sys.stdout.encoding:
+            result = result.decode(sys.stdout.encoding)
+        result = str(result.strip())
+        if result:
+            for out in result.split("\n"):
+                pid, mem = out.split(", ")
+                if int(pid) == os.getpid():
+                    return mem
+        else:
+            return "???"
 
     def get_cpu_memory(self):
         # type: () -> str
