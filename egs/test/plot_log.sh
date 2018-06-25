@@ -20,9 +20,7 @@ tmpfiles=();
 while [ $# -gt 0 ]; do
   files+=("$(echo "$1" | sed -r 's|_|\\_|g')");
   tmpfiles+=("$(mktemp)");
-  gawk -v regex="$regex" 'BEGIN{
-    print(regex);
-  }{
+  gawk -v regex="$regex" '{
     if(match($0, regex, arr)) {
       print arr[1], arr[2];
     }
