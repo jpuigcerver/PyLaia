@@ -9,6 +9,7 @@ from torch.autograd import Variable
 
 from laia.data import PaddedTensor
 from laia.models.htr.conv_block import ConvBlock
+from laia.models.htr.testing_utils import generate_backprop_floating_point_tests
 
 
 class ConvBlockTest(unittest.TestCase):
@@ -96,3 +97,93 @@ class ConvBlockTest(unittest.TestCase):
         np.testing.assert_almost_equal(y[2, :, :3, :2], x[2, :, :3, :2])
         np.testing.assert_almost_equal(y[2, :, 3:, :], np.zeros((1, 8, 13)))
         np.testing.assert_almost_equal(y[2, :, :, 2:], np.zeros((1, 11, 11)))
+
+
+def cost_function(y):
+    return y.sum()
+
+
+def padded_cost_function(padded_y):
+    y, ys = padded_y.data, padded_y.sizes.data
+    cost = 0
+    for y_i, ys_i in zip(y, ys):
+        cost = 0 + y_i[:, : ys_i[0], : ys_i[1]].sum()
+    return cost
+
+
+# Add some tests to make sure that the backprop is working correctly.
+# Note: this only checks that the gradient w.r.t. all layers is different from zero.
+generate_backprop_floating_point_tests(
+    ConvBlockTest,
+    tests=[
+        (
+            "backprob_{}_{}_default",
+            dict(
+                module=ConvBlock,
+                module_kwargs=dict(in_channels=3, out_channels=5),
+                batch_data=torch.randn(2, 3, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=padded_cost_function,
+            ),
+        ),
+        (
+            "backprob_{}_{}_batchnorm",
+            dict(
+                module=ConvBlock,
+                module_kwargs=dict(in_channels=3, out_channels=5, batchnorm=True),
+                batch_data=torch.randn(2, 3, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=padded_cost_function,
+            ),
+        ),
+        (
+            "backprob_{}_{}_dropout",
+            dict(
+                module=ConvBlock,
+                module_kwargs=dict(in_channels=3, out_channels=5, dropout=0.3),
+                batch_data=torch.randn(2, 3, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=padded_cost_function,
+            ),
+        ),
+        (
+            "backprob_{}_{}_maxpool",
+            dict(
+                module=ConvBlock,
+                module_kwargs=dict(in_channels=3, out_channels=5, poolsize=2),
+                batch_data=torch.randn(2, 3, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=padded_cost_function,
+            ),
+        ),
+        (
+            "backprob_{}_{}_use_masks",
+            dict(
+                module=ConvBlock,
+                module_kwargs=dict(in_channels=3, out_channels=5, use_masks=True),
+                batch_data=torch.randn(2, 3, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=padded_cost_function,
+            ),
+        ),
+        (
+            "backprob_{}_{}_inplace",
+            dict(
+                module=ConvBlock,
+                module_kwargs=dict(in_channels=3, out_channels=5, inplace=True),
+                batch_data=torch.randn(2, 3, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=padded_cost_function,
+            ),
+        ),
+    ],
+)
+
+if __name__ == "__main__":
+    unittest.main()

@@ -7,6 +7,8 @@ import os
 from torch.optim import RMSprop
 
 import laia.logging as log
+import laia.random
+
 from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeSampler
 from laia.engine import Trainer, Evaluator
 from laia.engine.engine import EPOCH_END, EPOCH_START
@@ -32,6 +34,7 @@ if __name__ == "__main__":
         "momentum",
         "gpu",
         "max_epochs",
+        "seed",
         "show_progress_bar",
         "train_path",
         "train_samples_per_epoch",
@@ -81,6 +84,7 @@ if __name__ == "__main__":
         help="Suffix of the checkpoint to use, can be a glob pattern",
     )
     args = args()
+    laia.random.manual_seed(args.seed)
 
     syms = SymbolsTable(args.syms)
 
