@@ -19,7 +19,8 @@ mkdir -p "$train_path";
   --rnn_dropout 0 \
   --lin_dropout 0 \
   --train_path=$train_path \
-  -- 78 1 syms1.txt;
+  --fixed_input_height=78 \
+  -- 1 syms1.txt;
 
 ../../pylaia-htr-train-ctc \
   --logging_also_to_stderr info \
