@@ -25,10 +25,13 @@ class MemoryMeter(Meter):
             .decode(sys.stdout.encoding)
             .strip()
         )
-        for out in result.split("\n"):
-            pid, mem = out.split(", ")
-            if int(pid) == os.getpid():
-                return mem
+        if result:
+            for out in result.split("\n"):
+                pid, mem = out.split(", ")
+                if int(pid) == os.getpid():
+                    return mem
+        else:
+            return 0
 
     def get_cpu_memory(self):
         # type: () -> str
