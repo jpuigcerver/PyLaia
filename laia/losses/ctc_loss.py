@@ -178,14 +178,14 @@ class CTCLoss(Loss):
             if "batch_ids" in kwargs and kwargs["batch_ids"] is not None:
                 assert isinstance(kwargs["batch_ids"], (list, tuple))
                 err_indices = [kwargs["batch_ids"][i] for i in err_indices]
-            _logger.warn(
+            _logger.warning(
                 "The following samples in the batch were ignored for the loss "
                 "computation: {}",
                 err_indices,
             )
 
         if not valid_indices:
-            _logger.warn("All samples in the batch were ignored!")
+            _logger.warning("All samples in the batch were ignored!")
             return None
 
         acts, labels, act_lens, label_lens = CTCPrepare.apply(
