@@ -14,24 +14,23 @@ class MemoryMeter(Meter):
         # type: () -> str
         import subprocess, sys, os
 
-        result = str(
-            subprocess.check_output(
+        result = subprocess.check_output(
                 [
                     "nvidia-smi",
                     "--query-compute-apps=pid,used_memory",
                     "--format=csv,noheader",
                 ]
             )
-            .decode(sys.stdout.encoding)
-            .strip()
-        )
+        if sys.stdout.encoding:
+            result = result.decode(sys.stdout.encoding)
+        result = str(result.strip())
         if result:
             for out in result.split("\n"):
                 pid, mem = out.split(", ")
                 if int(pid) == os.getpid():
                     return mem
         else:
-            return 0
+            return "???"
 
     def get_cpu_memory(self):
         # type: () -> str
