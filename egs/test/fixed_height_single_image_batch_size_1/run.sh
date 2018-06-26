@@ -32,7 +32,7 @@ rm -f train.log *.ckpt* trainer model;
   --logging_file train.log \
   --logging_level info \
   --batch_size 1 \
-  --learning_rate 0.001 \
+  --learning_rate 0.002 \
   --gpu 0 \
   --max_epochs 500 \
   --train_path="$train_path" \

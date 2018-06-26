@@ -4,10 +4,22 @@ set -e;
 [ $# -lt 2 ] && echo "Usage: ${0##*/} measure log [log ...]" >&2 && exit 1;
 case "$1" in
   tr_loss)
-    regex="^.* Epoch( =)? +([0-9]+),.* TR Loss = ([0-9e+.-]+), .*$";
+    regex="^.* Epoch( =)? +([0-9]+),.* TR Loss = ([0-9e+.-]+),.*$";
   ;;
   va_loss)
-    regex="^.* Epoch( =)? +([0-9]+),.* VA Loss = ([0-9e+.-]+), .*$";
+    regex="^.* Epoch( =)? +([0-9]+),.* VA Loss = ([0-9e+.-]+),.*$";
+  ;;
+  tr_cer)
+    regex="^.* Epoch( =)? +([0-9]+),.* TR CER = ([0-9.]+)%.*$";
+  ;;
+  va_cer)
+    regex="^.* Epoch( =)? +([0-9]+),.* VA CER = ([0-9.]+)%.*$";
+  ;;
+  tr_wer)
+    regex="^.* Epoch( =)? +([0-9]+),.* TR WER = ([0-9.]+)%.*$";
+  ;;
+  va_wer)
+    regex="^.* Epoch( =)? +([0-9]+),.* VA WER = ([0-9.]+)%.*$";
   ;;
   *)
     echo "Unknown measure \"$1\"!" >&2;
