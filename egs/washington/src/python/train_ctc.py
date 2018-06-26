@@ -58,9 +58,18 @@ if __name__ == "__main__":
         default=False,
         help="If true, use Adam optimizer instead of SGD",
     )
+    add_argument(
+        "--keep_padded_tensors",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="If true, use Adam optimizer instead of SGD",
+    )
     add_argument("--lstm_hidden_size", type=int, default=128)
     add_argument("--lstm_num_layers", type=int, default=1)
     add_argument("--min_size", type=int, default=None)
+    add_argument("--dropout", type=float, default=0.5)
     add_argument("syms", help="Symbols table mapping from strings to integers")
     add_argument("tr_img_dir", help="Directory containing word images")
     add_argument("tr_txt_table", help="Character transcriptions of each training image")
@@ -72,6 +81,12 @@ if __name__ == "__main__":
     laia.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
+
+    # If we use --keep_padded_tensors=false, we need to update the
+    # iteration_per_update, since the maximum batch_size that we can use is 1
+    if not args.keep_padded_tensors:
+        args.iterations_per_update *= args.batch_size
+        args.batch_size = 1
 
     # If --use_distortions is given, apply the same affine distortions used by
     # Dortmund University.
@@ -139,6 +154,7 @@ if __name__ == "__main__":
         lstm_hidden_size=args.lstm_hidden_size,
         lstm_num_layers=args.lstm_num_layers,
         sequencer=args.image_sequencer,
+        dropout=args.dropout,
     )
 
     if args.load_checkpoint:
@@ -181,7 +197,11 @@ if __name__ == "__main__":
         "criterion": None,  # Set automatically by HtrEngineWrapper
         "optimizer": optimizer,
         "data_loader": tr_ds_loader,
-        "batch_input_fn": ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
+        "batch_input_fn": ImageFeeder(
+            device=args.gpu,
+            keep_padded_tensors=args.keep_padded_tensors,
+            parent_feeder=ItemFeeder("img")
+        ),
         "batch_target_fn": ItemFeeder("txt"),
         "batch_id_fn": ItemFeeder("id"),  # Print image ids on exception
         "progress_bar": "Train" if args.show_progress_bar else False,
@@ -192,7 +212,11 @@ if __name__ == "__main__":
     evaluator = laia.engine.Evaluator(
         model=model,
         data_loader=va_ds_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
+        batch_input_fn=ImageFeeder(
+            device=args.gpu,
+            keep_padded_tensors=args.keep_padded_tensors,
+            parent_feeder=ItemFeeder("img")
+        ),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),  # Print image ids on exception
         progress_bar="Valid" if args.show_progress_bar else False,
