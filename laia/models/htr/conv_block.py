@@ -102,7 +102,7 @@ class ConvBlock(nn.Module):
 
         x = self.conv(x)
         if self.use_masks:
-            x = mask_image_from_size(x, batch_sizes=xs, mask_value=0, inplace=True)
+            x = mask_image_from_size(x, batch_sizes=xs, mask_value=0)
 
         if self.batchnorm:
             x = self.batchnorm(x)
@@ -111,7 +111,7 @@ class ConvBlock(nn.Module):
             x = self.activation(x)
 
         if self.use_masks:
-            x = mask_image_from_size(x, batch_sizes=xs, mask_value=0, inplace=True)
+            x = mask_image_from_size(x, batch_sizes=xs, mask_value=0)
 
         if self.pool:
             x = self.pool(x)
