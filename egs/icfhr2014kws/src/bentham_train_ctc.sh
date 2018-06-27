@@ -8,24 +8,24 @@ for f in data/bentham/lang/syms_ctc.txt \
   [ ! -s "$f" ] && echo "ERROR: File \"$f\" does not exist!" >&2 && exit 1;
 done;
 
-if [ -f train/bentham/model -o -f train/bentham/trainer ]; then
+if [ -f data/bentham/train/model -o -f data/bentham/train/trainer ]; then
   msg="The directory contains training data. Do you want to overwrite it?";
   read -p "$msg" -n 1 -r; echo;
   if [[ "$REPLY" =~ "^[Yy]$" ]]; then
-    rm -rf train/bentham; # Remove old runs
+    rm -rf data/bentham/train; # Remove old runs
   else
     echo "Abort training..." >&2;
     exit 0;
   fi;
 fi;
-mkdir -p train/bentham;
+mkdir -p data/bentham/train;
 
 ../../pylaia-htr-create-model \
   --logging_also_to_stderr info \
-  --logging_file train/bentham/train.log \
+  --logging_file data/bentham/train/train.log \
   --logging_level info \
   --logging_overwrite true \
-  --train_path train/bentham \
+  --train_path data/bentham/train \
   --fixed_input_height 80 \
   --cnn_num_features 12 24 48 48 \
   --cnn_kernel_size 7 5 3 3 \
@@ -43,10 +43,10 @@ mkdir -p train/bentham;
 
 ../../pylaia-htr-train-ctc \
   --logging_also_to_stderr info \
-  --logging_file train/bentham/train.log \
+  --logging_file data/bentham/train/train.log \
   --logging_level info \
   --logging_overwrite false \
-  --train_path train/bentham \
+  --train_path data/bentham/train \
   --learning_rate 0.0005 \
   --train_samples_per_epoch 5000 \
   --delimiters "<sp>" \
