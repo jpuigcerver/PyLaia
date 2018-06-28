@@ -6,25 +6,24 @@ import os
 
 from torch.optim import RMSprop
 
-import laia.logging as log
-import laia.random
-
+import laia.common.logging as log
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments_types import NumberInOpenRange
+from laia.common.loader import ModelLoader, StateCheckpointLoader
+from laia.common.random import manual_seed
+from laia.common.saver import (
+    CheckpointSaver,
+    RollingSaver,
+    ModelCheckpointSaver,
+    StateCheckpointSaver,
+)
+from laia.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
 from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeSampler
 from laia.engine import Trainer, Evaluator
 from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
 from laia.hooks import Hook, HookCollection, action, Action
-from laia.hooks.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.arguments_types import NumberInOpenRange
-from laia.plugins.loader import ModelLoader, StateCheckpointLoader
-from laia.plugins.saver import (
-    CheckpointSaver,
-    RollingSaver,
-    ModelCheckpointSaver,
-    StateCheckpointSaver,
-)
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
 if __name__ == "__main__":
@@ -84,8 +83,8 @@ if __name__ == "__main__":
         help="Suffix of the checkpoint to use, can be a glob pattern",
     )
     args = args()
-    laia.random.manual_seed(args.seed)
 
+    manual_seed(args.seed)
     syms = SymbolsTable(args.syms)
 
     model = ModelLoader(

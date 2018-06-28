@@ -8,7 +8,13 @@ from functools import reduce
 
 import numpy as np
 import torch
-from imgdistort_pytorch import affine, dilate, erode
+
+try:
+    from imgdistort_pytorch import affine, dilate, erode
+except ImportError:
+    import warnings
+
+    warnings.warn("Missing imgdistort library")
 
 from laia.data import PaddedTensor
 from laia.distorter.distorter import Distorter
@@ -272,7 +278,7 @@ class ImageDistorter(Distorter):
 
 
 if __name__ == "__main__":
-    from laia.plugins.arguments import add_argument, args, add_defaults
+    from laia.common.arguments import add_argument, args, add_defaults
     import argparse
     from PIL import Image, ImageOps
 
