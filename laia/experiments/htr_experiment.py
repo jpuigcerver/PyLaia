@@ -2,14 +2,14 @@ from __future__ import absolute_import
 
 from typing import Callable, Optional, Sequence, List
 
+from laia.common.logging import get_logger
 from laia.decoders import CTCGreedyDecoder
 from laia.engine import Trainer, Evaluator
 from laia.engine.engine import EPOCH_END, ITER_END
 from laia.experiments import Experiment
 from laia.hooks import action
-from laia.hooks.meters import SequenceErrorMeter
-from laia.logging import get_logger
 from laia.losses import CTCLoss
+from laia.meters import SequenceErrorMeter
 from laia.utils.char_to_word_seq import char_to_word_seq
 
 _logger = get_logger(__name__)

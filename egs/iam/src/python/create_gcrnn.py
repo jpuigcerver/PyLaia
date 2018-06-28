@@ -6,9 +6,9 @@ import argparse
 
 import torch.nn as nn
 from laia.models.htr.gated_crnn import GatedCRNN
-from laia.plugins import ModelSaver
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.arguments_types import NumberInClosedRange, TupleList, \
+from laia.common import ModelSaver
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments_types import NumberInClosedRange, TupleList, \
     str2bool
 from laia.utils import SymbolsTable
 
