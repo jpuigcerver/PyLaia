@@ -14,10 +14,10 @@ from laia.engine.htr_engine_wrapper import HtrEngineWrapper
 from laia.engine.trainer import Trainer
 from laia.hooks import Hook, HookCollection, action
 from laia.hooks.conditions import Lowest, GEqThan
-from laia.plugins.arguments import add_argument, add_defaults, args
+from laia.common.arguments import add_argument, add_defaults, args
 from laia.utils.dortmund_image_to_tensor import DortmundImageToTensor
 
-logger = laia.logging.get_logger('laia.egs.washington.train_ctc')
+logger = laia.common.logging.get_logger('laia.egs.washington.train_ctc')
 
 if __name__ == '__main__':
     add_defaults('gpu', 'max_epochs', 'max_updates', 'train_samples_per_epoch',
