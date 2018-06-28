@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e;
 export LC_ALL=en_US.utf8;
 export PATH="$PWD/../utils:$PATH";

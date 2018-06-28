@@ -1,10 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e;
 
-for d in data/prhlt/contestHTRtS/BenthamData/Images/Lines \
-	 data/duth/ICFHR2014_TRACK_II_Bentham_Queries/images; do
-  [ ! -d "$d" ] && echo "Directory \"$d\" does not exist!" >&2 && exit 1;
-done;
+# Directory where the script is located.
+SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+# Move to the "root" of the experiment.
+cd $SDIR/..;
+# Load useful functions
+source "$PWD/../utils/functions_check.inc.sh" || exit 1;
+
+check_textFeats || exit 1;
+check_all_programs convert find identify || exit 1;
+check_all_dirs data/prhlt/contestHTRtS/BenthamData/Images/Lines \
+	           data/duth/ICFHR2014_TRACK_II_Bentham_Queries/images || exit 1;
 
 cfg="$(mktemp)";
 cat <<EOF > "$cfg"
@@ -32,7 +39,7 @@ TextFeatExtractor: {
   // Global line vertical moment normalization
   momentnorm = true;
   // Whether to compute the features parallelograms
-  fpgram     = false;
+  fpgram     = true;
   // Whether to compute the features surrounding polygon
   fcontour   = true;
   //fcontour_dilate = 0;
@@ -41,37 +48,49 @@ TextFeatExtractor: {
 }
 EOF
 
-# Process text line images
-mkdir -p data/bentham/imgs/lines;
-ne=$(find data/prhlt/contestHTRtS/BenthamData/Images/Lines -name "*.png"|wc -l);
-nr=$(find data/bentham/imgs/lines -name "*.png" | wc -l);
-[ "$ne" -eq "$nr" ] || {
-  find data/prhlt/contestHTRtS/BenthamData/Images/Lines -name "*.png" |
-  xargs textFeats \
-	--cfg="$cfg" \
-	--threads=$(nproc) \
-	--outdir=data/bentham/imgs/lines \
-	--overwrite=true \
-	--savexml=data/bentham/imgs/lines;
+# If image height < fix_height, pad with white.
+# If image height > fix_height, scale to height 80.
+function fix_image_height () {
+  [ $# -ne 3 ] && \
+  echo "Usage: fix_image_height <fix_height> <input_img> <output_img>" >&2 && \
+  return 1;
+
+  h=$(identify -format '%h' "$2") || return 1;
+  if [ "$h" -lt "$1" ]; then
+    convert -gravity center -extent x80 +repage -strip "$2" "$3" || return 1;
+  else
+	convert -resize x80 +repage -strip "$2" "$3" || return 1;
+  fi;
+  return 0;
 }
 
-# If height < 80, pad with white.
-# If height > 80, scale to height 80.
+# Number of expected lines in the dataset.
+ne=10613;
+
+# Process text line images
+nr=$(find data/bentham/imgs/lines -name "*.png" | wc -l);
+[ -d data/bentham/imgs/lines -a "$nr -eq $ne" ] || {
+  mkdir -p data/bentham/imgs/lines;
+  # Create link to JPG images in the directory containing the PAGE images,
+  # this is needed by the textFeats tool.
+  ln -frs data/prhlt/contestHTRtS/BenthamData/Images/Pages/*.jpg \
+          data/prhlt/contestHTRtS/BenthamData/PAGE/;
+  textFeats \
+    --cfg="$cfg" \
+    --outdir=data/bentham/imgs/lines \
+    --overwrite=true \
+    --savexml=data/bentham/imgs/lines \
+    --threads=$(nproc) \
+    data/prhlt/contestHTRtS/BenthamData/PAGE/*.xml;
+}
+
+# Fix height of the line images.
 mkdir -p data/bentham/imgs/lines_h80;
 nr=$(find data/bentham/imgs/lines_h80 -name "*.png" | wc -l);
 [ "$ne" -eq "$nr" ] || {
   n=0;
   for f in $(find data/bentham/imgs/lines -name "*.png"); do
-    (
-      h=$(identify -format '%h' "$f");
-      if [ "$h" -lt 80 ]; then
-	convert -gravity center -extent x80 +repage -strip \
-		"$f" "${f/lines/lines_h80}";
-      else
-	convert -resize x80 +repage -strip \
-		"$f" "${f/lines/lines_h80}";
-      fi;
-    ) &
+    ( fix_image_height 80 "$f" "${f/lines/lines_h80}" || exit 1; ) &
     ((++n));
     [ "$n" -eq "$(nproc)" ] && { wait; n=1; }
   done;
@@ -86,15 +105,15 @@ nr=$(find data/bentham/imgs/queries -name "*.png" | wc -l);
   find data/duth/ICFHR2014_TRACK_II_Bentham_Queries/images -name "*.png" |
   xargs textFeats \
 	--cfg="$cfg" \
-	--threads=$(nproc) \
 	--outdir=data/bentham/imgs/queries \
 	--overwrite=true \
-	--savexml=data/bentham/imgs/queries;
+	--threads=$(nproc);
 }
 
+# Fix height of the query images.
 mkdir -p data/bentham/imgs/queries_h80;
 for f in $(find data/bentham/imgs/queries -name "*.png"); do
-  convert -resize x80 +repage -strip "$f" "${f/queries/queries_h80}";
+  fix_image_height 80 "$f" "${f/queries/queries_h80}" || exit 1;
 done;
 
 # Remove temp config file

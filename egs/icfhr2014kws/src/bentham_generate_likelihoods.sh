@@ -1,19 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e;
+# Directory where the script is located.
+SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+# Move to the "root" of the experiment.
+cd $SDIR/..;
+# Load useful functions
+source "$PWD/../utils/functions_check.inc.sh" || exit 1;
+
 export PYTHONPATH="$PWD/../..:$PYTHONPATH";
 export PATH="$PWD/../utils:$PATH";
 export PATH="$PWD/../..:$PATH";
 
-## TUNEABLE PARAMETERS
-SCALE=0.3;
+# Check for required files
+check_all_files -s data/bentham/lang/syms_ctc.txt \
+                   data/bentham/lang/char/te.txt \
+	               data/bentham/lang/char/tr.txt \
+	               data/bentham/lang/char/va.txt \
+	               data/bentham/train/experiment.ckpt-80;
 
-for f in data/bentham/lang/syms_ctc.txt \
-         data/bentham/lang/char/te.txt \
-	 data/bentham/lang/char/tr.txt \
-	 data/bentham/lang/char/va.txt \
-	 data/bentham/train/experiment.ckpt-80; do
-  [ ! -s "$f" ] && echo "ERROR: File \"$f\" does not exist!" >&2 && exit 1;
-done;
+# Parse options
+prior_scale=0.3;
+help_message="
+Usage: ${0##*/} [options]
+
+Options:
+  --prior_scale : (type = float, default = $prior_scale)
+";
+source "$PWD/../utils/parse_options.inc.sh" || exit 1;
+
 
 ############################################################
 ## 1. Compute pseudo-priors from the posteriors.
@@ -52,13 +66,13 @@ done;
 ############################################################
 ## 3. Convert frame posteriors to frame pseudo-likelihoods
 ############################################################
-mkdir -p data/bentham/lkhs;
+mkdir -p data/bentham/lkhs/ps${prior_scale};
 for p in te va; do
   pst="data/bentham/post/$p.lines_h80.mat.ark";
-  mat="data/bentham/lkhs/$p.lines_h80.s${SCALE}.mat";
+  mat="data/bentham/lkhs/ps${prior_scale}/$p.lines_h80.mat";
   [ -s "$mat.ark" -a -s "$mat.scp" ] ||
   convert_post_to_lkhs.sh \
-    --scale "$SCALE" data/bentham/post/tr.lines_h80.prior "ark:$pst" ark:- |
+    --scale "$prior_scale" data/bentham/post/tr.lines_h80.prior "ark:$pst" ark:- |
   add_boundary_frames.sh \
     "$(wc -l data/bentham/lang/syms_ctc.txt | awk '{print $1}')" \
     "$(grep "<sp>" data/bentham/lang/syms_ctc.txt | awk '{print $2}')" "" \
@@ -69,7 +83,7 @@ done;
 ############################################################
 ## 4. Generate frame posteriors for image queries
 ############################################################
-mat="data/bentham/lkhs/te.queries_h80.s${SCALE}.mat";
+mat="data/bentham/lkhs/ps${prior_scale}/te.queries_h80.mat";
 [ -s "$mat.ark" -a -s "$mat.scp" ] ||
 pylaia-htr-netout \
   --logging_also_to_stderr info \
@@ -80,7 +94,7 @@ pylaia-htr-netout \
   data/bentham/imgs/queries_h80 \
   <(find data/bentham/imgs/queries_h80 -name "*.png" | xargs -n1 basename) |
 convert_post_to_lkhs.sh \
-  --scale "$SCALE" data/bentham/post/tr.lines_h80.prior ark:- ark:- |
+  --scale "${prior_scale}" data/bentham/post/tr.lines_h80.prior ark:- ark:- |
 add_boundary_frames.sh \
   "$(wc -l data/bentham/lang/syms_ctc.txt | awk '{print $1}')" \
   "$(grep "<sp>" data/bentham/lang/syms_ctc.txt | awk '{print $2}')" "" \
