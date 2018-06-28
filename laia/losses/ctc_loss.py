@@ -5,7 +5,7 @@ from typing import List, Union, Sequence
 
 import torch
 from torch.autograd import Variable, Function
-import laia.logging as log
+import laia.common.logging as log
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 from laia.losses.loss import Loss
 

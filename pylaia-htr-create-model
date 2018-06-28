@@ -5,12 +5,12 @@ import argparse
 
 import torch.nn as nn
 
+import laia.common.logging as log
+from laia.common import ModelSaver
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments_types import NumberInClosedRange, TupleList, str2bool
 from laia.models.htr import LaiaCRNN
-from laia.plugins import ModelSaver
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.arguments_types import NumberInClosedRange, TupleList, str2bool
 from laia.utils import SymbolsTable
-import laia.logging as log
 
 """
 Create a model for HTR composed of a set of convolutional
