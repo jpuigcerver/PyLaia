@@ -23,17 +23,19 @@ class Lowest(LoggingCondition):
         if value is None:
             return False
         if value < self._lowest:
-            self.info("New lowest value {} " "(previous was {})", value, self._lowest)
+            self.info("New lowest value {} (previous was {})", value, self._lowest)
             self._lowest = value
             return True
         self.debug(
-            "Value IS NOT the lowest " "(last: {} vs lowest: {})", value, self._lowest
+            "Value IS NOT the lowest (last: {} vs lowest: {})", value, self._lowest
         )
         return False
 
     def state_dict(self):
-        return {"condition": super(Lowest, self).state_dict(), "lowest": self._lowest}
+        state = super(Lowest, self).state_dict()
+        state["lowest"] = self._lowest
+        return state
 
     def load_state_dict(self, state):
-        super(Lowest, self).load_state_dict(state["condition"])
+        super(Lowest, self).load_state_dict(state)
         self._lowest = state["lowest"]

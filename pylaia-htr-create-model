@@ -5,11 +5,12 @@ import argparse
 
 import torch.nn as nn
 
-from laia.models.htr import VggRnn, VggRnnFixedHeight
+from laia.models.htr import LaiaCRNN
 from laia.plugins import ModelSaver
 from laia.plugins.arguments import add_argument, args, add_defaults
 from laia.plugins.arguments_types import NumberInClosedRange, TupleList, str2bool
 from laia.utils import SymbolsTable
+import laia.logging as log
 
 """
 Create a model for HTR composed of a set of convolutional
@@ -24,12 +25,6 @@ by a dropout layer.
 if __name__ == "__main__":
     add_defaults("train_path")
     add_argument(
-        "input_height",
-        type=NumberInClosedRange(int, vmin=0),
-        help="Height of the input images. "
-        "If 0, a variable height model will be used",
-    )
-    add_argument(
         "num_input_channels",
         type=NumberInClosedRange(int, vmin=1),
         help="Number of channels of the input images",
@@ -39,6 +34,13 @@ if __name__ == "__main__":
         type=argparse.FileType("r"),
         help="Symbols table mapping from strings to integers",
     )
+    add_argument(
+        "--fixed_input_height",
+        type=NumberInClosedRange(int, vmin=0),
+        help="Height of the input images. "
+        "If 0, a variable height model will be used (see --adaptive_pooling)",
+    )
+    add_argument("--adaptive_pooling", type=str, default="avgpool-16", help="")
     add_argument(
         "--model_filename",
         type=str,
@@ -56,26 +58,34 @@ if __name__ == "__main__":
         "--cnn_kernel_size",
         type=TupleList(int, dimensions=2),
         nargs="+",
-        default=[3, 3, 3, 3],
+        default=[(3, 3), (3, 3), (3, 3), (3, 3)],
         help="Kernel size of each conv layer. "
         "It can be a list of numbers if all the "
         "dimensions are equal or a list of strings "
         "formatted as tuples "
-        'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"',
+        'e.g. "(h1, w1) (h2, w2)"',
     )
     add_argument(
         "--cnn_stride",
-        type=NumberInClosedRange(int, vmin=1),
+        type=TupleList(int, dimensions=2),
         nargs="+",
-        default=[1, 1, 1, 1],
-        help="Stride of each conv layer",
+        default=[(1, 1), (1, 1), (1, 1), (1, 1)],
+        help="Stride of each conv layer. "
+        "It can be a list of numbers if all the "
+        "dimensions are equal or a list of strings "
+        "formatted as tuples "
+        'e.g. "(h1, w1) (h2, w2)"',
     )
     add_argument(
         "--cnn_dilation",
-        type=NumberInClosedRange(int, vmin=1),
+        type=TupleList(int, dimensions=2),
         nargs="+",
-        default=[1, 1, 1, 1],
-        help="Spacing between each conv layer kernel elements",
+        default=[(1, 1), (1, 1), (1, 1), (1, 1)],
+        help="Spacing between each conv layer kernel elements. "
+        "It can be a list of numbers if all the "
+        "dimensions are equal or a list of strings "
+        "formatted as tuples "
+        'e.g. "(h1, w1) (h2, w2)"',
     )
     add_argument(
         "--cnn_activations",
@@ -88,12 +98,12 @@ if __name__ == "__main__":
         "--cnn_poolsize",
         type=TupleList(int, dimensions=2),
         nargs="+",
-        default=[2, 2, 0, 2],
+        default=[(2, 2), (2, 2), (2, 2), (0, 0)],
         help="MaxPooling size after each conv layer. "
         "It can be a list of numbers if all the "
         "dimensions are equal or a list of strings "
         "formatted as tuples "
-        'e.g. "(d1, d2, ..., dn)" "(d1, d2, ..., dn)"',
+        'e.g. "(h1, w1) (h2, w2)"',
     )
     add_argument(
         "--cnn_dropout",
@@ -139,6 +149,23 @@ if __name__ == "__main__":
         default="LSTM",
         help="Type of the recurrent layers",
     )
+    add_argument(
+        "--vertical_text",
+        type=str2bool,
+        nargs="?",
+        default=False,
+        const=True,
+        help="If true, assumes that the text is written horizontally.",
+    )
+    add_argument(
+        "--use_masked_conv",
+        type=str2bool,
+        nargs="?",
+        default=False,
+        const=True,
+        help="If true, apply a zero mask after each convolution and non-linear "
+        "activation.",
+    )
     args = args()
 
     dimensions = map(
@@ -156,22 +183,44 @@ if __name__ == "__main__":
     )
     assert len(set(dimensions)) == 1, "Wrong cnn layer dimensions"
 
-    ModelSaver(args.train_path, args.model_filename).save(
-        VggRnnFixedHeight if args.input_height else VggRnn,
-        args.input_height,
-        args.num_input_channels,
-        len(SymbolsTable(args.syms)),
-        args.cnn_num_features,
-        args.cnn_kernel_size,
-        args.cnn_stride,
-        args.cnn_dilation,
-        [getattr(nn, act) for act in args.cnn_activations],
-        args.cnn_poolsize,
-        args.cnn_dropout,
-        args.cnn_batchnorm,
-        args.rnn_units,
-        args.rnn_layers,
-        args.rnn_dropout,
-        args.lin_dropout,
+    if args.fixed_input_height:
+        fixed_size_after_conv = LaiaCRNN.get_conv_output_size(
+            size=(args.fixed_input_height, args.fixed_input_height),
+            cnn_kernel_size=args.cnn_kernel_size,
+            cnn_stride=args.cnn_stride,
+            cnn_dilation=args.cnn_dilation,
+            cnn_poolsize=args.cnn_poolsize,
+        )
+        fixed_size_after_conv = fixed_size_after_conv[1 if args.vertical_text else 0]
+        assert fixed_size_after_conv > 0, "The image size after the convolution is zero"
+        image_sequencer = "none-{}".format(fixed_size_after_conv)
+    else:
+        image_sequencer = args.adaptive_pooling
+
+    parameters = dict(
+        num_input_channels=args.num_input_channels,
+        num_output_labels=len(SymbolsTable(args.syms)),
+        cnn_num_features=args.cnn_num_features,
+        cnn_kernel_size=args.cnn_kernel_size,
+        cnn_stride=args.cnn_stride,
+        cnn_dilation=args.cnn_dilation,
+        cnn_activation=[getattr(nn, act) for act in args.cnn_activations],
+        cnn_poolsize=args.cnn_poolsize,
+        cnn_dropout=args.cnn_dropout,
+        cnn_batchnorm=args.cnn_batchnorm,
+        image_sequencer=image_sequencer,
+        rnn_units=args.rnn_units,
+        rnn_layers=args.rnn_layers,
+        rnn_dropout=args.rnn_dropout,
+        lin_dropout=args.lin_dropout,
         rnn_type=getattr(nn, args.rnn_type),
+        vertical_text=args.vertical_text,
+        use_masks=args.use_masked_conv,
     )
+    model = LaiaCRNN(**parameters)
+    log.info(
+        "Model has {} parameters",
+        sum(param.data.numel() for param in model.parameters()),
+    )
+
+    ModelSaver(args.train_path, args.model_filename).save(LaiaCRNN, **parameters)

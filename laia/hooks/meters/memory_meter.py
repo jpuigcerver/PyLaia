@@ -1,4 +1,9 @@
+from __future__ import absolute_import
 
+import os
+import resource
+import subprocess
+import sys
 
 import torch
 
@@ -12,7 +17,6 @@ class MemoryMeter(Meter):
 
     def get_gpu_memory(self):
         # type: () -> str
-        import subprocess, sys, os
 
         result = subprocess.check_output(
             [
@@ -34,8 +38,6 @@ class MemoryMeter(Meter):
 
     def get_cpu_memory(self):
         # type: () -> str
-        import resource
-
         # Convert from KB to MiB
         return "{:.0f} MiB".format(
             resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 10 ** 3 / 2 ** 20

@@ -40,15 +40,14 @@ class NonDecreasing(LoggingCondition):
         return False
 
     def state_dict(self):
-        return {
-            "condition": super(NonDecreasing, self).state_dict(),
-            "lowest": self._lowest,
-            "lowest_calls": self._lowest_calls,
-            "calls": self._calls,
-        }
+        state = super(NonDecreasing, self).state_dict()
+        state["lowest"] = self._lowest
+        state["lowest_calls"] = self._lowest_calls
+        state["calls"] = self._calls
+        return state
 
     def load_state_dict(self, state):
-        super(NonDecreasing, self).load_state_dict(state["condition"])
+        super(NonDecreasing, self).load_state_dict(state)
         self._lowest = state["lowest"]
         self._lowest_calls = state["lowest_calls"]
         self._calls = state["calls"]
@@ -70,7 +69,7 @@ class ConsecutiveNonDecreasing(LoggingCondition):
         if self._calls >= self._max_no_decrease:
             if self._calls == self._max_no_decrease:
                 self.info(
-                    "Lowest value {} DID NOT decrease after {} " "consecutive calls",
+                    "Lowest value {} DID NOT decrease after {} consecutive calls",
                     self._lowest,
                     self._max_no_decrease,
                 )
@@ -83,13 +82,12 @@ class ConsecutiveNonDecreasing(LoggingCondition):
         return False
 
     def state_dict(self):
-        return {
-            "condition": super(ConsecutiveNonDecreasing, self).state_dict(),
-            "lowest": self._lowest,
-            "calls": self._calls,
-        }
+        state = super(ConsecutiveNonDecreasing, self).state_dict()
+        state["lowest"] = self._lowest
+        state["calls"] = self._calls
+        return state
 
     def load_state_dict(self, state):
-        super(ConsecutiveNonDecreasing, self).load_state_dict(state["condition"])
+        super(ConsecutiveNonDecreasing, self).load_state_dict(state)
         self._lowest = state["lowest"]
         self._calls = state["calls"]
