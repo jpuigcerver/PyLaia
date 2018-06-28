@@ -81,13 +81,13 @@ class TupleList(object):
 
     def __call__(self, v):
         x = literal_eval(v)
-        if not isinstance(x, self._type):
-            if not isinstance(x, tuple):
-                raise ArgumentTypeError("{} is neither a tuple nor {}", v, self._type)
+        if isinstance(x, self._type):
+            return (x,) * self._dimensions
+        elif isinstance(x, (tuple, list)):
             if not all(type(v) == self._type for v in x):
                 raise ArgumentTypeError("An element of {} is not a {}", x, self._type)
             if len(x) != self._dimensions:
-                raise ArgumentTypeError(
-                    "The given tuple does not " "match the dimensions"
-                )
-        return x
+                raise ArgumentTypeError("The given tuple does not match the dimensions")
+            return tuple(x)
+        else:
+            raise ArgumentTypeError("{!r} is neither a tuple nor {}", v, self._type)

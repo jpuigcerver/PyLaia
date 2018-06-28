@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import inspect
 import os
 from collections import deque
+from typing import Any, Optional, Callable
 
 import torch
 
-import laia
 from laia.logging import get_logger
 from laia.random import get_rng_state
 
@@ -23,8 +23,9 @@ class Saver(object):
 
 class BasicSaver(Saver):
     def save(self, obj, filepath):
+        # type: (Any, str) -> str
         dirname = os.path.dirname(os.path.normpath(filepath))
-        if not os.path.exists(dirname):
+        if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
         torch.save(obj, filepath)
         return filepath
@@ -32,10 +33,12 @@ class BasicSaver(Saver):
 
 class ObjectSaver(Saver):
     def __init__(self, filepath):
+        # type: (str) -> None
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
     def save(self, func_or_class, *args, **kwargs):
+        # type: (Callable, *Any, **Any) -> str
         return self._basic_saver.save(
             {
                 "module": inspect.getmodule(func_or_class).__name__,
@@ -49,38 +52,32 @@ class ObjectSaver(Saver):
 
 class ModelSaver(ObjectSaver):
     def __init__(self, save_path, filename="model"):
+        # type: (str, str) ->  None
         super(ModelSaver, self).__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
+        # type: (Callable, *Any, **Any) -> str
         path = super(ModelSaver, self).save(func, *args, **kwargs)
         _logger.debug("Saved model {}", path)
         return path
 
 
-class TrainerSaver(ObjectSaver):
-    def __init__(self, save_path, filename="trainer"):
-        super(TrainerSaver, self).__init__(os.path.join(save_path, filename))
-
-    def save(self, func, *args, **kwargs):
-        path = super(TrainerSaver, self).save(func, *args, **kwargs)
-        _logger.debug("Saved trainer {}", path)
-        return path
-
-
 class CheckpointSaver(Saver):
     def __init__(self, filepath):
+        # type: (str) ->  None
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
     def get_ckpt(self, suffix):
-        ckpt_filepath = (
+        # type: (str) -> str
+        return (
             "{}-{}".format(self._filepath, suffix)
             if suffix is not None
             else self._filepath
         )
-        return ckpt_filepath
 
     def save(self, state, suffix=None):
+        # type: (Any, Optional[str]) -> str
         path = self._basic_saver.save(state, self.get_ckpt(suffix))
         _logger.debug("Saved checkpoint {}", path)
         return path
@@ -96,16 +93,17 @@ class ModelCheckpointSaver(Saver):
         return self._ckpt_saver.save(self._model.state_dict(), suffix=suffix)
 
 
-class TrainerCheckpointSaver(Saver):
-    def __init__(self, ckpt_saver, trainer, gpu=None):
+class StateCheckpointSaver(Saver):
+    def __init__(self, ckpt_saver, obj, gpu=None):
+        # type: (CheckpointSaver, Any, Optional[int]) -> None
         self._ckpt_saver = ckpt_saver
-        self._trainer = trainer
+        self._obj = obj
         self._gpu = gpu
 
     def save(self, suffix=None):
-        state = dict(
-            rng_state=get_rng_state(gpu=self._gpu), **self._trainer.state_dict()
-        )
+        # type: (Optional[str]) -> str
+        state = self._obj.state_dict()
+        state["rng"] = get_rng_state(gpu=self._gpu)
         return self._ckpt_saver.save(state, suffix=suffix)
 
 
@@ -120,6 +118,7 @@ class RollingSaver(Saver):
         self._last_saved = deque()
 
     def save(self, *args, **kwargs):
+        # type: (*Any, **Any) -> str
         path = self._saver.save(*args, **kwargs)
         if len(self._last_saved) >= self._keep:
             last = self._last_saved.popleft()

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from typing import Iterable, Callable, Union
+from contextlib import contextmanager
+from typing import Iterable, Callable, Union, Optional
 
 import torch
 from future.utils import raise_from
@@ -46,11 +47,11 @@ class Engine(object):
     def __init__(
         self,
         model,  # type: torch.nn.Module
-        data_loader=None,  # type: Iterable
-        batch_input_fn=None,  # type: Callable
-        batch_target_fn=None,  # type: Callable
-        batch_id_fn=None,  # type: Callable
-        progress_bar=None,  # type: Union[bool, str]
+        data_loader=None,  # type: Optional[Iterable]
+        batch_input_fn=None,  # type: Optional[Callable]
+        batch_target_fn=None,  # type: Optional[Callable]
+        batch_id_fn=None,  # type: Optional[Callable]
+        progress_bar=None,  # type: Optional[Union[bool, str]]
     ):
         # type: (...) -> None
         self._model = model
@@ -187,16 +188,8 @@ class Engine(object):
             self._model.eval()
 
         # Run model
-        try:
+        with self.exception_catcher(batch):
             batch_output = self._model(batch_input)
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
         self._iterations += 1
         action_kwargs["iteration"] = self._iterations
@@ -234,8 +227,22 @@ class Engine(object):
             self._epochs += 1
             self._call_hooks(EPOCH_END, epoch=self._epochs)
 
+    @contextmanager
+    def exception_catcher(self, batch):
+        try:
+            yield
+        except Exception as e:
+            wrapper = EngineException(
+                epoch=self._epochs,
+                iteration=self._iterations,
+                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
+                cause=e,
+            )
+            raise_from(wrapper, e)
+
     def state_dict(self):
         return {
+            "model": self._model.state_dict(),
             "epochs": self._epochs,
             "iterations": self._iterations,
             "hooks": {
@@ -248,6 +255,7 @@ class Engine(object):
         }
 
     def load_state_dict(self, state):
+        self._model.load_state_dict(state["model"])
         self._epochs = state["epochs"]
         self._iterations = state["iterations"]
         "Note: The hooks must be in the same order as those in the saved state"
@@ -258,6 +266,11 @@ class Engine(object):
                     break
                 if hasattr(hook, "load_state_dict"):
                     hook.load_state_dict(hook_states[i])
+
+    @staticmethod
+    def get_model_state_dict(state):
+        # type: (dict) -> dict
+        return state["model"]
 
 
 # If we decide to extend the Evaluator class, we can move it to

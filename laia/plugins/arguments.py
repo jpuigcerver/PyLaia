@@ -195,7 +195,7 @@ _default_args = {
     ),
     "train_path": (
         ("--train_path",),
-        {"type": str, "help": "Save any files in this location"},
+        {"type": str, "default": "", "help": "Save any files in this location"},
     ),
     "logging_also_to_stderr": (
         ("--logging_also_to_stderr",),
@@ -242,6 +242,24 @@ _default_args = {
             "const": True,
             "default": True,
             "help": "If true, log to INFO the arguments passed to the program",
+        },
+    ),
+    "save_checkpoint_interval": (
+        ("--save_checkpoint_interval",),
+        {
+            "type": NumberInClosedRange(type=int, vmin=1),
+            "default": None,
+            "metavar": "N",
+            "help": "Make checkpoints of the training process every N epochs",
+        },
+    ),
+    "num_rolling_checkpoints": (
+        ("--num_rolling_checkpoints",),
+        {
+            "type": NumberInClosedRange(type=int, vmin=1),
+            "default": 2,
+            "metavar": "N",
+            "help": "Keep this number of last checkpoints during training",
         },
     ),
 }

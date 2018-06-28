@@ -32,15 +32,14 @@ class SequenceErrorMeter(Meter):
             return float(self._num_errors) / float(self._ref_length)
 
     def state_dict(self):
-        return {
-            "meter_state": super(SequenceErrorMeter, self).state_dict(),
-            "num_errors": self._num_errors,
-            "ref_length": self._ref_length,
-        }
+        state = super(SequenceErrorMeter, self).state_dict()
+        state["num_errors"] = self._num_errors
+        state["ref_length"] = self._ref_length
+        return state
 
     def load_state_dict(self, state):
         if state is None:
             return
-        super(SequenceErrorMeter, self).load_state_dict(state["meter_state"])
+        super(SequenceErrorMeter, self).load_state_dict(state)
         self._num_errors = state["num_errors"]
         self._ref_length = state["ref_length"]

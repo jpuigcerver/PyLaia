@@ -6,14 +6,12 @@ from laia.plugins.loader import (
     CheckpointLoader,
     ModelLoader,
     ModelCheckpointLoader,
-    TrainerLoader,
-    TrainerCheckpointLoader,
+    StateCheckpointLoader,
 )
 from laia.plugins.saver import (
     CheckpointSaver,
     ModelSaver,
     ModelCheckpointSaver,
-    TrainerSaver,
-    TrainerCheckpointSaver,
+    StateCheckpointSaver,
     RollingSaver,
 )
