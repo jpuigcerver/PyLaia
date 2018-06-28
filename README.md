@@ -4,7 +4,7 @@
 [![Python Version](https://img.shields.io/badge/python-2.7%2C%203.5%2C%203.6-blue.svg)](https://www.python.org/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-PyLaia is a device agnostic, PyTorch based, deep learning toolkit to transcribe handwritten text images. It is also a succesor to [Laia](https://github.com/jpuigcerver/Laia).
+PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized for handwritten document analysis. It is also a succesor to [Laia](https://github.com/jpuigcerver/Laia).
 
 ## Requirements
 
@@ -24,8 +24,7 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit to transcribe 
 Create a model using:
 
 ```bash
-$ pylaia-htr-create-model \
-    "$INPUT_HEIGHT" "$CHANNELS" "$SYM_TABLE"
+$ pylaia-htr-create-model "$INPUT_HEIGHT" "$CHANNELS" "$SYM_TABLE"
 ```
 
 Required arguments:
@@ -39,8 +38,7 @@ For optional arguments check `$ pylaia-htr-create-model -h`
 Train the model using:
 
 ```bash
-$ pylaia-htr-train-ctc \
-    "$SYM_TABLE" "$IMG_DIRS" "$TRAIN_GT" "$VALID_GT"
+$ pylaia-htr-train-ctc "$SYM_TABLE" "$IMG_DIRS" "$TRAIN_GT" "$VALID_GT"
 ```
 
 Required arguments:
@@ -55,8 +53,7 @@ For optional arguments check `$ pylaia-htr-train-ctc -h`
 ### Transcribing
 
 ```bash
-$ pylaia-htr-decode-ctc \
-    "$SYM_TABLE" "$IMG_DIRS" "$IMG_LIST"
+$ pylaia-htr-decode-ctc "$SYM_TABLE" "$IMG_DIRS" "$IMG_LIST"
 ```
 
 Required arguments:

@@ -8,13 +8,13 @@ from typing import Any
 import torch
 import torch.nn.functional as functional
 
-import laia.logging as log
+import laia.common.logging as log
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.loader import ModelLoader, CheckpointLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments import Experiment
 from laia.losses.ctc_loss import transform_output
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.loader import ModelLoader, ModelCheckpointLoader, CheckpointLoader
 from laia.utils import ImageToTensor
 
 
@@ -65,7 +65,7 @@ def output_lattice(
     matrix += (
         "\n".join(
             "{:d}\t{:d}\t{:d}\t0,{:.{digits}},{:d}".format(
-                row, row + 1, col + 1, float(output[row, col]), col + 1, digits=digits
+                row, row + 1, col + 1, -float(output[row, col]), col + 1, digits=digits
             )
             for row in range(output_size)
             for col in range(output.size(1))

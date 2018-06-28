@@ -7,7 +7,7 @@ import os
 import pynvml
 import torch
 
-import laia.logging as log
+import laia.common.logging as log
 
 print_tensor_sizes = True
 last_tensor_sizes = set()

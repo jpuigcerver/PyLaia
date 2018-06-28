@@ -8,7 +8,7 @@ import torch
 from scipy.spatial.distance import cdist
 from tqdm import tqdm
 
-import laia.logging as log
+import laia.common.logging as log
 import laia.utils
 from dortmund_utils import (build_dortmund_model, DortmundImageToTensor,
                             DortmundBCELoss)
@@ -17,8 +17,8 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder, VariableFeeder, \
     PHOCFeeder
 from laia.hooks import Hook
 from laia.hooks.conditions import GEqThan
-from laia.hooks.meters import AveragePrecisionMeter
-from laia.plugins.arguments import add_argument, add_defaults, args
+from laia.meters import AveragePrecisionMeter
+from laia.common.arguments import add_argument, add_defaults, args
 
 
 def create_dataset_and_loader(img_dir, gt_table, img_transform,
@@ -62,7 +62,7 @@ class Evaluate(object):
                 queries_embed.append(output.data.cpu().numpy())
                 queries_gt.append(batch['txt'][0])
             except Exception as ex:
-                laia.logging.error('Exception processing: {!r}', batch['id'])
+                laia.common.logging.error('Exception processing: {!r}', batch['id'])
                 raise ex
         queries_embed = np.vstack(queries_embed)
 
@@ -90,7 +90,7 @@ class Evaluate(object):
 
         g_ap = gap_meter.value
         aps = [m.value for m in map_meter if m.value is not None]
-        laia.logging.info('Epoch {epochs:4d}, '
+        laia.common.logging.info('Epoch {epochs:4d}, '
                           'VA gAP = {gap:5.1%}, '
                           'VA mAP = {map:5.1%}, ',
                           epochs=kwargs['epoch'],

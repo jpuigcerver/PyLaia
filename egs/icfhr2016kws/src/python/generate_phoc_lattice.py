@@ -8,7 +8,7 @@ import torch
 from dortmund_utils import build_dortmund_model
 from laia.data import ImageDataLoader
 from laia.data import TextImageFromTextTableDataset
-from laia.plugins.arguments import add_argument, add_defaults, args
+from laia.common.arguments import add_argument, add_defaults, args
 from laia.utils import ImageToTensor
 from laia.utils.symbols_table import SymbolsTable
 from tqdm import tqdm
