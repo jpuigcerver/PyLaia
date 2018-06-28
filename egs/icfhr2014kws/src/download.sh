@@ -1,5 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e;
+
+# Directory where the script is located.
+SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+# Move to the "root" of the experiment.
+cd $SDIR/..;
+
+# Export PATH to utils
+export PATH="$PWD/../utils:$PATH";
 
 # Official data from the H-KWS 2014 competition
 mkdir -p data/duth;
@@ -41,6 +49,10 @@ base_url=http://www.transcriptorium.eu/~htrcontest/contestICFHR2014/public_html/
 [ -s data/prhlt/contestHTRtS.tbz -o \
   -d data/prhlt/contestHTRtS ] ||
 wget -P data/prhlt "$base_url/contestHTRtS.tbz";
-[ -d data/prhlt/contestHTRtS ] ||
-tar xjf data/prhlt/contestHTRtS.tbz -C data/prhlt;
-rm -f data/prhlt/contestHTRtS.tbz;
+[ -d data/prhlt/contestHTRtS ] || {
+  tar xjf data/prhlt/contestHTRtS.tbz -C data/prhlt;
+  rm -f data/prhlt/contestHTRtS.tbz;
+  # Convert PAGE XML 2010 to 2013 format
+  find data/prhlt/contestHTRtS/BenthamData/PAGE -name "*.xml" |
+  xargs convert_page_xml_2010_to_2013.sh
+}

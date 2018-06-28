@@ -1,37 +1,55 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e;
 export LC_ALL=en_US.utf8;
 export LC_NUMERIC=C;
 
-# Check for necessary files.
-for d in data/duth/TRACK_II_Bentham_Dataset \
-	 data/prhlt/contestHTRtS/BenthamData/Transcriptions; do
-  [ ! -d "$d" ] && echo "Directory \"$d\" does not exist!" >&2 && exit 1;
-done;
+# Directory where the script is located.
+SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+# Move to the "root" of the experiment.
+cd $SDIR/..;
+# Load useful functions
+source "$PWD/../utils/functions_check.inc.sh" || exit 1;
+
+check_all_dirs data/duth/TRACK_II_Bentham_Dataset data/bentham/imgs/lines || exit 1;
+check_all_programs xmlstarlet || exit 1;
 
 mkdir -p data/bentham/lang/{char,word};
-[ -s data/bentham/lang/word/original.txt ] ||
-find data/prhlt/contestHTRtS/BenthamData/Transcriptions -name "*.txt" |
-xargs awk '{
-  if (NF == 0) next;
-  match(FILENAME, /^.*\/([0-9_]+).txt/, arr);
-  print arr[1], $0;
-}' | sort | sed -r 's| +| |g;s| $||g' > data/bentham/lang/word/original.txt;
 
-# First, put all words in lowercase.
-# Then, place suffixes like 'd 's 'll 've to next to the previous word
-# Next, remove ' and ", since these are not relevant for KWS
-# Finally, replace delimiters , . : ;  with whitespace
+# Extract ground-truth from the PAGE XML files
+[ -s data/bentham/lang/word/original.txt ] ||
+find data/bentham/imgs/lines -name "*.xml" |
+xargs xmlstarlet sel -t -m '//_:TextLine' -v '../../@imageFilename' -o ' ' \
+                -v @id -o " " -v _:TextEquiv/_:Unicode -n |
+sed -r 's|^([0-9_]+)\.jpg |\1.|g' |
+perl -MHTML::Entities -pe 'decode_entities($_);' |
+sed -r 's| +| |g;s| $||g' |
+awk 'NF > 0' > data/bentham/lang/word/original.txt;
+
+
+# 1. Put all words in lowercase.
+# 2. Remove ' and ", since these are not relevant for KWS
+# 3. Replace start-of-split word delimiter :, with =
+# 4. Replace delimiters , . : ;  with whitespace
+# 5. Separate [ ( ) ] from the other characters
+# 6. Separate <gap/> from other symbols
+# 7. Separate <del> and </del> tokens from other symbols and remove them.
+# 7. Remove contiguous spaces
+# 8. Put page name and line ID together with a .  (recover from step 4)
 [ -s data/bentham/lang/word/normalized.txt ] ||
 awk '{
   printf("%s", $1);
   for (i = 2; i <= NF; ++i) { printf(" %s", tolower($i));  }
   printf("\n");
 }' data/bentham/lang/word/original.txt |
-sed -r 's/[ ]+'\''[ ]?(s|d|ll|ve) /'\''\1 /g' |
 sed -r 's|['\''"]||g' |
+sed -r 's|^([^ ]+) +:([^ ]+)|\1 =\2|g' |
 sed -r 's|[,.:;]| |g' |
-sed -r 's| +| |g;s| $||g' > data/bentham/lang/word/normalized.txt;
+sed -r 's/(\[|\()/ \1 /g;s/(\]|\))/ \1 /g' |
+sed -r 's|(<gap/>)| \1 |g' |
+sed -r 's|(</?del>)| \1 |g;s|</?del>||g;s|£>|£|g' |
+sed -r 's| +| |g;s| $||g' |
+sed -r 's|^([^ ]+) ([^ ]+)|\1.\2|g' > data/bentham/lang/word/normalized.txt;
+
 
 # Split words into characters to train the neural network
 [ -s data/bentham/lang/char/normalized.txt ] ||
@@ -54,6 +72,7 @@ awk '{
   printf("\n");
 }' data/bentham/lang/word/normalized.txt \
    > data/bentham/lang/char/normalized.txt;
+
 
 # Prepare table of character symbols for CTC training
 [ -s data/bentham/lang/syms_ctc.txt ] ||
@@ -85,7 +104,7 @@ tr \  \\n | sort -u | awk 'BEGIN{
     }
     srand(1234);
   }{
-    if (match($1, /^([0-9]+_[0-9]+_[0-9]+)_.*$/, a)) {
+    if (match($1, /^([0-9]+_[0-9]+_[0-9]+)\..*$/, a)) {
       if (a[1] in tp) {
         print $0 > "data/bentham/lang/char/te.txt";
       } else if (rand() < 0.1) {

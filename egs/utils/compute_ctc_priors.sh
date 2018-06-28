@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e;
 
 [ $# -ne 1 ] && echo "Usage: ${0##*/} <matrix-rspecifier>" >&2 && exit 1;
