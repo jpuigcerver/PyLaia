@@ -2,7 +2,7 @@ import math
 
 from numpy import logaddexp
 
-import laia.logging as log
+import laia.common.logging as log
 
 _logger = log.get_logger(__name__)
 

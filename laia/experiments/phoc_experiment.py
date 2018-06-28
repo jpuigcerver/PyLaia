@@ -5,13 +5,13 @@ from typing import Optional, Callable
 import torch
 from torch.nn.functional import sigmoid
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.engine import Evaluator, Trainer
 from laia.engine.engine import ITER_END, EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
 from laia.experiments import Experiment
 from laia.hooks import action
-from laia.hooks.meters import PairwiseAveragePrecisionMeter, Meter
+from laia.meters import PairwiseAveragePrecisionMeter, Meter
 
 _logger = log.get_logger(__name__)
 

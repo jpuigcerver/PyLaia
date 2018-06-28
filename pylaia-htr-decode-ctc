@@ -4,14 +4,14 @@ from __future__ import absolute_import
 import argparse
 import os
 
-import laia.logging as log
+import laia.common.logging as log
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments_types import str2bool
+from laia.common.loader import ModelLoader, CheckpointLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.decoders import CTCGreedyDecoder
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments import Experiment
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.arguments_types import str2bool
-from laia.plugins.loader import ModelLoader, CheckpointLoader
 from laia.utils import SymbolsTable, ImageToTensor
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from collections import Counter
 from laia.engine.htr_engine_wrapper import HtrEngineWrapper
 from laia.hooks import action
 from laia.decoders.ctc_nbest_path_decoder import CTCNBestPathDecoder
-from laia.hooks.meters import Meter
+from laia.meters import Meter
 from laia.utils.accumulate import accumulate
 
 import pywrapfst as fst
