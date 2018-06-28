@@ -5,7 +5,6 @@ __all__ = [
     "conditions",
     "data",
     "decoders",
-    "distorter",
     "engine",
     "experiments",
     "hooks",
@@ -21,7 +20,6 @@ import laia.common
 import laia.conditions
 import laia.data
 import laia.decoders
-import laia.distorter
 import laia.engine
 import laia.experiments
 import laia.hooks
