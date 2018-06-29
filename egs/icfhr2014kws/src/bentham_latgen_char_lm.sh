@@ -17,13 +17,13 @@ Usage: ${0##*/}
 ";
 source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 
-check_all_files -s "data/bentham/lkhs/ps${prior_scale}/te.lines_h80.mat.ark" \
-                   "data/bentham/lkhs/ps${prior_scale}/va.lines_h80.mat.ark";
+check_all_files -s "data/bentham/lkhs/ps${prior_scale}/te.mat.ark" \
+                   "data/bentham/lkhs/ps${prior_scale}/va.mat.ark";
 
 ###########################################################
 ## 1. Build FSTs needed for generating the lattices
 ###########################################################
-output_dir="data/bentham/lats/char_${ngram_order}gram";
+output_dir="data/bentham/decode/char_${ngram_order}gram";
 [ "$lazy_recipe" = true ] && output_dir="${output_dir}_lz";
 ./src/bentham_build_char_lm_fsts.sh \
   --ngram_order "$ngram_order" \
@@ -34,10 +34,11 @@ output_dir="data/bentham/lats/char_${ngram_order}gram";
 ###########################################################
 ## 2. Generate and align character lattices
 ###########################################################
-mkdir -p "${output_dir}/ps${prior_scale}_b${beam}_lb${lattice_beam}";
+lats_dir="${output_dir}/lats/ps${prior_scale}_b${beam}_lb${lattice_beam}";
+mkdir -p "$lats_dir";
 for p in te va; do
-  mat="data/bentham/lkhs/ps${prior_scale}/${p}.lines_h80.mat.ark";
-  lat="${output_dir}/ps${prior_scale}_b${beam}_lb${lattice_beam}/${p}.lat";
+  mat="data/bentham/lkhs/ps${prior_scale}/${p}.mat.ark";
+  lat="${lats_dir}/${p}.lat";
   [[ -s "$lat.ark" && -s "$lat.scp" ]] || (
   latgen-faster-mapped-parallel \
     --acoustic-scale=1.0 \
@@ -52,5 +53,5 @@ for p in te va; do
     "$output_dir/lexicon_align.txt" \
     "$output_dir/model" \
     ark:- "ark,scp:$lat.ark,$lat.scp";
-  ) 2>&1 | tee "${output_dir}/ps${prior_scale}_b${beam}_lb${lattice_beam}/${p}.log" >&2;
+  ) 2>&1 | tee "${lats_dir}/${p}.log" >&2;
 done;
