@@ -23,7 +23,8 @@ xargs xmlstarlet sel -t -m '//_:TextLine' -v '../../@imageFilename' -o ' ' \
 sed -r 's|^([0-9_]+)\.jpg |\1.|g' |
 perl -MHTML::Entities -pe 'decode_entities($_);' |
 sed -r 's| +| |g;s| $||g' |
-awk 'NF > 0' > data/bentham/lang/word/original.txt;
+awk 'NF > 0' |
+sort -V > data/bentham/lang/word/original.txt;
 
 
 # 1. Put all words in lowercase.

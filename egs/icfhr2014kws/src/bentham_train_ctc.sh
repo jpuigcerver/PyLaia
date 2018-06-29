@@ -16,10 +16,10 @@ export PATH="$PWD/../..:$PATH";
 check_all_dirs data/bentham/imgs/lines_h80 || exit 1;
 check_all_files -s data/bentham/lang/syms_ctc.txt \
                    data/bentham/lang/char/tr.txt \
-	               data/bentham/lang/char/va.txt || exit 1;
+                   data/bentham/lang/char/va.txt || exit 1;
 
 # Ask for permission to overwrite previous run
-confirm_overwrite_all_files data/bentham/train/experiment.ckpt-80 ||
+confirm_overwrite_all_files data/bentham/train/experiment.ckpt-90 ||
 { echo "INFO: Abort training..." >&2 && exit 0; }
 
 rm -rf data/bentham/train; # Remove old runs
