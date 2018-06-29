@@ -23,42 +23,43 @@ Options:
 ";
 source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 
-latdir="data/bentham/lats/char_${ngram_order}gram/ps${prior_scale}_b${beam}_lb${lattice_beam}";
-chars_file="data/bentham/lats/char_${ngram_order}gram/chars.txt";
-check_all_files "$latdir/te.lat.ark" \
-                "$latdir/va.lat.ark" \
-                "$chars_file" || exit 1;
+base_dir="data/bentham/decode/char_${ngram_order}gram";
+lats_dir="$base_dir/lats/ps${prior_scale}_b${beam}_lb${lattice_beam}";
+indx_dir="$base_dir/indx/ps${prior_scale}_b${beam}_lb${lattice_beam}";
+check_all_files "$lats_dir/te.lat.ark" \
+                "$lats_dir/va.lat.ark" \
+                "$base_dir/chars.txt" || exit 1;
 
-wspace="$(grep "<sp>" "$chars_file" | awk '{print $2}' | tr \\n \ )";
-marks="$(egrep "^[!?] " "$chars_file" | awk '{print $2}' | tr \\n \ )";
-paren="$(egrep "^(\(|\)|\[|\]) " "$chars_file" | awk '{print $2}' | tr \\n \ )";
+wspace="$(grep "<sp>" "$base_dir/chars.txt" | awk '{print $2}' | tr \\n \ )";
+marks="$(egrep "^[!?] " "$base_dir/chars.txt" | awk '{print $2}' | tr \\n \ )";
+paren="$(egrep "^(\(|\)|\[|\]) " "$base_dir/chars.txt" | awk '{print $2}' | tr \\n \ )";
 
-for p in te; do
-  [ -s "$latdir/$p.pos.index" ] ||
+mkdir -p "$indx_dir";
+for p in te va; do
+  [ -s "$indx_dir/$p.pos.index" ] ||
   lattice-char-index-position \
     --nbest=10000 \
     --num-threads=$(nproc) \
     --acoustic-scale=1.1 \
     --other-groups="$marks ; $paren" "$wspace" \
-    "ark:$latdir/$p.lat.ark" \
-    "ark,t:$latdir/$p.pos.index";
+    "ark:$lats_dir/$p.lat.ark" \
+    "ark,t:$indx_dir/$p.pos.index";
 
-  [ -s "$latdir/$p.seg.index" ] ||
+  [ -s "$indx_dir/$p.seg.index" ] ||
   lattice-char-index-segment \
     --nbest=10000 \
     --num-threads=$(nproc) \
     --acoustic-scale=1.1 \
     --other-groups="$marks ; $paren" "$wspace" \
-    "ark:$latdir/$p.lat.ark" \
-    "ark,t:$latdir/$p.seg.index";
+    "ark:$lats_dir/$p.lat.ark" \
+    "ark,t:$indx_dir/$p.seg.index";
 
-  kws_index_frame2box.sh \
-    -s ${scale} \
-    -x ${offset} \
-    -D <(matrix-dim --print-args=false \
-         ark:data/bentham/lkhs/ps${prior_scale}/${p}.lines_h80.mat.ark | \
-         awk '{ print $1, $2, 80; }') \
-    position \
-    "$latdir/$p.pos.index";
+  #kws_index_frame2box.sh \
+  #  -s ${scale} \
+  #  -x ${offset} \
+  #  -D <(matrix-dim --print-args=false \
+  #       ark:data/bentham/lkhs/ps${prior_scale}/${p}.lines_h80.mat.ark | \
+  #       awk '{ print $1, $2, 80; }') \
+  #  position \
+  #  "$lats_dir/$p.pos.index";
 done;
-
