@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e;
+export LC_NUMERIC=C;
 
 # Directory where the script is located.
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
@@ -68,6 +69,7 @@ function fix_image_height () {
 ne=10613;
 
 # Process text line images
+mkdir -p data/bentham/imgs/lines;
 nr=$(find data/bentham/imgs/lines -name "*.png" | wc -l);
 [ -d data/bentham/imgs/lines -a "$nr -eq $ne" ] || {
   mkdir -p data/bentham/imgs/lines;
