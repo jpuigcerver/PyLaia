@@ -2,6 +2,12 @@
 set -e;
 export LC_ALL=en_US.utf8;
 export PATH="$PWD/../utils:$PATH";
+# Directory where the script is located.
+SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+# Move to the "root" of the experiment.
+cd $SDIR/..;
+# Load useful functions
+source "$PWD/../utils/functions_check.inc.sh" || exit 1;
 
 loop_scale=1;
 ngram_method=kneser_ney;
@@ -24,36 +30,7 @@ Options:
   --overwrite
   --transition_scale
 ";
-while [ "${1:0:2}" = "--" ]; do
-  case "$1" in
-    --loop_scale)
-      loop_scale="$2";
-      shift 2;
-      ;;
-    --ngram_method)
-      ngram_method="$2";
-      shift 2;
-      ;;
-    --ngram_order)
-      ngram_order="$2";
-      shift 2;
-      ;;
-    --overwrite)
-      overwrite="$2";
-      shift 2;
-      ;;
-    --transition_scale)
-      transition_scale="$2";
-      shift 2;
-      ;;
-    --help)
-      echo "$help_message";
-      exit 0;
-      ;;
-    *)
-      echo "ERROR: Unknown option \"$1\"!" >&2 && exit 1;
-  esac;
-done;
+source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 1 ] &&
 echo -e "ERROR: Missing arguments!\n$help_message" >&2 &&
 exit 1;

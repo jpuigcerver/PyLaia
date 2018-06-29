@@ -16,7 +16,7 @@ check_all_files -s data/bentham/lang/syms_ctc.txt \
                    data/bentham/lang/char/te.txt \
 	               data/bentham/lang/char/tr.txt \
 	               data/bentham/lang/char/va.txt \
-	               data/bentham/train/experiment.ckpt-80;
+	               data/bentham/train/experiment.ckpt-90;
 
 # Parse options
 beam=15;

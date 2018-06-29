@@ -82,6 +82,14 @@ nr=$(find data/bentham/imgs/lines -name "*.png" | wc -l);
     --savexml=data/bentham/imgs/lines \
     --threads=$(nproc) \
     data/prhlt/contestHTRtS/BenthamData/PAGE/*.xml;
+
+  find data/bentham/imgs/lines -name "*.xml" |
+  xargs xmlstarlet sel -t -m '//_:TextLine' \
+                       -v '../../@imageFilename' -o ' ' \
+                       -v @id -o " " -m '_:Property[@key="fpgram"]' \
+                       -v @value -n |
+  sed -r 's|^([0-9_]+)\.jpg |\1.|g' |
+  sort -V > data/bentham/imgs/lines/fpgrams.txt;
 }
 
 # Fix height of the line images.
@@ -95,7 +103,37 @@ nr=$(find data/bentham/imgs/lines_h80 -name "*.png" | wc -l);
     [ "$n" -eq "$(nproc)" ] && { wait; n=1; }
   done;
   wait;
+
+  # Fix parallelograms
+  find data/bentham/imgs/lines -name "*.png" |
+  xargs identify -format "%f %h %w\n" |
+  sed -r 's|^(.+)\.png |\1 |g' | sort -V |
+  gawk '
+  function get_coord(s) {
+    if (!match(s, /([0-9.]+),([0-9.]+)/, m)) {
+        print "ERROR: Wrong x,y coordinate at line" NR > "/dev/stderr";
+        exit 1;
+    }
+    return m;
+  }
+  {
+    scale = 1;
+    l_offset = 0;
+    r_offset = 0;
+    t_offset = 0;
+    b_offset = 0;
+
+    if ($2 > 80) {
+      scale = $2 / 80.0;
+    } else {
+      t_offset =  (80 - $2) / 2.0;
+      b_offset = -(80 - $2) / 2.0;
+    }
+    print $1, scale, l_offset, r_offset, t_offset, b_offset;
+  }' |
+  sort -V > data/bentham/imgs/lines_h80/resize_info.txt;
 }
+
 
 # Process query images
 mkdir -p data/bentham/imgs/queries;
