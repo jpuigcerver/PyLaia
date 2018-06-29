@@ -32,8 +32,8 @@ source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 ############################################################
 ## 1. Compute pseudo-priors from the posteriors.
 ############################################################
-mkdir -p data/bentham/post;
-[ -s data/bentham/post/tr.lines_h80.prior ] ||
+mkdir -p data/bentham/lkhs;
+[ -s data/bentham/lkhs/tr.prior ] ||
 pylaia-htr-netout \
   --logging_also_to_stderr info \
   --logging_level info \
@@ -42,14 +42,15 @@ pylaia-htr-netout \
   --output_format matrix \
   data/bentham/imgs/lines_h80 \
   <(cut -d\  -f1 data/bentham/lang/char/tr.txt) |
-compute_ctc_priors.sh ark:- > data/bentham/post/tr.lines_h80.prior;
+compute_ctc_priors.sh ark:- > data/bentham/lkhs/tr.prior;
 
 
 ############################################################
 ## 2. Generate frame posteriors for text lines
 ############################################################
+mkdir -p data/bentham/lkhs/post;
 for p in te va; do
-  mat=data/bentham/post/$p.lines_h80.mat;
+  mat="data/bentham/lkhs/post/$p.mat";
   [ -s "$mat.ark" -a -s "$mat.scp" ] ||
   pylaia-htr-netout \
     --logging_also_to_stderr info \
@@ -58,7 +59,7 @@ for p in te va; do
     --output_transform log_softmax \
     --output_format matrix \
     data/bentham/imgs/lines_h80 \
-    <(cut -d\  -f1 data/bentham/lang/char/$p.txt) |
+    <(cut -d\  -f1 "data/bentham/lang/char/$p.txt") |
     copy-matrix ark:- "ark,scp:$mat.ark,$mat.scp";
 done;
 
@@ -68,11 +69,11 @@ done;
 ############################################################
 mkdir -p data/bentham/lkhs/ps${prior_scale};
 for p in te va; do
-  pst="data/bentham/post/$p.lines_h80.mat.ark";
-  mat="data/bentham/lkhs/ps${prior_scale}/$p.lines_h80.mat";
+  pst="data/bentham/lkhs/post/$p.mat.ark";
+  mat="data/bentham/lkhs/ps${prior_scale}/$p.mat";
   [ -s "$mat.ark" -a -s "$mat.scp" ] ||
   convert_post_to_lkhs.sh \
-    --scale "$prior_scale" data/bentham/post/tr.lines_h80.prior "ark:$pst" ark:- |
+    --scale "$prior_scale" data/bentham/lkhs/tr.prior "ark:$pst" ark:- |
   add_boundary_frames.sh \
     "$(wc -l data/bentham/lang/syms_ctc.txt | awk '{print $1}')" \
     "$(grep "<sp>" data/bentham/lang/syms_ctc.txt | awk '{print $2}')" "" \
@@ -83,7 +84,7 @@ done;
 ############################################################
 ## 4. Generate frame posteriors for image queries
 ############################################################
-mat="data/bentham/lkhs/ps${prior_scale}/te.queries_h80.mat";
+mat="data/bentham/lkhs/ps${prior_scale}/te.queries.mat";
 [ -s "$mat.ark" -a -s "$mat.scp" ] ||
 pylaia-htr-netout \
   --logging_also_to_stderr info \
@@ -94,7 +95,7 @@ pylaia-htr-netout \
   data/bentham/imgs/queries_h80 \
   <(find data/bentham/imgs/queries_h80 -name "*.png" | xargs -n1 basename) |
 convert_post_to_lkhs.sh \
-  --scale "${prior_scale}" data/bentham/post/tr.lines_h80.prior ark:- ark:- |
+  --scale "${prior_scale}" data/bentham/lkhs/tr.prior ark:- ark:- |
 add_boundary_frames.sh \
   "$(wc -l data/bentham/lang/syms_ctc.txt | awk '{print $1}')" \
   "$(grep "<sp>" data/bentham/lang/syms_ctc.txt | awk '{print $2}')" "" \
