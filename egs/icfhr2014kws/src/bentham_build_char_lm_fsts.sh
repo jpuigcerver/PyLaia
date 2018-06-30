@@ -183,7 +183,7 @@ else
   fstrelabel \
     --relabel_ipairs=<(echo "0 $char_disambig_sym") \
     "$1/lm.fst" |
-  fstconcat <(echo -e "0  1  $sp_int $sp_int\n0" | fstcompile) - |
+  fstconcat <(echo -e "0  1  $sp_int $sp_int\n1" | fstcompile) - |
   fstarcsort --sort_type=ilabel |
   fsttablecompose "$1/L.fst" - |
   fstdeterminizestar --use-log=true |
