@@ -71,7 +71,7 @@ ne=10613;
 # Process text line images
 mkdir -p data/bentham/imgs/lines;
 nr=$(find data/bentham/imgs/lines -name "*.png" | wc -l);
-[ -d data/bentham/imgs/lines -a "$nr -eq $ne" ] || {
+[ -d data/bentham/imgs/lines -a "$nr" -eq "$ne" ] || {
   mkdir -p data/bentham/imgs/lines;
   # Create link to JPG images in the directory containing the PAGE images,
   # this is needed by the textFeats tool.

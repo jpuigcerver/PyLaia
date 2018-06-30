@@ -11,7 +11,7 @@ source "$PWD/../utils/functions_check.inc.sh" || exit 1;
 
 loop_scale=1;
 ngram_method=kneser_ney;
-ngram_order=5;
+ngram_order=7;
 overwrite=false;
 transition_scale=1;
 lazy_recipe=false;
@@ -75,7 +75,6 @@ awk '{
   printf("\n");
 }' "$1/lexicon.txt" |
 sym2int.pl -f 1- "$1/chars.txt" > "$1/lexicon_align.txt";
-
 
 
 # Create HMM model and tree
