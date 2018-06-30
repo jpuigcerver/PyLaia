@@ -1,1 +1,1 @@
-../../../washington/steps/generate_ctc_lattice.py
+../../../washington/src/python/generate_ctc_lattice.py

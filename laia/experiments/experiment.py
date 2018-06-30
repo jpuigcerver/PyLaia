@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from collections import Sequence
 from typing import Callable, Optional, List
 
-from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, ITER_END, Engine
+from laia.common.logging import get_logger
+from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, Engine
 from laia.engine.trainer import Trainer
 from laia.hooks import action
-from laia.hooks.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
-from laia.logging import get_logger
+from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
 
 _logger = get_logger(__name__)
 

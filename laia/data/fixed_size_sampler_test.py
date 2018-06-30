@@ -18,7 +18,7 @@ class FixedSizeSamplerTest(unittest.TestCase):
         sampler = FixedSizeSampler(DummyDataset(2), 2)
         self.assertEqual(2, len(sampler))
         it = iter(sampler)
-        self.assertEqual(set([0, 1]), set([x for x in it]))
+        self.assertEqual({0, 1}, set(x for x in it))
 
     def test_fewer_elements_than_source(self):
         sampler = FixedSizeSampler(DummyDataset(10), 2)
@@ -32,7 +32,7 @@ class FixedSizeSamplerTest(unittest.TestCase):
         it = iter(sampler)
         samples = [x for x in it]
         self.assertEqual(10, len(samples))
-        self.assertEqual(set([0, 1, 2]), set(samples))
+        self.assertEqual({0, 1, 2}, set(samples))
 
 
 if __name__ == "__main__":

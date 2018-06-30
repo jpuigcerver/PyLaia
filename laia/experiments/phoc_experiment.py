@@ -5,18 +5,18 @@ from typing import Optional, Callable
 import torch
 from torch.nn.functional import sigmoid
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.engine import Evaluator, Trainer
 from laia.engine.engine import ITER_END, EPOCH_END
 from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
 from laia.experiments import Experiment
 from laia.hooks import action
-from laia.hooks.meters import PairwiseAveragePrecisionMeter, Meter
+from laia.meters import PairwiseAveragePrecisionMeter, Meter
 
 _logger = log.get_logger(__name__)
 
 
-class PhocExperiment(Experiment):
+class PHOCExperiment(Experiment):
     r"""Wrapper to perform KWS experiments with PHOC networks."""
 
     def __init__(
@@ -43,7 +43,7 @@ class PhocExperiment(Experiment):
         ),  # type: Sequence[str]
     ):
         # type: (...) -> None
-        super(PhocExperiment, self).__init__(
+        super(PHOCExperiment, self).__init__(
             train_engine,
             valid_engine=valid_engine,
             check_valid_hook_when=check_valid_hook_when,
@@ -101,9 +101,13 @@ class PhocExperiment(Experiment):
         # type: () -> Meter
         return self._va_ap
 
+    def run(self):
+        self._tr_engine.run()
+        return self
+
     @action
     def valid_reset_meters(self):
-        super(PhocExperiment, self).valid_reset_meters()
+        super(PHOCExperiment, self).valid_reset_meters()
         self._va_ap.reset()
 
     @action
@@ -125,7 +129,7 @@ class PhocExperiment(Experiment):
 
     def epoch_summary(self, summary_order=None):
         # type: (Optional[Sequence[str]]) -> List[dict]
-        summary = super(PhocExperiment, self).epoch_summary(summary_order=summary_order)
+        summary = super(PHOCExperiment, self).epoch_summary(summary_order=summary_order)
         if self._va_engine:
             summary.append(
                 dict(label="VA gAP", format="{.value[0]:5.1%}", source=self._va_ap)
@@ -141,7 +145,7 @@ class PhocExperiment(Experiment):
 
     def state_dict(self):
         # type: () -> dict
-        state = super(PhocExperiment, self).state_dict()
+        state = super(PHOCExperiment, self).state_dict()
         if hasattr(self._va_ap, "state_dict"):
             state["va_ap"] = self._va_ap.state_dict()
         return state
@@ -150,6 +154,6 @@ class PhocExperiment(Experiment):
         # type: (dict) -> None
         if state is None:
             return
-        super(PhocExperiment, self).load_state_dict(state)
+        super(PHOCExperiment, self).load_state_dict(state)
         if hasattr(self._va_ap, "load_state_dict"):
             self._va_ap.load_state_dict(state["va_ap"])

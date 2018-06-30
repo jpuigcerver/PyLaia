@@ -4,6 +4,7 @@ export LC_NUMERIC=C;
 
 # Directory where the script is located.
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+export PATH="$SDIR/../../utils:$PATH";
 
 bos="<s>";
 ctc="<ctc>";
@@ -40,7 +41,7 @@ Options:
   --use_priors       : (type = boolean, value = $use_priors)
                        If true, add the word priors to G.
 ";
-source "$SDIR/parse_options.inc.sh" || exit 1;
+source "$SDIR/../../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 4 ] && echo "$help_message" >&2 && exit 1;
 
 for f in "$1" "$2" "$3"; do
@@ -72,7 +73,7 @@ awk -v bos="$bos" -v ctc="$ctc" '{
 
 # Add disambiguation symbols
 tmp="$(mktemp)";
-ndisambig=$("$SDIR/add_lex_disambig.pl" --pron-probs "$4/lexiconp.txt" "$tmp");
+ndisambig=$(add_lex_disambig.pl --pron-probs "$4/lexiconp.txt" "$tmp");
 if [[ "$overwrite" = true || ! -s "$4/lexiconp_disambig.txt" ]] ||
      ! cmp -s "$tmp" "$4/lexiconp_disambig.txt"; then
   mv "$tmp" "$4/lexiconp_disambig.txt";
@@ -113,13 +114,13 @@ gawk '$1 ~ /^#.+/{ print $2 }' "$4/chars.txt" > "$4/chars_disambig.int";
 gawk '$1 ~ /^#.+/{ print $2 }' "$4/words.txt" > "$4/words_disambig.int";
 
 # Create HMM model and tree
-"$SDIR/create_ctc_hmm_model.sh" \
+create_ctc_hmm_model.sh \
   --eps "$eps" --ctc "$ctc" --overwrite "$overwrite" \
   "$4/chars.txt" "$4/model" "$4/tree";
 
 # Create the lexicon FST with disambiguation symbols.
 [[ "$overwrite" = false && -s "$4/L.fst" ]] ||
-"$SDIR/make_lexicon_fst.pl" --pron-probs "$4/lexiconp_disambig.txt" |
+make_lexicon_fst.pl --pron-probs "$4/lexiconp_disambig.txt" |
 fstcompile --isymbols="$4/chars.txt" --osymbols="$4/words.txt" |
 fstdeterminizestar --use-log=true |
 fstminimizeencoded |
@@ -187,6 +188,6 @@ fstrmsymbols <(cut -d\  -f1 "$4/lexiconp.txt" |
                }END{
                  if (!has_bos) print bos;
                  if (!has_eos) print eos;
-               }' | "$SDIR/sym2int.pl" -f 1 "$4/words.txt") |
+               }' | sym2int.pl -f 1 "$4/words.txt") |
 fstrmepslocal --use-log=true |
 fstarcsort --sort_type=ilabel > "$4/G.fst";
