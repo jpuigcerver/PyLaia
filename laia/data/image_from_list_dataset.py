@@ -4,7 +4,7 @@ from io import open
 
 from torch._six import string_classes
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.data.image_dataset import ImageDataset
 from laia.data.text_image_from_text_table_dataset import (
     find_image_filename_from_id,

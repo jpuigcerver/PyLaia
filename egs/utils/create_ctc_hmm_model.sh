@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e;
 export LC_NUMERIC=C;
 
@@ -7,7 +7,7 @@ SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 
 eps="<eps>";
 ctc="<ctc>";
-dregex="^#[0-9]+";
+dregex="^#.+";
 overwrite=false;
 ploop=0.6;
 pctc=0.5;
@@ -17,7 +17,8 @@ Usage: ${0##*/} [options] symbols_map output_model output_tree
 
 Arguments:
   symbols_map  : File containing the mapping from string to integer IDs of
-                 ALL symbols (must include: all characters, the CTC blank sym).
+                 ALL symbols (must include: all characters, the CTC blank
+                 symbol and the dummy symbol).
   output_model : Path to the output model.
   output_tree  : Path to the output tree.
 
@@ -51,11 +52,11 @@ mkdir -p "$(dirname "$model")" "$(dirname "$tree")";
 # This is the list of all the actual characters (no epsilon, no ctc,
 # and no disambiguation symbols).
 char_ids=( $(gawk -v ctc="$ctc" -v eps="$eps" -v dr="$dregex" \
-  '$1!=eps && $1!=ctc && $1!~dr{print $2;}' "$symbs_all" | sort -n) );
+  '$1!=eps && $1!=ctc && $1!~dr{print $2;}' $symbs_all | sort -n) );
 # This is the integer ID for the epsilon symbol. MUST BE 0
-eps_id="$(gawk -v eps="$eps" '$1 == eps{print $2}' "$symbs_all")";
+eps_id="$(gawk -v eps="$eps" '$1 == eps{print $2}' $symbs_all)";
 # This is the integer ID for the CTC symbol.
-ctc_id="$(gawk -v ctc="$ctc" '$1 == ctc{print $2}' "$symbs_all")";
+ctc_id="$(gawk -v ctc="$ctc" '$1 == ctc{print $2}' $symbs_all)";
 # Maximum symbol ID, excluding disambiguation and epsilon
 max_id=$(printf "%d\n" ${char_ids[@]} $ctc_id | sort -nr | head -n1);
 

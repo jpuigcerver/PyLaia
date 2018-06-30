@@ -6,8 +6,8 @@ SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 [ "$(pwd)/src" != "$SDIR" ] && \
     echo "Please, run this script from the experiment top directory!" >&2 && \
     exit 1;
-[ ! -f "$(pwd)/src/parse_options.inc.sh" ] &&
-echo "Missing $(pwd)/src/parse_options.inc.sh file!" >&2 && exit 1;
+[ ! -f "$SDIR/../../utils/parse_options.inc.sh" ] &&
+echo "Missing \"$SDIR/../../utils/parse_options.inc.sh\" file!" >&2 && exit 1;
 
 iam_pass=;
 iam_user=;
@@ -20,7 +20,7 @@ Options:
   --iam_user   : (type = string, default = \"$iam_user\")
                  Username for the IAM server.
 ";
-source "$(pwd)/src/parse_options.inc.sh" || exit 1;
+source "$SDIR/../../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 1 ] && echo "$help_message" >&2 && exit 1;
 
 # Utility function to download files from IAM.

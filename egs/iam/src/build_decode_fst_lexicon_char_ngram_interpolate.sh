@@ -4,6 +4,7 @@ export LC_NUMERIC=C;
 
 # Directory where the script is located.
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+export PATH="$SDIR/../../utils:$PATH";
 
 bos="<s>";
 ctc="<ctc>";
@@ -56,7 +57,7 @@ Options:
   --transition_scale  : (type = float, value = $transition_scale)
                         Scaling factor applied to the outgoing arcs in the HMMs.
 ";
-source "$SDIR/parse_options.inc.sh" || exit 1;
+source "$SDIR/../../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 3 ] && echo "$help_message" >&2 && exit 1;
 
 for f in "$1" "$2"; do
@@ -75,7 +76,7 @@ $1 != ctc{
 
 # Add disambiguation symbols
 tmp="$(mktemp)";
-ndisambig=$("$SDIR/add_lex_disambig.pl" --pron-probs "$3/lexiconp.txt" "$tmp");
+ndisambig=$(add_lex_disambig.pl --pron-probs "$3/lexiconp.txt" "$tmp");
 if [[ "$overwrite" = true || ! -s "$3/lexiconp_disambig.txt" ]] ||
      ! cmp -s "$tmp" "$3/lexiconp_disambig.txt"; then
   mv "$tmp" "$3/lexiconp_disambig.txt";
@@ -104,14 +105,14 @@ BEGIN{
 gawk '$1 ~ /^#.+/{ print $2 }' "$3/syms.txt" > "$3/syms_disambig.int";
 
 # Create HMM model and tree
-"$SDIR/create_ctc_hmm_model.sh" \
+create_ctc_hmm_model.sh \
   --eps "$eps" --ctc "$ctc" --overwrite "$overwrite" \
   --dregex "^(#.+|$bos|$eos)" \
   "$3/syms.txt" "$3/model" "$3/tree";
 
 # Create the lexicon FST with disambiguation symbols.
 [[ "$overwrite" = false && -s "$3/L.fst" ]] ||
-"$SDIR/make_lexicon_fst.pl" --pron-probs "$3/lexiconp_disambig.txt" |
+make_lexicon_fst.pl --pron-probs "$3/lexiconp_disambig.txt" |
 fstcompile --isymbols="$3/syms.txt" --osymbols="$3/syms.txt" |
 fstdeterminizestar --use-log=true |
 fstminimizeencoded |
