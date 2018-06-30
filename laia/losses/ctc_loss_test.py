@@ -13,7 +13,7 @@ else:
 from torch.autograd import Variable, gradcheck
 from torch.nn.functional import log_softmax
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.losses.ctc_loss import (
     copy_valid_indices,
     set_zeros_in_errors,

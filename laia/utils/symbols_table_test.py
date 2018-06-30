@@ -31,9 +31,7 @@ class SymbolsTableTest(unittest.TestCase):
         st.add("a", 0)
         with self.assertRaises(
             KeyError,
-            msg=(
-                'Symbol "a" was already present in ' 'the table (assigned to value "0")'
-            ),
+            msg=('Symbol "a" was already present in the table (assigned to value "0")'),
         ):
             st.add("a", 1)
 
@@ -42,9 +40,7 @@ class SymbolsTableTest(unittest.TestCase):
         st.add("a", 0)
         with self.assertRaises(
             KeyError,
-            msg=(
-                'Value "0" was already present in ' 'the table (assigned to symbol "a")'
-            ),
+            msg=('Value "0" was already present in the table (assigned to symbol "a")'),
         ):
             st.add("b", 0)
 
