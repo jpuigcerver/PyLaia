@@ -43,6 +43,14 @@ for url in ${urls[@]}; do
   rm -f "data/duth/$file.7z";
 done;
 
+# Download evaluation tool
+[ -s data/duth/VCGEvalConsole.tar.gz -o \
+  -d data/duth/VCGEvalConsole ] ||
+wget -P data/duth \
+  http://vc.ee.duth.gr/H-KWS2014/downloads/evaluation/VCGEvalConsole.tar.gz;
+[ -d data/duth/VCGEvalConsole ] ||
+tar zxf data/duth/VCGEvalConsole.tar.gz -C data/duth;
+
 # Download training data from the ICFHR-2014 Competition on HTR.
 mkdir -p data/prhlt;
 base_url=http://www.transcriptorium.eu/~htrcontest/contestICFHR2014/public_html/HTRtS2014;

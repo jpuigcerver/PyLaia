@@ -11,7 +11,7 @@ source "$PWD/../utils/functions_check.inc.sh" || exit 1;
 
 loop_scale=1;
 ngram_method=kneser_ney;
-ngram_order=5;
+ngram_order=7;
 overwrite=false;
 transition_scale=1;
 help_message="
@@ -105,3 +105,74 @@ for p in va te; do
   grep -v "NOTE:";
 done;
 rm "$tmp";
+
+# Create L with disambiguation symbols.
+# Self-loops are added to propagate the backoff arcs (#0) from the
+# language model (see next).
+[[ "$overwrite" = false && -s "$1/L.fst" ]] ||
+make_lexicon_fst.pl "$1/lexicon_disambig.txt" |
+fstcompile --isymbols="$1/chars.txt" --osymbols="$1/chars.txt" \
+     --keep_isymbols=false --keep_osymbols=false |
+fstaddselfloops "echo $char_disambig_sym |" "echo $char_disambig_sym |" | \
+fstarcsort --sort_type=olabel > "$1/L.fst";
+
+# Compose LG with disambiguation symbols.
+# We need the disambiguation symbols because we are going to determinize
+# the resulting FST.
+# We enforce that text starts with the character <sp> to handle the fake
+# frame added at the start of the utterance.
+sp_int="$(grep -w "<sp>" $1/chars.txt | awk '{ print $2 }')";
+[[ "$overwrite" = false && -s "$1/LG.fst" ]] ||
+fstrelabel \
+--relabel_ipairs=<(echo "0 $char_disambig_sym") \
+"$1/lm.fst" |
+fstconcat <(echo -e "0  1  $sp_int $sp_int\n0" | fstcompile) - |
+fstarcsort --sort_type=ilabel |
+fsttablecompose "$1/L.fst" - |
+fstdeterminizestar --use-log=true |
+fstminimizeencoded | \
+fstpushspecial |
+fstarcsort --sort_type=ilabel > "$1/LG.fst";
+
+# Compose the context-dependent and the L transducers.
+[[ "$overwrite" = false && -s "$1/CLG.fst" ]] ||
+fstcomposecontext \
+--context-size=1 \
+--central-position=0 \
+--read-disambig-syms="$1/chars_disambig.int" \
+--write-disambig-syms="$1/ilabels_disambig.int" \
+"$1/ilabels" \
+"$1/LG.fst" |
+fstarcsort --sort_type=ilabel > "$1/CLG.fst" ||
+{ echo "Failed $1/CLG.fst creation!" >&2 && exit 1; }
+
+
+# Create Ha transducer
+[[ "$overwrite" = false && -s "$1/Ha.fst" ]] ||
+make-h-transducer \
+--disambig-syms-out="$1/tid_disambig.int" \
+--transition-scale="$transition_scale" \
+"$1/ilabels" \
+"$1/tree" \
+"$1/model" > "$1/Ha.fst" ||
+{ echo "Failed $1/Ha.fst creation!" >&2 && exit 1; }
+
+# Create HaCLG transducer.
+# Note: This is the HCLG transducer without self-loops.
+[[ "$overwrite" = false && -s "$1/HaCLG.fst" ]] ||
+fsttablecompose "$1/Ha.fst" "$1/CLG.fst" | \
+fstdeterminizestar --use-log=true | \
+fstrmsymbols "$1/tid_disambig.int" | \
+fstrmepslocal  |
+fstminimizeencoded > "$1/HaCLG.fst" ||
+{ echo "Failed $1/HaCLG.fst creation!" >&2 && exit 1; }
+
+
+# Create HCLG transducer.
+[[ "$overwrite" = false && -s "$1/HCLG.fst" ]] ||
+add-self-loops \
+--self-loop-scale="$loop_scale" \
+--reorder=true \
+"$1/model" "$1/HaCLG.fst" |
+fstarcsort --sort_type=olabel > "$1/HCLG.fst" ||
+{ echo "Failed $1/HCLG.fst creation!" >&2 && exit 1; }
