@@ -82,7 +82,7 @@ done;
 
 
 ############################################################
-## 4. Generate frame posteriors for image queries
+## 4. Generate frame likelihoods for image queries
 ############################################################
 mat="data/bentham/lkhs/ps${prior_scale}/te.queries.mat";
 [ -s "$mat.ark" -a -s "$mat.scp" ] ||
