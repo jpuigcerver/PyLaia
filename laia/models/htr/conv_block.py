@@ -101,7 +101,7 @@ class ConvBlock(nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         x = self.conv(x)
-        if self.use_masks is not None:
+        if self.use_masks:
             x = mask_image_from_size(x, batch_sizes=xs, mask_value=0, inplace=True)
 
         if self.batchnorm:
@@ -110,7 +110,7 @@ class ConvBlock(nn.Module):
         if self.activation:
             x = self.activation(x)
 
-        if self.use_masks is not None:
+        if self.use_masks:
             x = mask_image_from_size(x, batch_sizes=xs, mask_value=0, inplace=True)
 
         if self.pool:

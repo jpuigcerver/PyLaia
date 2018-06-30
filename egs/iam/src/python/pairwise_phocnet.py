@@ -10,10 +10,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import laia
-import laia.logging as log
-from laia.data import TextImageFromTextTableDataset
 from laia.models.kws.dortmund_phocnet import DortmundPHOCNet
-from laia.plugins.arguments import add_argument, add_defaults, args
+import laia.common.logging as log
+from dortmund_utils import build_dortmund_model
+from laia.data import TextImageFromTextTableDataset
+from laia.common.arguments import add_argument, add_defaults, args
 from laia.utils import ImageToTensor
 
 if __name__ == "__main__":

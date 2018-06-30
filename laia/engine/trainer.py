@@ -4,7 +4,7 @@ from typing import Callable, Union, Iterable, Optional
 
 import torch
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.hooks import Hook, action
 from laia.losses.loss import Loss
