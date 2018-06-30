@@ -101,10 +101,6 @@ class PHOCExperiment(Experiment):
         # type: () -> Meter
         return self._va_ap
 
-    def run(self):
-        self._tr_engine.run()
-        return self
-
     @action
     def valid_reset_meters(self):
         super(PHOCExperiment, self).valid_reset_meters()
