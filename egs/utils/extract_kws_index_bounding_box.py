@@ -6,36 +6,37 @@ from __future__ import print_function
 
 import argparse
 import logging
-import math
-import random
+import os.path
 import re
 from collections import namedtuple
-import os.path
 
-import numpy as np
-from typing import AnyStr, Dict, Tuple, Union, Optional
-from typing.io import IO
 import cv2
-
+import numpy as np
 from laia.utils import SymbolsTable
+from typing import AnyStr, Dict, Tuple, Union
+from typing.io import IO
 
 logging.basicConfig(level=logging.WARNING)
 
 TupleCoord = Tuple[float, float]
 Parallelogram = Tuple[TupleCoord, ...]
-ResizeInfo = namedtuple("ResizeInfo", ("scale", "offset_left", "offset_right", "offset_top", "offset_bottom"))
+ResizeInfo = namedtuple(
+    "ResizeInfo",
+    ("scale", "offset_left", "offset_right", "offset_top", "offset_bottom"),
+)
 
 PositionMatch = namedtuple("PositionMatch", ("word", "position", "beg", "end", "logp"))
 SegmentMatch = namedtuple("SegmentMatch", ("word", "beg", "end", "logp"))
 Match = Union[PositionMatch, SegmentMatch]
 
+
 def parse_position_match(s, syms=None):
-    # type: (Union[str, unicode]) -> PositionMatch
+    # type: (Union[str, unicode], SymbolsTable) -> PositionMatch
     s = s.split()
     assert len(s) == 5
 
     if syms:
-        w = " ".join([syms[int(x)] for x in s[0].split("_")])
+        w = "".join([syms[int(x)] for x in s[0].split("_")])
     else:
         w = s[0]
 
@@ -48,12 +49,12 @@ def parse_position_match(s, syms=None):
 
 
 def parse_segment_match(s, syms=None):
-    # type: (Union[str, unicode]) -> SegmentMatch
+    # type: (Union[str, unicode], SymbolsTable) -> SegmentMatch
     s = s.split()
     assert len(s) == 4
 
     if syms:
-        w = " ".join([syms[int(x)] for x in s[0].split("_")])
+        w = "".join([syms[int(x)] for x in s[0].split("_")])
     else:
         w = s[0]
 
@@ -64,12 +65,8 @@ def parse_segment_match(s, syms=None):
     return SegmentMatch(word=w, beg=beg, end=end, logp=logp)
 
 
-def match_scale_shift(
-    match,  # type: Match
-    scale,  # type: float
-    shift,  # type: float
-):
-    # type: (...) -> Match
+def match_scale_shift(match, scale, shift):
+    # type: (Match, Union[int, float], Union[int, float]) -> Match
     beg = match.beg * scale + shift
     end = match.end * scale + shift
     if isinstance(match, PositionMatch):
@@ -86,7 +83,10 @@ def parse_paralellograms_file(f):
     for n, line in enumerate(f):
         line = line.split()
         if len(line) != 5:
-            raise ValueError("Wrong parallelogram at line {}: wrong number of fields (found={}, expected={})".format(n, len(line), 5))
+            raise ValueError(
+                "Wrong parallelogram at line {}: wrong number of fields "
+                "(found={}, expected={})".format(n, len(line), 5)
+            )
         try:
             sample_id = line[0]
             pgram = line[1:]
@@ -100,8 +100,9 @@ def parse_paralellograms_file(f):
                 "Sample %s was repeated in the parallelogram file", repr(sample_id)
             )
 
-        pgrams[sample_id] = tuple(pgram)
+        pgrams[sample_id] = np.asarray(pgram, dtype=np.float32)
     return pgrams
+
 
 def parse_resize_info_file(f):
     # type: (IO[AnyStr]) -> Dict[str, ResizeInfo]
@@ -109,7 +110,10 @@ def parse_resize_info_file(f):
     for n, line in enumerate(f):
         line = line.split()
         if len(line) != 6:
-            raise ValueError("Wrong resize info at line {}: wrong number of fields (found={}, expected={})".format(n, len(line), 6))
+            raise ValueError(
+                "Wrong resize info at line {}: wrong number of fields "
+                "(found={}, expected={})".format(n, len(line), 6)
+            )
         try:
             sample_id = line[0]
             resize_info = [float(x) for x in line[1:]]
@@ -118,7 +122,7 @@ def parse_resize_info_file(f):
                 offset_left=resize_info[1],
                 offset_right=resize_info[2],
                 offset_top=resize_info[3],
-                offset_bottom=resize_info[4]
+                offset_bottom=resize_info[4],
             )
         except Exception as ex:
             raise ValueError("Wrong resize info at line {}: {}".format(n, ex))
@@ -132,61 +136,108 @@ def parse_resize_info_file(f):
     return resize_infos
 
 
-def adjust_to_content(match, img, min_width_ratio=0.2):
-    # type: (Match, np.ndarray, float) -> Match
-    sum_rows = img.sum(axis=1)
-    w = img.shape[0]
-    x0, x1 = min(match.beg, 0), max(match.end, img.shape[1] - 1)
-
-    def dilate_x(x, s):
-        while x > 0 and x < w and sum_rows[x] > 0:
-            x += s
-        return x
-
-    def erode_x(x, s):
-        while x > 0 and x < w and sum_rows[x] == 0:
-            x += s
-        return x
-
-    dilate_x(x0, -1)
-    dilate_x(x1, +1)
-    erode_x(x0, +1)
-    erode_x(x1, +1)
-
-    if (x1 - x0) / (match.end - match.beg) < 0.2:
-        return match
-    elif isinstance(match, PositionMatch):
-        return PositionMatch(word=match.word, position=match.position, beg=x0, end=x1, logp=match.logp)
-    elif isinstance(match, SegmentMatch):
-        return SegmentMatch(word=match.word, beg=x0, end=x1, logp=match.logp)
-    else:
-        raise NotImplementedError
-
-
 def undo_resize(x0, y0, x1, y1, resize_info):
     # type: (float, float, float, float, ResizeInfo) -> (float, float, float, float)
     x0 = x0 * resize_info.scale + resize_info.offset_left
     x1 = x1 * resize_info.scale + resize_info.offset_right
     y0 = y0 * resize_info.scale + resize_info.offset_top
     y1 = y1 * resize_info.scale + resize_info.offset_bottom
-    return (x0, y0, x1, y1)
+    return x0, y0, x1, y1
 
 
-def transform_parallelogram(
-    match_box,  # type: np.ndarray
-    im_size,  # type: Tuple[int, int]
-    line_pgram,  # type: Optional[Tuple[Tuple[float, float], ...]]
-):
-    # type: (...) -> np.ndarray
-    line_box = np.asarray([
-        [0, 0],
-        [im_size[0], 0],
-        [im_size[0], im_size[1]],
-        [0, im_size[1]]
-    ], dtype=np.float32)
+def undo_resize2(x0, x1, resize_info):
+    x0 = x0 * resize_info.scale + resize_info.offset_left
+    x1 = x1 * resize_info.scale + resize_info.offset_right
+    return x0, x1
 
-    t = cv2.getPerspectiveTransform(src=line_box, dst=line_pgram)
-    return np.dot(t, match_box)
+
+def transform_parallelogram(x, mat):
+    # type: (np.ndarray, np.ndarray) -> np.ndarray
+    assert x.shape == (4, 2)
+    assert mat.shape == (3, 3)
+    y = np.matmul(mat, np.append(x, [[1], [1], [1], [1]], axis=1).transpose())
+    y = y.transpose()
+    return y[:, :2] / y[:, 2].reshape((4, 1))
+
+
+def corners_to_coord4(x0, y0, x1, y1, add_z=False):
+    # type: (float, float, float, float) -> np.ndarray
+    if add_z:
+        return np.asarray(
+            [[x0, y0, 1], [x1, y0, 1], [x1, y1, 1], [x0, y1, 1]], dtype=np.float32
+        )
+    else:
+        return np.asarray([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], dtype=np.float32)
+
+
+def print_position_match(page_id, match, pgram, output_box=False):
+    # type : (AnyStr, PositionMatch, np.ndarray, bool) -> None
+    if output_box:
+        x0 = int(round(pgram[:, 0].min()))
+        x1 = int(round(pgram[:, 0].max()))
+        y0 = int(round(pgram[:, 1].min()))
+        y1 = int(round(pgram[:, 1].max()))
+        print(
+            "{} {} {} {} {} {} {} {}".format(
+                page_id,
+                x0,
+                y0,
+                x1 - x0,
+                y1 - y0,
+                match.word,
+                match.position,
+                match.logp,
+            )
+        )
+    else:
+        c = tuple(pgram.flatten())
+        print(
+            "{} {},{} {},{} {},{} {},{} {} {} {}".format(
+                page_id,
+                c[0],
+                c[1],
+                c[2],
+                c[3],
+                c[4],
+                c[5],
+                c[6],
+                c[7],
+                match.word,
+                match.position,
+                match.logp,
+            )
+        )
+
+
+def print_segment_match(page_id, match, pgram, output_box=False):
+    # type : (AnyStr, SegmentMatch, np.ndarray, bool) -> None
+    if output_box:
+        x0 = int(round(pgram[:, 0].min()))
+        x1 = int(round(pgram[:, 0].max()))
+        y0 = int(round(pgram[:, 1].min()))
+        y1 = int(round(pgram[:, 1].max()))
+        print(
+            "{} {} {} {} {} {} {}".format(
+                page_id, x0, y0, x1 - x0, y1 - y0, match.word, match.logp
+            )
+        )
+    else:
+        c = tuple(pgram.flatten())
+        print(
+            "{} {},{} {},{} {},{} {},{} {} {}".format(
+                page_id,
+                c[0],
+                c[1],
+                c[2],
+                c[3],
+                c[4],
+                c[5],
+                c[6],
+                c[7],
+                match.word,
+                match.logp,
+            )
+        )
 
 
 if __name__ == "__main__":
@@ -201,13 +252,10 @@ if __name__ == "__main__":
         "--img_extension", type=str, default=".png", help="Image extension"
     )
     parser.add_argument(
-        "--match_global_scale",
-        type=int,
-        default=1,
-        help="Scale the match before plotting"
+        "--global_scale", type=int, default=1, help="Scale the match before plotting"
     )
     parser.add_argument(
-        "--match_global_shift",
+        "--global_shift",
         type=int,
         default=0,
         help="Shift the match before plotting. Shift applied after scale.",
@@ -215,7 +263,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--resize_info_file",
         type=argparse.FileType("r"),
-        help="File containing extra information used to resize images before the neural network"
+        help="File containing extra information used to resize images",
     )
     parser.add_argument(
         "--page_id_regex",
@@ -229,9 +277,9 @@ if __name__ == "__main__":
         help="File containing the symbols table to map integers",
     )
     parser.add_argument(
-        "--pgrams_file",
-        type=argparse.FileType("r"),
-        help="File containing the parallelograms",
+        "--output_bounding_box",
+        action="store_true",
+        help="Output the bounding box surrounding the match parallelogram",
     )
     parser.add_argument(
         "index_type",
@@ -242,15 +290,22 @@ if __name__ == "__main__":
         "index_file", type=argparse.FileType("r"), help="File containing the KWS index"
     )
     parser.add_argument(
+        "pgrams_file",
+        type=argparse.FileType("r"),
+        help="File containing the parallelograms",
+    )
+    parser.add_argument(
         "img_dir", type=str, help="Directory containing the processed images"
     )
     args = parser.parse_args()
     # Load symbols table
     syms = SymbolsTable(args.symbols_table) if args.symbols_table else None
-    # Load parallelograms
-    pgrams = parse_paralellograms_file(args.pgrams_file) if args.pgrams_file else None
     # Load resize info file
-    resize_info = parse_resize_info_file(args.resize_info_file) if args.resize_info_file else None
+    resize_info = (
+        parse_resize_info_file(args.resize_info_file) if args.resize_info_file else None
+    )
+    # Load parallelograms
+    pgrams = parse_paralellograms_file(args.pgrams_file)
 
     for n, sample in enumerate(args.index_file):
         m = re.match(r"^([^ ]+) +(.+)$", sample)
@@ -258,14 +313,8 @@ if __name__ == "__main__":
             raise ValueError("Wrong index entry at line{}".format(n))
 
         sample_id = m.group(1)
-
-        # Get sample's parallelogram w.r.t. the original image
-        sample_pgram = None
-        if pgrams:
-            if sample_id not in pgrams:
-                logging.error("No parallelograms found for sample {!r}".format(sample_id))
-            else:
-                sample_pgram = pgrams[sample_id]
+        pm = re.match(args.page_id_regex, sample_id)
+        page_id = pm.group(1)
 
         # Parse sample matches
         matches = m.group(2).split(";")
@@ -275,30 +324,57 @@ if __name__ == "__main__":
             matches = [parse_segment_match(m, syms) for m in matches]
         # Scale matches
         matches = [
-            match_scale_shift(m, args.match_global_scale, args.match_global_shift)
-            for m in matches
+            match_scale_shift(m, args.global_scale, args.global_shift) for m in matches
         ]
 
-        # Load processed image (NOT RESCALED)
-        sample_img = cv2.imread(os.path.join(args.img_dir, sample_id, args.img_extension), 0)
-        sample_img = cv2.adaptiveThreshold(sample_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        # Load image
+        sample_img = cv2.imread(
+            os.path.join(args.img_dir, sample_id + args.img_extension), 0
+        )
+        assert sample_img is not None
+        _, sample_img = cv2.threshold(sample_img, 127, 255, cv2.THRESH_BINARY)
+        im_x0, im_y0, im_x1, im_y1 = 0, 0, sample_img.shape[1], sample_img.shape[0]
 
         # Get sample's resize info
+        sample_resize_info = None
         if resize_info:
             if sample_id not in resize_info:
                 logging.error("No resize info found for sample {!r}".format(sample_id))
             else:
                 sample_resize_info = resize_info[sample_id]
+                im_x0, im_y0, im_x1, im_y1 = undo_resize(
+                    im_x0, im_y0, im_x1, im_y1, sample_resize_info
+                )
+
+        # Get sample's parallelogram w.r.t. the original image
+        if sample_id not in pgrams:
+            logging.error("No parallelograms found for sample {!r}".format(sample_id))
+            exit(1)
+
+        sample_pgram = pgrams[sample_id]
+        sample_box = corners_to_coord4(im_x0, im_y0, im_x1, im_y1)
+        pgram_transform = cv2.getPerspectiveTransform(src=sample_box, dst=sample_pgram)
 
         # Process matches in the sample image
         for m in matches:
             # Adjust match to content
             if args.adjust_to_content:
-                m = adjust_to_content(m, sample_img, min_width_ratio=0.3)
+                # TODO: Not implemented
+                # x0, y0, x1, y1 = adjust_to_content(m, sample_img)
+                x0, y0, x1, y1 = m.beg, 0, m.end, sample_img.shape[0]
+            else:
+                x0, y0, x1, y1 = m.beg, 0, m.end, sample_img.shape[0]
 
             # Resize bounding box
             if sample_resize_info:
-                x0, y0, x1, y1 = undo_resize(m.beg, 0, m.end, sample_img.shape[1], sample_resize_info)
+                x0, y0, x1, y1 = undo_resize(x0, y0, x1, y1, sample_resize_info)
+
+            match_pgram = corners_to_coord4(x0, y0, x1, y1)
+            match_pgram = transform_parallelogram(match_pgram, pgram_transform)
+
+            if isinstance(m, PositionMatch):
+                print_position_match(page_id, m, match_pgram, args.output_bounding_box)
+            elif isinstance(m, SegmentMatch):
+                print_segment_match(page_id, m, match_pgram, args.output_bounding_box)
             else:
-                x0, x1 = m.beg, m.end
-                y0, y1 = 0, sample_img.shape[1]
+                raise NotImplementedError

@@ -151,9 +151,8 @@ if __name__ == "__main__":
             drw.rectangle([(m.beg, 0), (m.end, img_h)], fill=(r(), r(), r(), alpha))
             print(m)
 
-        if len(batch_images) < args.batch_size:
-            batch_images.append(Image.alpha_composite(img, boxes))
-        else:
+        batch_images.append(Image.alpha_composite(img, boxes))
+        if len(batch_images) == args.batch_size:
             max_w = max([im.size[0] for im in batch_images])
             sum_h = sum([im.size[1] for im in batch_images])
 
