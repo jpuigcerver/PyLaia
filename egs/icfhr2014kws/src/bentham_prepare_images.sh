@@ -150,6 +150,37 @@ nr=$(find data/bentham/imgs/queries -name "*.png" | wc -l);
 	--threads=$(nproc);
 }
 
+[ -s data/bentham/imgs/page_biggest_regions.txt ] ||
+find data/bentham/imgs/lines -name "*.xml" |
+xargs xmlstarlet sel -t -m '//_:TextRegion' -v '../@imageFilename' -o ' ' \
+      -m '_:Coords' -v '@points' -n  |
+awk '{
+  xmin = 100000; xmax = -100000; ymin = 100000; ymax = -100000;
+  for (i=2; i <= NF; ++i) {
+    split($i, xy, ",");
+    if (xmin > xy[1]) xmin = xy[1];
+    if (xmax < xy[1]) xmax = xy[1];
+    if (ymin > xy[2]) ymin = xy[2];
+    if (ymax < xy[2]) ymax = xy[2];
+  }
+  w = (xmax - xmin);
+  h = (ymax - ymin);
+  area = w * h;
+  if (area > MAX_AREA[$1]) {
+    MAX_AREA[$1] = area;
+    OFFSET_X[$1] = xmin;
+    OFFSET_Y[$1] = ymin;
+    WIDTH[$1]  = w;
+    HEIGHT[$1] = h;
+  }
+}END{
+  for (page in MAX_AREA) {
+    print page, OFFSET_X[page], OFFSET_Y[page], WIDTH[page], HEIGHT[page];
+  }
+}' |
+sed -r 's|^([0-9_]+)\.jpg|\1|g' |
+sort -V > data/bentham/imgs/page_biggest_regions.txt;
+
 # Fix height of the query images.
 mkdir -p data/bentham/imgs/queries_h80;
 for f in $(find data/bentham/imgs/queries -name "*.png"); do

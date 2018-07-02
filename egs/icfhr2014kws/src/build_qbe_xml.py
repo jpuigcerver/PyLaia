@@ -57,6 +57,16 @@ def load_kws_index(f, filter=None):
     return index
 
 
+def load_biggest_regions(f):
+    regions = {}
+    for n, line in enumerate(f):
+        line = line.split()
+        if len(line) != 5:
+            raise ValueError("Wrong biggest region at line {}".format(n))
+        regions[line[0]] = tuple([int(x) for x in line[1:]])
+    return regions
+
+
 def iou(bb1, bb2):
     # determine the coordinates of the intersection rectangle
     x_left = max(bb1[0], bb2[0])
@@ -169,6 +179,9 @@ class UnionFind(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--biggest_regions", type=argparse.FileType("r"))
+    parser.add_argument("--scale_w", type=float, default=1)
+    parser.add_argument("--scale_h", type=float, default=1)
     parser.add_argument("kws_index", type=argparse.FileType("r"))
     parser.add_argument("query_nbest", type=argparse.FileType("r"))
     args = parser.parse_args()
@@ -176,6 +189,9 @@ if __name__ == "__main__":
     queries = load_queries(args.query_nbest)
     index = load_kws_index(
         args.kws_index, filter={w for _, nbest in queries for w, p in nbest}
+    )
+    biggest_regions = (
+        load_biggest_regions(args.biggest_regions) if args.biggest_regions else None
     )
 
     print('<?xml version="1.0" encoding="utf-8"?>')
@@ -220,22 +236,32 @@ if __name__ == "__main__":
                 if not merge:
                     break
 
-            #print(query, page, ufs.num_parents, ufs._parent)
             for group_spots in ufs.iter_groups():
-                #print(query, page, len(group_spots), [ufs[item] for item in group_spots])
                 x, y, w, h, logp = combine_boxes([ufs[item] for item in group_spots])
                 combined_spots.append((logp, page, x, y, w, h))
 
         print('<Rel queryid="{}">'.format(query))
         for logp, page, x, y, w, h in sorted(combined_spots, reverse=True):
+            if biggest_regions:
+                rx, ry, rw, rh = biggest_regions[page]
+                if x < rx or x > rx + rw or y < ry or y > ry + rh:
+                    continue
+                offset_x = rx
+                offset_y = ry
+            else:
+                offset_x = 0
+                offset_y = 0
+
+            dw = w * args.scale_w - w
+            dh = h * args.scale_h - h
             print(
                 '<word document="{}" x="{}" y="{}" width="{}" height="{}" '
                 'logp="{}" />'.format(
                     page,
-                    int(round(x)),
-                    int(round(y)),
-                    int(round(w)),
-                    int(round(h)),
+                    int(round(x - offset_x - dw / 2.0)),
+                    int(round(y - offset_y - dh / 2.0)),
+                    int(round(w + dw / 2.0)),
+                    int(round(h + dh / 2.0)),
                     logp,
                 )
             )
