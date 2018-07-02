@@ -219,6 +219,17 @@ if __name__ == "__main__":
                         for x, y, w, h, logp2 in index[word][page]
                     ]
 
+        # Put bounding boxes in the range [0, ...]
+        for page in spots:
+            spots[page] = [
+                (max(x, 0), max(y, 0), max(x + w, 0), max(y + h, 0), logp)
+                for x, y, w, h, logp in spots[page]
+            ]
+            spots[page] = [
+                (x0, y0, x1 - x0, y1 - y0, logp)
+                for x0, y0, x1, y1, logp in spots[page]
+            ]
+
         # Combine spots
         combined_spots = []
         for page in spots:
@@ -254,14 +265,20 @@ if __name__ == "__main__":
 
             dw = w * args.scale_w - w
             dh = h * args.scale_h - h
+
+            x0 = int(round(x - offset_x - dw / 2.0))
+            y0 = int(round(y - offset_y - dh / 2.0))
+            x1 = x0 + int(round(w + dw / 2.0))
+            y1 = y0 + int(round(h + dh / 2.0))
+
             print(
                 '<word document="{}" x="{}" y="{}" width="{}" height="{}" '
                 'logp="{}" />'.format(
                     page,
-                    int(round(x - offset_x - dw / 2.0)),
-                    int(round(y - offset_y - dh / 2.0)),
-                    int(round(w + dw / 2.0)),
-                    int(round(h + dh / 2.0)),
+                    max(x0, 0),
+                    max(y0, 0),
+                    x1 - max(x0, 0),
+                    y1 - max(y0, 0),
                     logp,
                 )
             )

@@ -150,6 +150,19 @@ nr=$(find data/bentham/imgs/queries -name "*.png" | wc -l);
 	--threads=$(nproc);
 }
 
+# Fix height of the query images.
+mkdir -p data/bentham/imgs/queries_h80;
+[ "$(find data/bentham/imgs/queries -name "*.png" | wc -l)" -eq \
+  "$(find data/bentham/imgs/queries_h80 -name "*.png" | wc -l)" ] || {
+  for f in $(find data/bentham/imgs/queries -name "*.png"); do
+    fix_image_height 80 "$f" "${f/queries/queries_h80}" || exit 1;
+  done;
+}
+
+# Extract bounding box of the biggest text region in each page.
+# This is used to create an offset on the bounding boxes of the words detected
+# in the original pages, since the ICFHR2014KWS competition extracted the
+# main text region from each test page.
 [ -s data/bentham/imgs/page_biggest_regions.txt ] ||
 find data/bentham/imgs/lines -name "*.xml" |
 xargs xmlstarlet sel -t -m '//_:TextRegion' -v '../@imageFilename' -o ' ' \
@@ -181,11 +194,68 @@ awk '{
 sed -r 's|^([0-9_]+)\.jpg|\1|g' |
 sort -V > data/bentham/imgs/page_biggest_regions.txt;
 
-# Fix height of the query images.
-mkdir -p data/bentham/imgs/queries_h80;
-for f in $(find data/bentham/imgs/queries -name "*.png"); do
-  fix_image_height 80 "$f" "${f/queries/queries_h80}" || exit 1;
-done;
+mkdir -p data/bentham/imgs/auto_segmented_lines;
+nr=$(find data/bentham/imgs/auto_segmented_lines -name "*.png" | wc -l);
+[ "$nr" -eq 1053 ] || {
+  textFeats \
+    --cfg="$cfg" \
+    --outdir=data/bentham/imgs/auto_segmented_lines \
+    --overwrite=true \
+    --savexml=data/bentham/imgs/auto_segmented_lines \
+    --threads=$(nproc) \
+    data/prhlt/icfhr2014kws_bentham_auto_segmented_lines_hpp/*.xml;
+
+  find data/bentham/imgs/auto_segmented_lines -name "*.xml" |
+  xargs xmlstarlet sel -t -m '//_:TextLine' \
+                       -v '../../@imageFilename' -o ' ' \
+                       -v @id -o " " -m '_:Property[@key="fpgram"]' \
+                       -v @value -n |
+  sed -r 's|^([0-9_]+)\.jpg |\1.|g' |
+  sort -V > data/bentham/imgs/auto_segmented_lines/fpgrams.txt;
+}
+
+
+# Fix height of the line images.
+mkdir -p data/bentham/imgs/auto_segmented_lines_h80;
+nr=$(find data/bentham/imgs/auto_segmented_lines_h80 -name "*.png" | wc -l);
+[ "$nr" -eq 1053 ] || {
+  n=0;
+  for f in $(find data/bentham/imgs/auto_segmented_lines -name "*.png"); do
+    ( fix_image_height 80 "$f" "${f/lines/lines_h80}" || exit 1; ) &
+    ((++n));
+    [ "$n" -eq "$(nproc)" ] && { wait; n=1; }
+  done;
+  wait;
+
+  # Fix parallelograms
+  find data/bentham/imgs/auto_segmented_lines -name "*.png" |
+  xargs identify -format "%f %h %w\n" |
+  sed -r 's|^(.+)\.png |\1 |g' | sort -V |
+  gawk '
+  function get_coord(s) {
+    if (!match(s, /([0-9.]+),([0-9.]+)/, m)) {
+        print "ERROR: Wrong x,y coordinate at line" NR > "/dev/stderr";
+        exit 1;
+    }
+    return m;
+  }
+  {
+    scale = 1;
+    l_offset = 0;
+    r_offset = 0;
+    t_offset = 0;
+    b_offset = 0;
+
+    if ($2 > 80) {
+      scale = $2 / 80.0;
+    } else {
+      t_offset =  (80 - $2) / 2.0;
+      b_offset = -(80 - $2) / 2.0;
+    }
+    print $1, scale, l_offset, r_offset, t_offset, b_offset;
+  }' |
+  sort -V > data/bentham/imgs/auto_segmented_lines_h80/resize_info.txt;
+}
 
 # Remove temp config file
 rm -f "$cfg";

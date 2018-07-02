@@ -64,3 +64,15 @@ wget -P data/prhlt "$base_url/contestHTRtS.tbz";
   find data/prhlt/contestHTRtS/BenthamData/PAGE -name "*.xml" |
   xargs convert_page_xml_2010_to_2013.sh
 }
+
+# Download automatically segmented lines from test pages
+base_url=https://www.prhlt.upv.es/~jpuigcerver/;
+[ -s data/prhlt/icfhr2014kws_bentham_auto_segmented_lines_hpp.tar.gz -o \
+  -d data/prhlt/icfhr2014kws_bentham_auto_segmented_lines_hpp ] ||
+wget --no-check-certificate -P data/prhlt \
+  "${base_url}/icfhr2014kws_bentham_auto_segmented_lines_hpp.tar.gz";
+[ -d data/prhlt/icfhr2014kws_bentham_auto_segmented_lines_hpp ] || {
+  tar zxf data/prhlt/icfhr2014kws_bentham_auto_segmented_lines_hpp.tar.gz \
+      -C data/prhlt;
+  rm -f data/prhlt/icfhr2014kws_bentham_auto_segmented_lines_hpp.tar.gz;
+}

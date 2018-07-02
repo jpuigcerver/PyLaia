@@ -167,4 +167,7 @@ if __name__ == "__main__":
             # Clean batch
             batch_images = []
             container_im.show()
-            raw_input()
+            try:
+                raw_input()
+            except NameError:
+                input()
