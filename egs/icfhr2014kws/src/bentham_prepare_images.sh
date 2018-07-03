@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 set -e;
-export LC_NUMERIC=C;
-
 # Directory where the script is located.
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 # Move to the "root" of the experiment.
@@ -58,9 +56,9 @@ function fix_image_height () {
 
   h=$(identify -format '%h' "$2") || return 1;
   if [ "$h" -lt "$1" ]; then
-    convert -gravity center -extent x80 +repage -strip "$2" "$3" || return 1;
+    convert -gravity center -extent "x$1" +repage -strip "$2" "$3" || return 1;
   else
-	convert -resize x80 +repage -strip "$2" "$3" || return 1;
+	convert -resize "x$1" +repage -strip "$2" "$3" || return 1;
   fi;
   return 0;
 }
