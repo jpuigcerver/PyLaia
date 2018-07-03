@@ -41,6 +41,8 @@ while [ $# -gt 0 ]; do
 done;
 
 {
+  echo "set logscale y";
+  echo "set grid ytics mytics";
   echo "plot \\";
   for i in $(seq "${#tmpfiles[@]}"); do
     echo -n "'${tmpfiles[i-1]}' u 1:2 w l t '${files[i-1]}'";
