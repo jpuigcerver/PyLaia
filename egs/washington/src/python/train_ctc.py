@@ -16,9 +16,9 @@ from laia.plugins.arguments_types import str2bool
 from laia.plugins.saver import CheckpointSaver, ModelCheckpointSaver, RollingSaver
 from laia.utils.dortmund_image_to_tensor import DortmundImageToTensor
 
-logger = laia.logging.get_logger("laia.egs.washington.train_ctc")
-laia.logging.get_logger("laia.hooks.conditions.multiple_of").setLevel(
-    laia.logging.WARNING
+logger = laia.common.logging.get_logger("laia.egs.washington.train_ctc")
+laia.common.logging.get_logger("laia.hooks.conditions.multiple_of").setLevel(
+    laia.common.logging.WARNING
 )
 
 if __name__ == "__main__":
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     )
 
     args = args()
-    laia.random.manual_seed(args.seed)
+    laia.common.random.manual_seed(args.seed)
 
     syms = laia.utils.SymbolsTable(args.syms)
 

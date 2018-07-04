@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import unittest
 
 import torch
+from laia.models.htr.testing_utils import generate_backprop_floating_point_tests
 from torch.autograd import Variable
 
 from laia.data import PaddedTensor
@@ -84,17 +85,30 @@ class DortmundPHOCNetTest(unittest.TestCase):
         ys = list(y.size())
         self.assertListEqual(ys, [3, 40])
 
-    def test_single_grad(self):
-        # TODO: Find a way to properly check the model end-to-end
-        pass
-        """
-        m = DortmundPHOCNet(phoc_size=125, pyramid_levels=1, test=True)
-        m.train()
 
-        x = Variable(torch.randn(1, 1, 5, 3), requires_grad=True)
+def cost_function(y):
+    return y.sum()
 
-        def warp_func(xx):
-            return m(xx).sum()
 
-        gradcheck(func=warp_func, inputs=(x,))
-        """
+# Add some tests to make sure that the backprop is working correctly.
+# Note: this only checks that the gradient w.r.t. all layers is different from zero.
+generate_backprop_floating_point_tests(
+    DortmundPHOCNetTest,
+    tests=[
+        (
+            "backprop_{}_{}_default",
+            dict(
+                module=DortmundPHOCNet,
+                module_kwargs=dict(phoc_size=57),
+                batch_data=torch.randn(2, 1, 17, 19),
+                batch_sizes=[[13, 19], [17, 13]],
+                cost_function=cost_function,
+                padded_cost_function=cost_function,
+            ),
+        )
+    ],
+)
+
+
+if __name__ == "__main__":
+    unittest.main()
