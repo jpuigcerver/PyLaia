@@ -35,6 +35,30 @@ function check_textFeats () {
   return 0;
 }
 
+function check_opengrm () {
+  for p in farcompilestrings ngramcount ngrammake ngramperplexity; do
+    ! which "$p" &> /dev/null && \
+    echo "ERROR: Program \"$p\" was not found in your PATH." \
+         "Please, download OpenGrm from http://www.opengrm.org/" >&2 && \
+    return 1;
+  done;
+  return 0;
+}
+
+function check_kaldi () {
+  for p in add-self-loops fstaddselfloops fstarcsort fstcompile fstcompose \
+           fstcomposecontext fstdeterminizestar fstminimizeencoded fstpushspecial \
+           fstrelabel fstrmepslocal fstrmsymbols fsttablecompose \
+           latgen-faster-mapped-parallel make-h-transducer \
+           compute-wer compute-wer-bootci; do
+    ! which "$p" &> /dev/null && \
+    echo "ERROR: Program \"$p\" was not found in your PATH." \
+         "Please, download Kaldi from http://kaldi-asr.org/" >&2 && \
+    return 1;
+  done;
+  return 0;
+}
+
 function confirm_overwrite_all_files () {
   for f in "$@"; do
     if [ -f "$f" ]; then
