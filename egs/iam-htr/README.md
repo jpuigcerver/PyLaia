@@ -63,7 +63,7 @@ Skewing is also corrected using ImageMagick's convert. This tool is also used
 to remove all white borders from the images and leaving a fixed size of
 20 pixels on the left and the right of the image.
 
-Finally, because our model requires that all input image have the same height,
+Finally, because our model requires that all input images have the same height,
 all images are scaled to a fixed height of 128 pixels, while keeping the
 aspect ratio.
 

@@ -48,19 +48,19 @@ echo "WARNING: compute-wer-bootci was not found, so CER/WER won't be computed!" 
 mkdir -p decode/{forms,lines}/{char,word}/aachen;
 
 for p in va te; do
-  lines_char="decode/lines/char/aachen/$p.txt";
-  lines_word="decode/lines/word/aachen/$p.txt";
-  forms_char="decode/forms/char/aachen/$p.txt";
-  forms_word="decode/forms/word/aachen/$p.txt";
+  lines_char="decode/lines/char/aachen/${p}.txt";
+  lines_word="decode/lines/word/aachen/${p}.txt";
+  forms_char="decode/forms/char/aachen/${p}.txt";
+  forms_word="decode/forms/word/aachen/${p}.txt";
 
   if [ $fixed_height = true ]; then
-    imgs_list="data/lists/lines/aachen/$p_h128.lst";
+    imgs_list="data/lists/lines/aachen/${p}_h128.lst";
   else
-    imgs_list="data/lists/lines/aachen/$p.lst";
+    imgs_list="data/lists/lines/aachen/${p}.lst";
   fi;
 
   # Decode lines
-  python2 ../../pylaia-htr-decode-ctc \
+  pylaia-htr-decode-ctc \
     train/syms.txt \
     data/imgs \
     "$imgs_list" \
@@ -111,11 +111,15 @@ for p in va te; do
 done;
 
 if [ $hasComputeWer -eq 1 ]; then
+  rm -f decode/decode.out;
   for i in lines forms; do
     for j in char word; do
-      for k in va test; do
+      for k in va te; do
           # Compute CER and WER using Kaldi's compute-wer-bootci
-          compute-wer-bootci "ark:data/lang/{$i}/{$j}/${k}.txt" "ark:decode/${i}/${j}/aachen/${k}.txt" >> decode/decode.out;
+          compute-wer-bootci --mode=present\
+            "ark:data/lang/${i}/${j}/aachen/${k}.txt" \
+            "ark:decode/${i}/${j}/aachen/${k}.txt" \
+          >> decode/decode.out;
       done;
     done;
   done;
