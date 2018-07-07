@@ -14,7 +14,7 @@ exit 1;
 ./src/prepare_images.sh;
 
 # Step 3. Prepare text.
-./src/prepare_iam_text.sh;
+./src/prepare_texts.sh;
 
 # Step 4. Train the neural network.
 ./src/train.sh;

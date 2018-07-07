@@ -52,17 +52,12 @@ for p in va te; do
   lines_word="decode/lines/word/aachen/${p}.txt";
   forms_char="decode/forms/char/aachen/${p}.txt";
   forms_word="decode/forms/word/aachen/${p}.txt";
-
-  if [ $fixed_height = true ]; then
-    imgs_list="data/lists/lines/aachen/${p}_h128.lst";
-  else
-    imgs_list="data/lists/lines/aachen/${p}.lst";
-  fi;
+  imgs_list="data/lists/lines/aachen/${p}.lst";
 
   # Decode lines
   pylaia-htr-decode-ctc \
     train/syms.txt \
-    data/imgs \
+    data/imgs/lines_h128 \
     "$imgs_list" \
     --train_path train \
     --join_str=" " \
@@ -83,7 +78,7 @@ for p in va te; do
     printf("\n");
   }' "$lines_char" > "$lines_word";
   # Get form char-level transcript hypothesis
-  gawk '{
+  sort -V "$lines_char" | gawk '{
     if (match($1, /^([^ ]+)-[0-9]+$/, A)) {
       if (A[1] != form_id) {
         if (form_id != "") printf("\n");
@@ -95,9 +90,9 @@ for p in va te; do
       }
       for (i=2; i<= NF; ++i) { printf(" %s", $i); }
     }
-  }' "$lines_char" > "$forms_char";
+  }' > "$forms_char";
   # Get form word-level transcript hypothesis
-  gawk '{
+  sort -V "$lines_word" | gawk '{
     if (match($1, /^([^ ]+)-[0-9]+$/, A)) {
       if (A[1] != form_id) {
         if (form_id != "") printf("\n");
@@ -107,7 +102,7 @@ for p in va te; do
       }
       for (i=2; i<= NF; ++i) { printf(" %s", $i); }
     }
-  }' "$lines_word" > "$forms_word";
+  }' > "$forms_word";
 done;
 
 if [ $hasComputeWer -eq 1 ]; then
@@ -115,11 +110,12 @@ if [ $hasComputeWer -eq 1 ]; then
   for i in lines forms; do
     for j in char word; do
       for k in va te; do
-          # Compute CER and WER using Kaldi's compute-wer-bootci
-          compute-wer-bootci --mode=present\
-            "ark:data/lang/${i}/${j}/aachen/${k}.txt" \
-            "ark:decode/${i}/${j}/aachen/${k}.txt" \
-          >> decode/decode.out;
+        # Compute CER and WER using Kaldi's compute-wer-bootci
+        compute-wer-bootci --print-args=false\
+          "ark:data/lang/${i}/${j}/aachen/${k}.txt" \
+          "ark:decode/${i}/${j}/aachen/${k}.txt" | \
+        awk -v i=$i -v j=$j -v k=$k '{ $1=""; $2=":"; print i"/"j"/"k$0}' | \
+        tee -a decode/decode.out;
       done;
     done;
   done;
