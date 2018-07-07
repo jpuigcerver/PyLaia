@@ -86,12 +86,8 @@ for c in aachen original; do
   for f in data/part/$partition/$c/*.lst; do
     bn=$(basename "$f" .lst);
     [ -s "data/lists/$partition/$c/$bn.lst" ] ||
-    gawk -v p="$partition" '{ print "lines/"$1".jpg" }' "$f" \
-      > "data/lists/$partition/$c/$bn.lst" || exit 1;
-    [ -s "data/lists/$partition/$c/${bn}_h${h}.lst" ] ||
-    gawk -v h="128" -v p="$partition" \
-      '{ print "lines_h128/"$1".jpg" }' "$f" \
-      > "data/lists/$partition/$c/${bn}_h128.lst" || exit 1;
+    gawk '{ print $1 }' "$f" \
+    > "data/lists/$partition/$c/$bn.lst" || exit 1;
   done;
 done;
 

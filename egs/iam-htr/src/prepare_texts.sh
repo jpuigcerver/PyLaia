@@ -22,6 +22,18 @@ Options:
 ";
 source "$(pwd)/src/parse_options.inc.sh" || exit 1;
 
+mkdir -p data/lists/lines/{aachen,original};
+
+# Prepare image lists
+for c in aachen original; do
+  for f in data/part/lines/$c/*.lst; do
+    bn=$(basename "$f" .lst);
+    [ -s "data/lists/lines/$c/$bn.lst" ] ||
+    gawk '{ print $1 }' "$f" \
+    > "data/lists/lines/$c/$bn.lst" || exit 1;
+  done;
+done;
+
 mkdir -p data/lang/{lines,forms}/{char,word}/aachen;
 
 # Prepare word-level transcripts.

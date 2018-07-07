@@ -30,6 +30,7 @@ learning_rate=0.0003;
 save_checkpoint_interval=10;
 num_rolling_checkpoints=3;
 show_progress_bar=true;
+img_directories="data/imgs/lines_h128";
 checkpoint="ckpt.lowest-valid-cer*";
 gpu=1;
 help_message="
@@ -82,6 +83,8 @@ Options:
                         {none,maxpool,avgpool}-[0-9]+
   --learning_rate     : (type = float, default = $learning_rate)
                         Learning rate from RMSProp.
+  --img_directories   : (type = string list, default = \"$img_directories\")
+                        Image directories to use.
   --checkpoint        : (type = str, default = $checkpoint)
                         Suffix of the checkpoint to use, can be a glob pattern.
 ";
@@ -120,14 +123,9 @@ pylaia-htr-create-model \
   --logging_also_to_stderr INFO \
   --train_path "train";
 
-imgs_path="data/imgs/lines";
-if [ $fixed_height = true ]; then
-    imgs_path+="_h128"
-fi;
-
 pylaia-htr-train-ctc \
   "train/syms.txt" \
-  $imgs_path \
+  $img_directories \
   data/lang/lines/char/aachen/{tr,va}.txt \
   --gpu $gpu \
   --batch_size $batch_size \
