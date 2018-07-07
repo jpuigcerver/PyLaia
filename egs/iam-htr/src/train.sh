@@ -136,7 +136,6 @@ pylaia-htr-train-ctc \
   --save_checkpoint_interval $save_checkpoint_interval \
   --num_rolling_checkpoints $num_rolling_checkpoints \
   --show_progress_bar $show_progress_bar \
-  --max_epochs 1 --train_samples_per_epoch=100 \
   --checkpoint $checkpoint \
   --logging_file "train/experiment.log" \
   --logging_also_to_stderr INFO \
