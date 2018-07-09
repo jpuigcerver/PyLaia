@@ -64,8 +64,11 @@ for p in va te; do
     --gpu $gpu \
     --batch_size $batch_size \
     --checkpoint $checkpoint \
-    --use_letters \
-  > "$lines_char";
+    --use_letters | sort -V > "$lines_char";
+  # Note: The decoding step does not return the output
+  # In the same order as the input unless batch size 1
+  # is used. Sort must be done afterwards
+
   # Get word-level transcript hypotheses for lines
   gawk '{
     printf("%s ", $1);
@@ -77,8 +80,9 @@ for p in va te; do
     }
     printf("\n");
   }' "$lines_char" > "$lines_word";
+
   # Get form char-level transcript hypothesis
-  sort -V "$lines_char" | gawk '{
+  gawk '{
     if (match($1, /^([^ ]+)-[0-9]+$/, A)) {
       if (A[1] != form_id) {
         if (form_id != "") printf("\n");
@@ -90,9 +94,10 @@ for p in va te; do
       }
       for (i=2; i<= NF; ++i) { printf(" %s", $i); }
     }
-  }' > "$forms_char";
+  }' < "$lines_char" > "$forms_char";
+
   # Get form word-level transcript hypothesis
-  sort -V "$lines_word" | gawk '{
+  gawk '{
     if (match($1, /^([^ ]+)-[0-9]+$/, A)) {
       if (A[1] != form_id) {
         if (form_id != "") printf("\n");
@@ -102,7 +107,7 @@ for p in va te; do
       }
       for (i=2; i<= NF; ++i) { printf(" %s", $i); }
     }
-  }' > "$forms_word";
+  }' < "$lines_word" > "$forms_word";
 done;
 
 if [ $hasComputeWer -eq 1 ]; then
