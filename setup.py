@@ -16,7 +16,7 @@ setup(
         "numpy",
         "scipy",
         "tqdm",
-        "torch==0.3.1",
+        "torch==0.4",
         'typing;python_version<"3.5"',
         "Pillow",
     ],
