@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
-import torch
-from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 from functools import reduce
+
+import torch
+
+from laia.losses.ctc_loss import transform_output
 
 """
 from laia.decoders.ctc_lattice_generator import CTCLatticeGenerator
@@ -15,7 +17,7 @@ class CTCNBestPathDecoder(object):
     """N-best path decoder based on CTC output.
 
     Examples:
-        >>> a = torch.Tensor([[[ 1.0, 3.0, -1.0, 0.0]], \
+        >>> a = torch.tensor([[[ 1.0, 3.0, -1.0, 0.0]], \
                               [[-1.0, 2.0, -2.0, 3.0]], \
                               [[ 1.0, 5.0,  9.0, 2.0]], \
                               [[-1.0,-2.0, -3.0,-4.0]]])
@@ -41,15 +43,7 @@ class CTCNBestPathDecoder(object):
                         for f in lattices]
         return self._output
         """
-
-        # Shape x: T x N x D
-        if isinstance(x, PackedSequence):
-            x, xs = pad_packed_sequence(x)
-        elif torch.is_tensor(x):
-            xs = [x.size()[0]] * x.size()[1]
-        else:
-            raise NotImplementedError("Not implemented for type %s" % type(x))
-
+        x, xs = transform_output(x)
         x = x.permute(1, 0, 2)
         x = x.cpu()
 

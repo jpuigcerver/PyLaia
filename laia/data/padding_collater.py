@@ -51,7 +51,7 @@ class PaddingCollater(object):
     def _collate(self, batch, padded_shapes):
         error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
         elem_type = type(batch[0])
-        if torch.is_tensor(batch[0]):
+        if isinstance(batch[0], torch.Tensor):
             max_sizes, fixed_size = _get_max_size_and_check_batch_tensor(
                 batch, padded_shapes
             )
@@ -71,8 +71,8 @@ class PaddingCollater(object):
                         out[i][: x.size(0), : x.size(1), : x.size(2), : x.size(3)] = x
                     else:
                         raise NotImplementedError("This is not implemented")
-                sizes = torch.stack([torch.LongTensor(list(x.size())) for x in batch])
-                return PaddedTensor(out, sizes=sizes)
+                sizes = torch.stack([torch.tensor(list(x.size())) for x in batch])
+                return PaddedTensor(out, sizes)
 
         elif (
             elem_type.__module__ == "numpy"
@@ -93,9 +93,9 @@ class PaddingCollater(object):
                     [torch.from_numpy(b) for b in batch], padded_shapes
                 )
         elif isinstance(batch[0], int_classes):
-            return torch.LongTensor(batch)
+            return torch.tensor(batch, dtype=torch.long)
         elif isinstance(batch[0], float):
-            return torch.DoubleTensor(batch)
+            return torch.tensor(batch, dtype=torch.double)
         elif isinstance(batch[0], string_classes):
             return batch
         elif isinstance(batch[0], collections.Mapping):

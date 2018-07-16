@@ -4,7 +4,6 @@ from __future__ import print_function
 import unittest
 
 import torch
-from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 
 try:
@@ -20,7 +19,7 @@ class CTCLatticeGeneratorTest(unittest.TestCase):
     def setUp(self):
         if skip:
             self.skipTest("Module pywrapfst is not installed")
-        self._x = torch.Tensor(
+        self._x = torch.tensor(
             [
                 [[1, 2, 3], [0, 0, 1]],
                 [[-1, 0, 2], [0, 3, 0]],
@@ -28,9 +27,7 @@ class CTCLatticeGeneratorTest(unittest.TestCase):
                 [[-1, -2, -3], [-3, -2, -1]],
             ]
         )
-        self._packed_x = pack_padded_sequence(
-            input=Variable(self._x, requires_grad=False), lengths=[3, 2]
-        )
+        self._packed_x = pack_padded_sequence(input=self._x, lengths=[3, 2])
 
     @staticmethod
     def _fst1():

@@ -38,7 +38,7 @@ class RunningAverageMeter(Meter):
     def add(self, v):
         """Add a new value (or set of values) to the running average.
 
-        If the value is list or tuple, a PyTorch tensor or variable, or a Numpy
+        If the value is list or tuple, a PyTorch Tensor, or a Numpy
         Ndarray, each of its elements will be added.
 
         Arguments:
@@ -46,14 +46,10 @@ class RunningAverageMeter(Meter):
         Returns:
             the :obj:`.RunningAverageMeter` (`self`)
         """
-        if torch.is_tensor(v):
+        if isinstance(v, torch.Tensor):
             self._n += v.numel()
             self._s += torch.sum(v)
             self._s2 += torch.sum(v * v)
-        elif isinstance(v, torch.autograd.Variable) and torch.is_tensor(v.data):
-            self._n += v.data.numel()
-            self._s += torch.sum(v.data)
-            self._s2 += torch.sum(v.data * v.data)
         elif isinstance(v, np.ndarray):
             self._n += v.size
             self._s += np.sum(v)
