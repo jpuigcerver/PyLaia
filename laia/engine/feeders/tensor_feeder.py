@@ -31,7 +31,7 @@ class TensorFeeder(Feeder):
 
     def _feed(self, batch):
         if isinstance(batch, torch.Tensor):
-            return batch.requires_grad(self._requires_grad).to(self.device)
+            return batch.requires_grad(self._requires_grad).to(self._device)
         elif isinstance(batch, PaddedTensor):
             x = batch.data.requires_grad_(self._requires_grad).to(self._device)
             xs = batch.sizes.to(self._device)

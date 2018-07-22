@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import argparse
 import os
 
+import torch
 from torch.optim import RMSprop
 
 import laia.common.logging as log
@@ -86,14 +87,15 @@ if __name__ == "__main__":
 
     manual_seed(args.seed)
     syms = SymbolsTable(args.syms)
+    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
 
     model = ModelLoader(
-        args.train_path, filename=args.model_filename, gpu=args.gpu
+        args.train_path, filename=args.model_filename, device=device
     ).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
-    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
+    model = model.to(device)
 
     tr_dataset = TextImageFromTextTableDataset(
         args.tr_txt_table,
@@ -118,7 +120,7 @@ if __name__ == "__main__":
             model.parameters(), lr=args.learning_rate, momentum=args.momentum
         ),
         data_loader=tr_dataset_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
+        batch_input_fn=ImageFeeder(device=device, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),  # Print image ids on exception
         progress_bar="Train" if args.show_progress_bar else None,
@@ -143,7 +145,7 @@ if __name__ == "__main__":
     evaluator = Evaluator(
         model=model,
         data_loader=va_dataset_loader,
-        batch_input_fn=ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img")),
+        batch_input_fn=ImageFeeder(device=device, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),
         progress_bar="Valid" if args.show_progress_bar else None,
@@ -158,7 +160,7 @@ if __name__ == "__main__":
             StateCheckpointSaver(
                 CheckpointSaver(os.path.join(args.train_path, filename)),
                 obj,
-                gpu=args.gpu,
+                device=device,
             ),
             keep=args.num_rolling_checkpoints,
         )
@@ -209,7 +211,7 @@ if __name__ == "__main__":
         )
 
     # Continue from the given checkpoint, if possible
-    StateCheckpointLoader(experiment, gpu=args.gpu).load_by(
+    StateCheckpointLoader(experiment, device=device).load_by(
         os.path.join(args.train_path, "experiment.{}".format(args.checkpoint))
     )
 
