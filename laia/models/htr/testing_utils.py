@@ -55,9 +55,7 @@ def generate_backprop_test(
 
 
 def generate_backprop_tests(cls, dtypes, tests):
-    devices = ["cpu"]
-    if torch.cuda.is_available():
-        devices.append("cuda")
+    devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
     for dtype in dtypes:
         for device in devices:
             for name_pattern, kwargs in tests:

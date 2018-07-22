@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import numpy as np
-import torch
 import unittest
 
-from laia.losses.dortmund_bce_loss import DortmundBCELoss
+import torch
 from torch.nn import BCEWithLogitsLoss
+
+from laia.losses.dortmund_bce_loss import DortmundBCELoss
 
 
 class DortmundBCELossTest(unittest.TestCase):
@@ -25,8 +25,8 @@ class DortmundBCELossTest(unittest.TestCase):
         loss_dor = mdor(x2, y)
         loss_dor.backward()
 
-        self.assertTrue(torch.allclose(loss_dor, loss_ref / 5))
-        self.assertTrue(torch.allclose(x2.grad, x1.grad / 5))
+        torch.testing.assert_allclose(loss_ref / 5, loss_dor)
+        torch.testing.assert_allclose(x1.grad / 5, x2.grad)
 
 
 if __name__ == "__main__":

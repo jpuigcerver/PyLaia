@@ -71,7 +71,7 @@ class CTCLossTest(unittest.TestCase):
                 [[19, 20, 21], [0, 0, 0], [25, 26, 27]],
             ]
         )
-        self.assertTrue(torch.allclose(expected, output))
+        torch.testing.assert_allclose(output, expected)
 
     def test_get_valids_and_errors(self):
         act_lens = [4, 4, 4, 5]
@@ -141,9 +141,7 @@ class CTCLossTest(unittest.TestCase):
 
 
 def _generate_tests(dtype, test_name):
-    devices = ["cpu"]
-    if torch.cuda.is_available():
-        devices.append("cuda")
+    devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
     for device in devices:
         setattr(
             CTCLossTest,

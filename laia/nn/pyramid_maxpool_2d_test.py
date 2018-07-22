@@ -16,8 +16,7 @@ class PyramidMaxPool2dTest(unittest.TestCase):
         self.assertEqual((3, 5 * (1 + 2 * 2)), y.size())
         torch.autograd.gradcheck(lambda x: torch.sum(layer(x)), inputs=(x,))
 
-    @staticmethod
-    def _run_test_padded_tensor(use_nnutils):
+    def _run_test_padded_tensor(self, use_nnutils):
         x = torch.tensor(
             [
                 [
@@ -34,8 +33,8 @@ class PyramidMaxPool2dTest(unittest.TestCase):
         xs = torch.tensor([[3, 4]])
         layer = PyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
         y = layer(PaddedTensor(x, xs))
-        assert torch.allclose(
-            torch.tensor([[20, 10, 12, 18, 20]], dtype=torch.float), y
+        torch.testing.assert_allclose(
+            y, torch.tensor([[20, 10, 12, 18, 20]], dtype=torch.float)
         )
         torch.autograd.gradcheck(lambda x: layer(PaddedTensor(x, xs)), inputs=(x,))
 

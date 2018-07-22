@@ -34,7 +34,7 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
                 i, j = i22[n, c].item() // 4, i22[n, c].item() % 4
                 expected_dx[n, c, i, j + 4] += 1.0
 
-        self.assertTrue(torch.allclose(expected_dx, dx))
+        torch.testing.assert_allclose(dx, expected_dx)
 
     @staticmethod
     def _run_test_padded_tensor(use_nnutils):
@@ -62,8 +62,8 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         expected_dx[0, 0, 2, 1] = 1
 
         # Check output and gradient w.r.t input
-        assert torch.allclose(torch.tensor([[20., 18., 20.]]), y)
-        assert torch.allclose(expected_dx, dx)
+        torch.testing.assert_allclose(y, torch.tensor([[20., 18., 20.]]))
+        torch.testing.assert_allclose(dx, expected_dx)
 
     def test_tensor_nnutils_backend(self):
         self._run_test_tensor(use_nnutils=True)

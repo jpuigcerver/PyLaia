@@ -18,7 +18,7 @@ class ImageToSequenceTest(unittest.TestCase):
         expected_y = torch.tensor(
             [[[1, 4, 7, 10]], [[2, 5, 8, 11]], [[3, 6, 9, 12]]], dtype=torch.float
         )
-        self.assertTrue(torch.allclose(expected_y, y))
+        torch.testing.assert_allclose(y, expected_y)
 
     def test_backward(self):
         x = torch.tensor(
@@ -29,7 +29,7 @@ class ImageToSequenceTest(unittest.TestCase):
         m = ImageToSequence(columnwise=True)
         y = m(x)
         dx, = torch.autograd.grad([y.sum()], [x])
-        self.assertTrue(torch.allclose(torch.ones(4, 3), dx))
+        torch.testing.assert_allclose(dx, torch.ones(4, 3))
 
     def test_forward_with_size(self):
         x = torch.tensor(
@@ -41,7 +41,7 @@ class ImageToSequenceTest(unittest.TestCase):
         expected_y = torch.tensor(
             [[[1, 4], [7, 10]], [[2, 5], [8, 11]], [[3, 6], [0, 0]]], dtype=torch.float
         )
-        self.assertTrue(torch.allclose(expected_y, y))
+        torch.testing.assert_allclose(y, expected_y)
         self.assertEqual(ys, [3, 2])
 
     def test_backward_with_size(self):
@@ -59,7 +59,7 @@ class ImageToSequenceTest(unittest.TestCase):
         expected_dx = torch.tensor(
             [[[[1, 1, 1], [1, 1, 1]]], [[[1, 1, 0], [1, 1, 0]]]], dtype=torch.float
         )
-        self.assertTrue(torch.allclose(expected_dx, dx))
+        torch.testing.assert_allclose(dx, expected_dx)
 
     def test_forward_backward_packed(self):
         x = torch.tensor(
@@ -74,14 +74,14 @@ class ImageToSequenceTest(unittest.TestCase):
         expected_y = torch.tensor(
             [[1, 4], [7, 10], [2, 5], [8, 11], [3, 6]], dtype=torch.float
         )
-        self.assertTrue(torch.allclose(expected_y, y.data))
+        torch.testing.assert_allclose(y.data, expected_y)
         self.assertTrue(torch.equal(torch.tensor([2, 2, 1]), y.batch_sizes))
         # Test backward pass
         dx, = torch.autograd.grad([y.data.sum()], [x])
         expected_dx = torch.tensor(
             [[[[1, 1, 1], [1, 1, 1]]], [[[1, 1, 0], [1, 1, 0]]]], dtype=torch.float
         )
-        self.assertTrue(torch.allclose(expected_dx, dx))
+        torch.testing.assert_allclose(dx, expected_dx)
 
 
 if __name__ == "__main__":

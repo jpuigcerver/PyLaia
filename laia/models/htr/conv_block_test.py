@@ -67,15 +67,15 @@ class ConvBlockTest(unittest.TestCase):
         y = m(PaddedTensor(x, torch.tensor([[11, 13], [10, 12], [3, 2]]))).data
 
         # Check sample 1
-        self.assertTrue(torch.allclose(y[0, :, :, :], x[0, :, :, :]))
+        torch.testing.assert_allclose(x[0, :, :, :], y[0, :, :, :])
         # Check sample 2
-        self.assertTrue(torch.allclose(y[1, :, :10, :12], x[1, :, :10, :12]))
-        self.assertTrue(torch.allclose(y[1, :, 10:, :], torch.zeros((1, 1, 13))))
-        self.assertTrue(torch.allclose(y[1, :, :, 12:], torch.zeros((1, 11, 1))))
+        torch.testing.assert_allclose(x[1, :, :10, :12], y[1, :, :10, :12])
+        torch.testing.assert_allclose(torch.zeros(1, 1, 13), y[1, :, 10:, :])
+        torch.testing.assert_allclose(torch.zeros(1, 11, 1), y[1, :, :, 12:])
         # Check sample 3
-        self.assertTrue(torch.allclose(y[2, :, :3, :2], x[2, :, :3, :2]))
-        self.assertTrue(torch.allclose(y[2, :, 3:, :], torch.zeros((1, 8, 13))))
-        self.assertTrue(torch.allclose(y[2, :, :, 2:], torch.zeros((1, 11, 11))))
+        torch.testing.assert_allclose(x[2, :, :3, :2], y[2, :, :3, :2])
+        torch.testing.assert_allclose(torch.zeros(1, 8, 13), y[2, :, 3:, :])
+        torch.testing.assert_allclose(torch.zeros(1, 11, 11), y[2, :, :, 2:])
 
 
 def padded_cost_function(padded_y):
