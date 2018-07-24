@@ -2,14 +2,14 @@ import argparse
 from collections import Counter
 
 import laia
-import laia.logging as log
+import laia.common.logging as log
 import numpy as np
 import torch
 from dortmund_utils import build_dortmund_model
 from laia.data import TextImageFromTextTableDataset
-from laia.hooks.meters.pairwise_average_precision_meter import \
+from laia.meters.pairwise_average_precision_meter import \
     PairwiseAveragePrecisionMeter
-from laia.plugins.arguments import add_argument, add_defaults, args
+from laia.common.arguments import add_argument, add_defaults, args
 from laia.utils import ImageToTensor
 from scipy.spatial.distance import cdist
 from torch.autograd import Variable

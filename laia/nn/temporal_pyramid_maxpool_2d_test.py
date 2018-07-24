@@ -2,18 +2,19 @@ from __future__ import absolute_import
 from __future__ import division
 
 import unittest
-import numpy as np
 
-from laia.data import PaddedTensor
-from laia.nn import TemporalPyramidMaxPool2d
+import numpy as np
 import torch
 from torch.autograd import Variable
 
+from laia.data import PaddedTensor
+from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+
 
 class TemporalPyramidMaxPool2dTest(unittest.TestCase):
-    def _test_tensor(self, use_nnutils):
+    def _run_test_tensor(self, use_nnutils):
         x = Variable(torch.randn(3, 5, 7, 8), requires_grad=True)
-        layer = TemporalPyramidMaxPool2d(levels=2, use_nnutils=use_nnutils)
+        layer = TemporalPyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
         y = layer(x)
         self.assertEqual((3, 5 * (1 + 2)), y.data.size())
 
@@ -38,7 +39,8 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
 
         np.testing.assert_allclose(expected_dx, dx.data)
 
-    def _test_padded_tensor(self, use_nnutils):
+    @staticmethod
+    def _run_test_padded_tensor(use_nnutils):
         x = Variable(
             torch.Tensor(
                 [
@@ -55,7 +57,7 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
             requires_grad=True,
         )
         xs = Variable(torch.LongTensor([[3, 4]]))
-        layer = TemporalPyramidMaxPool2d(levels=2, use_nnutils=use_nnutils)
+        layer = TemporalPyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
         y = layer(PaddedTensor(data=x, sizes=xs))
         dx, = torch.autograd.grad([torch.sum(y)], [x])
 
@@ -69,16 +71,16 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         np.testing.assert_allclose(expected_dx, dx.data)
 
     def test_tensor_nnutils_backend(self):
-        self._test_tensor(use_nnutils=True)
+        self._run_test_tensor(use_nnutils=True)
 
     def test_tensor_pytorch_backend(self):
-        self._test_tensor(use_nnutils=False)
+        self._run_test_tensor(use_nnutils=False)
 
     def test_padded_tensor_nnutils_backend(self):
-        self._test_padded_tensor(use_nnutils=True)
+        self._run_test_padded_tensor(use_nnutils=True)
 
     def test_padded_tensor_pytorch_backend(self):
-        self._test_padded_tensor(use_nnutils=False)
+        self._run_test_padded_tensor(use_nnutils=False)
 
 
 if __name__ == "__main__":

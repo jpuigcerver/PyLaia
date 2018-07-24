@@ -1,0 +1,38 @@
+from __future__ import absolute_import
+
+import torch
+from torch.autograd import Variable
+from typing import Sequence, Union
+
+from laia.data import PaddedTensor
+from laia.nn.temporal_pyramid_maxpool_2d import _adaptive_maxpool_2d
+
+
+class PyramidMaxPool2d(torch.nn.Module):
+    def __init__(self, levels, use_nnutils=True):
+        # type: (Sequence[int], bool) -> None
+        super(PyramidMaxPool2d, self).__init__()
+        self._levels = tuple(levels)
+        self._use_nnutils = use_nnutils
+
+    def forward(self, x):
+        # type: (Union[Variable, PaddedTensor]) -> Variable
+        if isinstance(x, PaddedTensor):
+            x, xs = x.data, x.sizes
+        else:
+            xs = None
+
+        n, c, _, _ = x.size()
+
+        out_levels = []
+        for level in self._levels:
+            size = 2 ** (level - 1)
+            y = _adaptive_maxpool_2d(
+                batch_input=x,
+                output_sizes=(size, size),
+                batch_sizes=xs,
+                use_nnutils=self._use_nnutils,
+            )
+            out_levels.append(y.view(n, c * size * size))
+
+        return torch.cat(out_levels, dim=1)

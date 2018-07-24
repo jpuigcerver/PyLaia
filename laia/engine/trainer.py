@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
-from typing import Callable, Union, Iterable
+from typing import Callable, Union, Iterable, Optional
 
 import torch
-from future.utils import raise_from
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
-from laia.engine.engine_exception import EngineException
 from laia.hooks import Hook, action
-from laia.losses.ctc_loss import LossException
+from laia.losses.loss import Loss
 from laia.utils import check_inf, check_nan
 
 _logger = log.get_logger(__name__)
@@ -25,41 +23,32 @@ class Trainer(Engine):
         criterion: used criterion to train the model.
         optimizer: optimizer object that will update the parameters of the model.
         data_loader: iterable object from which batches are read.
-            (default: None)
-        batch_input_fn (optional): function used to extract the input
+        batch_input_fn: function used to extract the input
             for the model (e.g. a ``torch.Tensor``), from the batch loaded by
             the ``data_loader``. If ``None``, the batch is fed as-is to the
-            model. (default: None)
-        batch_target_fn (optional): if given, this callable object
+            model.
+        batch_target_fn: if given, this callable object
             is used to extract the targets from the batch, which are
             passed to the `ITER_START` and `ITER_END` hooks.
-            (default: None)
-        batch_id_fn (optional): if given, this callable object is
+        batch_id_fn: if given, this callable object is
             used to extract the batch ids to be used in a possible exception.
-            (default: None)
-        batch_ith_fn (optional): if given, this callable object is
-            used to extract the ith sample from the batch to be used
-            in a possible exception. (default: None)
-        progress_bar (optional): if ``True``, :mod:`tqdm` will be
+        progress_bar: if ``True``, :mod:`tqdm` will be
             used to show a progress bar for each epoch. If a string is given,
             the content of the string will be shown before the progress bar.
-            (default: None)
-        iterations_per_update (optional): Number of successive mini-batch
+        iterations_per_update: Number of successive mini-batch
             parameter gradients to accumulate before updating the parameters.
-            (default: 1)
     """
 
     def __init__(
         self,
         model,  # type: torch.nn.Module
-        criterion,  # type: Callable
+        criterion,  # type: Optional[Callable]
         optimizer,  # type: torch.optim.Optimizer
-        data_loader=None,  # type: Iterable
-        batch_input_fn=None,  # type: Callable
-        batch_target_fn=None,  # type: Callable
-        batch_id_fn=None,  # type: Callable
-        batch_ith_fn=None,  # type: Callable
-        progress_bar=None,  # type: Union[bool, str]
+        data_loader=None,  # type: Optional[Iterable]
+        batch_input_fn=None,  # type: Optional[Callable]
+        batch_target_fn=None,  # type: Optional[Callable]
+        batch_id_fn=None,  # type: Optional[Callable]
+        progress_bar=None,  # type: Optional[Union[bool, str]]
         iterations_per_update=1,  # type: int
     ):
         # type: (...) -> None
@@ -69,7 +58,6 @@ class Trainer(Engine):
             batch_input_fn=batch_input_fn,
             batch_target_fn=batch_target_fn,
             batch_id_fn=batch_id_fn,
-            batch_ith_fn=batch_ith_fn,
             progress_bar=progress_bar,
         )
         self._criterion = criterion
@@ -164,16 +152,8 @@ class Trainer(Engine):
             self._model.train()
 
         # Run model
-        try:
+        with self.exception_catcher(batch):
             batch_output = self._model(batch_input)
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
         # Note: These checks are only active when logging level <= DEBUG
         check_inf(
@@ -213,16 +193,8 @@ class Trainer(Engine):
             batch_n,
             self._iterations,
         )
-        try:
+        with self.exception_catcher(batch):
             batch_loss.backward()
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
 
         self._iterations += 1
 
@@ -243,54 +215,19 @@ class Trainer(Engine):
         self._call_hooks(ITER_END, **action_kwargs)
 
     def compute_loss(self, batch, batch_output, batch_target):
-        try:
-            batch_loss = self._criterion(batch_output, batch_target)
-            if isinstance(batch_loss, tuple):
-                batch_loss, error_indices = batch_loss
-                if error_indices:
-                    samples = (
-                        [self.batch_ith_fn(batch, i) for i in error_indices]
-                        if self.batch_ith_fn
-                        else batch  # Usually a dict
-                    )
-                    if self.batch_id_fn:
-                        samples = (
-                            [self.batch_id_fn(sample) for sample in samples]
-                            if isinstance(samples, list) or isinstance(samples, tuple)
-                            else self.batch_id_fn(samples)
-                        )
-                    message = "samples {}{}".format(
-                        samples,
-                        " in the indices {}".format(error_indices)
-                        if not self.batch_ith_fn
-                        else "",
-                    )
-                    self.logger.warn("Failed to compute the loss for the {}", message)
-            return batch_loss
-        except LossException as e:
-            self.logger.warn(
-                "Ignored the following samples whilst calculating the loss: {}. "
-                "Exception: {}",
-                self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                e,
-            )
-        except Exception as e:
-            wrapper = EngineException(
-                epoch=self._epochs,
-                iteration=self._iterations,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            )
-            raise_from(wrapper, e)
+        with self.exception_catcher(batch):
+            kwargs = {}
+            if isinstance(self._criterion, Loss) and self.batch_id_fn:
+                kwargs = {"batch_ids": self.batch_id_fn(batch)}
+            return self._criterion(batch_output, batch_target, **kwargs)
 
     def state_dict(self):
-        return {
-            "engine_state": super(Trainer, self).state_dict(),
-            "optimizer_state": self._optimizer.state_dict(),
-            "updates": self.updates(),
-        }
+        state = super(Trainer, self).state_dict()
+        state["optimizer"] = self._optimizer.state_dict()
+        state["updates"] = self._updates
+        return state
 
     def load_state_dict(self, state):
-        super(Trainer, self).load_state_dict(state["engine_state"])
-        self._optimizer.load_state_dict(state["optimizer_state"])
+        super(Trainer, self).load_state_dict(state)
+        self._optimizer.load_state_dict(state["optimizer"])
         self._updates = state["updates"]

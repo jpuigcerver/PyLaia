@@ -1,0 +1,180 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+import argparse
+import os
+from typing import Any
+
+import torch
+import torch.nn.functional as functional
+
+import laia.common.logging as log
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.loader import ModelLoader, CheckpointLoader
+from laia.data import ImageDataLoader, ImageFromListDataset
+from laia.engine.feeders import ImageFeeder, ItemFeeder
+from laia.experiments import Experiment
+from laia.losses.ctc_loss import transform_output
+from laia.utils import ImageToTensor
+
+
+def output_matrix(
+    img_id,  # type: str
+    output,  # type: torch.Tensor
+    output_size,  # type: int
+    add_boundary_ctc_blank=False,  # type: bool
+    digits=10,  # type: int
+):
+    # type: (...) -> str
+    output = output.cpu()
+    matrix = "{} [\n".format(img_id)
+
+    def boundary_blank(cols):
+        # type: (int) -> str
+        matrix = "0 "
+        matrix += " ".join(["-1e+30"] * (cols - 1))
+        return matrix + "\n"
+
+    boundary = boundary_blank(output.size(1)) if add_boundary_ctc_blank else ""
+    matrix += boundary
+    matrix += (
+        "\n".join(
+            " ".join(
+                "{:.{digits}}".format(float(output[row, col]), digits=digits)
+                for col in range(output.size(1))
+            )
+            for row in range(output_size)
+        )
+        + "\n"
+    )
+    matrix += boundary
+    matrix += "]\n"
+    return matrix
+
+
+def output_lattice(
+    img_id,  # type: str
+    output,  # type: torch.Tensor
+    output_size,  # type: int
+    digits=10,  # type: int
+    **_  # type: **Any
+):
+    # type: (...) -> str
+    output = output.cpu()
+    matrix = "{}\n".format(img_id)
+    matrix += (
+        "\n".join(
+            "{:d}\t{:d}\t{:d}\t0,{:.{digits}},{:d}".format(
+                row, row + 1, col + 1, -float(output[row, col]), col + 1, digits=digits
+            )
+            for row in range(output_size)
+            for col in range(output.size(1))
+        )
+        + "\n"
+    )
+    matrix += "{:d}\t0,0,\n".format(output_size)
+    return matrix
+
+
+if __name__ == "__main__":
+    add_defaults("batch_size", "gpu", "train_path", logging_level="WARNING")
+    add_argument(
+        "img_dirs", type=str, nargs="+", help="Directory containing word images"
+    )
+    add_argument(
+        "img_list",
+        type=argparse.FileType("r"),
+        help="File or list containing images to decode",
+    )
+    add_argument(
+        "--model_filename", type=str, default="model", help="File name of the model"
+    )
+    add_argument(
+        "--checkpoint",
+        type=str,
+        default="experiment.ckpt.lowest-valid-cer*",
+        help="Name of the model checkpoint to use, can be a glob pattern",
+    )
+    add_argument(
+        "--source",
+        type=str,
+        default="experiment",
+        choices=["experiment", "model"],
+        help="Type of class which generated the checkpoint",
+    )
+    add_argument(
+        "--output_transform",
+        type=str,
+        default=None,
+        choices=["softmax", "log_softmax"],
+        help="Apply this transformation at the end of the model. "
+        'For instance, use "softmax" to get posterior probabilities as the '
+        "output of the model",
+    )
+    add_argument(
+        "--output_format",
+        default="matrix",
+        choices=["matrix", "lattice"],
+        help='Format of the output file. Use "matrix" to get a '
+        "Kaldi's archive of matrices (one for each sample), where each row is a "
+        'timestep and each column represents a label; use "lattice" to get a '
+        "Kaldi's archive of CompactLattices",
+    )
+    add_argument(
+        "--add_boundary_ctc_blank",
+        action="store_true",
+        help="Boundary CTC blank symbol added to the start and end of the matrix",
+    )
+    add_argument(
+        "--digits",
+        type=int,
+        default=10,
+        help="Number of digits to be used for formatting",
+    )
+    args = args()
+
+    model = ModelLoader(
+        args.train_path, filename=args.model_filename, gpu=args.gpu
+    ).load()
+    if model is None:
+        log.error("Could not find the model")
+        exit(1)
+
+    state = CheckpointLoader(gpu=args.gpu).load_by(
+        os.path.join(args.train_path, args.checkpoint)
+    )
+    model.load_state_dict(
+        state if args.source == "model" else Experiment.get_model_state_dict(state)
+    )
+
+    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
+    model.eval()
+
+    dataset = ImageFromListDataset(
+        args.img_list, img_dirs=args.img_dirs, img_transform=ImageToTensor()
+    )
+    dataset_loader = ImageDataLoader(
+        dataset=dataset, image_channels=1, batch_size=args.batch_size, num_workers=8
+    )
+    batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img"))
+
+    output_fn = globals()["output_{}".format(args.output_format)]
+
+    for batch in dataset_loader:
+        batch_input = batch_input_fn(batch)
+        batch_output = model(batch_input)
+        batch_output, batch_sizes = transform_output(batch_output)
+        batch_output = batch_output.permute(1, 0, 2)
+        if args.output_transform:
+            batch_output = getattr(functional, args.output_transform)(
+                batch_output, dim=-1
+            )
+        for img_id, out, out_size in zip(batch["id"], batch_output, batch_sizes):
+            matrix = output_fn(
+                img_id,
+                out,
+                out_size,
+                add_boundary_ctc_blank=args.add_boundary_ctc_blank,
+                digits=args.digits,
+            )
+            print(matrix)

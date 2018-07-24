@@ -29,25 +29,40 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
 
 
 class DortmundImageToTensor(object):
-    def __init__(self, fixed_height=None, fixed_width=None):
+    def __init__(
+        self, fixed_height=None, fixed_width=None, min_height=None, min_width=None
+    ):
         assert fixed_height is None or fixed_height > 0
         assert fixed_width is None or fixed_width > 0
+        assert min_height is None or min_height > 0
+        assert min_width is None or min_width > 0
         self._fh = fixed_height
         self._fw = fixed_width
+        self._mh = min_height
+        self._mw = min_width
 
     def __call__(self, x):
         assert isinstance(x, Image.Image)
         x = x.convert("L")
         x = ImageOps.invert(x)
-        x = np.asarray(x, dtype=np.float32)
-        x = dortmund_distort(x / 255.0)
-        # Optionally, resize image to a fixed size
         if self._fh or self._fw:
-            ch, cw = x.shape[:2]
+            # Optionally, resize image to a fixed size
+            cw, ch = x.size
             nw = self._fw if self._fw else int(cw * self._fh / ch)
             nh = self._fh if self._fh else int(ch * self._fw / cw)
-            x = cv2.resize(x, dsize=(nw, nh), interpolation=cv2.INTER_LINEAR)
+            x.resize((nw, nh), Image.BILINEAR)
+        elif self._mh or self._mw:
+            # Optionally, pad image to have the minimum size
+            cw, ch = x.size
+            nw = cw if self._mw is None or cw >= self._mw else self._mw
+            nh = ch if self._mh is None or ch >= self._mh else self._mh
+            if cw != nw or ch != nh:
+                nx = Image.new("L", (nw, nh))
+                nx.paste(x, ((nw - cw) // 2, (nh - ch) // 2))
+                x = nx
 
+        x = np.asarray(x, dtype=np.float32)
+        x = dortmund_distort(x / 255.0)
         if x.shape != 3:
             x = np.expand_dims(x, axis=-1)
         x = np.transpose(x, (2, 0, 1))
