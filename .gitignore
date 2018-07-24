@@ -109,3 +109,6 @@ ENV/
 # Usual temporary folders
 tmp/
 kk/
+
+# Project specific files
+laia/version.py
