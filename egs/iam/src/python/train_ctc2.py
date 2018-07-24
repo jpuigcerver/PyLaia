@@ -6,7 +6,7 @@ import argparse
 import multiprocessing as mp
 import os
 
-import laia.logging as log
+import laia.common.logging as log
 from laia.data import (ImageDataLoader, TextImageFromTextTableDataset,
                        FixedSizeSampler)
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
@@ -14,11 +14,11 @@ from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.hooks import Hook, HookCollection, action, Action, ActionCollection
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.loader import (TrainerLoader, ModelLoader,
-                                 TrainerCheckpointLoader, ModelCheckpointLoader)
-from laia.plugins.saver import (TrainerSaver, CheckpointSaver, RollingSaver,
-                                ModelCheckpointSaver, TrainerCheckpointSaver)
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.loader import (TrainerLoader, ModelLoader,
+                                TrainerCheckpointLoader, ModelCheckpointLoader)
+from laia.common.saver import (TrainerSaver, CheckpointSaver, RollingSaver,
+                               ModelCheckpointSaver, TrainerCheckpointSaver)
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 from laia.utils.dortmund_image_to_tensor import DortmundImageToTensor
 from torch.optim import SGD

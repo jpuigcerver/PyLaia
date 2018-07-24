@@ -4,13 +4,14 @@ from __future__ import absolute_import
 import argparse
 import os
 
-import laia.logging as log
+import laia.common.logging as log
+from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments_types import str2bool
+from laia.common.loader import ModelLoader, CheckpointLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.decoders import CTCGreedyDecoder
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.plugins.arguments import add_argument, args, add_defaults
-from laia.plugins.arguments_types import str2bool
-from laia.plugins.loader import ModelLoader, ModelCheckpointLoader
+from laia.experiments import Experiment
 from laia.utils import SymbolsTable, ImageToTensor
 
 if __name__ == "__main__":
@@ -32,10 +33,17 @@ if __name__ == "__main__":
         "--model_filename", type=str, default="model", help="File name of the model"
     )
     add_argument(
-        "--model_checkpoint",
+        "--checkpoint",
         type=str,
-        default="model.ckpt.lowest-valid-cer*",
+        default="experiment.ckpt.lowest-valid-cer*",
         help="Name of the model checkpoint to use, can be a glob pattern",
+    )
+    add_argument(
+        "--source",
+        type=str,
+        default="experiment",
+        choices=["experiment", "model"],
+        help="Type of class which generated the checkpoint",
     )
     add_argument(
         "--print_img_ids",
@@ -51,21 +59,12 @@ if __name__ == "__main__":
         default=" ",
         help="Use this string as the separator between the ids and the output",
     )
+    add_argument("--join_str", type=str, help="Join the output using this")
     add_argument(
-        "--use_letters",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="Print the output with letters",
+        "--use_letters", action="store_true", help="Print the output with letters"
     )
     add_argument(
         "--space", type=str, help="Replace <space> with this. Used with --use_letters"
-    )
-    add_argument(
-        "--join_str",
-        type=str,
-        help="Join the output using this. Used with --use_letters",
     )
     args = args()
 
@@ -75,32 +74,39 @@ if __name__ == "__main__":
         args.train_path, filename=args.model_filename, gpu=args.gpu
     ).load()
     if model is None:
-        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
+        log.error("Could not find the model")
         exit(1)
-    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
-    ModelCheckpointLoader(model, gpu=args.gpu).load_by(
-        os.path.join(args.train_path, args.model_checkpoint)
+    state = CheckpointLoader(gpu=args.gpu).load_by(
+        os.path.join(args.train_path, args.checkpoint)
     )
+    model.load_state_dict(
+        state if args.source == "model" else Experiment.get_model_state_dict(state)
+    )
+    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
     model.eval()
 
-    te_ds = ImageFromListDataset(
+    dataset = ImageFromListDataset(
         args.img_list, img_dirs=args.img_dirs, img_transform=ImageToTensor()
     )
-    te_ds_loader = ImageDataLoader(
-        dataset=te_ds, image_channels=1, batch_size=args.batch_size, num_workers=8
+    dataset_loader = ImageDataLoader(
+        dataset=dataset, image_channels=1, batch_size=args.batch_size, num_workers=8
     )
     batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img"))
 
     decoder = CTCGreedyDecoder()
-    for batch in te_ds_loader:
+    for batch in dataset_loader:
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
         batch_decode = decoder(batch_output)
-        for imgid, out in zip(batch["id"], batch_decode):
+        for img_id, out in zip(batch["id"], batch_decode):
             if args.use_letters:
                 out = [str(syms[val]) for val in out]
                 if args.space:
                     out = [args.space if sym == "<space>" else sym for sym in out]
-                if args.join_str is not None:
-                    out = args.join_str.join(out)
-            print(imgid + args.separator + str(out) if args.print_img_ids else out)
+            if args.join_str is not None:
+                out = args.join_str.join(str(x) for x in out)
+            print(
+                "{}{}{}".format(img_id, args.separator, out)
+                if args.print_img_ids
+                else out
+            )

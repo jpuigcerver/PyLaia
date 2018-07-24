@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 
 import torch
+from laia.data import PaddedTensor
 from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
 from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
 from laia.nn.image_to_sequence import image_to_sequence
@@ -42,5 +43,39 @@ class ImagePoolingSequencer(torch.nn.Module):
     def forward(self, x):
         if self.sequencer:
             x = self.sequencer(x)
+        else:
+            if isinstance(x, PaddedTensor):
+                xs = x.sizes  # batch sizes matrix (N x 2)
+                ns = xs.size(0)  # number of samples in the batch
+                if (
+                    self._columnwise
+                    and torch.sum(xs[:, 0] == self._fix_size).data[0] != ns
+                ):
+                    raise ValueError(
+                        "Input images must have a fixed height of {} pixels".format(
+                            self._fix_size
+                        )
+                    )
+                elif (
+                    not self._columnwise
+                    and torch.sum(xs[:, 1] == self._fix_size).data[0] != ns
+                ):
+                    raise ValueError(
+                        "Input images must have a fixed width of {} pixels".format(
+                            self._fix_size
+                        )
+                    )
+            else:
+                if self._columnwise and x.size(-2) != self._fix_size:
+                    raise ValueError(
+                        "Input images must have a fixed height of {} pixels, "
+                        "size is {}".format(self._fix_size, str(x.size()))
+                    )
+                elif (not self._columnwise) and x.size(-1) != self._fix_size:
+                    raise ValueError(
+                        "Input images must have a fixed width of {} pixels, "
+                        "size is {}".format(self._fix_size, str(x.size()))
+                    )
+
         x = image_to_sequence(x, columnwise=self._columnwise, return_packed=True)
         return x
