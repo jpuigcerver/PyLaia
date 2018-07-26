@@ -29,3 +29,5 @@ import laia.losses
 import laia.meters
 import laia.models
 import laia.nn
+
+from laia.version import __full_version__, __version__, __branch__, __commit__
