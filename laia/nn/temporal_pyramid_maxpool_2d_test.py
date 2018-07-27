@@ -8,9 +8,14 @@ import torch
 from torch.autograd import Variable
 
 from laia.data import PaddedTensor
-from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+
+try:
+    from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+except ImportError:
+    TemporalPyramidMaxPool2d = None
 
 
+@unittest.skipIf(TemporalPyramidMaxPool2d is None, "nnutils does not seem installed")
 class TemporalPyramidMaxPool2dTest(unittest.TestCase):
     def _run_test_tensor(self, use_nnutils):
         x = Variable(torch.randn(3, 5, 7, 8), requires_grad=True)

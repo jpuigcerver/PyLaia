@@ -7,9 +7,14 @@ import torch
 from torch.autograd import Variable
 
 from laia.data import PaddedTensor
-from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
+
+try:
+    from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
+except ImportError:
+    PyramidMaxPool2d = None
 
 
+@unittest.skipIf(PyramidMaxPool2d is None, "nnutils does not seem installed")
 class PyramidMaxPool2dTest(unittest.TestCase):
     def _run_test_tensor(self, use_nnutils):
         x = torch.randn(3, 5, 7, 8)
