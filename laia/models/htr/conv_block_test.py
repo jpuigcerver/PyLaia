@@ -78,7 +78,7 @@ class ConvBlockTest(unittest.TestCase):
         self.assertListEqual(ys2, [11 // 2 + 1, 13 // 2 + 1])
 
     @unittest.skipIf(
-        mask_image_from_size_is_available, "mask_image_from_size is not available"
+        not mask_image_from_size_is_available, "mask_image_from_size is not available"
     )
     def test_masking(self):
         m = ConvBlock(1, 1, activation=None, use_masks=True)
