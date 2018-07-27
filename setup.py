@@ -35,7 +35,7 @@ def git_branch():
 
 
 def git_is_dirty():
-    """Returns wether the repository contains local changes or not"""
+    """Returns whether the repository contains local changes or not"""
     return bool(_git_output(["git", "status", "--short"]))
 
 
@@ -99,7 +99,7 @@ setuptools.setup(
         "numpy",
         "scipy",
         "tqdm",
-        "torch==0.4",
+        "torch==0.4.1",
         'typing;python_version<"3.5"',
         "Pillow",
     ],

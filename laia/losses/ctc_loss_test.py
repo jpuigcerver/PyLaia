@@ -61,7 +61,8 @@ class CTCLossTest(unittest.TestCase):
                 [[1, 2, 3], [7, 8, 9]],
                 [[10, 11, 12], [16, 17, 18]],
                 [[19, 20, 21], [25, 26, 27]],
-            ]
+            ],
+            dtype=torch.float,
         )
         output = set_zeros_in_errors([3, 3, 3], input, [0, 2])
         expected = torch.tensor(
@@ -69,7 +70,8 @@ class CTCLossTest(unittest.TestCase):
                 [[1, 2, 3], [0, 0, 0], [7, 8, 9]],
                 [[10, 11, 12], [0, 0, 0], [16, 17, 18]],
                 [[19, 20, 21], [0, 0, 0], [25, 26, 27]],
-            ]
+            ],
+            dtype=torch.float,
         )
         torch.testing.assert_allclose(output, expected)
 
@@ -132,6 +134,7 @@ class CTCLossTest(unittest.TestCase):
             ],
             dtype=dtype,
             device=device,
+            requires_grad=True,
         )
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
         ctc = CTCLoss(size_average=False, length_average=False)
