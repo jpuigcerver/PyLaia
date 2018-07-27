@@ -10,7 +10,13 @@ import torch.nn.functional as F
 from torch import Tensor
 
 from laia.data import PaddedTensor
-from laia.nn.mask_image_from_size import mask_image_from_size
+
+try:
+    from laia.nn.mask_image_from_size import mask_image_from_size
+except ImportError:
+    import warnings
+
+    mask_image_from_size = None
 
 
 class ConvBlock(nn.Module):
@@ -44,6 +50,12 @@ class ConvBlock(nn.Module):
                 if poolsize in product((0, 1), repeat=2)
                 else tuple(poolsize[dim] if poolsize[dim] else 1 for dim in (0, 1))
             )
+
+        if use_masks and mask_image_from_size is None:
+            warnings.warn(
+                "nnutils does not seem to be installed, masking cannot be used"
+            )
+            use_masks = False
 
         self.dropout = dropout
         self.in_channels = in_channels

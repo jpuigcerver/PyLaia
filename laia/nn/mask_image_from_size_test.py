@@ -7,7 +7,13 @@ import torch
 from laia.data import PaddedTensor
 from laia.nn import MaskImageFromSize
 
+try:
+    from laia.nn.mask_image_from_size import MaskImageFromSize
+except ImportError:
+    MaskImageFromSize = None
 
+
+@unittest.skipIf(MaskImageFromSize is None, "nnutils does not seem installed")
 class MaskImageFromSizeTest(unittest.TestCase):
     def test_tensor(self):
         x = torch.randn(3, 5, 7, 9, requires_grad=True)

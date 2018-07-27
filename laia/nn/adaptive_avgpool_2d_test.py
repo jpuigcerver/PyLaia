@@ -8,9 +8,14 @@ from torch.autograd import gradcheck
 from torch.nn.functional import adaptive_avg_pool2d
 
 from laia.data import PaddedTensor
-from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
+
+try:
+    from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
+except ImportError:
+    AdaptiveAvgPool2d = None
 
 
+@unittest.skipIf(AdaptiveAvgPool2d is None, "nnutils does not seem installed")
 class AdaptiveAvgPool2dTest(unittest.TestCase):
     def setUp(self):
         self.x = torch.tensor(
