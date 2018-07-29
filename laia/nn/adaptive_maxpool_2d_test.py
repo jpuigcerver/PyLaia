@@ -72,7 +72,7 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
         x = torch.randn(2, 3, h, w, requires_grad=True)
         y = m(x)
         torch.testing.assert_allclose(y, x)
-        dx, = torch.autograd.grad(y.sum(), inputs=(x,))
+        dx, = torch.autograd.grad(y.sum(), inputs=x)
         torch.testing.assert_allclose(dx, torch.ones(2, 3, h, w))
 
     def test_forward_tensor(self):
@@ -130,9 +130,9 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
 
     def test_backward_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
-        gradcheck(func=lambda x: m(x).sum(), inputs=(self.x,))
+        gradcheck(func=lambda x: m(x).sum(), inputs=self.x)
 
     def test_backward_padded_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
         xs = torch.tensor([[2, 2], [1, 3]])
-        gradcheck(func=lambda x: m(PaddedTensor(x, xs)).sum(), inputs=(self.x,))
+        gradcheck(func=lambda x: m(PaddedTensor(x, xs)).sum(), inputs=self.x)

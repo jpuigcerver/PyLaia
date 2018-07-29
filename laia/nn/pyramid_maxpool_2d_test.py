@@ -1,8 +1,10 @@
+
 from __future__ import absolute_import
 
 import unittest
 
 import torch
+from torch.autograd import gradcheck
 
 from laia.data import PaddedTensor
 
@@ -19,7 +21,7 @@ class PyramidMaxPool2dTest(unittest.TestCase):
         layer = PyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
         y = layer(x)
         self.assertEqual((3, 5 * (1 + 2 * 2)), y.size())
-        torch.autograd.gradcheck(lambda x: torch.sum(layer(x)), inputs=(x,))
+        gradcheck(lambda x: torch.sum(layer(x)), inputs=x)
 
     def _run_test_padded_tensor(self, use_nnutils):
         x = torch.tensor(
@@ -41,7 +43,7 @@ class PyramidMaxPool2dTest(unittest.TestCase):
         torch.testing.assert_allclose(
             y, torch.tensor([[20, 10, 12, 18, 20]], dtype=torch.float)
         )
-        torch.autograd.gradcheck(lambda x: layer(PaddedTensor(x, xs)), inputs=(x,))
+        gradcheck(lambda x: layer(PaddedTensor(x, xs)), inputs=x)
 
     def test_tensor_nnutils_backend(self):
         self._run_test_tensor(use_nnutils=True)

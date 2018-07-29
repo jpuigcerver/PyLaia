@@ -5,7 +5,6 @@ import unittest
 import torch
 
 from laia.data import PaddedTensor
-from laia.nn import MaskImageFromSize
 
 try:
     from laia.nn.mask_image_from_size import MaskImageFromSize

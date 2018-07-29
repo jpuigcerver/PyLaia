@@ -30,7 +30,7 @@ if nnutils_installed:
         "padded_cost_function": lambda y: y.sum(),
     }
     tests = []
-    for name, kwargs in (("default", {}), ("no_dropout", {"dropout": 0})):
+    for name, kwargs in ("default", {}), ("no_dropout", {"dropout": 0}):
         test_dict["module_kwargs"] = dict(num_outputs=36, **kwargs)
         tests.append(("backprop_{{}}_{{}}_{}".format(name), test_dict))
     generate_backprop_floating_point_tests(DortmundCRNNTest, tests=tests)

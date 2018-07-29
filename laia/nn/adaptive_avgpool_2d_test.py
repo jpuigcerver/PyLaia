@@ -73,7 +73,7 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
         y = m(x)
         torch.testing.assert_allclose(y, x)
         dx, = torch.autograd.grad(y.sum(), inputs=(x,))
-        torch.testing.assert_allclose(dx, torch.ones(2, 3, h, w), dx)
+        torch.testing.assert_allclose(torch.ones(2, 3, h, w), dx)
 
     def test_forward_tensor(self):
         # N x C x H x W
@@ -129,9 +129,9 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
 
     def test_backward_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
-        gradcheck(func=lambda x: m(x).sum(), inputs=(self.x,))
+        gradcheck(func=lambda x: m(x).sum(), inputs=self.x)
 
     def test_backward_padded_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
         xs = torch.tensor([[2, 2], [1, 3]])
-        gradcheck(func=lambda x: m(PaddedTensor(x, xs)).sum(), inputs=(self.x,))
+        gradcheck(func=lambda x: m(PaddedTensor(x, xs)).sum(), inputs=self.x)
