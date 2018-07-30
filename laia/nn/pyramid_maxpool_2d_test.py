@@ -7,14 +7,16 @@ import torch
 from torch.autograd import gradcheck
 
 from laia.data import PaddedTensor
+from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
 
 try:
-    from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
+    import nnutils_pytorch
+
+    nnutils_installed = True
 except ImportError:
-    PyramidMaxPool2d = None
+    nnutils_installed = False
 
 
-@unittest.skipIf(PyramidMaxPool2d is None, "nnutils does not seem installed")
 class PyramidMaxPool2dTest(unittest.TestCase):
     def _run_test_tensor(self, use_nnutils):
         x = torch.randn(3, 5, 7, 8)
@@ -45,12 +47,14 @@ class PyramidMaxPool2dTest(unittest.TestCase):
         )
         gradcheck(lambda x: layer(PaddedTensor(x, xs)), inputs=x)
 
+    @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")
     def test_tensor_nnutils_backend(self):
         self._run_test_tensor(use_nnutils=True)
 
     def test_tensor_pytorch_backend(self):
         self._run_test_tensor(use_nnutils=False)
 
+    @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")
     def test_padded_tensor_nnutils_backend(self):
         self._run_test_padded_tensor(use_nnutils=True)
 
