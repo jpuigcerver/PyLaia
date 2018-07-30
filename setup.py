@@ -92,7 +92,6 @@ setuptools.setup(
     url="https://github.com/jpuigcerver/PyLaia",
     # Requirements
     install_requires=[
-        "cffi>=1.0",
         "editdistance",
         "future",
         'mock;python_version<"3.0"',

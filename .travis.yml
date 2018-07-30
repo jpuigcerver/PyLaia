@@ -11,12 +11,11 @@ notifications:
 
 before_install:
   - pip install cffi
-  - ./travis/install_pytorch.sh
-  - ./travis/build_nnutils.sh
-  - ./travis/build_warp_ctc.sh
 
 install:
   - python setup.py install
+  - ./travis/build_nnutils.sh
+  - ./travis/build_warp_ctc.sh
 
 script:
   - ./travis/run_tests.sh
