@@ -48,8 +48,8 @@ class RunningAverageMeter(Meter):
         """
         if isinstance(v, torch.Tensor):
             self._n += v.numel()
-            self._s += torch.sum(v)
-            self._s2 += torch.sum(v * v)
+            self._s += torch.sum(v).item()
+            self._s2 += torch.sum(v * v).item()
         elif isinstance(v, np.ndarray):
             self._n += v.size
             self._s += np.sum(v)
