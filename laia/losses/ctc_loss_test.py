@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import sys
 import unittest
 
 import torch
@@ -14,11 +13,6 @@ from laia.losses.ctc_loss import (
     get_valids_and_errors,
     CTCLoss,
 )
-
-if sys.version_info[:2] == (2, 7):
-    from scipy.misc import logsumexp
-else:
-    from scipy.special import logsumexp
 
 log.basic_config()
 
@@ -99,29 +93,31 @@ class CTCLossTest(unittest.TestCase):
             dtype=dtype,
             device=device,
         )
-        y = [[1], [1, 1, 2, 1], [1, 2, 2]]
-        batch_ids = ["ID1", "ID2", "ID3"]
         xn = log_softmax(x, dim=-1)
-        paths0 = [
-            xn[0, 0, a] + xn[1, 0, b] + xn[2, 0, c] + xn[3, 0, d]
-            for a, b, c, d in [
-                (1, 1, 1, 1),
-                (1, 1, 1, 0),
-                (0, 1, 1, 1),
-                (1, 1, 0, 0),
-                (0, 1, 1, 0),
-                (0, 0, 1, 1),
-                (1, 0, 0, 0),
-                (0, 1, 0, 0),
-                (0, 0, 1, 0),
-                (0, 0, 0, 1),
-            ]
-        ]
-        paths2 = [xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2]]
-        ctc = CTCLoss(size_average=False, length_average=False)
-        loss = ctc(x, y, batch_ids=batch_ids)
-        expected = -(logsumexp(paths0) + logsumexp(paths2))
-        self.assertAlmostEqual(expected, loss, places=5)
+        paths0 = torch.tensor(
+            [
+                xn[0, 0, a] + xn[1, 0, b] + xn[2, 0, c] + xn[3, 0, d]
+                for a, b, c, d in [
+                    (1, 1, 1, 1),
+                    (1, 1, 1, 0),
+                    (0, 1, 1, 1),
+                    (1, 1, 0, 0),
+                    (0, 1, 1, 0),
+                    (0, 0, 1, 1),
+                    (1, 0, 0, 0),
+                    (0, 1, 0, 0),
+                    (0, 0, 1, 0),
+                    (0, 0, 0, 1),
+                ]
+            ],
+            device=device,
+        )
+        paths2 = torch.tensor(xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2])
+        ctc = CTCLoss(size_average=False)
+        y = [[1], [1, 1, 2, 1], [1, 2, 2]]
+        loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
+        expected = -torch.logsumexp(paths0 + paths2, 0)
+        self.assertAlmostEqual(expected, loss)
 
     def _run_test_backward(self, dtype, device):
         # Size: T x N x 3
@@ -137,10 +133,8 @@ class CTCLossTest(unittest.TestCase):
             requires_grad=True,
         )
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
-        ctc = CTCLoss(size_average=False, length_average=False)
-        self.assertTrue(
-            gradcheck(lambda x, y: ctc(x, y), (x, y), raise_exception=False)
-        )
+        ctc = CTCLoss(size_average=False)
+        self.assertTrue(gradcheck(lambda x, y: ctc(x, y), (x, y)))
 
 
 def _generate_tests(dtype, test_name):

@@ -58,7 +58,7 @@ def set_zeros_in_errors(size, input, valid_indices):
     """Copy the tensor with zeros in the erroneous indices"""
     valid_indices = torch.tensor(valid_indices, device=input.device)
     # Note: The batch size must be in the second dimension
-    return torch.zeros(size, dtype=input.dtype).index_copy_(1, valid_indices, input)
+    return input.new_zeros(size).index_copy_(1, valid_indices, input)
 
 
 def get_valids_and_errors(act_lens, labels):
