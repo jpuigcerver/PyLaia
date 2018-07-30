@@ -7,7 +7,7 @@
 	branch = npp
 [submodule "third_party/warp-ctc"]
 	path = third_party/warp-ctc
-	url = https://github.com/seannaren/warp-ctc.git
+	url = https://github.com/jpuigcerver/warp-ctc.git
 	branch = pytorch_bindings
 [submodule "egs/icdar2015kws/src/htrsh"]
 	path = egs/icdar2015kws/src/htrsh
