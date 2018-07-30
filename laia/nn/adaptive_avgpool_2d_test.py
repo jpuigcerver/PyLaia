@@ -129,9 +129,9 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
 
     def test_backward_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
-        gradcheck(func=lambda x: m(x).sum(), inputs=self.x)
+        gradcheck(lambda x: m(x).sum(), self.x)
 
     def test_backward_padded_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
         xs = torch.tensor([[2, 2], [1, 3]])
-        gradcheck(func=lambda x: m(PaddedTensor(x, xs)).sum(), inputs=self.x)
+        gradcheck(lambda x: m(PaddedTensor(x, xs)).sum(), self.x)
