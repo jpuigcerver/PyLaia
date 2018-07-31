@@ -5,12 +5,18 @@ import unittest
 
 import numpy as np
 import torch
-from laia.data import PaddedTensor
-from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
 from torch.autograd import Variable, gradcheck
 from torch.nn.functional import adaptive_max_pool2d
 
+from laia.data import PaddedTensor
 
+try:
+    from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
+except ImportError:
+    AdaptiveMaxPool2d = None
+
+
+@unittest.skipIf(AdaptiveMaxPool2d is None, "nnutils does not seem installed")
 class AdaptiveMaxPool2dTest(unittest.TestCase):
     def setUp(self):
         self.x = torch.Tensor(
