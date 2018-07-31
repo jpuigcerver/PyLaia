@@ -38,6 +38,12 @@ if __name__ == "__main__":
         nargs="*",
         help="Spatial Pyramid Pooling levels",
     )
+    add_argument(
+        "--method",
+        choices=("independence", "upper_bound"),
+        default="independence",
+        help="Approximation to the probabilistic relevance probability"
+    )
     add_argument("syms", help="Symbols table mapping from strings to integers")
     add_argument("img_dir", help="Directory containing word images")
     add_argument("queries", help="Transcription of each query image")
@@ -83,10 +89,11 @@ if __name__ == "__main__":
     n = len(phocs)
     log.info("Computing pairwise relevance probabilities among {} queries", n)
     phocs = torch.stack(phocs).type("torch.DoubleTensor")
-    logprobs = pphoc(phocs)
+    logprobs = pphoc(phocs, method=args.method)
+    k = 0
     for i in range(n):
         for j in range(i + 1, n):  # Note: this skips the pair (i, i)
-            k = i * n - i * (i - 1) // 2 + (j - i)
             args.output.write("{} {} {}\n".format(samples[i], samples[j], logprobs[k]))
             args.output.write("{} {} {}\n".format(samples[j], samples[i], logprobs[k]))
+            k = k + 1
     log.info("Done.")
