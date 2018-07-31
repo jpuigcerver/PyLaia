@@ -11,6 +11,13 @@ from laia.data import PaddedTensor
 from laia.models.htr.conv_block import ConvBlock
 from laia.models.htr.testing_utils import generate_backprop_floating_point_tests
 
+try:
+    import laia.nn.mask_image_from_size
+
+    mask_image_from_size_is_available = True
+except ImportError:
+    mask_image_from_size_is_available = False
+
 
 class ConvBlockTest(unittest.TestCase):
     def test_output_size(self):
@@ -70,6 +77,9 @@ class ConvBlockTest(unittest.TestCase):
         self.assertListEqual(ys, [[11 // 2 + 1, 13 // 2 + 1]])
         self.assertListEqual(ys2, [11 // 2 + 1, 13 // 2 + 1])
 
+    @unittest.skipIf(
+        mask_image_from_size_is_available, "mask_image_from_size is not available"
+    )
     def test_masking(self):
         m = ConvBlock(1, 1, activation=None, use_masks=True)
         # Reset parameters so that the operation does nothing
