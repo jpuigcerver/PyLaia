@@ -1,14 +1,20 @@
 from __future__ import absolute_import
 
 from laia.data import PaddedTensor
-from laia.nn import MaskImageFromSize
+
 
 import numpy as np
 import torch
 from torch.autograd import Variable
 import unittest
 
+try:
+    from laia.nn.mask_image_from_size import MaskImageFromSize
+except ImportError:
+    MaskImageFromSize = None
 
+
+@unittest.skipIf(MaskImageFromSize is None, "nnutils does not seem installed")
 class MaskImageFromSizeTest(unittest.TestCase):
     def test_tensor(self):
         x = Variable(torch.randn(3, 5, 7, 9), requires_grad=True)
