@@ -48,12 +48,11 @@ RUN git clone https://"$USR":"$PW"@github.com/jpuigcerver/PyLaia && \
 
 # Install third party libraries
 WORKDIR /PyLaia/third_party/imgdistort/build
-RUN cmake .. -DPYTORCH_SETUP_PREFIX=/opt/conda && \
+RUN cmake -DPYTORCH_SETUP_PREFIX=/opt/conda .. && \
     make && make install
 
-WORKDIR /PyLaia/third_party/nnutils/build
-RUN cmake -DWITH_CUDA=OFF -DWITH_PYTORCH=ON -DPYTORCH_SETUP_PREFIX=/opt/conda .. && \
-    make VERBOSE=1 && make install
+WORKDIR /PyLaia/third_party/nnutils/pytorch
+RUN python setup.py build && python setup.py install
 
 WORKDIR /PyLaia/third_party/warp-ctc/build
 RUN cmake .. && make && \
