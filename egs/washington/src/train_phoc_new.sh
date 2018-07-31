@@ -33,6 +33,7 @@ if [ -s "$ckpt" ]; then
     fi;
 fi;
 
+rm -f "$OUTPUT_DIR"/*.*;
 python ./src/python/train_phocnet.py \
        --max_epochs=160 \
        --learning_rate=0.0001 \
