@@ -31,8 +31,7 @@ class BasicLoader(Loader):
     ):
         # type: (...) -> Any
         try:
-            # TODO: map_location accepts torch.Device in v0.4.1
-            return torch.load(f, map_location=str(device) if device else None)
+            return torch.load(f, map_location=device)
         except FileNotFoundError:
             _logger.info("Could not find the file {}", f)
         return None
