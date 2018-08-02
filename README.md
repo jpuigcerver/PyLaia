@@ -1,7 +1,7 @@
 # PyLaia
 
 [![Build Status](https://travis-ci.com/jpuigcerver/PyLaia.svg?token=HF64eTvPxEUcjjUPXpgm&branch=master)](https://travis-ci.com/jpuigcerver/PyLaia)
-[![Python Version](https://img.shields.io/badge/python-2.7%2C%203.5%2C%203.6-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python->=3.5-blue.svg)](https://www.python.org/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized for handwritten document analysis. It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).
