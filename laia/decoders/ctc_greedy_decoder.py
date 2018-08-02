@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 from functools import reduce
 
-from torch.autograd import Variable
-
 from laia.losses.ctc_loss import transform_output
 
 
@@ -13,8 +11,6 @@ class CTCGreedyDecoder(object):
 
     def __call__(self, x):
         x, xs = transform_output(x)
-        if isinstance(x, Variable):
-            x = x.data
         _, idx = x.max(dim=2)
         idx = idx.t().tolist()
         x = [idx_n[: int(xs[n])] for n, idx_n in enumerate(idx)]

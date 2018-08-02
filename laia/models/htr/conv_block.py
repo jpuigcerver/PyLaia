@@ -2,12 +2,12 @@ from __future__ import division
 
 import math
 from itertools import product
+from typing import Optional, Union, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-from typing import Optional, Union, Tuple
+from torch import Tensor
 
 from laia.data import PaddedTensor
 
@@ -84,13 +84,10 @@ class ConvBlock(nn.Module):
         self.activation = activation(inplace=inplace) if activation else None
 
         # Add maxpool layer
-        if self.poolsize:
-            self.pool = nn.MaxPool2d(poolsize)
-        else:
-            self.pool = None
+        self.pool = nn.MaxPool2d(poolsize) if self.poolsize else None
 
     def forward(self, x):
-        # type: (Union[Variable, PaddedTensor]) -> Union[Variable, PaddedTensor]
+        # type: (Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
             assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
@@ -128,16 +125,9 @@ class ConvBlock(nn.Module):
         if self.pool:
             x = self.pool(x)
 
-        return (
-            x if xs is None else PaddedTensor(x, sizes=self.get_output_batch_size(xs))
-        )
+        return x if xs is None else PaddedTensor(x, self.get_output_batch_size(xs))
 
     def get_output_batch_size(self, xs):
-        if isinstance(xs, Variable):
-            xs = xs.data
-            return_variable = True
-        else:
-            return_variable = False
         ys = torch.zeros_like(xs)
         for dim in 0, 1:
             ys[:, dim] = self.get_output_size(
@@ -148,26 +138,27 @@ class ConvBlock(nn.Module):
                 poolsize=self.poolsize[dim] if self.poolsize else None,
                 padding=self.conv.padding[dim],
             )
-        return Variable(ys) if return_variable else ys
+        return ys
 
     @staticmethod
     def get_output_size(
-        size,  # type: Union[torch.LongTensor, int]
+        size,  # type: Union[torch.Tensor, int]
         kernel_size,  # type: int
         dilation,  # type: int
         stride,  # type: int
         poolsize,  # type: int
         padding=None,  # type: Optional[int]
     ):
-        # type: (...) -> Union[torch.LongTensor, int]
+        # type: (...) -> Union[torch.Tensor, int]
         if padding is None:
             padding = (kernel_size - 1) // 2 * dilation
-        size = size.float() if torch.is_tensor(size) else float(size)
+        size = size.float() if isinstance(size, torch.Tensor) else float(size)
         size = (size + 2 * padding - dilation * (kernel_size - 1) - 1) / stride + 1
-        size = size.floor() if torch.is_tensor(size) else math.floor(size)
+        size = size.floor() if isinstance(size, torch.Tensor) else math.floor(size)
         if poolsize:
             size /= poolsize
-        if torch.is_tensor(size):
-            return size.floor().long()
-        else:
-            return int(math.floor(size))
+        return (
+            size.floor().long()
+            if isinstance(size, torch.Tensor)
+            else int(math.floor(size))
+        )

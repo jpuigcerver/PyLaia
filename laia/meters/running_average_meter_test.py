@@ -8,7 +8,7 @@ from laia.meters import RunningAverageMeter
 
 
 class RunningAverageMeterTest(unittest.TestCase):
-    def testMeter(self):
+    def test_meter(self):
         m = RunningAverageMeter()
         m.add(25)
         self.assertEqual(m.value, (25.0, 0.0))
@@ -21,7 +21,7 @@ class RunningAverageMeterTest(unittest.TestCase):
         stddev = math.sqrt((25.0 ** 2 + 25.0 ** 2 + 70.0 ** 2 + 120 ** 2) / 4.0)
         self.assertEqual(m.value, (0.0, stddev))
 
-    def testStateDict(self):
+    def test_state_dict(self):
         m = RunningAverageMeter()
         m.add([25, 25, 70])
         m2 = RunningAverageMeter()
