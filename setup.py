@@ -93,6 +93,7 @@ setuptools.setup(
     # Requirements
     install_requires=[
         "editdistance",
+        "future",
         'mock;python_version<"3.0"',
         "numpy",
         "scipy",
