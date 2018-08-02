@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import numpy as np
 import torch
 
 import laia.common.logging as log
@@ -28,7 +27,7 @@ def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
     """
     logger = log.get_logger(name)
     if logger.isEnabledFor(log.DEBUG) and tensor.dtype in _TENSOR_REAL:
-        num_inf = torch.sum(tensor == np.inf) + torch.sum(tensor == np.NINF)
+        num_inf = torch.isinf(tensor).sum().item()
         if num_inf > 0:
             per_inf = num_inf / tensor.numel()
             msg = (

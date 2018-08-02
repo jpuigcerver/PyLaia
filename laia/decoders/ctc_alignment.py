@@ -48,7 +48,7 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         )
 
     best_logp = np.ndarray((NT, len(canonical)))
-    best_logp.fill(-np.inf)
+    best_logp.fill(np.NINF)
     best_alig = np.zeros((NT, len(canonical)), dtype=np.int64)
 
     # t = 0

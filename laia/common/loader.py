@@ -7,14 +7,10 @@ from io import BytesIO
 from typing import Optional, Callable, Any, Union
 
 import torch
+from torch._six import FileNotFoundError
 
 from laia.common.logging import get_logger
 from laia.common.random import set_rng_state
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 _logger = get_logger(__name__)
 

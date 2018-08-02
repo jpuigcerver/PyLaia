@@ -7,7 +7,7 @@ import re
 from functools import reduce
 
 import torch
-from torch._six import string_classes, int_classes
+from torch._six import string_classes, int_classes, inf
 from torch.utils.data.dataloader import numpy_type_map
 
 PaddedTensor = collections.namedtuple("PaddedTensor", ["data", "sizes"])
@@ -24,7 +24,7 @@ def _get_max_size_and_check_batch_tensor(batch, expected_shape):
                 m[1] if m[1] <= x.size()[d] else x.size()[d],
             ),
             batch,
-            (0, float("inf")),
+            (0, inf),
         )
         if expected_shape is None or expected_shape[d] is None:
             max_sizes.append(maxv)

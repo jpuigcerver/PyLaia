@@ -4,8 +4,7 @@ from contextlib import contextmanager
 from typing import Iterable, Callable, Union, Optional
 
 import torch
-from future.utils import raise_from
-from torch._six import string_classes
+from torch._six import string_classes, raise_from
 from tqdm import tqdm
 
 import laia.common.logging as log
