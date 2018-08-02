@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+from typing import Union, Tuple, Callable, Sequence, Optional
+
 import torch
-from laia.data.padding_collater import PaddedTensor
-from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 from torch.nn.functional import dropout
 from torch.nn.utils.rnn import PackedSequence
-from typing import Union, Tuple, Callable, Sequence, Optional
+
+from laia.data.padding_collater import PaddedTensor
+from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 
 Size = Union[int, Tuple[int, int]]
 Module = Callable[..., torch.nn.Module]
@@ -32,11 +34,7 @@ class GatedConv2d(torch.nn.Module):
             stride=stride,
             padding=padding,
         )
-        if activation:
-            self.pregate = torch.nn.Sequential(conv1, activation)
-        else:
-            self.pregate = conv1
-
+        self.pregate = torch.nn.Sequential(conv1, activation) if activation else conv1
         self.gate = torch.nn.Sequential(conv2, torch.nn.Sigmoid())
 
     def forward(self, x):
@@ -104,11 +102,11 @@ class GatedEncoder(torch.nn.Module):
             zip(features, kernel_sizes, strides, activation, add_gating, poolsize)
         ):
             if not isinstance(k, (tuple, list)):
-                k = (k, k)
+                k = k, k
             if not isinstance(s, (tuple, list)):
-                s = (s, s)
+                s = s, s
             if not isinstance(p, (tuple, list)) and p is not None:
-                p = (p, p)
+                p = p, p
 
             self._conv_sizes.append(k)
             self._conv_strides.append(s)
@@ -119,7 +117,7 @@ class GatedEncoder(torch.nn.Module):
                         in_channels=in_channels,
                         out_channels=n,
                         kernel_size=k,
-                        activation=(f(inplace=True) if inplace else f()),
+                        activation=f(inplace=inplace),
                         stride=s,
                     )
                 )
@@ -132,7 +130,7 @@ class GatedEncoder(torch.nn.Module):
                             kernel_size=k,
                             stride=s,
                         ),
-                        f(inplace=True) if inplace else f(),
+                        f(inplace=inplace),
                     )
                 )
 
@@ -158,10 +156,7 @@ class GatedEncoder(torch.nn.Module):
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         y = self.blocks(x)
-        if xs is None:
-            return y
-        else:
-            return PaddedTensor(data=y, sizes=self._compute_output_size(xs))
+        return y if xs is None else PaddedTensor(y, self._compute_output_size(xs))
 
 
 class RNNDecoder(torch.nn.Module):
@@ -191,10 +186,8 @@ class RNNDecoder(torch.nn.Module):
     def dropout(self, x):
         if self._dropout > 0.0:
             if isinstance(x, PackedSequence):
-                x.data = dropout(x.data, self._dropout, self.training)
-            else:
-                x = dropout(x, self._dropout, self.training)
-
+                x = x.data
+            x = dropout(x, self._dropout, self.training)
         return x
 
     def forward(self, x):
@@ -202,9 +195,8 @@ class RNNDecoder(torch.nn.Module):
         x = self.rnn(x)
         x = self.dropout(x)
         if isinstance(x, PackedSequence):
-            x.data = self.linear(x.data)
-        else:
-            x = self.linear(x)
+            x = x.data
+        x = self.linear(x)
         return x
 
 

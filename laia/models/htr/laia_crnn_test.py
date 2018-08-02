@@ -4,7 +4,6 @@ from __future__ import division
 import unittest
 
 import torch
-from torch.autograd import Variable
 from torch.nn.utils.rnn import pad_packed_sequence, PackedSequence
 
 from laia.data import PaddedTensor
@@ -28,7 +27,7 @@ class LaiaCRNNTest(unittest.TestCase):
             cnn_dilation=[(1, 1), (1, 1), (1, 1), (1, 1)],
             cnn_poolsize=[(2, 2), (2, 2), (2, 2), (1, 1)],
         )
-        self.assertTupleEqual(ys, (30 // 8, 40 // 8))
+        self.assertEqual(ys, (30 // 8, 40 // 8))
 
     def test_fixed_height(self):
         m = LaiaCRNN(
@@ -49,16 +48,15 @@ class LaiaCRNNTest(unittest.TestCase):
             lin_dropout=0.5,
             rnn_type=torch.nn.LSTM,
         )
-        x = Variable(torch.randn((5, 3, 128, 300)), requires_grad=True)
+        x = torch.randn(5, 3, 128, 300, requires_grad=True)
         y = m(x)
-        ys = list(y.size())
         # Check output size
-        self.assertListEqual(ys, [300 // 8, 5, 30])
+        self.assertEqual([300 // 8, 5, 30], list(y.size()))
         # Check number of parameters
         self.assertEqual(2421982, sum(p.numel() for p in m.parameters()))
         # Check gradient
         dx, = torch.autograd.grad([y.sum()], [x])
-        self.assertNotAlmostEqual(torch.sum(dx.data), 0.0)
+        self.assertNotAlmostEqual(0.0, torch.sum(dx).item())
 
     @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")
     def test_avgpool16(self):
@@ -80,30 +78,29 @@ class LaiaCRNNTest(unittest.TestCase):
             lin_dropout=0.5,
             rnn_type=torch.nn.LSTM,
         )
-        x = Variable(torch.randn((5, 3, 150, 300)), requires_grad=True)
+        x = torch.randn(5, 3, 150, 300, requires_grad=True)
         y = m(
             PaddedTensor(
                 data=x,
-                sizes=Variable(
-                    torch.LongTensor(
-                        [[128, 300], [150, 290], [70, 200], [122, 200], [16, 20]]
-                    )
+                sizes=torch.tensor(
+                    [[128, 300], [150, 290], [70, 200], [122, 200], [16, 20]]
                 ),
             )
         )
         y, ys = pad_packed_sequence(y)
         # Check output size
-        self.assertListEqual(ys, [300 // 8, 290 // 8, 200 // 8, 200 // 8, 20 // 8])
+        self.assertEqual(ys.tolist(), [300 // 8, 290 // 8, 200 // 8, 200 // 8, 20 // 8])
         # Check number of parameters
         self.assertEqual(2421982, sum(p.numel() for p in m.parameters()))
         # Check gradient
         dx, = torch.autograd.grad([y.sum()], [x])
-        self.assertNotAlmostEqual(torch.sum(dx.data), 0.0)
+        self.assertNotAlmostEqual(0.0, torch.sum(dx).item())
 
 
 def cost_function(y):
-    assert isinstance(y, (Variable, PackedSequence))
-    y = y if isinstance(y, Variable) else y.data
+    assert isinstance(y, (torch.Tensor, PackedSequence))
+    if isinstance(y, PackedSequence):
+        y = y.data
     return y.sum()
 
 
@@ -229,7 +226,6 @@ if nnutils_installed:
     ]
 
 generate_backprop_floating_point_tests(LaiaCRNNTest, tests=tests)
-
 
 if __name__ == "__main__":
     unittest.main()
