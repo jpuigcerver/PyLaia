@@ -93,17 +93,15 @@ setuptools.setup(
     # Requirements
     install_requires=[
         "editdistance",
-        "future",
-        'mock;python_version<"3.0"',
         "natsort",
         "numpy",
         "scipy",
         "tqdm",
         "torch==0.4.1",
         "torchvision",
-        'typing;python_version<"3.5"',
         "Pillow>=5.2",
     ],
+    python_requires=">=3.5",
     # Package contents
     packages=setuptools.find_packages(),
     scripts=get_scripts(),
