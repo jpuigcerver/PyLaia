@@ -8,14 +8,16 @@ import torch
 from torch.autograd import Variable
 
 from laia.data import PaddedTensor
+from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 
 try:
-    from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+    import nnutils_pytorch
+
+    nnutils_installed = True
 except ImportError:
-    TemporalPyramidMaxPool2d = None
+    nnutils_installed = False
 
 
-@unittest.skipIf(TemporalPyramidMaxPool2d is None, "nnutils does not seem installed")
 class TemporalPyramidMaxPool2dTest(unittest.TestCase):
     def _run_test_tensor(self, use_nnutils):
         x = Variable(torch.randn(3, 5, 7, 8), requires_grad=True)
@@ -75,12 +77,14 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         np.testing.assert_allclose(torch.Tensor([[20, 18, 20]]), y.data)
         np.testing.assert_allclose(expected_dx, dx.data)
 
+    @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")
     def test_tensor_nnutils_backend(self):
         self._run_test_tensor(use_nnutils=True)
 
     def test_tensor_pytorch_backend(self):
         self._run_test_tensor(use_nnutils=False)
 
+    @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")
     def test_padded_tensor_nnutils_backend(self):
         self._run_test_padded_tensor(use_nnutils=True)
 
