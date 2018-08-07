@@ -173,7 +173,7 @@ if __name__ == "__main__":
     # Set hooks
     trainer.add_hook(
         EPOCH_END,
-        HookCollection(
+        HookList(
             # Save on best CER
             Hook(Lowest(experiment.valid_cer()), Action(save, saver=saver_best_cer)),
             # Save on best WER
