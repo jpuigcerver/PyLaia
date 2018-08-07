@@ -24,6 +24,7 @@ learning_rate=0.0003;
 save_checkpoint_interval=10;
 num_rolling_checkpoints=3;
 show_progress_bar=true;
+lowercase=false;
 help_message="
 Usage: ${0##*/} [options] imgs_dir output_dir
 Options:
@@ -71,6 +72,8 @@ Options:
                         {none,maxpool,avgpool}-[0-9]+
   --learning_rate     : (type = float, default = $learning_rate)
                         Learning rate from RMSProp.
+  --lowercase         : (type = boolean, default = $lowercase)
+                        If true, train lowercase-only model.
 ";
 source ../utils/parse_options.inc.sh || exit 1;
 [ $# -eq 2 ] || { echo "$help_message" >&2 && exit 1; }
@@ -89,6 +92,27 @@ if [ $fixed_height = true ]; then
   extra_args+=("--fixed_input_height=128");
 fi;
 
+if [ "$lowercase" = true ]; then
+  syms_ctc=data/kws_line/lang/char/syms_ctc_lowercase.txt;
+  train_txt=data/kws_line/lang/char/tr_lowercase.txt;
+  valid_txt=data/kws_line/lang/char/va_lowercase.txt;
+else
+  syms_ctc=data/kws_line/lang/char/syms_ctc.txt;
+  train_txt=data/kws_line/lang/char/tr.txt;
+  valid_txt=data/kws_line/lang/char/va.txt;
+fi;
+
+# Check required files
+for f in "$syms_ctc" "$train_txt" "$valid_txt"; do
+  [ ! -s "$f" ] && echo "File \"$f\" does not exist!" >&2 && exit 1;
+done;
+
+[ -s "$2/experiment.ckpt-${max_epochs}" ] &&
+echo "File \"$2/experiment.ckpt-${max_epochs}\" exists, cancel training!" >&2 && exit 0;
+
+# Remove previous partial results
+rm -f "$2/train.log" "$2/experiment.ckpt"*;
+
 pylaia-htr-create-model \
   --cnn_num_features $cnn_num_features \
   --cnn_kernel_size $cnn_kernel_size \
@@ -106,7 +130,7 @@ pylaia-htr-create-model \
   --train_path "$2" \
   "${extra_args[@]}" \
   -- \
-  1 data/kws_line/lang/char/syms_ctc.txt \
+  1 "$syms_ctc" || exit 1;
 
 pylaia-htr-train-ctc \
   --gpu $gpu \
@@ -120,6 +144,4 @@ pylaia-htr-train-ctc \
   --logging_also_to_stderr INFO \
   --train_path "$2" \
   -- \
-  data/kws_line/lang/char/syms_ctc.txt \
-  "$1" \
-  data/kws_line/lang/char/{tr,va}.txt || exit 1;
+  "$syms_ctc" "$1" "$train_txt" "$valid_txt" || exit 1;
