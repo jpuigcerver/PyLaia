@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-import torch
 from nnutils_pytorch import mask_image_from_size
+import torch
 
 from laia.data import PaddedTensor
 
@@ -21,6 +21,6 @@ class MaskImageFromSize(torch.nn.Module):
                 mask_value=self.mask_value,
                 inplace=self.inplace,
             )
-            return PaddedTensor(y, xs)
+            return PaddedTensor(data=y, sizes=xs)
         else:
             return x

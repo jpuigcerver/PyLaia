@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-import warnings
-from typing import Union, Sequence
-
 import torch
+import warnings
+
+from torch.autograd import Variable
+from typing import Union, Sequence
 
 from laia.data import PaddedTensor
 
@@ -52,7 +53,7 @@ class TemporalPyramidMaxPool2d(torch.nn.Module):
         self._use_nnutils = use_nnutils
 
     def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> torch.Tensor
+        # type: (Union[Variable, PaddedTensor]) -> Variable
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
         else:
@@ -62,7 +63,11 @@ class TemporalPyramidMaxPool2d(torch.nn.Module):
 
         out_levels = []
         for level in self._levels:
-            output_sizes = (level, 1) if self._vertical else (1, level)
+            if self._vertical:
+                output_sizes = (level, 1)
+            else:
+                output_sizes = (1, level)
+
             y = _adaptive_maxpool_2d(
                 batch_input=x,
                 output_sizes=output_sizes,

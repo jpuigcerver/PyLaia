@@ -133,22 +133,21 @@ if __name__ == "__main__":
     )
     args = args()
 
-    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
-
     model = ModelLoader(
-        args.train_path, filename=args.model_filename, device=device
+        args.train_path, filename=args.model_filename, gpu=args.gpu
     ).load()
     if model is None:
         log.error("Could not find the model")
         exit(1)
 
-    state = CheckpointLoader(device=device).load_by(
+    state = CheckpointLoader(gpu=args.gpu).load_by(
         os.path.join(args.train_path, args.checkpoint)
     )
     model.load_state_dict(
         state if args.source == "model" else Experiment.get_model_state_dict(state)
     )
-    model = model.to(device)
+
+    model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
     model.eval()
 
     dataset = ImageFromListDataset(
@@ -157,7 +156,7 @@ if __name__ == "__main__":
     dataset_loader = ImageDataLoader(
         dataset=dataset, image_channels=1, batch_size=args.batch_size, num_workers=8
     )
-    batch_input_fn = ImageFeeder(device=device, parent_feeder=ItemFeeder("img"))
+    batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img"))
 
     output_fn = globals()["output_{}".format(args.output_format)]
 

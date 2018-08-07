@@ -1,6 +1,8 @@
 import unittest
 
+import numpy as np
 import torch
+from torch.autograd import Variable
 from torch.nn.functional import adaptive_avg_pool2d
 from torch.nn.functional import adaptive_max_pool2d
 
@@ -29,8 +31,7 @@ def _generate_test(sequencer, poolsize, columnwise, x, output_size):
         m = ImagePoolingSequencer(
             sequencer="{}-{}".format(sequencer, poolsize), columnwise=columnwise
         )
-        y = m(x)
-        self.assertEqual(output_size, list(y.size()))
+        self.assertListEqual(list(m(x).size()), output_size)
 
     return _test
 
@@ -40,51 +41,76 @@ def _generate_failing_test(sequencer, poolsize, columnwise, x):
         m = ImagePoolingSequencer(
             sequencer="{}-{}".format(sequencer, poolsize), columnwise=columnwise
         )
-        self.assertRaises(ValueError, lambda: m(x))
+
+        def wrap_call():
+            return m(x)
+
+        self.assertRaises(ValueError, wrap_call)
 
     return _test
 
 
-def _generate_gradcheck_test(sequencer, fn, poolsize, columnwise, x, xs):
+def _generate_gradcheck_test(
+    sequencer, ref_func, poolsize, columnwise, use_cuda, x, xs
+):
     def _test(self):
         m = ImagePoolingSequencer(
             sequencer="{}-{}".format(sequencer, poolsize), columnwise=columnwise
-        ).to(x.device)
-        x.requires_grad_()
-        y = m(PaddedTensor(x, xs))
-        dx1, = torch.autograd.grad(y.data.sum(), (x,))
+        )
+        xv = Variable(x, requires_grad=True)
+        if use_cuda:
+            m = m.cuda()
+            xv = xv.cuda()
+            xsv = Variable(torch.cuda.LongTensor(xs))
+        else:
+            m = m.cpu()
+            xv = xv.cpu()
+            xsv = Variable(torch.LongTensor(xs))
 
-        for i, (xk, xsk) in enumerate(zip(x, xs.tolist())):
-            xk = xk[:, : xsk[0], : xsk[1]].unsqueeze(0).to(x.device)
-            xk.requires_grad_()
-            yk = fn(
-                xk, output_size=(poolsize, xsk[1]) if columnwise else (xsk[0], poolsize)
-            )
+        yv = m(PaddedTensor(data=xv, sizes=xsv))
+        dx1, = torch.autograd.grad(yv.data.sum(), (xv,))
+
+        for i, (xk, xsk) in enumerate(zip(x, xs)):
+            xk = xk[:, : xsk[0], : xsk[1]].unsqueeze(0)
+            xk = Variable(xk.cuda() if use_cuda else xk.cpu(), requires_grad=True)
+            if columnwise:
+                yk = ref_func(xk, output_size=(poolsize, xsk[1]))
+            else:
+                yk = ref_func(xk, output_size=(xsk[0], poolsize))
             dxk, = torch.autograd.grad(yk.sum(), (xk,))
-            torch.testing.assert_allclose(dxk, (dx1[i, :, : xsk[0], : xsk[1]]))
+            np.testing.assert_almost_equal(
+                actual=dx1.data[i, :, : xsk[0], : xsk[1]].cpu().numpy(),
+                desired=dxk.data[0].cpu().numpy(),
+                err_msg="Failed {} with sample {}".format(sequencer, i),
+            )
 
     return _test
 
 
-devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
-dtypes = [torch.float, torch.double]
+devices = [("cpu", False)]
+if torch.cuda.is_available():
+    devices += [("gpu", True)]
+
+tensor_types = [("f32", "torch.FloatTensor"), ("f64", "torch.DoubleTensor")]
+
 if nnutils_installed:
-    for sequencer, fn in (
+    for sequencer, ref_func in [
         ("avgpool", adaptive_avg_pool2d),
         ("maxpool", adaptive_max_pool2d),
-    ):
-        for dtype in dtypes:
-            for device in devices:
+    ]:
+        for type_name, tensor_type in tensor_types:
+            for device_name, use_cuda in devices:
                 setattr(
                     ImagePoolingSequencerTest,
-                    "test_grad_{}_{}_{}".format(sequencer, str(dtype)[6:], device),
+                    "test_grad_{}_{}_{}".format(sequencer, type_name, device_name),
                     _generate_gradcheck_test(
                         sequencer=sequencer,
-                        fn=fn,
+                        ref_func=ref_func,
                         poolsize=10,
                         columnwise=True,
-                        x=torch.randn(3, 4, 17, 19, dtype=dtype, device=device),
-                        xs=torch.tensor([[17, 19], [11, 13], [13, 11]], device=device),
+                        use_cuda=use_cuda,
+                        x=torch.randn(3, 4, 17, 19).type(tensor_type),
+                        xs=[[17, 19], [11, 13], [13, 11]],
                     ),
                 )
 
@@ -112,7 +138,7 @@ for sequencer in ["none", "maxpool", "avgpool"] if nnutils_installed else ["none
         ),
     )
 
-for columnwise in True, False:
+for columnwise in [True, False]:
     setattr(
         ImagePoolingSequencerTest,
         "test_tensor_bad_input_{}".format("col" if columnwise else "row"),

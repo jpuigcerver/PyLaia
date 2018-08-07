@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import torch
-from torch.nn.functional import adaptive_avg_pool2d
-from torch.nn.utils.rnn import pack_padded_sequence
 
 from laia.data.padding_collater import PaddedTensor
 from laia.nn.image_to_sequence import image_to_sequence
+from torch.nn.utils.rnn import pack_padded_sequence
+from torch.nn.functional import adaptive_avg_pool2d
 
 
 class DummyModel(torch.nn.Module):
@@ -28,7 +28,7 @@ class DummyModel(torch.nn.Module):
         self._horizontal = horizontal
         self._adaptive_size = adaptive_size
         self._linear = torch.nn.Linear(
-            adaptive_size[0 if horizontal else 1], num_output_labels
+            adaptive_size[0] if horizontal else adaptive_size[1], num_output_labels
         )
 
     def forward(self, x):
@@ -38,7 +38,10 @@ class DummyModel(torch.nn.Module):
         x = adaptive_avg_pool2d(x, output_size=self._adaptive_size)
         x = image_to_sequence(x, columnwise=self._horizontal)
         x = self._linear(x)
-        xs = torch.tensor(batch_size, dtype=torch.int).fill_(
-            self._adaptive_size[1 if self._horizontal else 0]
-        )
-        return pack_padded_sequence(input=x, lengths=xs.tolist(), batch_first=False)
+
+        if self._horizontal:
+            xs = torch.IntTensor(batch_size).fill_(self._adaptive_size[1])
+            return pack_padded_sequence(input=x, lengths=xs.tolist(), batch_first=False)
+        else:
+            xs = torch.IntTensor(batch_size).fill_(self._adaptive_size[0])
+            return pack_padded_sequence(input=x, lengths=xs.tolist(), batch_first=False)
