@@ -9,8 +9,8 @@ from PIL import Image
 
 
 def image_collage(x, xs=None, scale=1.0, ncol=1, draw_boundary=False):
-    assert torch.is_tensor(x)
-    assert xs is None or torch.is_tensor(xs)
+    assert isinstance(x, torch.Tensor)
+    assert xs is None or isinstance(xs, torch.Tensor)
     x = x.cpu()
     if xs is not None:
         xs = xs.cpu()

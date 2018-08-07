@@ -35,7 +35,7 @@ def git_branch():
 
 
 def git_is_dirty():
-    """Returns wether the repository contains local changes or not"""
+    """Returns whether the repository contains local changes or not"""
     return bool(_git_output(["git", "status", "--short"]))
 
 
@@ -92,14 +92,13 @@ setuptools.setup(
     url="https://github.com/jpuigcerver/PyLaia",
     # Requirements
     install_requires=[
-        "cffi>=1.0",
         "editdistance",
         "future",
         'mock;python_version<"3.0"',
         "numpy",
         "scipy",
         "tqdm",
-        "torch==0.3.1",
+        "torch==0.4.1",
         'typing;python_version<"3.5"',
         "Pillow",
     ],

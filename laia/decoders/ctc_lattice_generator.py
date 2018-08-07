@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import torch
-from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
+import pywrapfst as fst
 from torch.nn.functional import log_softmax
 
-import pywrapfst as fst
+from laia.losses.ctc_loss import transform_output
 
 
 class CTCLatticeGenerator(object):
@@ -12,23 +11,11 @@ class CTCLatticeGenerator(object):
         self._normalize = normalize
 
     def __call__(self, x):
-        # Shape x: T x N x D
-        if isinstance(x, PackedSequence):
-            x, xs = pad_packed_sequence(x)
-        elif torch.is_tensor(x):
-            xs = [x.size()[0]] * x.size()[1]
-        else:
-            raise NotImplementedError("Not implemented for type {}".format(type(x)))
-
+        x, xs = transform_output(x)
         # Normalize log-posterior matrices, if necessary
         if self._normalize:
-            if not isinstance(x, torch.autograd.Variable):
-                x = torch.autograd.Variable(x, requires_grad=False)
             x = log_softmax(x, dim=2)
-
-        x = x.permute(1, 0, 2)
-        x = x.cpu()
-
+        x = x.permute(1, 0, 2).cpu()
         self._output = []
         D = x.size(2)
         for logpost, length in zip(x, xs):

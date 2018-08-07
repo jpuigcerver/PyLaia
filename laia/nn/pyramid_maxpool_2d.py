@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import torch
-from torch.autograd import Variable
 from typing import Sequence, Union
+
+import torch
 
 from laia.data import PaddedTensor
 from laia.nn.temporal_pyramid_maxpool_2d import _adaptive_maxpool_2d
@@ -16,7 +16,7 @@ class PyramidMaxPool2d(torch.nn.Module):
         self._use_nnutils = use_nnutils
 
     def forward(self, x):
-        # type: (Union[Variable, PaddedTensor]) -> Variable
+        # type: (Union[torch.Tensor, PaddedTensor]) -> torch.Tensor
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
         else:

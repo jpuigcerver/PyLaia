@@ -3,17 +3,14 @@ from __future__ import absolute_import
 import os
 from glob import glob
 from importlib import import_module
-from typing import Optional, Callable, Any
+from io import BytesIO
+from typing import Optional, Callable, Any, Union
 
 import torch
+from torch._six import FileNotFoundError
 
 from laia.common.logging import get_logger
 from laia.common.random import set_rng_state
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 _logger = get_logger(__name__)
 
@@ -27,26 +24,33 @@ class Loader(object):
 
 
 class BasicLoader(Loader):
-    def load(self, filepath, gpu=None):
-        # type: (str, Optional[int]) -> Optional
-        device = "cuda:{}".format(gpu - 1) if gpu else "cpu"
+    def load(
+        self,
+        f,  # type: Union[str, BytesIO]
+        device=None,  # type: Optional[Union[str, torch.Device]]
+    ):
+        # type: (...) -> Any
         try:
-            return torch.load(filepath, map_location=device)
+            return torch.load(f, map_location=device)
         except FileNotFoundError:
-            _logger.info("Could not find the file {}", filepath)
+            _logger.info("Could not find the file {}", f)
         return None
 
 
 class ObjectLoader(Loader):
-    def __init__(self, filepath, gpu=None):
-        # type: (str, Optional[int]) -> None
-        self._filepath = filepath
-        self._gpu = gpu
+    def __init__(
+        self,
+        f,  # type: Union[str, BytesIO]
+        device=None,  # type: Optional[Union[str, torch.Device]]
+    ):
+        # type: (...) -> None
+        self._f = f
+        self._device = device
         self._loader = BasicLoader()
 
     def load(self):
         # type: () -> Optional
-        obj = self._loader.load(self._filepath, gpu=self._gpu)
+        obj = self._loader.load(self._f, device=self._device)
         if obj is None:
             return None
         module = import_module(obj["module"])
@@ -57,10 +61,10 @@ class ObjectLoader(Loader):
 
 
 class ModelLoader(ObjectLoader):
-    def __init__(self, load_path, filename="model", gpu=None):
-        # type: (str, str, Optional[int]) -> None
+    def __init__(self, load_path, filename="model", device=None):
+        # type: (str, str, Optional[Union[str, torch.Device]]) -> None
         self._path = os.path.join(load_path, filename)
-        super(ModelLoader, self).__init__(self._path, gpu=gpu)
+        super(ModelLoader, self).__init__(self._path, device=device)
 
     def load(self):
         # type: () -> Optional
@@ -71,14 +75,14 @@ class ModelLoader(ObjectLoader):
 
 
 class CheckpointLoader(Loader):
-    def __init__(self, gpu=None):
-        # type: (int) -> None
-        self._gpu = gpu
+    def __init__(self, device=None):
+        # type: (Optional[Union[str, torch.Device]]) -> None
+        self._device = device
         self._loader = BasicLoader()
 
     def load(self, filepath):
         # type: (str) -> Optional
-        state = self._loader.load(filepath, gpu=self._gpu)
+        state = self._loader.load(filepath, device=self._device)
         if state is not None:
             _logger.info("Loaded checkpoint {}", filepath)
         return state
@@ -93,9 +97,9 @@ class CheckpointLoader(Loader):
 
 
 class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(self, model, gpu=None):
-        # type: (torch.nn.Module, int) -> None
-        super(ModelCheckpointLoader, self).__init__(gpu=gpu)
+    def __init__(self, model, device=None):
+        # type: (torch.nn.Module, Optional[Union[str, torch.Device]]) -> None
+        super(ModelCheckpointLoader, self).__init__(device=device)
         self._model = model
 
     def load(self, filepath):
@@ -114,16 +118,16 @@ class ModelCheckpointLoader(CheckpointLoader):
 
 
 class StateCheckpointLoader(CheckpointLoader):
-    def __init__(self, obj, gpu=None):
-        # type: (Any, int) -> None
-        super(StateCheckpointLoader, self).__init__(gpu=gpu)
+    def __init__(self, obj, device=None):
+        # type: (Any, Optional[Union[str, torch.Device]]) -> None
+        super(StateCheckpointLoader, self).__init__(device=device)
         self._obj = obj
 
     def load(self, filepath):
         # type: (str) -> Optional
         state = super(StateCheckpointLoader, self).load(filepath)
         if state is not None:
-            set_rng_state(state.pop("rng"), self._gpu)
+            set_rng_state(state.pop("rng"), self._device)
             self._obj.load_state_dict(state)
 
     def load_by(self, pattern, key=None, reverse=True):

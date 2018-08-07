@@ -31,7 +31,7 @@ class SymbolsTableTest(unittest.TestCase):
         st.add("a", 0)
         with self.assertRaises(
             KeyError,
-            msg=('Symbol "a" was already present in the table (assigned to value "0")'),
+            msg='Symbol "a" was already present in the table (assigned to value "0")',
         ):
             st.add("a", 1)
 
@@ -40,7 +40,7 @@ class SymbolsTableTest(unittest.TestCase):
         st.add("a", 0)
         with self.assertRaises(
             KeyError,
-            msg=('Value "0" was already present in the table (assigned to symbol "a")'),
+            msg='Value "0" was already present in the table (assigned to symbol "a")',
         ):
             st.add("b", 0)
 
@@ -77,7 +77,7 @@ class SymbolsTableTest(unittest.TestCase):
     def test_load_value_error(self):
         table_file = StringIO(u"\n\na   1\nb     c\n")
         with self.assertRaises(ValueError):
-            st = SymbolsTable(table_file)
+            SymbolsTable(table_file)
 
     def test_save(self):
         st = SymbolsTable()

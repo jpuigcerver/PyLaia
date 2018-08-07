@@ -22,17 +22,15 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         input sequence.
     """
     # Convert PyTorch tensors to Numpy arrays
-    if torch.is_tensor(logpost_matrix):
-        logpost_matrix = logpost_matrix.cpu().numpy()
-
-    if torch.is_tensor(seq):
-        seq = seq.cpu().numpy()
-
+    if isinstance(logpost_matrix, torch.Tensor):
+        logpost_matrix = logpost_matrix.numpy()
+    if isinstance(seq, torch.Tensor):
+        seq = seq.numpy()
     assert isinstance(logpost_matrix, np.ndarray)
     assert logpost_matrix.ndim == 2
+
     NT, NS = logpost_matrix.shape
     L = len(seq)
-
     # Add CTC symbols to the reference to form a canonical sequence:
     # <ctc> s_1 <ctc> s_2 <ctc> ... <ctc> s_n <ctc>
     # len(canonical) = 2 * len(reference) + 1
@@ -50,7 +48,7 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         )
 
     best_logp = np.ndarray((NT, len(canonical)))
-    best_logp.fill(-np.inf)
+    best_logp.fill(np.NINF)
     best_alig = np.zeros((NT, len(canonical)), dtype=np.int64)
 
     # t = 0
