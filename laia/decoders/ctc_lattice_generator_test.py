@@ -109,19 +109,19 @@ class CTCLatticeGeneratorTest(unittest.TestCase):
             f2.set_final(s, nw)
         return f2
 
-    def tensor_test(self):
+    def test_tensor(self):
         latgen = CTCLatticeGenerator()
         lats = latgen(self._x)
         self.assertTrue(fst.equivalent(lats[0], self._fst1()))
         self.assertTrue(fst.equivalent(lats[1], self._fst2()))
 
-    def tensor_normalize_test(self):
+    def test_tensor_normalize(self):
         latgen = CTCLatticeGenerator(normalize=True)
         lats = latgen(self._x)
         self.assertTrue(fst.equivalent(lats[0], self.normalize_fst(self._fst1())))
         self.assertTrue(fst.equivalent(lats[1], self.normalize_fst(self._fst2())))
 
-    def packed_tensor_normalize_test(self):
+    def test_packed_tensor_normalize(self):
         latgen = CTCLatticeGenerator(normalize=True)
         lats = latgen(self._packed_x)
         self.assertTrue(
