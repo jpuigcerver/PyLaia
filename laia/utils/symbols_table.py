@@ -60,11 +60,11 @@ class SymbolsTable(object):
     def add(self, symbol, value):
         if not isinstance(symbol, string_classes):
             raise KeyError(
-                "Symbol must be a string, but type {} was given".format(type(symbol))
+                "Symbol must be a string, " "but type {} was given".format(type(symbol))
             )
         if not isinstance(value, int):
             raise KeyError(
-                "Value must be an integer, but type {} was given".format(type(value))
+                "Value must be an integer, " "but type {} was given".format(type(value))
             )
 
         old_val = self._sym2val.get(symbol, None)

@@ -94,16 +94,16 @@ class ModelCheckpointSaver(Saver):
 
 
 class StateCheckpointSaver(Saver):
-    def __init__(self, ckpt_saver, obj, device=None):
-        # type: (CheckpointSaver, Any, Optional[torch.Device]) -> None
+    def __init__(self, ckpt_saver, obj, gpu=None):
+        # type: (CheckpointSaver, Any, Optional[int]) -> None
         self._ckpt_saver = ckpt_saver
         self._obj = obj
-        self._device = device
+        self._gpu = gpu
 
     def save(self, suffix=None):
         # type: (Optional[str]) -> str
         state = self._obj.state_dict()
-        state["rng"] = get_rng_state(device=self._device)
+        state["rng"] = get_rng_state(gpu=self._gpu)
         return self._ckpt_saver.save(state, suffix=suffix)
 
 
