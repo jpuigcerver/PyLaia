@@ -1,40 +1,28 @@
 from __future__ import absolute_import
 
-import os
 import resource
-import subprocess
-import sys
 
 import torch
+import torch.cuda as cuda
 
 from laia.meters import Meter
 
 
 class MemoryMeter(Meter):
-    def __init__(self, exceptions_threshold=5):
-        # type: (int) -> None
+    def __init__(self, device=None, exceptions_threshold=5):
+        # type: (torch.device, int) -> None
         super(MemoryMeter, self).__init__(exceptions_threshold)
+        self._device = device
 
-    def get_gpu_memory(self):
+    def get_cuda_memory(self):
         # type: () -> str
-
-        result = subprocess.check_output(
-            [
-                "nvidia-smi",
-                "--query-compute-apps=pid,used_memory",
-                "--format=csv,noheader",
-            ]
-        )
-        if sys.stdout.encoding:
-            result = result.decode(sys.stdout.encoding)
-        result = str(result.strip())
-        try:
-            for out in result.split("\n"):
-                pid, mem = out.split(", ")
-                if int(pid) == os.getpid():
-                    return mem
-        except:
-            return "??? MiB"
+        # Convert from B to MiB
+        if cuda.is_available():
+            cuda.empty_cache()
+            return "{:.0f} MiB".format(
+                cuda.max_memory_cached(device=self._device) // 1024 ** 2
+            )
+        return "??? MiB"
 
     def get_cpu_memory(self):
         # type: () -> str
@@ -46,9 +34,8 @@ class MemoryMeter(Meter):
     @property
     def value(self):
         # type: () -> str
-        # TODO: GPU or CPU should be a parameter
-        return (
-            self.get_gpu_memory()
-            if torch.cuda.is_available()
-            else self.get_cpu_memory()
-        )
+        if self._device is None:
+            name = "get_cuda_memory" if cuda.is_available() else "get_cpu_memory"
+        else:
+            name = "get_{}_memory".format(self._device.type)
+        return getattr(self, name)()
