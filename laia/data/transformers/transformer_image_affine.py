@@ -7,19 +7,23 @@ import math
 import numpy as np
 from PIL import Image
 from laia.data.transformers.transformer import Transformer
+from typing import Union, Tuple
 
 
 class TransformerImageAffine(Transformer):
+    """Apply a random affine transform on a PIL image."""
+
     def __init__(
         self,
         scale_prob=0.5,  # type: float
-        scale_prec=70,  # type: float
+        scale_prec=120,  # type: float
         shear_prob=0.5,  # type: float
         shear_prec=4,  # type: float
         rotate_prob=0.5,  # type: float
-        rotate_prec=100,  # type: float
+        rotate_prec=120,  # type: float
         translate_prob=0.5,  # type: float
-        translate_prec=50,  # type: float
+        translate_prec=2500,  # type: float
+        fillcolor=None,  # type: Union[None, int, Tuple[int, int, int]]
     ):
         # type: (...) -> None
         super(TransformerImageAffine, self).__init__()
@@ -43,6 +47,8 @@ class TransformerImageAffine(Transformer):
         self.translate_prob = translate_prob
         self.translate_prec = translate_prec
 
+        self.fillcolor = fillcolor
+
     def _sample_matrix(self, x):
         w, h = x.size
         cx, cy = 0.5 * w, 0.5 * h
@@ -52,7 +58,7 @@ class TransformerImageAffine(Transformer):
         if np.random.random() < self.translate_prob:
             dx, dy = np.random.randn(2) / math.sqrt(self.translate_prec)
             affine_mat = np.asarray(
-                ((1, 0, dx), (0, 1, dy), (0, 0, 1)), dtype=np.float32
+                ((1, 0, dx * w), (0, 1, dy * h), (0, 0, 1)), dtype=np.float32
             )
 
         # Sample rotation matrix
@@ -74,7 +80,7 @@ class TransformerImageAffine(Transformer):
 
         # Sample horizontal shear matrix
         if np.random.random() < self.shear_prob:
-            m = 1.0 / math.tan(np.random.vonmises(0, self.shear_prec))
+            m = np.random.vonmises(0, self.shear_prec)
             shear_mat = np.asarray(
                 ((1, m, -m * cy), (0, 1, 0), (0, 0, 1)), dtype=np.float32
             )
@@ -84,7 +90,7 @@ class TransformerImageAffine(Transformer):
 
         # Sample scale matrix
         if np.random.random() < self.scale_prob:
-            s = math.exp(np.random.lognormal(0, 1.0 / math.sqrt(self.scale_prec)))
+            s = np.random.lognormal(0, 1.0 / math.sqrt(self.scale_prec))
             scale_mat = np.asarray(
                 ((s, 0, cx - s * cx), (0, s, cy - s * cy), (0, 0, 1)), dtype=np.float32
             )
@@ -106,6 +112,7 @@ class TransformerImageAffine(Transformer):
                 method=Image.AFFINE,
                 data=(a, b, c, d, e, f),
                 resample=Image.BILINEAR,
+                fillcolor=self.fillcolor,
             )
 
 
@@ -118,4 +125,16 @@ if __name__ == "__main__":
 
     transformer = TransformerImageAffine()
     for f in args.image:
-        print(f)
+        x = Image.open(f, "r").convert("L")
+        y = transformer(x)
+
+        w, h = x.size
+        z = Image.new("L", (w, 2 * h))
+        z.paste(x, (0, 0))
+        z.paste(y, (0, h))
+        z = z.resize(size=(w // 2, h), resample=Image.BICUBIC)
+        z.show()
+        try:
+            raw_input()
+        except NameError:
+            input()
