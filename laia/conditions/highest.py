@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from typing import Callable, Any
 
-from torch._six import inf
+import numpy as np
 
 import laia.common.logging as log
 from laia.conditions.condition import LoggingCondition
@@ -16,7 +16,7 @@ class Highest(LoggingCondition):
     def __init__(self, obj, key=None, name=None):
         # type: (Callable, Any, str) -> None
         super(Highest, self).__init__(obj, key, _logger, name)
-        self._highest = -inf
+        self._highest = np.NINF
 
     def __call__(self):
         value = self._process_value()

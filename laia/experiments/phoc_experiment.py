@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from typing import Optional, Callable, Sequence
+from typing import Optional, Callable
 
 import torch
 from torch.nn.functional import sigmoid
@@ -8,7 +8,7 @@ from torch.nn.functional import sigmoid
 import laia.common.logging as log
 from laia.engine import Evaluator, Trainer
 from laia.engine.engine import ITER_END, EPOCH_END
-from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, TensorFeeder
+from laia.engine.feeders import ImageFeeder, ItemFeeder, PHOCFeeder, VariableFeeder
 from laia.experiments import Experiment
 from laia.hooks import action
 from laia.meters import PairwiseAveragePrecisionMeter, Meter
@@ -66,7 +66,7 @@ class PHOCExperiment(Experiment):
             )
         if not self._tr_engine.batch_target_fn:
             self._tr_engine.set_batch_target_fn(
-                TensorFeeder(
+                VariableFeeder(
                     device=gpu,
                     parent_feeder=PHOCFeeder(
                         syms=symbols_table,
@@ -118,7 +118,9 @@ class PHOCExperiment(Experiment):
         self._va_loss.add(batch_loss)
 
         batch_output_phoc = sigmoid(batch_output.data)
-        self._va_ap.add(batch_output_phoc.numpy(), ["".join(w) for w in batch["txt"]])
+        self._va_ap.add(
+            batch_output_phoc.cpu().numpy(), ["".join(w) for w in batch["txt"]]
+        )
         self._va_timer.stop()
 
     def epoch_summary(self, summary_order=None):

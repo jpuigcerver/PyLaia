@@ -182,7 +182,7 @@ class ImageDistorter(Distorter):
         else:
             if y.is_cuda:
                 xs = xs.cuda(y.get_device())
-            return PaddedTensor(y, xs)
+            return PaddedTensor(data=y, sizes=xs)
 
     def __sample_affine_matrix(self, w, h, cx=None, cy=None):
         if cx is None:
@@ -327,7 +327,7 @@ if __name__ == "__main__":
 
     # Distort batch
     distorter = ImageDistorter(erode_prob=1.0)
-    batch2 = distorter(PaddedTensor(batch, batch_size)).data
+    batch2 = distorter(PaddedTensor(data=batch, sizes=batch_size)).data
 
     image_collage(
         batch,
