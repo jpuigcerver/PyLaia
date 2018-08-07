@@ -10,7 +10,7 @@ from laia.decoders.ctc_alignment import ctc_alignment
 class CTCAlignmentTest(unittest.TestCase):
     def setUp(self):
         self._logp_matrix = np.log(
-            np.array(
+            np.asarray(
                 [[0.3, 0.5, 0.2], [0.4, 0.5, 0.1], [0.5, 0.1, 0.4], [0.1, 0.7, 0.2]]
             )
         )

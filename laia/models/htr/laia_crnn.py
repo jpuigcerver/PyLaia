@@ -1,10 +1,10 @@
 from itertools import count
-from typing import Sequence, Tuple, Union
 
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence
+from typing import Sequence, Tuple, Union
 
 from laia.data import PaddedTensor
 from laia.models.htr.conv_block import ConvBlock
@@ -89,27 +89,29 @@ class LaiaCRNN(nn.Module):
 
     def dropout(self, x, p):
         if 0.0 < p < 1.0:
-            cls = None
             if isinstance(x, PaddedTensor):
-                cls = PaddedTensor
-                x, xs = x.data, x.sizes
+                return PaddedTensor(
+                    data=F.dropout(x.data, p=p, training=self.training), sizes=x.sizes
+                )
             elif isinstance(x, PackedSequence):
-                cls = PackedSequence
-                x, xs = x.data, x.batch_sizes
-            d = F.dropout(x, p=p, training=self.training)
-            return cls(d, xs) if cls is not None else d
+                return PackedSequence(
+                    data=F.dropout(x.data, p=p, training=self.training),
+                    batch_sizes=x.batch_sizes,
+                )
+            else:
+                return F.dropout(x, p=p, training=self.training)
         else:
             return x
 
     def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> Union[torch.Tensor, PackedSequence]
+        # type: (Union[Variable, PaddedTensor]) -> Union[Variable, PackedSequence]
         x = self.conv(x)
         x = self.sequencer(x)
         x = self.dropout(x, p=self._rnn_dropout)
         x, _ = self.rnn(x)
         x = self.dropout(x, p=self._lin_dropout)
         return (
-            PackedSequence(self.linear(x.data), x.batch_sizes)
+            PackedSequence(data=self.linear(x.data), batch_sizes=x.batch_sizes)
             if isinstance(x, PackedSequence)
             else self.linear(x)
         )

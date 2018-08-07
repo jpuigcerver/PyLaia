@@ -1,0 +1,72 @@
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        git \
+        curl \
+        vim \
+        ca-certificates \
+        libjpeg-dev \
+        libpng-dev
+
+RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+     chmod +x ~/miniconda.sh && \
+     ~/miniconda.sh -b -p /opt/conda && \
+     rm ~/miniconda.sh && \
+     /opt/conda/bin/conda install -y numpy pyyaml scipy ipython mkl mkl-include
+ENV PATH /opt/conda/bin:$PATH
+
+# Everything before this point comes from
+# github.com/pytorch/pytorch/blob/master/Dockerfile
+
+# Usage:
+# $ docker build -t pylaia  -f docker/Dockerfile.cpu . --build-arg USR=<usr> --build-arg PW=<pw>
+
+LABEL maintainer "Joan Puigcerver <joapuipe@gmail.com>"
+
+# We aren't building from Pytorch's Dockerfile because
+# v0.3.1 Dockerfile doesn't seem to work and we
+# don't support 0.4 yet.
+# TODO: Use PyTorch's Dockerfile once we upgrade
+RUN conda install -y pytorch=0.3.1 torchvision -c pytorch
+
+# Set encoding so that python doesn't fail to encode characters
+# like \u22f1 (⋱) used in Tensor's string representation
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# TODO: Remove credentials once PyLaia goes public
+ARG USR
+ARG PW
+# Install PyLaia
+RUN git clone https://"$USR":"$PW"@github.com/jpuigcerver/PyLaia && \
+    cd PyLaia && \
+    git submodule update --init --recursive && \
+    pip install -v .
+
+# Install third party libraries
+WORKDIR /PyLaia/third_party/imgdistort/build
+RUN cmake -DPYTORCH_SETUP_PREFIX=/opt/conda .. && \
+    make && make install
+
+WORKDIR /PyLaia/third_party/nnutils/pytorch
+RUN python setup.py build && python setup.py install
+
+WORKDIR /PyLaia/third_party/warp-ctc/build
+RUN cmake .. && make && \
+    cd ../pytorch_binding && \
+    python setup.py build && \
+    python setup.py install
+
+# Run PyLaia's tests
+WORKDIR /PyLaia
+RUN ./travis/run_tests.sh
+
+# Cleanup
+WORKDIR /
+RUN apt-get clean && \
+    conda clean -ya && \
+    rm -rf /tmp/* && \
+    rm -rf /var/lib/apt/lists/*

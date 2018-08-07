@@ -4,10 +4,9 @@ import itertools
 from typing import List, Union, Sequence
 
 import torch
-from torch.autograd import Function
-from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
-
+from torch.autograd import Variable, Function
 import laia.common.logging as log
+from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 from laia.losses.loss import Loss
 
 try:
@@ -27,7 +26,7 @@ def transform_output(output):
     # Size: T x N x D
     if isinstance(output, PackedSequence):
         acts, act_lens = pad_packed_sequence(output)
-    elif isinstance(output, torch.Tensor):
+    elif torch.is_tensor(output) or isinstance(output, Variable):
         acts, act_lens = output, [output.size(0)] * output.size(1)
     else:
         raise NotImplementedError("Not implemented for type {}".format(type(output)))
@@ -35,7 +34,7 @@ def transform_output(output):
 
 
 def copy_valid_indices(
-    acts,  # type: torch.Tensor
+    acts,  # type: Union[torch.Tensor, Variable]
     target,  # type: List[List[int]]
     act_lens,  # type: List[int]
     valid_indices,  # type: List[int]
@@ -44,10 +43,11 @@ def copy_valid_indices(
     """Copy the CTC inputs without the erroneous samples"""
     if len(valid_indices) == 0:
         return None, [], [], []
-    valid_indices = torch.tensor(valid_indices, device=acts.device)
+    valid_indices = torch.LongTensor(valid_indices)
+    aux = acts.new(*valid_indices.shape).long().copy_(valid_indices)
     return (
         # Note: The batch size must be in the second dimension
-        torch.index_select(acts, 1, valid_indices),
+        torch.index_select(acts, 1, aux),
         [target[i] for i in valid_indices],
         [act_lens[i] for i in valid_indices],
     )
@@ -56,9 +56,15 @@ def copy_valid_indices(
 def set_zeros_in_errors(size, input, valid_indices):
     # type: (Sequence[int], torch.Tensor, Sequence[int]) -> torch.Tensor
     """Copy the tensor with zeros in the erroneous indices"""
-    valid_indices = torch.tensor(valid_indices, device=input.device)
+    if not isinstance(size, (list, tuple)):
+        size = list(size)
+    valid_indices = (
+        torch.cuda.LongTensor(valid_indices)
+        if input.is_cuda
+        else torch.LongTensor(valid_indices)
+    )
     # Note: The batch size must be in the second dimension
-    return input.new_zeros(size).index_copy_(1, valid_indices, input)
+    return input.new(*size).zero_().index_copy_(1, valid_indices, input)
 
 
 def get_valids_and_errors(act_lens, labels):
@@ -125,7 +131,9 @@ class CTCPrepare(Function):
     def backward(ctx, grad_output, *_):
         valid_indices, original_size = ctx.saved
         return (
-            set_zeros_in_errors(original_size, grad_output, valid_indices)
+            Variable(
+                set_zeros_in_errors(original_size, grad_output.data, valid_indices)
+            )
             if valid_indices
             else grad_output,
             None,
@@ -167,7 +175,7 @@ class CTCLoss(Loss):
 
         valid_indices, err_indices = get_valids_and_errors(act_lens, target)
         if err_indices:
-            if kwargs.get("batch_ids", None) is not None:
+            if "batch_ids" in kwargs and kwargs["batch_ids"] is not None:
                 assert isinstance(kwargs["batch_ids"], (list, tuple))
                 err_indices = [kwargs["batch_ids"][i] for i in err_indices]
             _logger.warning(

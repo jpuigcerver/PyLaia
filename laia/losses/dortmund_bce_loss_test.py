@@ -1,32 +1,38 @@
 from __future__ import absolute_import
 
+import numpy as np
+import torch
 import unittest
 
-import torch
-from torch.nn import BCEWithLogitsLoss
-
 from laia.losses.dortmund_bce_loss import DortmundBCELoss
+from torch.autograd import Variable
+from torch.nn import BCEWithLogitsLoss
 
 
 class DortmundBCELossTest(unittest.TestCase):
     def test(self):
-        x1 = torch.empty(5, 10).normal_().requires_grad_()
-        x2 = x1.detach().requires_grad_()
+        x1 = Variable(torch.Tensor(5, 10).normal_(), requires_grad=True)
+        x2 = Variable(x1.data.clone(), requires_grad=True)
 
-        y = torch.empty(5, 10).normal_()
+        y = torch.Tensor(5, 10).normal_()
         y[y >= 0] = 1
         y[y < 0] = 0
+        y = Variable(y)
 
         mref = BCEWithLogitsLoss(size_average=False)
-        loss_ref = mref(x1, y)
-        loss_ref.backward()
+        loss = mref(x1, y)
+        loss.backward()
+        loss_ref = loss.data[0]
+        grad_ref = x1.grad.data.cpu().numpy()
 
         mdor = DortmundBCELoss()
-        loss_dor = mdor(x2, y)
-        loss_dor.backward()
+        loss = mdor(x2, y)
+        loss.backward()
+        loss_dor = loss.data[0]
+        grad_dor = x2.grad.data.cpu().numpy()
 
-        torch.testing.assert_allclose(loss_ref / 5, loss_dor)
-        torch.testing.assert_allclose(x1.grad / 5, x2.grad)
+        np.testing.assert_almost_equal(loss_dor, loss_ref / 5, decimal=6)
+        np.testing.assert_almost_equal(grad_dor, grad_ref / 5, decimal=6)
 
 
 if __name__ == "__main__":

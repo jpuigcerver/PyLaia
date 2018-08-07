@@ -4,9 +4,10 @@ import math
 import operator
 from collections import OrderedDict
 from functools import reduce
-from typing import Union, Sequence, Optional
 
 import torch
+from torch.autograd import Variable
+from typing import Union, Sequence, Optional
 
 from laia.data import PaddedTensor
 from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
@@ -73,7 +74,7 @@ def build_conv_model(unittest=False):
 
 
 def size_after_conv(xs):
-    # type: (torch.Tensor) -> torch.Tensor
+    # type: (Union[torch.Tensor, Variable]) -> object
     xs = xs.float()
     xs = torch.ceil(xs / 2.0)
     xs = torch.ceil(xs / 2.0)
@@ -120,17 +121,17 @@ class DortmundPHOCNet(torch.nn.Module):
                 param.data.fill_(0)
             else:
                 # compute fan in
-                fan_in = reduce(operator.mul, param.size()[1:])
+                fan_in = reduce(operator.mul, param.data.size()[1:])
                 param.data.normal_(mean=0, std=math.sqrt(2.0 / fan_in))
         return self
 
     def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> torch.Tensor
+        # type: (Union[Variable, PaddedTensor]) -> Variable
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         x = self.conv(x)
         if xs is not None:
             xs = size_after_conv(xs)
-            x = PaddedTensor(x, xs)
+            x = PaddedTensor(data=x, sizes=xs)
         if self.tpp and self.spp:
             x = torch.cat((self.tpp(x), self.spp(x)), dim=1)
         else:

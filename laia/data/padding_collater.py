@@ -7,7 +7,7 @@ import re
 from functools import reduce
 
 import torch
-from torch._six import string_classes, int_classes, inf
+from torch._six import string_classes, int_classes
 from torch.utils.data.dataloader import numpy_type_map
 
 PaddedTensor = collections.namedtuple("PaddedTensor", ["data", "sizes"])
@@ -24,7 +24,7 @@ def _get_max_size_and_check_batch_tensor(batch, expected_shape):
                 m[1] if m[1] <= x.size()[d] else x.size()[d],
             ),
             batch,
-            (0, inf),
+            (0, float("inf")),
         )
         if expected_shape is None or expected_shape[d] is None:
             max_sizes.append(maxv)
@@ -51,7 +51,7 @@ class PaddingCollater(object):
     def _collate(self, batch, padded_shapes):
         error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
         elem_type = type(batch[0])
-        if isinstance(batch[0], torch.Tensor):
+        if torch.is_tensor(batch[0]):
             max_sizes, fixed_size = _get_max_size_and_check_batch_tensor(
                 batch, padded_shapes
             )
@@ -71,8 +71,8 @@ class PaddingCollater(object):
                         out[i][: x.size(0), : x.size(1), : x.size(2), : x.size(3)] = x
                     else:
                         raise NotImplementedError("This is not implemented")
-                sizes = torch.stack([torch.tensor(list(x.size())) for x in batch])
-                return PaddedTensor(out, sizes)
+                sizes = torch.stack([torch.LongTensor(list(x.size())) for x in batch])
+                return PaddedTensor(out, sizes=sizes)
 
         elif (
             elem_type.__module__ == "numpy"
@@ -93,9 +93,9 @@ class PaddingCollater(object):
                     [torch.from_numpy(b) for b in batch], padded_shapes
                 )
         elif isinstance(batch[0], int_classes):
-            return torch.tensor(batch, dtype=torch.long)
+            return torch.LongTensor(batch)
         elif isinstance(batch[0], float):
-            return torch.tensor(batch, dtype=torch.double)
+            return torch.DoubleTensor(batch)
         elif isinstance(batch[0], string_classes):
             return batch
         elif isinstance(batch[0], collections.Mapping):

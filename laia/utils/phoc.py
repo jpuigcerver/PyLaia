@@ -110,4 +110,4 @@ class TextToPHOC(object):
         self._levels = levels
 
     def __call__(self, x):
-        return torch.tensor(unigram_phoc(x, self._syms, self._levels))
+        return torch.Tensor(unigram_phoc(x, self._syms, self._levels))
