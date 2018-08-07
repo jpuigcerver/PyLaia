@@ -4,3 +4,7 @@ from laia.data.transformers.transformer import Transformer
 from laia.data.transformers.transformer import TransformerChoice
 from laia.data.transformers.transformer import TransformerConditional
 from laia.data.transformers.transformer import TransformerList
+from laia.data.transformers.transformer_image_affine import TransformerImageAffine
+from laia.data.transformers.transformer_image_convert import TransformerImageConvert
+from laia.data.transformers.transformer_image_invert import TransformerImageInvert
+from laia.data.transformers.transformer_image_tensor import TransformerImageTensor
