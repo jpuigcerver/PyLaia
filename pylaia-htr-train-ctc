@@ -23,7 +23,7 @@ from laia.engine import Trainer, Evaluator
 from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
-from laia.hooks import Hook, HookCollection, action, Action
+from laia.hooks import Hook, HookList, action, Action
 from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
 
 if __name__ == "__main__":
