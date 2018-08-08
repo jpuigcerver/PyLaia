@@ -16,6 +16,7 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments import Experiment
 from laia.losses.ctc_loss import transform_output
 from laia.utils import ImageToTensor
+from tqdm import tqdm
 
 
 def output_matrix(
@@ -77,7 +78,9 @@ def output_lattice(
 
 
 if __name__ == "__main__":
-    add_defaults("batch_size", "gpu", "train_path", logging_level="WARNING")
+    add_defaults(
+        "batch_size", "gpu", "train_path", "show_progress_bar", logging_level="WARNING"
+    )
     add_argument(
         "img_dirs", type=str, nargs="+", help="Directory containing word images"
     )
@@ -159,6 +162,9 @@ if __name__ == "__main__":
     batch_input_fn = ImageFeeder(device=args.gpu, parent_feeder=ItemFeeder("img"))
 
     output_fn = globals()["output_{}".format(args.output_format)]
+
+    if args.show_progress_bar:
+        dataset_loader = tqdm(dataset_loader)
 
     for batch in dataset_loader:
         batch_input = batch_input_fn(batch)
