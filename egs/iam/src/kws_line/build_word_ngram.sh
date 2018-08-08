@@ -6,6 +6,7 @@ SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 cd "$SDIR/../..";
 # Load useful functions
 source "$PWD/../utils/functions_check.inc.sh" || exit 1;
+export PATH="$PWD/../utils:$PATH";
 
 check_opengrm || exit 1;
 check_all_files -s data/kws_line/lang/word/te.txt \
@@ -17,8 +18,6 @@ check_all_files -s data/kws_line/lang/word/te.txt \
                    data/kws_line/lang/external/word/brown.txt \
                    data/kws_line/lang/external/word/lob_excludealltestsets.txt \
                    data/kws_line/lang/external/word/wellington.txt || exit 1;
-
-export PATH="$PWD/../utils:$PATH";
 
 lowercase=false;
 ngram_method=kneser_ney;
@@ -119,25 +118,15 @@ gawk 'BEGIN{
   }' "$syms_ctc" > "$output_dir/chars.txt";
 }
 
-# Create integer list of disambiguation symbols.
-[ "$overwrite" = false -a -s "$output_dir/chars_disambig.int" ] ||
-gawk '$1 ~ /^#.+/{ print $2 }' "$output_dir/chars.txt" \
-  > "$output_dir/chars_disambig.int";
-# Create integer list of disambiguation symbols.
-[ "$overwrite" = false -a -s "$output_dir/words_disambig.int" ] ||
-gawk '$1 ~ /^#.+/{ print $2 }' "$output_dir/words.txt" \
-  > "$output_dir/words_disambig.int";
-
-char_disambig_sym=`grep \#0 "$output_dir/chars.txt" | awk '{print $2}'`;
-word_disambig_sym=`grep \#0 "$output_dir/words.txt" | awk '{print $2}'`;
-
-# Create HMM model and tree
-create_ctc_hmm_model.sh \
-  --eps "<eps>" --ctc "<ctc>" \
-  --overwrite "$overwrite" \
-  "$output_dir/chars.txt" \
-  "$output_dir/model" \
-  "$output_dir/tree";
+# Create alignment lexicon (to use with lattice-align-words-lexicon)
+[ "$overwrite" = false -a -s "$output_dir/lexicon_align.txt" ] ||
+awk '{
+  printf("%10-s %10-s", $1, $1);
+  for (i = 2; i <= NF; ++i) { printf(" %s", $i); }
+  printf("\n");
+}' "$output_dir/lexicon.txt" |
+sym2int.pl -f 1-2 "$output_dir/words.txt" |
+sym2int.pl -f 3- "$output_dir/chars.txt" > "$output_dir/lexicon_align.txt" || exit 1;
 
 # Count n-grams of training data
 [ "$overwrite" = false -a -s "$output_dir/tr.count.fst" ] || {
@@ -187,6 +176,7 @@ for c in tr brown lob_excludealltestsets wellington; do
   ngramprint --integers "$output_dir/$c.count.fst" | grep -v "<unk>" | ngramread |
   ngrammake --method="$ngram_method" > "$output_dir/$c.lm.fst" || exit 1;
 
+  # Remove n-grams containing <unk>
   [ "$overwrite" = false -a -s "$output_dir/$c.lm.info" ] ||
   ngramprint --ARPA "$output_dir/$c.lm.fst" |
   ngram -order "$ngram_order" -debug 2 -ppl <(cut -d\  -f2- "$va_txt") -lm - \
