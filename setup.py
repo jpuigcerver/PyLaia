@@ -95,6 +95,7 @@ setuptools.setup(
         "editdistance",
         "future",
         'mock;python_version<"3.0"',
+        "natsort",
         "numpy",
         "scipy",
         "tqdm",
