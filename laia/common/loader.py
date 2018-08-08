@@ -9,6 +9,8 @@ import torch
 
 from laia.common.logging import get_logger
 from laia.common.random import set_rng_state
+import natsort as ns
+
 
 try:
     FileNotFoundError
@@ -88,7 +90,7 @@ class CheckpointLoader(Loader):
         matches = glob(pattern)
         if not len(matches):
             return None
-        filepath = sorted(matches, key=key, reverse=reverse)[0]
+        filepath = ns.natsorted(matches, key=key, reverse=reverse, alg=ns.ns.PATH)[0]
         return self.load(filepath)
 
 
