@@ -30,7 +30,7 @@ mkdir -p data/kws_line/lang/external/char data/kws_line/lang/external/word;
 
 # 1. We convert some special sequences to UTF-8 characters, such as a*?1 -> ä,
 # a*?2 -> á, a*?3 -> à, n*?4 -> ñ, etc.
-# 2. Since IAM does not contain these characters, trasliterate all UTF-8 codes
+# 2. Since IAM does not contain these characters, transliterate all UTF-8 codes
 # to reduce the number of tokens in the LM.
 # 3. Put abbrev. like 's, 't, 'd, etc. together with their word,.
 # 4. Finally, convert the original word-level transcript (word/external/$c.txt)
@@ -55,6 +55,7 @@ for f in "${@}"; do
   { echo "ERROR: Creating file \"$wtxt\"!" >&2 && exit 1; }
 
   ctxt="data/kws_line/lang/external/char/${c}.txt";
+  [ "$overwrite" = false -a -s "$ctxt" ] ||
   gawk -v ws="$wspace" '{
     for(i=1;i<=NF;++i) {
       for(j=1;j<=length($i);++j) {
@@ -65,6 +66,14 @@ for f in "${@}"; do
     printf("\n");
   }' "$wtxt" > "$ctxt" ||
   { echo "ERROR: Creating file \"$ctxt\"!" >&2 && exit 1; }
-done;
 
-exit 0;
+  wtxt_lc="data/kws_line/lang/external/word/${c}_lowercase.txt";
+  [ "$overwrite" = false -a -s "$wtxt_lc" ] ||
+  gawk '{ print tolower($0); }' $wtxt > "$wtxt_lc" ||
+  { echo "ERROR: Creating file \"$wtxt_lc\"!" >&2 && exit 1; }
+
+  ctxt_lc="data/kws_line/lang/external/char/${c}_lowercase.txt";
+  [ "$overwrite" = false -a -s "$ctxt_lc" ] ||
+  gawk '{ print tolower($0); }' $ctxt > "$ctxt_lc" ||
+  { echo "ERROR: Creating file \"$ctxt_lc\"!" >&2 && exit 1; }
+done;
