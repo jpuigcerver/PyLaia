@@ -7,6 +7,7 @@ import os
 from torch.optim import RMSprop
 
 import laia.common.logging as log
+import laia.data.transformers as transformers
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.arguments_types import NumberInOpenRange
 from laia.common.loader import ModelLoader, StateCheckpointLoader
@@ -24,7 +25,7 @@ from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
 from laia.hooks import Hook, HookList, action, Action
-from laia.utils import SymbolsTable, ImageToTensor, TextToTensor
+from laia.utils import SymbolsTable, TextToTensor
 
 if __name__ == "__main__":
     add_defaults(
@@ -41,6 +42,7 @@ if __name__ == "__main__":
         "iterations_per_update",
         "save_checkpoint_interval",
         "num_rolling_checkpoints",
+        "use_distortions",
     )
     add_argument(
         "syms",
@@ -95,10 +97,25 @@ if __name__ == "__main__":
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
+    default_img_transform = transformers.TransformerList(
+        transformers.TransformerImageConvert("L"),
+        transformers.TransformerImageInvert(probability=1.0),
+        transformers.TransformerImageTensor(),
+    )
+    if args.use_distortions:
+        tr_img_transform = transformers.TransformerList(
+            transformers.TransformerImageConvert("L"),
+            transformers.TransformerImageInvert(probability=1.0),
+            transformers.TransformerImageAffine(),
+            transformers.TransformerImageTensor(),
+        )
+    else:
+        tr_img_transform = default_img_transform
+
     tr_dataset = TextImageFromTextTableDataset(
         args.tr_txt_table,
         args.img_dirs,
-        img_transform=ImageToTensor(),
+        img_transform=tr_img_transform,
         txt_transform=TextToTensor(syms),
     )
     tr_dataset_loader = ImageDataLoader(
@@ -128,7 +145,7 @@ if __name__ == "__main__":
     va_dataset = TextImageFromTextTableDataset(
         args.va_txt_table,
         args.img_dirs,
-        img_transform=ImageToTensor(),
+        img_transform=default_img_transform,
         txt_transform=TextToTensor(syms),
     )
     va_dataset_loader = ImageDataLoader(

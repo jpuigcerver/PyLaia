@@ -5,6 +5,7 @@ import torch
 from PIL import Image, ImageOps
 
 
+# TODO: Deprecate this class in favor of laia.data.transformers
 class ImageToTensor(object):
     def __init__(
         self,

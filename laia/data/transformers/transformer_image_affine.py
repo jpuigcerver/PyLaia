@@ -6,8 +6,9 @@ import math
 
 import numpy as np
 from PIL import Image
-from laia.data.transformers.transformer import Transformer
 from typing import Union, Tuple
+
+from laia.data.transformers.transformer import Transformer
 
 
 class TransformerImageAffine(Transformer):
