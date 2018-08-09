@@ -1,24 +1,19 @@
 from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import numpy as np
-from PIL import Image
-from scipy.linalg import solve
 from typing import Union, Tuple
 
 from laia.data.transformers.transformer import Transformer
+from PIL import Image
+import numpy as np
 
 
-class TransformerImageAffine(Transformer):
-    """Apply a random affine transform on a PIL image."""
-
+class TransformerImagePerspective(Transformer):
     def __init__(
         self,
         probability=0.5,  # type: float
         max_offset_ratio=0.5,  # type: float
-        alpha=5,  # type: float
-        beta=5,  # type: float
+        alpha=6,  # type: float
+        beta=6,  # type: float
         fillcolor=None,  # type: Union[None, int, Tuple[int, int, int]]
     ):
         assert max_offset_ratio > 0
@@ -32,33 +27,37 @@ class TransformerImageAffine(Transformer):
         self.fillcolor = fillcolor
 
     def __call__(self, x):
-        # type: (Image.Image) -> Image.Image
+        # type: (Image) -> Image
         if np.random.rand() < self.probability:
             max_offset = min(x.size) * self.max_offset_ratio
-            z = np.random.beta(self.alpha, self.beta, size=(3, 2))
+            z = np.random.beta(self.alpha, self.beta, size=(4, 2))
             offset = ((2.0 * z - 1.0) * max_offset).astype(np.float32)
             w, h = x.size
-            src = np.asarray([(0, 0), (0, h), (w, 0)], dtype=np.float32)
+            src = np.asarray([(0, 0), (0, h), (w, 0), (w, h)], dtype=np.float32)
             dst = src + offset
-            affine_mat = self.get_affine_transform(src, dst)
+            perspective_transform = self.warp_perspective(src, dst)
             return x.transform(
                 x.size,
-                method=Image.AFFINE,
-                data=affine_mat,
+                method=Image.PERSPECTIVE,
+                data=perspective_transform,
                 resample=Image.BILINEAR,
                 fillcolor=self.fillcolor,
             )
+        else:
+            return x
 
     @staticmethod
-    def get_affine_transform(src, dst):
-        # type: (np.ndarray, np.ndarray) -> np.ndarray
-        assert src.shape == (3, 2)
-        assert dst.shape == (3, 2)
-        coeffs = np.zeros((6, 6), dtype=np.float32)
-        for i in [0, 1, 2]:
-            coeffs[i, 0:2] = coeffs[i + 3, 3:5] = src[i]
-            coeffs[i, 2] = coeffs[i + 3, 5] = 1
-        return solve(coeffs, dst.transpose().flatten())
+    def warp_perspective(pa, pb):
+        matrix = []
+        for p1, p2 in zip(pa, pb):
+            matrix.append([p1[0], p1[1], 1, 0, 0, 0, -p2[0] * p1[0], -p2[0] * p1[1]])
+            matrix.append([0, 0, 0, p1[0], p1[1], 1, -p2[1] * p1[0], -p2[1] * p1[1]])
+
+        A = np.matrix(matrix, dtype=np.float32)
+        B = np.array(pb).reshape(8)
+
+        res = np.dot(np.linalg.inv(A.T * A) * A.T, B)
+        return np.array(res).reshape(8)
 
 
 if __name__ == "__main__":
@@ -66,17 +65,17 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--probability", type=float, default=1.0)
-    parser.add_argument("--alpha", type=float, default=5)
-    parser.add_argument("--beta", type=float, default=5)
+    parser.add_argument("--alpha", type=float, default=6)
+    parser.add_argument("--beta", type=float, default=6)
     parser.add_argument("--max_offset_ratio", type=float, default=0.5)
     parser.add_argument("image", type=argparse.FileType("r"), nargs="+")
     args = parser.parse_args()
 
-    transformer = TransformerImageAffine(
+    transformer = TransformerImagePerspective(
         probability=args.probability,
+        max_offset_ratio=args.max_offset_ratio,
         alpha=args.alpha,
         beta=args.beta,
-        max_offset_ratio=args.max_offset_ratio,
     )
     for f in args.image:
         x = Image.open(f, "r").convert("L")
