@@ -10,10 +10,10 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized fo
 
 - [PyTorch 0.3.1](https://pytorch.org)
 - [warp-ctc](./third_party/warp-ctc)
-- [nnutils](./third_party/nnutils)
 
 ## Optional requirements (depending on your usage)
 
+- [nnutils](./third_party/nnutils)
 - [prob-phoc](./third_party/prob-phoc)
 - [imgdistort](./third_party/imgdistort)
 
@@ -63,3 +63,8 @@ Required arguments:
 - `$IMG_LIST`: A file containing a list of images to transcribe. They can be image ids with or without extension or full paths to the images.
 
 For optional arguments check `$ pylaia-htr-decode-ctc -h`
+
+## FAQ
+
+#### Where can I find the last version PyTorch 0.3.1 compatible?
+You can check out the repository using this [tag](https://github.com/jpuigcerver/PyLaia/tree/PyTorch-v0.3.1)
