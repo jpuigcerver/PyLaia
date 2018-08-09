@@ -3,11 +3,12 @@ from __future__ import absolute_import
 import numpy as np
 import torch
 from PIL import Image
+
 from laia.data.transformers.transformer import Transformer
 
 
 class TransformerImageTensor(Transformer):
-    """Convert a PIL image to a PyTorch tensor with H x W x C layout."""
+    """Convert a PIL image to a PyTorch tensor with C x H x W layout."""
 
     def __init__(self):
         super(TransformerImageTensor, self).__init__()
