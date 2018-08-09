@@ -24,6 +24,7 @@ learning_rate=0.0003;
 save_checkpoint_interval=10;
 num_rolling_checkpoints=3;
 show_progress_bar=true;
+use_distortions=false;
 lowercase=false;
 help_message="
 Usage: ${0##*/} [options] imgs_dir output_dir
@@ -74,6 +75,8 @@ Options:
                         Learning rate from RMSProp.
   --lowercase         : (type = boolean, default = $lowercase)
                         If true, train lowercase-only model.
+  --use_distortions   : (type = boolean, default = $use_distortions)
+                        If true, train using data augmentation.
 ";
 source ../utils/parse_options.inc.sh || exit 1;
 [ $# -eq 2 ] || { echo "$help_message" >&2 && exit 1; }
@@ -140,6 +143,7 @@ pylaia-htr-train-ctc \
   --save_checkpoint_interval $save_checkpoint_interval \
   --num_rolling_checkpoints $num_rolling_checkpoints \
   --show_progress_bar $show_progress_bar \
+  --use_distortions $use_distortions \
   --logging_file "$2/train.log" \
   --logging_also_to_stderr INFO \
   --train_path "$2" \
