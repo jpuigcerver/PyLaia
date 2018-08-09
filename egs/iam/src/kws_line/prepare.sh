@@ -88,6 +88,13 @@ gawk 'BEGIN{
   printf("%5-s %d\n", $1, N++);
 }' > data/kws_line/lang/char/syms_ctc_lowercase.txt;
 
+# Prepare KWS reference files
+mkdir -p data/kws_line/lang/kws_refs;
+for p in te te_lowercase tr tr_lowercase va va_lowercase; do
+  [ -s "data/kws_line/lang/kws_refs/$p.txt" ] ||
+  awk '{for (i=2;i<=NF;++i) print $i, $1; }' "data/kws_line/lang/word/$p.txt" |
+  sort -u > "data/kws_line/lang/kws_refs/$p.txt" || exit 1;
+done;
 
 function process_image_resize_h128 () {
   local bn="$(basename "$1" .png)";
