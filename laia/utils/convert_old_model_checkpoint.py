@@ -6,9 +6,8 @@ from collections import OrderedDict
 import torch
 
 
-def convert_old_parameters(params):
+def convert_old_parameters(params: OrderedDict) -> OrderedDict:
     """Convert parameters from the old model to the new one."""
-    # type: OrderedDict -> OrderedDict
     new_params = []
     for k, v in params.items():
         m = re.match(r"^conv_block([0-9]+)\.([a-z_.]+)$", k)

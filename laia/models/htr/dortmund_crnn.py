@@ -13,13 +13,12 @@ from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 class DortmundCRNN(torch.nn.Module):
     def __init__(
         self,
-        num_outputs,  # type: int
-        lstm_hidden_size=128,  # type: int
-        lstm_num_layers=1,  # type: int
-        sequencer="avgpool-16",  # type: str
-        dropout=0.5,  # type: float
-    ):
-        # type: (...) -> None
+        num_outputs: int,
+        lstm_hidden_size: int = 128,
+        lstm_num_layers: int = 1,
+        sequencer: str = "avgpool-16",
+        dropout: float = 0.5,
+    ) -> None:
         super().__init__()
         self._dropout = dropout
         self.conv = build_conv_model()
@@ -33,7 +32,9 @@ class DortmundCRNN(torch.nn.Module):
         )
         self.linear = torch.nn.Linear(2 * lstm_hidden_size, num_outputs)
 
-    def dropout(self, x, p=0.5):
+    def dropout(
+        self, x: Union[PaddedTensor, PackedSequence, torch.Tensor], p: float = 0.5
+    ) -> Union[PaddedTensor, PackedSequence, torch.Tensor]:
         if 0.0 < p < 1.0:
             cls = None
             if isinstance(x, PaddedTensor):
@@ -47,8 +48,9 @@ class DortmundCRNN(torch.nn.Module):
         else:
             return x
 
-    def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> Union[torch.Tensor, PackedSequence]
+    def forward(
+        self, x: Union[torch.Tensor, PaddedTensor]
+    ) -> Union[torch.Tensor, PackedSequence]:
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         x = self.conv(x)
         if xs is not None:
@@ -64,9 +66,8 @@ class DortmundCRNN(torch.nn.Module):
         )
 
 
-def convert_old_parameters(params):
+def convert_old_parameters(params: OrderedDict) -> OrderedDict:
     """Convert parameters from the old model to the new one."""
-    # type: OrderedDict -> OrderedDict
     new_params = []
     for k, v in params.items():
         if k.startswith("conv"):

@@ -1,9 +1,9 @@
 from collections import Sequence
 from typing import Callable, Optional, List
 
+import laia
 from laia.common.logging import get_logger
 from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, Engine
-from laia.engine.trainer import Trainer
 from laia.hooks import action
 from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
 
@@ -13,20 +13,19 @@ _logger = get_logger(__name__)
 class Experiment:
     def __init__(
         self,
-        train_engine,  # type: Trainer
-        valid_engine=None,  # type: Optional[Evaluator]
-        check_valid_hook_when=EPOCH_END,  # type: Optional[str]
-        valid_hook_condition=None,  # type: Optional[Callable]
-        summary_order=(
+        train_engine: laia.engine.Trainer,
+        valid_engine: Optional[Evaluator] = None,
+        check_valid_hook_when: Optional[str] = EPOCH_END,
+        valid_hook_condition: Optional[Callable] = None,
+        summary_order: Sequence[str] = (
             "Epoch",
             "TR Loss",
             "VA Loss",
             "TR Time",
             "VA Time",
             "Memory",
-        ),  # type: Sequence[str]
-    ):
-        # type: (...) -> None
+        ),
+    ) -> None:
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
@@ -53,20 +52,16 @@ class Experiment:
         self._summary = None
         self._tr_engine.add_hook(EPOCH_END, self._log_epoch_summary)
 
-    def train_timer(self):
-        # type: () -> Meter
+    def train_timer(self) -> Meter:
         return self._tr_timer
 
-    def valid_timer(self):
-        # type: () -> Meter
+    def valid_timer(self) -> Meter:
         return self._va_timer
 
-    def train_loss(self):
-        # type: () -> Meter
+    def train_loss(self) -> Meter:
         return self._tr_loss
 
-    def valid_loss(self):
-        # type: () -> Meter
+    def valid_loss(self) -> Meter:
         return self._va_loss
 
     def run(self):
@@ -84,8 +79,9 @@ class Experiment:
         self._va_timer.reset()
         self._va_loss.reset()
 
-    def epoch_summary(self, summary_order=None):
-        # type: (Optional[Sequence[str]]) -> List[dict]
+    def epoch_summary(
+        self, summary_order: Optional[Sequence[str]] = None
+    ) -> List[dict]:
         summary = [
             dict(label="Epoch", format="{:4d}"),
             dict(label="TR Loss", format="{.value[0]:.3e}", source=self._tr_loss),
@@ -106,8 +102,7 @@ class Experiment:
             return summary
 
     @action
-    def _log_epoch_summary(self, epoch):
-        # type: (int) -> None
+    def _log_epoch_summary(self, epoch: int) -> None:
         for item in self._summary:
             if item["label"] == "Epoch":
                 item["source"] = epoch
@@ -117,8 +112,7 @@ class Experiment:
         ]
         _logger.info(", ".join(parsed_summary))
 
-    def state_dict(self):
-        # type: () -> dict
+    def state_dict(self) -> dict:
         return {
             k: v.state_dict() if hasattr(v, "state_dict") else None
             for k, v in (
@@ -128,8 +122,7 @@ class Experiment:
             )
         }
 
-    def load_state_dict(self, state):
-        # type: (dict) -> None
+    def load_state_dict(self, state: dict) -> None:
         if state is None:
             return
         for k, v in (
@@ -141,6 +134,5 @@ class Experiment:
                 v.load_state_dict(state[k])
 
     @staticmethod
-    def get_model_state_dict(state):
-        # type: (dict) -> dict
+    def get_model_state_dict(state: dict) -> dict:
         return Engine.get_model_state_dict(state["tr_engine"])

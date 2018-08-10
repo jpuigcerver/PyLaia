@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 import numpy as np
 
@@ -25,8 +25,14 @@ class StdDevUnder(LoggingCondition):
         name (str): Name for the condition.
     """
 
-    def __init__(self, obj, threshold, num_values_to_keep, key=None, name=None):
-        # type: (Callable, float, int, Any, str) -> None
+    def __init__(
+        self,
+        obj: Callable,
+        threshold: float,
+        num_values_to_keep: int,
+        key: Optional[Any] = None,
+        name: str = None,
+    ) -> None:
         assert threshold > 0, "Standard deviation should be a positive value"
         assert num_values_to_keep > 1, (
             "The number of values to keep must be greater than 1 to compute "
@@ -38,7 +44,7 @@ class StdDevUnder(LoggingCondition):
         self._values = []
         self._nval = 0
 
-    def __call__(self):
+    def __call__(self) -> bool:
         value = self._process_value()
         if value is None:
             return False

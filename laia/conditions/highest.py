@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 from torch._six import inf
 
@@ -11,12 +11,13 @@ _logger = log.get_logger(__name__)
 class Highest(LoggingCondition):
     """True if a new highest value has been reached"""
 
-    def __init__(self, obj, key=None, name=None):
-        # type: (Callable, Any, str) -> None
+    def __init__(
+        self, obj: Callable, key: Optional[Any] = None, name: str = None
+    ) -> None:
         super().__init__(obj, key, _logger, name)
         self._highest = -inf
 
-    def __call__(self):
+    def __call__(self) -> bool:
         value = self._process_value()
         if value is None:
             return False
@@ -29,11 +30,11 @@ class Highest(LoggingCondition):
         )
         return False
 
-    def state_dict(self):
+    def state_dict(self) -> dict:
         state = super().state_dict()
         state["highest"] = self._highest
         return state
 
-    def load_state_dict(self, state):
+    def load_state_dict(self, state: dict) -> None:
         super().load_state_dict(state)
         self._highest = state["highest"]

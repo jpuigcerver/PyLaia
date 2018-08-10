@@ -20,19 +20,18 @@ except ImportError:
 class ConvBlock(nn.Module):
     def __init__(
         self,
-        in_channels,  # type: int
-        out_channels,  # type: int
-        kernel_size=3,  # type: Union[int, Tuple[int, int]]
-        stride=1,  # type: Union[int, Tuple[int, int]]
-        dilation=1,  # type: Union[int, Tuple[int, int]]
-        activation=nn.LeakyReLU,  # type: Optional[nn.Module]
-        poolsize=None,  # type: Optional[Union[int, Tuple[int, int]]]
-        dropout=None,  # type: Optional[float]
-        batchnorm=False,  # type: bool
-        inplace=False,  # type: bool
-        use_masks=False,  # type: bool
-    ):
-        # type: (...) -> None
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Union[int, Tuple[int, int]] = 3,
+        stride: Union[int, Tuple[int, int]] = 1,
+        dilation: Union[int, Tuple[int, int]] = 1,
+        activation: Optional[nn.Module] = nn.LeakyReLU,
+        poolsize: Optional[Union[int, Tuple[int, int]]] = None,
+        dropout: Optional[float] = None,
+        batchnorm: bool = False,
+        inplace: bool = False,
+        use_masks: bool = False,
+    ) -> None:
         super().__init__()
         if not isinstance(kernel_size, (list, tuple)):
             kernel_size = (kernel_size, kernel_size)
@@ -84,8 +83,7 @@ class ConvBlock(nn.Module):
         # Add maxpool layer
         self.pool = nn.MaxPool2d(poolsize) if self.poolsize else None
 
-    def forward(self, x):
-        # type: (Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]
+    def forward(self, x: Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]:
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
             assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
@@ -125,7 +123,7 @@ class ConvBlock(nn.Module):
 
         return x if xs is None else PaddedTensor(x, self.get_output_batch_size(xs))
 
-    def get_output_batch_size(self, xs):
+    def get_output_batch_size(self, xs: torch.Tensor):
         ys = torch.zeros_like(xs)
         for dim in 0, 1:
             ys[:, dim] = self.get_output_size(
@@ -140,14 +138,13 @@ class ConvBlock(nn.Module):
 
     @staticmethod
     def get_output_size(
-        size,  # type: Union[torch.Tensor, int]
-        kernel_size,  # type: int
-        dilation,  # type: int
-        stride,  # type: int
-        poolsize,  # type: int
-        padding=None,  # type: Optional[int]
-    ):
-        # type: (...) -> Union[torch.Tensor, int]
+        size: Union[torch.Tensor, int],
+        kernel_size: int,
+        dilation: int,
+        stride: int,
+        poolsize: int,
+        padding: Optional[int] = None,
+    ) -> Union[torch.Tensor, int]:
         if padding is None:
             padding = (kernel_size - 1) // 2 * dilation
         size = size.float() if isinstance(size, torch.Tensor) else float(size)

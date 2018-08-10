@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Sequence
+from typing import Optional, Callable, Sequence, List
 
 import torch
 from torch.nn.functional import sigmoid
@@ -21,15 +21,15 @@ class PHOCExperiment(Experiment):
         self,
         symbols_table,
         phoc_levels,
-        train_engine,  # type: Trainer
-        valid_engine=None,  # type: Optional[Evaluator]
-        check_valid_hook_when=EPOCH_END,  # type: Optional[str]
-        valid_hook_condition=None,  # type: Optional[Callable]
+        train_engine: Trainer,
+        valid_engine: Optional[Evaluator] = None,
+        check_valid_hook_when: Optional[str] = EPOCH_END,
+        valid_hook_condition: Optional[Callable] = None,
         gpu=0,
         exclude_labels=None,
         ignore_missing=False,
         use_new_phoc=False,
-        summary_order=(
+        summary_order: Sequence[str] = (
             "Epoch",
             "TR Loss",
             "VA Loss",
@@ -38,9 +38,8 @@ class PHOCExperiment(Experiment):
             "TR Time",
             "VA Time",
             "Memory",
-        ),  # type: Sequence[str]
-    ):
-        # type: (...) -> None
+        ),
+    ) -> None:
         super().__init__(
             train_engine,
             valid_engine=valid_engine,
@@ -95,8 +94,7 @@ class PHOCExperiment(Experiment):
         else:
             self._va_ap = None
 
-    def valid_ap(self):
-        # type: () -> Meter
+    def valid_ap(self) -> Meter:
         return self._va_ap
 
     @action
@@ -119,8 +117,9 @@ class PHOCExperiment(Experiment):
         self._va_ap.add(batch_output_phoc.numpy(), ["".join(w) for w in batch["txt"]])
         self._va_timer.stop()
 
-    def epoch_summary(self, summary_order=None):
-        # type: (Optional[Sequence[str]]) -> List[dict]
+    def epoch_summary(
+        self, summary_order: Optional[Sequence[str]] = None
+    ) -> List[dict]:
         summary = super().epoch_summary(summary_order=summary_order)
         if self._va_engine:
             summary.append(
@@ -135,15 +134,13 @@ class PHOCExperiment(Experiment):
             _logger.debug("Could not sort the summary. Reason: {}", e)
             return summary
 
-    def state_dict(self):
-        # type: () -> dict
+    def state_dict(self) -> dict:
         state = super().state_dict()
         if hasattr(self._va_ap, "state_dict"):
             state["va_ap"] = self._va_ap.state_dict()
         return state
 
-    def load_state_dict(self, state):
-        # type: (dict) -> None
+    def load_state_dict(self, state: dict) -> None:
         if state is None:
             return
         super().load_state_dict(state)

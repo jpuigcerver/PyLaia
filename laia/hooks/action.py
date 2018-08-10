@@ -18,7 +18,7 @@ def action(func):
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any):
         argspec = getfullargspec(func)
         non_kwargs = len(argspec.args) - len(argspec.defaults or [])
         return func(
@@ -29,13 +29,12 @@ def action(func):
 
 
 class Action:
-    def __init__(self, callable_, *args, **kwargs):
-        # type: (Callable, Any, Any) -> None
+    def __init__(self, callable_: Callable, *args: Any, **kwargs: Any) -> None:
         self._callable = callable_
         self._args = args
         self._kwargs = kwargs
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         a = self._args + args
         kw = {**self._kwargs, **kwargs}
         return self._callable(*a, **kw)
@@ -44,11 +43,10 @@ class Action:
 class ActionList:
     """When called, calls a collection of :class:`~Action` objects."""
 
-    def __init__(self, *actions):
-        # type: (Tuple[Callable]) -> None
+    def __init__(self, *actions: Callable) -> None:
         assert all(isinstance(a, Action) for a in actions)
         self._actions = actions
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         for action in self._actions:
             action(*args, **kwargs)

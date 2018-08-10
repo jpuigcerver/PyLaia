@@ -14,27 +14,26 @@ from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 class LaiaCRNN(nn.Module):
     def __init__(
         self,
-        num_input_channels,  # type: int
-        num_output_labels,  # type: int
-        cnn_num_features,  # type: Sequence[int]
-        cnn_kernel_size,  # type: Sequence[int, Tuple[int, int]]
-        cnn_stride,  # type: Sequence[int, Tuple[int, int]]
-        cnn_dilation,  # type: Sequence[int, Tuple[int, int]]
-        cnn_activation,  # type: Sequence[nn.Module]
-        cnn_poolsize,  # type: Sequence[int, Tuple[int, int]]
-        cnn_dropout,  # type: Sequence[float]
-        cnn_batchnorm,  # type: Sequence[bool]
-        image_sequencer,  # type: str
-        rnn_units,  # type: int
-        rnn_layers,  # type: int
-        rnn_dropout,  # type: float
-        lin_dropout,  # type: float
-        rnn_type=nn.LSTM,  # type: Union[nn.LSTM, nn.GRU, nn.RNN]
-        inplace=False,  # type: bool
-        vertical_text=False,  # type: bool
-        use_masks=False,  # type: bool
-    ):
-        # type: (...) -> None
+        num_input_channels: int,
+        num_output_labels: int,
+        cnn_num_features: Sequence[int],
+        cnn_kernel_size: Sequence[Union[int, Tuple[int, int]]],
+        cnn_stride: Sequence[Union[int, Tuple[int, int]]],
+        cnn_dilation: Sequence[Union[int, Tuple[int, int]]],
+        cnn_activation: Sequence[nn.Module],
+        cnn_poolsize: Sequence[Union[int, Tuple[int, int]]],
+        cnn_dropout: Sequence[float],
+        cnn_batchnorm: Sequence[bool],
+        image_sequencer: str,
+        rnn_units: int,
+        rnn_layers: int,
+        rnn_dropout: float,
+        lin_dropout: float,
+        rnn_type: Union[nn.LSTM, nn.GRU, nn.RNN] = nn.LSTM,
+        inplace: bool = False,
+        vertical_text: bool = False,
+        use_masks: bool = False,
+    ) -> None:
         super().__init__()
         self._rnn_dropout = rnn_dropout
         self._lin_dropout = lin_dropout
@@ -87,7 +86,9 @@ class LaiaCRNN(nn.Module):
         # Add final linear layer
         self.linear = nn.Linear(2 * rnn_units, num_output_labels)
 
-    def dropout(self, x, p):
+    def dropout(
+        self, x: Union[torch.Tensor, PaddedTensor, PackedSequence], p: float
+    ) -> Union[torch.Tensor, PaddedTensor, PackedSequence]:
         if 0.0 < p < 1.0:
             cls = None
             if isinstance(x, PaddedTensor):
@@ -101,8 +102,9 @@ class LaiaCRNN(nn.Module):
         else:
             return x
 
-    def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> Union[torch.Tensor, PackedSequence]
+    def forward(
+        self, x: Union[torch.Tensor, PaddedTensor]
+    ) -> Union[torch.Tensor, PackedSequence]:
         x = self.conv(x)
         x = self.sequencer(x)
         x = self.dropout(x, p=self._rnn_dropout)

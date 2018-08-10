@@ -18,16 +18,17 @@ class TensorFeeder(Feeder):
 
     def __init__(
         self,
-        device,  # type: Union[str, torch.device]
-        requires_grad=False,  # type: bool
-        parent_feeder=None,  # type: Optional[Callable]
-    ):
-        # type: (...) -> None
+        device: Union[str, torch.device],
+        requires_grad: bool = False,
+        parent_feeder: Optional[Callable] = None,
+    ) -> None:
         super().__init__(parent_feeder)
         self._device = device
         self._requires_grad = requires_grad
 
-    def _feed(self, batch):
+    def _feed(
+        self, batch: Union[torch.Tensor, PaddedTensor, PackedSequence]
+    ) -> Union[torch.Tensor, PaddedTensor, PackedSequence]:
         if isinstance(batch, torch.Tensor):
             return batch.requires_grad(self._requires_grad).to(self._device)
         elif isinstance(batch, PaddedTensor):

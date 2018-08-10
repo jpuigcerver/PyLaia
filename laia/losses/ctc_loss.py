@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Union, Sequence
+from typing import List, Union, Sequence, Optional
 
 import torch
 from torch.autograd import Function
@@ -15,13 +15,13 @@ except ImportError:
 
     warnings.warn("Missing CTC loss function library")
 
-FloatScalar = Union[float, torch.FloatTensor]
-
 # TODO(jpuigcerver): Properly tests the logged messages.
 _logger = log.get_logger(__name__)
 
 
-def transform_output(output):
+def transform_output(
+    output: Union[torch.Tensor, PackedSequence]
+) -> (torch.Tensor, List[int]):
     # Size: T x N x D
     if isinstance(output, PackedSequence):
         acts, act_lens = pad_packed_sequence(output)
@@ -33,15 +33,14 @@ def transform_output(output):
 
 
 def copy_valid_indices(
-    acts,  # type: torch.Tensor
-    target,  # type: List[List[int]]
-    act_lens,  # type: List[int]
-    valid_indices,  # type: List[int]
-):
-    # type: (...) -> (torch.Tensor, List[List[int]], List[int])
+    acts: torch.Tensor,
+    target: List[List[int]],
+    act_lens: List[int],
+    valid_indices: List[int],
+) -> (Optional[torch.Tensor], List[List[int]], List[int]):
     """Copy the CTC inputs without the erroneous samples"""
     if len(valid_indices) == 0:
-        return None, [], [], []
+        return None, [], []
     valid_indices = torch.tensor(valid_indices, device=acts.device)
     return (
         # Note: The batch size must be in the second dimension
@@ -51,16 +50,18 @@ def copy_valid_indices(
     )
 
 
-def set_zeros_in_errors(size, input, valid_indices):
-    # type: (Sequence[int], torch.Tensor, Sequence[int]) -> torch.Tensor
+def set_zeros_in_errors(
+    size: Sequence[int], input: torch.Tensor, valid_indices: List[int]
+) -> torch.Tensor:
     """Copy the tensor with zeros in the erroneous indices"""
     valid_indices = torch.tensor(valid_indices, device=input.device)
     # Note: The batch size must be in the second dimension
     return input.new_zeros(size).index_copy_(1, valid_indices, input)
 
 
-def get_valids_and_errors(act_lens, labels):
-    # type: (List[int], List[List[int]]) -> (List[int], List[int])
+def get_valids_and_errors(
+    act_lens: List[int], labels: List[List[int]]
+) -> (List[int], List[int]):
     """Check for sequences which are too short to produce the given
     target, according to CTC model.
 
@@ -68,8 +69,7 @@ def get_valids_and_errors(act_lens, labels):
     """
     assert len(act_lens) == len(labels)
 
-    def count_minimum_frames(y):
-        # type: (List[int]) -> int
+    def count_minimum_frames(y: List[int]) -> int:
         return len(y) + sum(y[i] == y[i - 1] for i in range(1, len(y)))
 
     check = [
@@ -86,13 +86,12 @@ def get_valids_and_errors(act_lens, labels):
 class CTCPrepare(Function):
     @staticmethod
     def forward(
-        ctx,
-        acts,  # type: torch.Tensor
-        target,  # type: List[List[int]]
-        act_lens,  # type: List[int]
-        valid_indices=None,  # type: Optional[List[int]]
-    ):
-        # type: (...) -> (torch.Tensor, torch.IntTensor * 3)
+        ctx: torch.autograd.function.BackwardCFunction,
+        acts: torch.Tensor,
+        target: List[List[int]],
+        act_lens: List[int],
+        valid_indices: Optional[List[int]] = None,
+    ) -> (torch.Tensor, torch.IntTensor, torch.IntTensor, torch.IntTesor):
         """
         Args:
             acts: Contains the output from the network.
@@ -120,7 +119,11 @@ class CTCPrepare(Function):
         return acts, labels, act_lens, label_lens
 
     @staticmethod
-    def backward(ctx, grad_output, *_):
+    def backward(
+        ctx: torch.autograd.function.BackwardCFunction,
+        grad_output: torch.Tensor,
+        *_: None
+    ) -> (torch.Tensor, None, None, None):
         valid_indices, original_size = ctx.saved
         return (
             set_zeros_in_errors(original_size, grad_output, valid_indices)
@@ -142,14 +145,14 @@ class CTCLoss(Loss):
             (default: `False`)
     """
 
-    def __init__(self, size_average=True, length_average=False):
-        # type: (bool, bool) -> None
+    def __init__(self, size_average: bool = True, length_average: bool = False) -> None:
         super().__init__()
         self._size_average = size_average
         self._length_average = length_average
 
-    def forward(self, output, target, **kwargs):
-        # type: (torch.Tensor, List[List[int]]) -> (FloatScalar, List[int])
+    def forward(
+        self, output: torch.Tensor, target: List[List[int]], **kwargs: dict
+    ) -> (torch.FloatTensor, List[int]):
         """
         Args:
             output: Size seqLength x outputDim, contains

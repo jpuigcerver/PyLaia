@@ -1,9 +1,10 @@
 from contextlib import contextmanager
-from typing import Iterable, Callable, Union, Optional
+from typing import Iterable, Callable, Union, Optional, Any
 
 import torch
 from tqdm import tqdm
 
+import laia
 import laia.common.logging as log
 from laia.engine.engine_exception import EngineException
 from laia.hooks import action
@@ -42,14 +43,13 @@ class Engine:
 
     def __init__(
         self,
-        model,  # type: torch.nn.Module
-        data_loader=None,  # type: Optional[Iterable]
-        batch_input_fn=None,  # type: Optional[Callable]
-        batch_target_fn=None,  # type: Optional[Callable]
-        batch_id_fn=None,  # type: Optional[Callable]
-        progress_bar=None,  # type: Optional[Union[bool, str]]
-    ):
-        # type: (...) -> None
+        model: torch.nn.Module,
+        data_loader: Optional[Iterable] = None,
+        batch_input_fn: Optional[Callable] = None,
+        batch_target_fn: Optional[Callable] = None,
+        batch_id_fn: Optional[Callable] = None,
+        progress_bar: Optional[Union[bool, str]] = None,
+    ) -> None:
         self._model = model
         self._data_loader = data_loader
         self._batch_input_fn = batch_input_fn
@@ -103,13 +103,13 @@ class Engine:
     def stop(self):
         self._must_stop = True
 
-    def set_data_loader(self, data_loader):
+    def set_data_loader(self, data_loader: Iterable):
         """Set the data loader object from which samples are loaded."""
         assert data_loader is not None
         self._data_loader = data_loader
         return self
 
-    def set_batch_input_fn(self, fn):
+    def set_batch_input_fn(self, fn: Optional[Callable]):
         """Set the function to obtain the inputs for the model.
 
         The argument can be either a function or a callable object that
@@ -121,7 +121,7 @@ class Engine:
         self._batch_input_fn = fn
         return self
 
-    def set_batch_target_fn(self, fn):
+    def set_batch_target_fn(self, fn: Optional[Callable]):
         """Set the function to obtain the targets from the batch.
 
         The argument can be either a function or a callable object that
@@ -133,11 +133,11 @@ class Engine:
         self._batch_target_fn = fn
         return self
 
-    def set_progress_bar(self, progress_bar):
+    def set_progress_bar(self, progress_bar: Union[bool, str]):
         self._progress_bar = progress_bar
         return self
 
-    def add_hook(self, when, hook):
+    def add_hook(self, when: str, hook: laia.hooks.Hook):
         """Add a hook to be executed at some point during the run.
 
         When multiple hooks are added at the same point of the run, they will
@@ -159,11 +159,11 @@ class Engine:
         self._run_epoch()
         return self
 
-    def _call_hooks(self, when, *args, **kwargs):
+    def _call_hooks(self, when: str, *args: Any, **kwargs: Any) -> None:
         for hook in self._hooks[when]:
             hook(*args, caller=self, **kwargs)
 
-    def _run_iteration(self, batch_n, batch):
+    def _run_iteration(self, batch_n: int, batch: Any) -> None:
         batch_input, batch_target = self._prepare_input_and_target(batch)
 
         action_kwargs = {
@@ -192,14 +192,14 @@ class Engine:
         action_kwargs["batch_output"] = batch_output
         self._call_hooks(ITER_END, **action_kwargs)
 
-    def _prepare_input_and_target(self, batch):
+    def _prepare_input_and_target(self, batch: Any) -> (Any, Any):
         # Prepare input to the model.
         batch_input = self._batch_input_fn(batch) if self._batch_input_fn else batch
         # Prepare target to be passed to the loss function.
         batch_target = self._batch_target_fn(batch) if self.batch_target_fn else None
         return batch_input, batch_target
 
-    def _run_epoch(self):
+    def _run_epoch(self) -> None:
         self._call_hooks(EPOCH_START, epoch=self._epochs)
 
         if self._must_stop:
@@ -224,7 +224,7 @@ class Engine:
             self._call_hooks(EPOCH_END, epoch=self._epochs)
 
     @contextmanager
-    def exception_catcher(self, batch):
+    def exception_catcher(self, batch: Any) -> None:
         try:
             yield
         except Exception as e:
@@ -235,7 +235,7 @@ class Engine:
                 cause=e,
             ) from e
 
-    def state_dict(self):
+    def state_dict(self) -> dict:
         return {
             "model": self._model.state_dict(),
             "epochs": self._epochs,
@@ -249,7 +249,7 @@ class Engine:
             },
         }
 
-    def load_state_dict(self, state):
+    def load_state_dict(self, state: dict) -> None:
         self._model.load_state_dict(state["model"])
         self._epochs = state["epochs"]
         self._iterations = state["iterations"]
@@ -263,8 +263,7 @@ class Engine:
                     hook.load_state_dict(hook_states[i])
 
     @staticmethod
-    def get_model_state_dict(state):
-        # type: (dict) -> dict
+    def get_model_state_dict(state: dict) -> dict:
         return state["model"]
 
 

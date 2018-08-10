@@ -12,16 +12,15 @@ _logger = get_logger(__name__)
 
 
 class Saver:
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         return self.save(*args, **kwargs)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any):
         raise NotImplementedError
 
 
 class BasicSaver(Saver):
-    def save(self, obj, filepath):
-        # type: (Any, str) -> str
+    def save(self, obj: Any, filepath: str) -> str:
         dirname = os.path.dirname(os.path.normpath(filepath))
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
@@ -30,13 +29,11 @@ class BasicSaver(Saver):
 
 
 class ObjectSaver(Saver):
-    def __init__(self, filepath):
-        # type: (str) -> None
+    def __init__(self, filepath: str) -> None:
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
-    def save(self, func_or_class, *args, **kwargs):
-        # type: (Callable, *Any, **Any) -> str
+    def save(self, func_or_class: Callable, *args: Any, **kwargs: Any) -> str:
         return self._basic_saver.save(
             {
                 "module": inspect.getmodule(func_or_class).__name__,
@@ -49,57 +46,54 @@ class ObjectSaver(Saver):
 
 
 class ModelSaver(ObjectSaver):
-    def __init__(self, save_path, filename="model"):
-        # type: (str, str) ->  None
+    def __init__(self, save_path: str, filename: str = "model") -> None:
         super().__init__(os.path.join(save_path, filename))
 
-    def save(self, func, *args, **kwargs):
-        # type: (Callable, *Any, **Any) -> str
+    def save(self, func: Callable, *args: Any, **kwargs: Any) -> str:
         path = super().save(func, *args, **kwargs)
         _logger.debug("Saved model {}", path)
         return path
 
 
 class CheckpointSaver(Saver):
-    def __init__(self, filepath):
-        # type: (str) ->  None
+    def __init__(self, filepath: str) -> None:
         self._filepath = filepath
         self._basic_saver = BasicSaver()
 
-    def get_ckpt(self, suffix):
-        # type: (str) -> str
+    def get_ckpt(self, suffix: str) -> str:
         return (
             "{}-{}".format(self._filepath, suffix)
             if suffix is not None
             else self._filepath
         )
 
-    def save(self, state, suffix=None):
-        # type: (Any, Optional[str]) -> str
+    def save(self, state: Any, suffix: Optional[str] = None) -> str:
         path = self._basic_saver.save(state, self.get_ckpt(suffix))
         _logger.debug("Saved checkpoint {}", path)
         return path
 
 
 class ModelCheckpointSaver(Saver):
-    def __init__(self, ckpt_saver, model):
-        # type: (CheckpointSaver, torch.nn.Module) -> None
+    def __init__(self, ckpt_saver: CheckpointSaver, model: torch.nn.Module) -> None:
         self._ckpt_saver = ckpt_saver
         self._model = model
 
-    def save(self, suffix=None):
+    def save(self, suffix: Optional[str] = None) -> str:
         return self._ckpt_saver.save(self._model.state_dict(), suffix=suffix)
 
 
 class StateCheckpointSaver(Saver):
-    def __init__(self, ckpt_saver, obj, device=None):
-        # type: (CheckpointSaver, Any, Optional[torch.Device]) -> None
+    def __init__(
+        self,
+        ckpt_saver: CheckpointSaver,
+        obj: Any,
+        device: Optional[torch.device] = None,
+    ) -> None:
         self._ckpt_saver = ckpt_saver
         self._obj = obj
         self._device = device
 
-    def save(self, suffix=None):
-        # type: (Optional[str]) -> str
+    def save(self, suffix: Optional[str] = None) -> str:
         state = self._obj.state_dict()
         state["rng"] = get_rng_state(device=self._device)
         return self._ckpt_saver.save(state, suffix=suffix)
@@ -108,15 +102,13 @@ class StateCheckpointSaver(Saver):
 class RollingSaver(Saver):
     """Saver wrapper that keeps a maximum number of files"""
 
-    def __init__(self, saver, keep=5):
-        # type: (Saver, int) -> None
+    def __init__(self, saver: Saver, keep: int = 5) -> None:
         assert keep > 0
         self._saver = saver
         self._keep = keep
         self._last_saved = deque()
 
-    def save(self, *args, **kwargs):
-        # type: (*Any, **Any) -> str
+    def save(self, *args: Any, **kwargs: Any) -> str:
         path = self._saver.save(*args, **kwargs)
         if len(self._last_saved) >= self._keep:
             last = self._last_saved.popleft()

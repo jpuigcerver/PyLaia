@@ -1,8 +1,9 @@
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List
 
 
-def char_to_word_seq(sequence_of_characters, delimiters):
-    # type: (Iterable, Union[List,Tuple]) -> List[List]
+def char_to_word_seq(
+    sequence_of_characters: Iterable, delimiters: Iterable
+) -> List[List]:
     """Convert a sequence of characters into a sequence of words.
 
     Examples:
@@ -21,11 +22,11 @@ def char_to_word_seq(sequence_of_characters, delimiters):
         A list of lists containing the characters that form each word.
         Delimiters are not included.
     """
-    delimiters = set(delimiters)
-    word_seq = [[]]
+    delimiter_set = set(delimiters)
+    word_seq = [[]]  # type: List[List]
     prev_is_delim = True
     for c in sequence_of_characters:
-        if c in delimiters:
+        if c in delimiter_set:
             if not prev_is_delim:
                 word_seq.append([])
             prev_is_delim = True

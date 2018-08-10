@@ -22,12 +22,12 @@ class ImageFeeder(TensorFeeder):
 
     def __init__(
         self,
-        device,  # type: Union[str, torch.device]
-        keep_padded_tensors=True,  # type: bool
-        keep_channels_in_size=False,  # type: bool
-        requires_grad=False,  # type: bool
-        parent_feeder=None,  # type: Optional[Callable]
-    ):
+        device: Union[str, torch.device],
+        keep_padded_tensors: bool = True,
+        keep_channels_in_size: bool = False,
+        requires_grad: bool = False,
+        parent_feeder: Optional[Callable] = None,
+    ) -> None:
         super().__init__(
             device=device, requires_grad=requires_grad, parent_feeder=parent_feeder
         )
@@ -35,7 +35,7 @@ class ImageFeeder(TensorFeeder):
         self._keep_channels_in_size = keep_channels_in_size
 
     @classmethod
-    def _view_as_4d(cls, batch):
+    def _view_as_4d(cls, batch: torch.Tensor) -> torch.Tensor:
         if batch.dim() == 2:
             batch = batch.view(1, 1, batch.size(0), batch.size(1))
         elif batch.dim() == 3:

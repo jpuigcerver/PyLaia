@@ -17,18 +17,16 @@ from laia.utils import ImageToTensor
 
 
 def output_matrix(
-    img_id,  # type: str
-    output,  # type: torch.Tensor
-    output_size,  # type: int
-    add_boundary_ctc_blank=False,  # type: bool
-    digits=10,  # type: int
-):
-    # type: (...) -> str
+    img_id: str,
+    output: torch.Tensor,
+    output_size: int,
+    add_boundary_ctc_blank: bool = False,
+    digits: int = 10,
+) -> str:
     output = output.cpu()
     matrix = "{} [\n".format(img_id)
 
-    def boundary_blank(cols):
-        # type: (int) -> str
+    def boundary_blank(cols: int) -> str:
         matrix = "0 "
         matrix += " ".join(["-1e+30"] * (cols - 1))
         return matrix + "\n"
@@ -51,13 +49,8 @@ def output_matrix(
 
 
 def output_lattice(
-    img_id,  # type: str
-    output,  # type: torch.Tensor
-    output_size,  # type: int
-    digits=10,  # type: int
-    **_  # type: **Any
-):
-    # type: (...) -> str
+    img_id: str, output: torch.Tensor, output_size: int, digits: int = 10, **_: Any
+) -> str:
     output = output.cpu()
     matrix = "{}\n".format(img_id)
     matrix += (

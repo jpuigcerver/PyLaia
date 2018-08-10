@@ -5,15 +5,13 @@ import numpy as np
 import torch
 
 
-def manual_seed(seed):
-    # type: (int) -> None
+def manual_seed(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     random.seed(seed)
 
 
-def get_rng_state(device=None):
-    # type: (Optional[torch.Device]) -> dict
+def get_rng_state(device: Optional[torch.device] = None) -> dict:
     return {
         "numpy": np.random.get_state(),
         "torch_cpu": torch.get_rng_state(),
@@ -24,8 +22,7 @@ def get_rng_state(device=None):
     }
 
 
-def set_rng_state(state, device=None):
-    # type: (dict, Optional[torch.Device]) -> None
+def set_rng_state(state: dict, device: Optional[torch.device] = None) -> None:
     np.random.set_state(state["numpy"])
     torch.set_rng_state(state["torch_cpu"])
     if state["torch_cuda"] is not None:
