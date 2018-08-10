@@ -48,6 +48,8 @@ class TransformerImageAffine(Transformer):
                 resample=Image.BILINEAR,
                 fillcolor=self.fillcolor,
             )
+        else:
+            return x
 
     @staticmethod
     def get_affine_transform(src, dst):
