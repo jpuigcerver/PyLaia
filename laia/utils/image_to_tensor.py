@@ -5,7 +5,7 @@ from PIL import Image, ImageOps
 
 
 # TODO: Deprecate this class in favor of laia.data.transforms
-class ImageToTensor(object):
+class ImageToTensor:
     def __init__(
         self,
         invert=True,

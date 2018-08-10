@@ -1,7 +1,7 @@
 from typing import Callable, Tuple
 
 
-class Hook(object):
+class Hook:
     """Executes an action when the condition is met"""
 
     def __init__(self, condition, action, *args, **kwargs):
@@ -34,7 +34,7 @@ class Hook(object):
                 v.load_state_dict(state[k])
 
 
-class HookList(object):
+class HookList:
     """When called, calls a collection of :class:`~Hook`` objects."""
 
     def __init__(self, *hooks):

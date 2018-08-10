@@ -51,7 +51,7 @@ def str2loglevel(v):
         raise ArgumentTypeError("Valid logging levels are: {!r}", levels.values())
 
 
-class NumberInClosedRange(object):
+class NumberInClosedRange:
     def __init__(self, type, vmin=None, vmax=None):
         self._type = type
         self._vmin = vmin
@@ -61,7 +61,7 @@ class NumberInClosedRange(object):
         return str2num_accept_closed_range(v, self._type, self._vmin, self._vmax)
 
 
-class NumberInOpenRange(object):
+class NumberInOpenRange:
     def __init__(self, type, vmin=None, vmax=None):
         self._type = type
         self._vmin = vmin
@@ -71,7 +71,7 @@ class NumberInOpenRange(object):
         return str2num_accept_open_range(v, self._type, self._vmin, self._vmax)
 
 
-class TupleList(object):
+class TupleList:
     def __init__(self, type, dimensions=2):
         assert dimensions >= 2
         self._type = type

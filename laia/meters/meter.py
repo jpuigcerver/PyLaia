@@ -3,7 +3,7 @@ import laia.common.logging as log
 _logger = log.get_logger(__name__)
 
 
-class Meter(object):
+class Meter:
     """A meter returns its :attr:`~.Meter.value` when it is called
 
     Meters are used for measuring times, computing running averages, and

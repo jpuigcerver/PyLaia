@@ -10,7 +10,7 @@ from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
 _logger = get_logger(__name__)
 
 
-class Experiment(object):
+class Experiment:
     def __init__(
         self,
         train_engine,  # type: Trainer

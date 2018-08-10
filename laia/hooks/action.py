@@ -28,7 +28,7 @@ def action(func):
     return wrapper
 
 
-class Action(object):
+class Action:
     def __init__(self, callable_, *args, **kwargs):
         # type: (Callable, Any, Any) -> None
         self._callable = callable_
@@ -41,7 +41,7 @@ class Action(object):
         return self._callable(*a, **kw)
 
 
-class ActionList(object):
+class ActionList:
     """When called, calls a collection of :class:`~Action` objects."""
 
     def __init__(self, *actions):

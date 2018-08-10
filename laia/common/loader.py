@@ -14,7 +14,7 @@ import natsort as ns
 _logger = get_logger(__name__)
 
 
-class Loader(object):
+class Loader:
     def __call__(self, *args, **kwargs):
         return self.load(*args, **kwargs)
 

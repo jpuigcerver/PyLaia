@@ -4,7 +4,7 @@ from laia.engine.engine import Engine, EPOCH_START, EPOCH_END, ITER_START, ITER_
 from laia.hooks import action
 
 
-class DummyModel(object):
+class DummyModel:
     def __init__(self):
         self.counter = 0
 

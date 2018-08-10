@@ -5,7 +5,7 @@ from laia.common.logging import get_logger, DEBUG, INFO, ERROR
 _logger = get_logger(__name__)
 
 
-class Condition(object):
+class Condition:
     """Conditions are objects that when called return either `True` or `False`.
     Typically used inside of Hooks to trigger an action
 
@@ -76,7 +76,7 @@ class LoggingCondition(Condition):
         self.log(ERROR, msg, *args, **kwargs)
 
 
-class Not(object):
+class Not:
     """True when the given condition is false.
 
     Arguments:
@@ -92,7 +92,7 @@ class Not(object):
         return not self._condition()
 
 
-class MultinaryCondition(object):
+class MultinaryCondition:
     """Base class for operators involving an arbitrary number of conditions.
 
     Arguments:

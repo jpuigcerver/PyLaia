@@ -1,4 +1,4 @@
-class SymbolsTable(object):
+class SymbolsTable:
     def __init__(self, f=None):
         self._sym2val, self._val2sym = dict(), dict()
         if f:

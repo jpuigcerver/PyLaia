@@ -33,7 +33,7 @@ class TqdmStreamHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-class FormatMessage(object):
+class FormatMessage:
     def __init__(self, fmt, *args, **kwargs):
         self.fmt = fmt
         self.args = args

@@ -3,7 +3,7 @@ import unittest
 from laia.data.fixed_size_sampler import FixedSizeSampler
 
 
-class DummyDataset(object):
+class DummyDataset:
     def __init__(self, size):
         self._size = size
 

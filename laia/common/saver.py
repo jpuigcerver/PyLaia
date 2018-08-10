@@ -11,7 +11,7 @@ from laia.common.random import get_rng_state
 _logger = get_logger(__name__)
 
 
-class Saver(object):
+class Saver:
     def __call__(self, *args, **kwargs):
         return self.save(*args, **kwargs)
 

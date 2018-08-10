@@ -16,7 +16,7 @@ ITER_START = "ITER_START"
 ITER_END = "ITER_END"
 
 
-class Engine(object):
+class Engine:
     """Wrapper class to train a model.
 
     Args:

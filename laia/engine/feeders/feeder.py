@@ -1,4 +1,4 @@
-class Feeder(object):
+class Feeder:
     """This class is used to feed data to a model or loss.
 
     During training or evaluation, a :class:`laia.engine.Engine` object
