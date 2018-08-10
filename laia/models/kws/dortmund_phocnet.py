@@ -13,7 +13,7 @@ from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 
 class Identity(torch.nn.Module):
     def __init__(self):
-        super(Identity, self).__init__()
+        super().__init__()
 
     def forward(self, x):
         return x
@@ -83,7 +83,7 @@ class DortmundPHOCNet(torch.nn.Module):
         self, phoc_size, tpp_levels=range(1, 6), spp_levels=None, unittest=False
     ):
         # type: (int, Optional[Sequence[int]], Optional[Sequence[int]], bool) -> None
-        super(DortmundPHOCNet, self).__init__()
+        super().__init__()
         assert tpp_levels or spp_levels
         if tpp_levels is None:
             tpp_levels = []

@@ -5,7 +5,7 @@ from laia.meters import Meter
 
 class TimeMeter(Meter):
     def __init__(self, exceptions_threshold=5):
-        super(TimeMeter, self).__init__(exceptions_threshold)
+        super().__init__(exceptions_threshold)
         self._start = time.time()
         self._end = None
 

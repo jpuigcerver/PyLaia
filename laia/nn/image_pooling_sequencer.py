@@ -16,7 +16,7 @@ except ImportError:
 
 class ImagePoolingSequencer(torch.nn.Module):
     def __init__(self, sequencer, columnwise=True):
-        super(ImagePoolingSequencer, self).__init__()
+        super().__init__()
 
         m = re.match(r"^(avgpool|maxpool|none)-([1-9][0-9]*)$", sequencer)
         if m is None:

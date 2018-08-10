@@ -13,7 +13,7 @@ class Highest(LoggingCondition):
 
     def __init__(self, obj, key=None, name=None):
         # type: (Callable, Any, str) -> None
-        super(Highest, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._highest = -inf
 
     def __call__(self):
@@ -30,10 +30,10 @@ class Highest(LoggingCondition):
         return False
 
     def state_dict(self):
-        state = super(Highest, self).state_dict()
+        state = super().state_dict()
         state["highest"] = self._highest
         return state
 
     def load_state_dict(self, state):
-        super(Highest, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._highest = state["highest"]

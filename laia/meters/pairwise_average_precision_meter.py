@@ -36,7 +36,7 @@ class PairwiseAveragePrecisionMeter(Meter):
         exceptions_threshold=5,
         exclude_labels=None,
     ):
-        super(PairwiseAveragePrecisionMeter, self).__init__(exceptions_threshold)
+        super().__init__(exceptions_threshold)
         self._metric = metric
         self._features = []
         self._labels = []

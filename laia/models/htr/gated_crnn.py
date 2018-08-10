@@ -16,7 +16,7 @@ class GatedConv2d(torch.nn.Module):
         self, in_channels, out_channels, kernel_size, activation, stride=1, padding=0
     ):
         # type: (int, int, Size, Module, Size, Size) -> None
-        super(GatedConv2d, self).__init__()
+        super().__init__()
 
         conv1 = torch.nn.Conv2d(
             in_channels=in_channels,
@@ -55,7 +55,7 @@ class GatedEncoder(torch.nn.Module):
         inplace=True,  # type: bool
     ):
         # type: (...) -> None
-        super(GatedEncoder, self).__init__()
+        super().__init__()
         assert isinstance(features, (tuple, list))
         assert isinstance(kernel_sizes, (tuple, list))
         assert isinstance(add_gating, (tuple, list))
@@ -169,7 +169,7 @@ class RNNDecoder(torch.nn.Module):
         dropout_p=0.0,  # type: float
     ):
         # type: (...) -> None
-        super(RNNDecoder, self).__init__()
+        super().__init__()
         self._dropout = dropout_p
         self.rnn = rnn_type(
             input_size=input_size,
@@ -220,7 +220,7 @@ class GatedCRNN(torch.nn.Module):
         rnn_dropout=0.0,  # type: float
     ):
         # type: (...) -> None
-        super(GatedCRNN, self).__init__()
+        super().__init__()
 
         self.encoder = GatedEncoder(
             in_channels=in_channels,

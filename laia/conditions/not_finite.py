@@ -11,7 +11,7 @@ _logger = log.get_logger(__name__)
 class NotFinite(LoggingCondition):
     def __init__(self, obj, key=None, name=None):
         # type: (Callable, Any,str) -> None
-        super(NotFinite, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
 
     def __call__(self):
         value = self._process_value()

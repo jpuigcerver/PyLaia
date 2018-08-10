@@ -22,7 +22,7 @@ class ImageDataLoader(DataLoader):
         pin_memory=False,
         drop_last=False,
     ):
-        super(ImageDataLoader, self).__init__(
+        super().__init__(
             dataset=dataset,
             batch_size=batch_size,
             shuffle=shuffle,

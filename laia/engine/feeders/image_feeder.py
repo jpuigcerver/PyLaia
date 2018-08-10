@@ -28,7 +28,7 @@ class ImageFeeder(TensorFeeder):
         requires_grad=False,  # type: bool
         parent_feeder=None,  # type: Optional[Callable]
     ):
-        super(ImageFeeder, self).__init__(
+        super().__init__(
             device=device, requires_grad=requires_grad, parent_feeder=parent_feeder
         )
         self._keep_padded_tensors = keep_padded_tensors
@@ -50,7 +50,7 @@ class ImageFeeder(TensorFeeder):
         return batch
 
     def _feed(self, batch):
-        batch = super(ImageFeeder, self)._feed(batch)
+        batch = super()._feed(batch)
         # View image batch as a N-C-H-W
         batch = self._view_as_4d(
             batch.data if isinstance(batch, PaddedTensor) else batch

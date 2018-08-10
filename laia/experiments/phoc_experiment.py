@@ -41,7 +41,7 @@ class PHOCExperiment(Experiment):
         ),  # type: Sequence[str]
     ):
         # type: (...) -> None
-        super(PHOCExperiment, self).__init__(
+        super().__init__(
             train_engine,
             valid_engine=valid_engine,
             check_valid_hook_when=check_valid_hook_when,
@@ -101,7 +101,7 @@ class PHOCExperiment(Experiment):
 
     @action
     def valid_reset_meters(self):
-        super(PHOCExperiment, self).valid_reset_meters()
+        super().valid_reset_meters()
         self._va_ap.reset()
 
     @action
@@ -121,7 +121,7 @@ class PHOCExperiment(Experiment):
 
     def epoch_summary(self, summary_order=None):
         # type: (Optional[Sequence[str]]) -> List[dict]
-        summary = super(PHOCExperiment, self).epoch_summary(summary_order=summary_order)
+        summary = super().epoch_summary(summary_order=summary_order)
         if self._va_engine:
             summary.append(
                 dict(label="VA gAP", format="{.value[0]:5.1%}", source=self._va_ap)
@@ -137,7 +137,7 @@ class PHOCExperiment(Experiment):
 
     def state_dict(self):
         # type: () -> dict
-        state = super(PHOCExperiment, self).state_dict()
+        state = super().state_dict()
         if hasattr(self._va_ap, "state_dict"):
             state["va_ap"] = self._va_ap.state_dict()
         return state
@@ -146,6 +146,6 @@ class PHOCExperiment(Experiment):
         # type: (dict) -> None
         if state is None:
             return
-        super(PHOCExperiment, self).load_state_dict(state)
+        super().load_state_dict(state)
         if hasattr(self._va_ap, "load_state_dict"):
             self._va_ap.load_state_dict(state["va_ap"])

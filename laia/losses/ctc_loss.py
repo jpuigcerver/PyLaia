@@ -144,7 +144,7 @@ class CTCLoss(Loss):
 
     def __init__(self, size_average=True, length_average=False):
         # type: (bool, bool) -> None
-        super(CTCLoss, self).__init__()
+        super().__init__()
         self._size_average = size_average
         self._length_average = length_average
 

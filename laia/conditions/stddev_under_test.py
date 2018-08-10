@@ -12,7 +12,7 @@ class ExceptionMeter(Meter):
 
 class MockMeter(Meter):
     def __init__(self):
-        super(MockMeter, self).__init__()
+        super().__init__()
         self._value = None
 
     def set_value(self, value, key=None):

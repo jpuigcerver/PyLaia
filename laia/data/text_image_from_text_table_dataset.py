@@ -27,9 +27,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
             txt_table, img_dirs, img_extensions, encoding=encoding
         )
         # Prepare dataset using the previous image filenames and transcripts.
-        super(TextImageFromTextTableDataset, self).__init__(
-            imgs, txts, img_transform, txt_transform
-        )
+        super().__init__(imgs, txts, img_transform, txt_transform)
 
     def __getitem__(self, index):
         """Returns the ID of the example, the image and its transcript from
@@ -42,7 +40,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
           dict: Dictionary containing the example ID ('id'), image ('img') and
             the transcript ('txt') of the image.
         """
-        out = super(TextImageFromTextTableDataset, self).__getitem__(index)
+        out = super().__getitem__(index)
         out["id"] = self._ids[index]
         return out
 

@@ -33,7 +33,7 @@ class ConvBlock(nn.Module):
         use_masks=False,  # type: bool
     ):
         # type: (...) -> None
-        super(ConvBlock, self).__init__()
+        super().__init__()
         if not isinstance(kernel_size, (list, tuple)):
             kernel_size = (kernel_size, kernel_size)
         if not isinstance(dilation, (list, tuple)):

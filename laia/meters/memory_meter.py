@@ -9,7 +9,7 @@ from laia.meters import Meter
 class MemoryMeter(Meter):
     def __init__(self, device=None, exceptions_threshold=5):
         # type: (torch.device, int) -> None
-        super(MemoryMeter, self).__init__(exceptions_threshold)
+        super().__init__(exceptions_threshold)
         self._device = device
 
     def get_cuda_memory(self):

@@ -22,7 +22,7 @@ class TqdmStreamHandler(logging.StreamHandler):
         messages don't break the tqdm bar."""
 
     def __init__(self, level=logging.NOTSET):
-        super(TqdmStreamHandler, self).__init__(level)
+        super().__init__(level)
 
     def emit(self, record):
         try:
@@ -45,7 +45,7 @@ class FormatMessage:
 
 class Logger(logging.Logger):
     def __init__(self, name, level=logging.NOTSET):
-        super(Logger, self).__init__(name, level)
+        super().__init__(name, level)
 
     def _log(self, level, msg, args, **kwargs):
         if "exc_info" in kwargs:
@@ -63,9 +63,7 @@ class Logger(logging.Logger):
         if args or kwargs:
             msg = FormatMessage(msg, *args, **kwargs)
 
-        super(Logger, self)._log(
-            level=level, msg=msg, args=(), exc_info=exc_info, extra=extra
-        )
+        super()._log(level=level, msg=msg, args=(), exc_info=exc_info, extra=extra)
 
 
 def get_logger(name=None):

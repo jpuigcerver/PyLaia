@@ -42,7 +42,7 @@ class HTRExperiment(Experiment):
         ),  # type: Sequence[str]
     ):
         # type: (...) -> None
-        super(HTRExperiment, self).__init__(
+        super().__init__(
             train_engine,
             valid_engine=valid_engine,
             check_valid_hook_when=check_valid_hook_when,
@@ -91,13 +91,13 @@ class HTRExperiment(Experiment):
 
     @action
     def train_reset_meters(self):
-        super(HTRExperiment, self).train_reset_meters()
+        super().train_reset_meters()
         self._tr_cer.reset()
         self._tr_wer.reset()
 
     @action
     def valid_reset_meters(self):
-        super(HTRExperiment, self).valid_reset_meters()
+        super().valid_reset_meters()
         self._va_cer.reset()
         self._va_wer.reset()
 
@@ -139,7 +139,7 @@ class HTRExperiment(Experiment):
 
     def epoch_summary(self, summary_order=None):
         # type: (Optional[Sequence[str]]) -> List[dict]
-        summary = super(HTRExperiment, self).epoch_summary(summary_order=summary_order)
+        summary = super().epoch_summary(summary_order=summary_order)
         summary.append(
             dict(label="TR CER", format="{.value:5.1%}", source=self._tr_cer)
         )
@@ -163,7 +163,7 @@ class HTRExperiment(Experiment):
 
     def state_dict(self):
         # type: () -> dict
-        state = super(HTRExperiment, self).state_dict()
+        state = super().state_dict()
         for k, v in (
             ("tr_cer", self._tr_cer),
             ("va_cer", self._va_cer),
@@ -178,7 +178,7 @@ class HTRExperiment(Experiment):
         # type: (dict) -> None
         if state is None:
             return
-        super(HTRExperiment, self).load_state_dict(state)
+        super().load_state_dict(state)
         for k, v in (
             ("tr_cer", self._tr_cer),
             ("va_cer", self._va_cer),

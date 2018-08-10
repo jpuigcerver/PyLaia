@@ -14,7 +14,7 @@ class NonIncreasing(LoggingCondition):
 
     def __init__(self, obj, max_no_increasing_calls, key=None, name=None):
         # type: (Callable, int, Any, str) -> None
-        super(NonIncreasing, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._highest = -inf
         self._max_no_increase = max_no_increasing_calls
         self._highest_calls = 0
@@ -38,14 +38,14 @@ class NonIncreasing(LoggingCondition):
         return False
 
     def state_dict(self):
-        state = super(NonIncreasing, self).state_dict()
+        state = super().state_dict()
         state["highest"] = self._highest
         state["highest_calls"] = self._highest_calls
         state["calls"] = self._calls
         return state
 
     def load_state_dict(self, state):
-        super(NonIncreasing, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._highest = state["highest"]
         self._highest_calls = state["highest_calls"]
         self._calls = state["calls"]
@@ -57,7 +57,7 @@ class ConsecutiveNonIncreasing(LoggingCondition):
 
     def __init__(self, obj, max_no_increasing_calls, key=None, name=None):
         # type: (Callable, int, Any, str) -> None
-        super(ConsecutiveNonIncreasing, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._highest = -inf
         self._max_no_increase = max_no_increasing_calls
         self._calls = 0
@@ -80,12 +80,12 @@ class ConsecutiveNonIncreasing(LoggingCondition):
         return False
 
     def state_dict(self):
-        state = super(ConsecutiveNonIncreasing, self).state_dict()
+        state = super().state_dict()
         state["highest"] = self._highest
         state["calls"] = self._calls
         return state
 
     def load_state_dict(self, state):
-        super(ConsecutiveNonIncreasing, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._highest = state["highest"]
         self._calls = state["calls"]

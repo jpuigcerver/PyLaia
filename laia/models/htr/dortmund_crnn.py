@@ -20,7 +20,7 @@ class DortmundCRNN(torch.nn.Module):
         dropout=0.5,  # type: float
     ):
         # type: (...) -> None
-        super(DortmundCRNN, self).__init__()
+        super().__init__()
         self._dropout = dropout
         self.conv = build_conv_model()
         self.sequencer = ImagePoolingSequencer(sequencer=sequencer, columnwise=True)

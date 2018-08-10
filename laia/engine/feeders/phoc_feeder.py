@@ -9,7 +9,7 @@ class PHOCFeeder(Feeder):
     def __init__(
         self, syms, levels, ignore_missing=True, new_phoc=False, parent_feeder=None
     ):
-        super(PHOCFeeder, self).__init__(parent_feeder)
+        super().__init__(parent_feeder)
         assert isinstance(syms, (dict, SymbolsTable))
         assert isinstance(levels, (list, tuple))
         self._syms = syms

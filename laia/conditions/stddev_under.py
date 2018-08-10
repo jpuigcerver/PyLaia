@@ -32,7 +32,7 @@ class StdDevUnder(LoggingCondition):
             "The number of values to keep must be greater than 1 to compute "
             "the standard deviation"
         )
-        super(StdDevUnder, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
         self._values = []

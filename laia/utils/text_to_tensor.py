@@ -9,4 +9,4 @@ class TextToTensor(ToTensor):
             "The use of laia.utils.TextToTensor is deprecated, "
             "please use laia.data.transforms.text.ToTensor instead."
         )
-        super(TextToTensor, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)

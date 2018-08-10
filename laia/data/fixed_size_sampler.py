@@ -16,7 +16,7 @@ class FixedSizeSampler(Sampler):
     """
 
     def __init__(self, data_source, num_samples):
-        super(FixedSizeSampler, self).__init__(data_source)
+        super().__init__(data_source)
         self._data_source = data_source
         self._num_samples = num_samples
 

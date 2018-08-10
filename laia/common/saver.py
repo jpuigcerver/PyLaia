@@ -51,11 +51,11 @@ class ObjectSaver(Saver):
 class ModelSaver(ObjectSaver):
     def __init__(self, save_path, filename="model"):
         # type: (str, str) ->  None
-        super(ModelSaver, self).__init__(os.path.join(save_path, filename))
+        super().__init__(os.path.join(save_path, filename))
 
     def save(self, func, *args, **kwargs):
         # type: (Callable, *Any, **Any) -> str
-        path = super(ModelSaver, self).save(func, *args, **kwargs)
+        path = super().save(func, *args, **kwargs)
         _logger.debug("Saved model {}", path)
         return path
 

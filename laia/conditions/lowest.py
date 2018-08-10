@@ -13,7 +13,7 @@ class Lowest(LoggingCondition):
 
     def __init__(self, obj, key=None, name=None):
         # type: (Callable, Any, str) -> None
-        super(Lowest, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._lowest = inf
 
     def __call__(self):
@@ -30,10 +30,10 @@ class Lowest(LoggingCondition):
         return False
 
     def state_dict(self):
-        state = super(Lowest, self).state_dict()
+        state = super().state_dict()
         state["lowest"] = self._lowest
         return state
 
     def load_state_dict(self, state):
-        super(Lowest, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._lowest = state["lowest"]

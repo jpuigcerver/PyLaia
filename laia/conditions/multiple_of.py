@@ -12,7 +12,7 @@ class MultipleOf(LoggingCondition):
     def __init__(self, obj, divisor, key=None, name=None):
         # type: (Callable, int, Any, str) -> None
         assert divisor > 0
-        super(MultipleOf, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._divisor = divisor
 
     def __call__(self):

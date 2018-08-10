@@ -33,7 +33,7 @@ class ItemFeeder(Feeder):
     """
 
     def __init__(self, key, parent_feeder=None):
-        super(ItemFeeder, self).__init__(parent_feeder)
+        super().__init__(parent_feeder)
         self._key = key
 
     def _feed(self, batch):

@@ -35,7 +35,7 @@ class LaiaCRNN(nn.Module):
         use_masks=False,  # type: bool
     ):
         # type: (...) -> None
-        super(LaiaCRNN, self).__init__()
+        super().__init__()
         self._rnn_dropout = rnn_dropout
         self._lin_dropout = lin_dropout
 

@@ -23,7 +23,7 @@ class TensorFeeder(Feeder):
         parent_feeder=None,  # type: Optional[Callable]
     ):
         # type: (...) -> None
-        super(TensorFeeder, self).__init__(parent_feeder)
+        super().__init__(parent_feeder)
         self._device = device
         self._requires_grad = requires_grad
 

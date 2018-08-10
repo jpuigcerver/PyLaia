@@ -19,7 +19,7 @@ class ImageFromListDataset(ImageDataset):
         self._ids, imgs = _get_ids_and_images_from_img_list(
             img_list, img_dirs, img_extensions
         )
-        super(ImageFromListDataset, self).__init__(imgs, img_transform)
+        super().__init__(imgs, img_transform)
 
     def __getitem__(self, index):
         """Returns the ID of the example, and its image.
@@ -30,7 +30,7 @@ class ImageFromListDataset(ImageDataset):
         Returns:
           dict: Dictionary containing the example ID ('id'), image ('img'),
         """
-        out = super(ImageFromListDataset, self).__getitem__(index)
+        out = super().__getitem__(index)
         out["id"] = self._ids[index]
         return out
 

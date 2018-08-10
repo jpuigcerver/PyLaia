@@ -63,11 +63,11 @@ class ModelLoader(ObjectLoader):
     def __init__(self, load_path, filename="model", device=None):
         # type: (str, str, Optional[Union[str, torch.Device]]) -> None
         self._path = os.path.join(load_path, filename)
-        super(ModelLoader, self).__init__(self._path, device=device)
+        super().__init__(self._path, device=device)
 
     def load(self):
         # type: () -> Optional
-        model = super(ModelLoader, self).load()
+        model = super().load()
         if model is not None:
             _logger.info("Loaded model {}", self._path)
         return model
@@ -98,20 +98,18 @@ class CheckpointLoader(Loader):
 class ModelCheckpointLoader(CheckpointLoader):
     def __init__(self, model, device=None):
         # type: (torch.nn.Module, Optional[Union[str, torch.Device]]) -> None
-        super(ModelCheckpointLoader, self).__init__(device=device)
+        super().__init__(device=device)
         self._model = model
 
     def load(self, filepath):
         # type: (str) -> Optional
-        state = super(ModelCheckpointLoader, self).load(filepath)
+        state = super().load(filepath)
         if state is not None:
             self._model.load_state_dict(state)
 
     def load_by(self, pattern, key=None, reverse=True):
         # type: (str, Optional[Callable], bool) -> Optional
-        state = super(ModelCheckpointLoader, self).load_by(
-            pattern, key=key, reverse=reverse
-        )
+        state = super().load_by(pattern, key=key, reverse=reverse)
         if state is not None:
             self._model.load_state_dict(state)
 
@@ -119,21 +117,19 @@ class ModelCheckpointLoader(CheckpointLoader):
 class StateCheckpointLoader(CheckpointLoader):
     def __init__(self, obj, device=None):
         # type: (Any, Optional[Union[str, torch.Device]]) -> None
-        super(StateCheckpointLoader, self).__init__(device=device)
+        super().__init__(device=device)
         self._obj = obj
 
     def load(self, filepath):
         # type: (str) -> Optional
-        state = super(StateCheckpointLoader, self).load(filepath)
+        state = super().load(filepath)
         if state is not None:
             set_rng_state(state.pop("rng"), self._device)
             self._obj.load_state_dict(state)
 
     def load_by(self, pattern, key=None, reverse=True):
         # type: (str, Optional[Callable], bool) -> Optional
-        state = super(StateCheckpointLoader, self).load_by(
-            pattern, key=key, reverse=reverse
-        )
+        state = super().load_by(pattern, key=key, reverse=reverse)
         if state is not None:
             set_rng_state(state.pop("rng"))
             self._obj.load_state_dict(state)

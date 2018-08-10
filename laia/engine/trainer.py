@@ -50,7 +50,7 @@ class Trainer(Engine):
         iterations_per_update=1,  # type: int
     ):
         # type: (...) -> None
-        super(Trainer, self).__init__(
+        super().__init__(
             model=model,
             data_loader=data_loader,
             batch_input_fn=batch_input_fn,
@@ -222,12 +222,12 @@ class Trainer(Engine):
             return self._criterion(batch_output, batch_target, **kwargs)
 
     def state_dict(self):
-        state = super(Trainer, self).state_dict()
+        state = super().state_dict()
         state["optimizer"] = self._optimizer.state_dict()
         state["updates"] = self._updates
         return state
 
     def load_state_dict(self, state):
-        super(Trainer, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._optimizer.load_state_dict(state["optimizer"])
         self._updates = state["updates"]
