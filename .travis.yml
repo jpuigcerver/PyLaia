@@ -17,5 +17,9 @@ install:
   #- ./travis/build_nnutils.sh
   - ./travis/build_warp_ctc.sh
 
+before_script:
+  - pip install mypy
+
 script:
   - ./travis/run_tests.sh
+  - mypy --ignore-missing-imports --scripts-are-modules laia pylaia*
