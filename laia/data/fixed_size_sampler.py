@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import torch
 from torch.utils.data.sampler import Sampler
 

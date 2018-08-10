@@ -1,19 +1,17 @@
-from __future__ import absolute_import
-
 import os
 import subprocess
 
 import setuptools
 import setuptools.command.build_py
 
-cwd = os.path.dirname(os.path.abspath(__file__))
+CWD = os.path.dirname(os.path.abspath(__file__))
 
 
 def _git_output(args):
     stderr = open(os.devnull, "w")
     output = None
     try:
-        output = subprocess.check_output(args, cwd=cwd).decode("ascii").strip()
+        output = subprocess.check_output(args, cwd=CWD).decode("ascii").strip()
     finally:
         stderr.close()
         return output
@@ -45,7 +43,7 @@ MICRO = 0
 VERSION = "{}.{}.{}".format(MAJOR, MINOR, MICRO)
 
 
-class create_version_file(setuptools.Command):
+class VersionFileCommand(setuptools.Command):
     def initialize_options(self):
         pass
 
@@ -54,7 +52,7 @@ class create_version_file(setuptools.Command):
 
     def run(self):
         print("creating version file")
-        version_path = os.path.join(cwd, "laia", "version.py")
+        version_path = os.path.join(CWD, "laia", "version.py")
         with open(version_path, "w") as f:
             full_version = "{}+{}{}".format(
                 VERSION, git_commit(short=True), "-dirty" if git_is_dirty() else ""
@@ -65,7 +63,7 @@ class create_version_file(setuptools.Command):
             f.write("__branch__ = '{}'\n".format(git_branch()))
 
 
-class build_py(setuptools.command.build_py.build_py):
+class BuildCommand(setuptools.command.build_py.build_py):
     def run(self):
         self.run_command("create_version_file")
         setuptools.command.build_py.build_py.run(self)
@@ -73,7 +71,7 @@ class build_py(setuptools.command.build_py.build_py):
 
 def get_scripts():
     return [
-        os.path.join(cwd, script)
+        os.path.join(CWD, script)
         for script in (
             "pylaia-htr-create-model",
             "pylaia-htr-decode-ctc",
@@ -105,5 +103,5 @@ setuptools.setup(
     # Package contents
     packages=setuptools.find_packages(),
     scripts=get_scripts(),
-    cmdclass={"create_version_file": create_version_file, "build_py": build_py},
+    cmdclass={"create_version_file": VersionFileCommand, "build_py": BuildCommand},
 )

@@ -1,5 +1,5 @@
 class Feeder(object):
-    r"""This class is used to feed data to a model or loss.
+    """This class is used to feed data to a model or loss.
 
     During training or evaluation, a :class:`laia.engine.Engine` object
     will use feeders like this to feed data from a DataLoader into
@@ -24,7 +24,7 @@ class Feeder(object):
 
 
 class ItemFeeder(Feeder):
-    r"""Feed an element from a batch dictionary, by its key.
+    """Feed an element from a batch dictionary, by its key.
 
     Args:
       key: the key to use.

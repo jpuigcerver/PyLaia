@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Callable, Any
 
 import numpy as np
@@ -11,7 +9,7 @@ _logger = log.get_logger(__name__)
 
 
 class StdDevUnder(LoggingCondition):
-    r"""Returns True when the standard deviation
+    """Returns True when the standard deviation
     over the latest values is lower than some threshold.
 
     Each time this is called with a value, it will be stored.

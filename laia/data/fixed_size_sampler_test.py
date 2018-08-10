@@ -1,8 +1,6 @@
-from __future__ import absolute_import
+import unittest
 
 from laia.data.fixed_size_sampler import FixedSizeSampler
-
-import unittest
 
 
 class DummyDataset(object):

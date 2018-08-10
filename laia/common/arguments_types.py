@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from argparse import ArgumentTypeError
 from ast import literal_eval

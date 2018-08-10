@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Tuple, Callable, Any as AnyT
 
 from laia.common.logging import get_logger, DEBUG, INFO, ERROR

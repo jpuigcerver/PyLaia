@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import torch
 from torch.nn.functional import adaptive_avg_pool2d
 from torch.nn.utils.rnn import pack_padded_sequence

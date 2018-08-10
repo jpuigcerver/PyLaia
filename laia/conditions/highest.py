@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Callable, Any
 
 from torch._six import inf

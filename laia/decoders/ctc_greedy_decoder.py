@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from functools import reduce
 
 from laia.losses.ctc_loss import transform_output

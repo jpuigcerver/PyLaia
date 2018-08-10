@@ -1,6 +1,5 @@
-import inspect
 from functools import wraps
-
+from inspect import getfullargspec
 from typing import Callable, Any, Tuple
 
 
@@ -20,15 +19,10 @@ def action(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        try:
-            argspec = inspect.getfullargspec(func)
-        except AttributeError:
-            argspec = inspect.getargspec(func)
-
-        non_kwargs_num = len(argspec.args) - len(argspec.defaults or [])
+        argspec = getfullargspec(func)
+        non_kwargs = len(argspec.args) - len(argspec.defaults or [])
         return func(
-            *args[:non_kwargs_num],
-            **{k: v for k, v in kwargs.items() if k in argspec.args}
+            *args[:non_kwargs], **{k: v for k, v in kwargs.items() if k in argspec.args}
         )
 
     return wrapper
@@ -43,7 +37,7 @@ class Action(object):
 
     def __call__(self, *args, **kwargs):
         a = self._args + args
-        kw = dict(self._kwargs, **kwargs)
+        kw = {**self._kwargs, **kwargs}
         return self._callable(*a, **kw)
 
 

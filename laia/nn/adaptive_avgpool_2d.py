@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from nnutils_pytorch import adaptive_avgpool_2d
 
 from laia.nn.adaptive_pool_2d_base import AdaptivePool2dBase

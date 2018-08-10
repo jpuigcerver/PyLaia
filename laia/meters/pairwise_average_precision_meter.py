@@ -1,17 +1,14 @@
-from __future__ import absolute_import
-
-import laia.common.logging as log
 import numpy as np
 from scipy.spatial.distance import pdist
 
+import laia.common.logging as log
 from laia.meters import Meter
-from laia.utils.accumulate import accumulate
 
 _logger = log.get_logger(__name__)
 
 
 class PairwiseAveragePrecisionMeter(Meter):
-    r"""Compute Average Precision over pairs of objects using some metric.
+    """Compute Average Precision over pairs of objects using some metric.
 
     When a set of examples are added, its feature vectors and labels are
     given and stored in the ``PairwiseAveragePrecisionMeter`` object.
@@ -62,7 +59,7 @@ class PairwiseAveragePrecisionMeter(Meter):
         return self
 
     def add(self, features, labels):
-        r"""Add objects to the set used to compute the AP."""
+        """Add objects to the set used to compute the AP."""
         # If anything was computed, reset
         self._gap, self._map = None, None
 
@@ -121,7 +118,7 @@ class PairwiseAveragePrecisionMeter(Meter):
 
     @classmethod
     def _compute_ap_ranked_events(cls, events):
-        r"""Compute the average precision of a ranked list of events.
+        """Compute the average precision of a ranked list of events.
 
         Each event should be 1.0 if it is relevant or 0.0 if it is not
         relevant.
@@ -140,7 +137,7 @@ class PairwiseAveragePrecisionMeter(Meter):
 
     @property
     def value(self):
-        r"""Return the Global and Mean Average Precision."""
+        """Return the Global and Mean Average Precision."""
         if self._gap is None or self._map is None:
             self._gap, self._map = self._compute()
         return self._gap, self._map

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Union, Optional, Callable
 
 import torch
@@ -9,7 +7,7 @@ from laia.engine.feeders.tensor_feeder import TensorFeeder
 
 
 class ImageFeeder(TensorFeeder):
-    r"""Feed an image as a PyTorch Tensor to the model.
+    """Feed an image as a PyTorch Tensor to the model.
 
     Args:
       device: Device Where the data should be allocated.

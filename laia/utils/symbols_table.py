@@ -1,9 +1,3 @@
-from __future__ import absolute_import
-
-import io
-from torch._six import string_classes
-
-
 class SymbolsTable(object):
     def __init__(self, f=None):
         self._sym2val, self._val2sym = dict(), dict()
@@ -13,9 +7,9 @@ class SymbolsTable(object):
     def clear(self):
         self._sym2val, self._val2sym = dict(), dict()
 
-    def load(self, f, encoding="utf8"):
-        if isinstance(f, string_classes):
-            f = io.open(f, "r", encoding=encoding)
+    def load(self, f, encoding="utf-8"):
+        if isinstance(f, str):
+            f = open(f, encoding=encoding)
         self.clear()
         try:
             lines = [line.split() for line in f if len(line.split())]
@@ -26,9 +20,9 @@ class SymbolsTable(object):
         finally:
             f.close()
 
-    def save(self, f, encoding="utf8"):
-        if isinstance(f, string_classes):
-            f = io.open(f, "w", encoding=encoding)
+    def save(self, f, encoding="utf-8"):
+        if isinstance(f, str):
+            f = open(f, "w", encoding=encoding)
         max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
             f.write("{:>{w}} {}\n".format(s, v, w=max_len).encode(encoding))
@@ -40,7 +34,7 @@ class SymbolsTable(object):
     def __getitem__(self, x):
         if isinstance(x, int):
             return self._val2sym.get(x, None)
-        elif isinstance(x, string_classes):
+        elif isinstance(x, str):
             return self._sym2val.get(x, None)
         else:
             raise ValueError("SymbolsTable contains pairs of integers and strings")
@@ -52,13 +46,13 @@ class SymbolsTable(object):
     def __contains__(self, x):
         if isinstance(x, int):
             return x in self._val2sym
-        elif isinstance(x, string_classes):
+        elif isinstance(x, str):
             return x in self._sym2val
         else:
             raise ValueError("SymbolsTable contains pairs of integers and strings")
 
     def add(self, symbol, value):
-        if not isinstance(symbol, string_classes):
+        if not isinstance(symbol, str):
             raise KeyError(
                 "Symbol must be a string, but type {} was given".format(type(symbol))
             )

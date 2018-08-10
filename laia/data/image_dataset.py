@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from PIL import Image
 from torch.utils import data
 

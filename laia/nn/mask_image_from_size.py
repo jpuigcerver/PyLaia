@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import torch
 from nnutils_pytorch import mask_image_from_size
 

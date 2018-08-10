@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import unittest
 
-import numpy as np
 import torch
 
 from laia.data import PaddedTensor

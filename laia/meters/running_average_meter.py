@@ -57,7 +57,7 @@ class RunningAverageMeter(Meter):
         elif isinstance(v, (list, tuple)):
             self._n += len(v)
             self._s += sum(v)
-            self._s2 += sum(map(lambda x: x * x, v))
+            self._s2 += sum(x * x for x in v)
         else:
             self._n += 1
             self._s += v

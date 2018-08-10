@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import io
 import json
 import logging
 import sys
@@ -157,7 +154,7 @@ def config(
 ):
     if config_dict:
         try:
-            with io.open(config_dict, "r") as f:
+            with open(config_dict) as f:
                 config_dict = json.load(f)
             logging.config.dictConfig(config_dict)
         except Exception:

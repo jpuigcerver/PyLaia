@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pywrapfst as fst
 from torch.nn.functional import log_softmax
 

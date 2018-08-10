@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Optional, Callable, Union
 
 import torch
@@ -10,7 +8,7 @@ from laia.engine.feeders.feeder import Feeder
 
 
 class TensorFeeder(Feeder):
-    r"""Feed a PyTorch Tensor to the model.
+    """Feed a PyTorch Tensor to the model.
 
     Args:
       device: Device Where the data should be allocated.

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Callable, Tuple
 
 
@@ -21,7 +19,7 @@ class Hook(object):
         # Note that the hook's args come before call's args
         # and the hook's kwargs overwrite call's kwargs
         a = self._args + args
-        kw = dict(kwargs, **self._kwargs)
+        kw = {**kwargs, **self._kwargs}
         return self._action(*a, **kw) if self._condition() else False
 
     def state_dict(self):
@@ -37,7 +35,7 @@ class Hook(object):
 
 
 class HookList(object):
-    r"""When called, calls a collection of :class:`~Hook`` objects."""
+    """When called, calls a collection of :class:`~Hook`` objects."""
 
     def __init__(self, *hooks):
         # type: (Tuple[Callable]) -> None

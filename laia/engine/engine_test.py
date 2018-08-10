@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 
 from laia.engine.engine import Engine, EPOCH_START, EPOCH_END, ITER_START, ITER_END

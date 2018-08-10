@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Optional, Callable, Sequence
 
 import torch
@@ -17,7 +15,7 @@ _logger = log.get_logger(__name__)
 
 
 class PHOCExperiment(Experiment):
-    r"""Wrapper to perform KWS experiments with PHOC networks."""
+    """Wrapper to perform KWS experiments with PHOC networks."""
 
     def __init__(
         self,

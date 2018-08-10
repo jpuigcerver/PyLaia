@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from contextlib import contextmanager
 from typing import Iterable, Callable, Union, Optional
 
 import torch
-from torch._six import string_classes, raise_from
 from tqdm import tqdm
 
 import laia.common.logging as log
@@ -20,7 +17,7 @@ ITER_END = "ITER_END"
 
 
 class Engine(object):
-    r"""Wrapper class to train a model.
+    """Wrapper class to train a model.
 
     Args:
         model: model to train.
@@ -97,7 +94,7 @@ class Engine(object):
 
     @action
     def reset(self):
-        r"""Reset the number of epochs and iterations run."""
+        """Reset the number of epochs and iterations run."""
         self._epochs = 0
         self._iterations = 0
         self._must_stop = False
@@ -113,7 +110,7 @@ class Engine(object):
         return self
 
     def set_batch_input_fn(self, fn):
-        r"""Set the function to obtain the inputs for the model.
+        """Set the function to obtain the inputs for the model.
 
         The argument can be either a function or a callable object that
         will receive as a single argument the batch read from the
@@ -125,7 +122,7 @@ class Engine(object):
         return self
 
     def set_batch_target_fn(self, fn):
-        r"""Set the function to obtain the targets from the batch.
+        """Set the function to obtain the targets from the batch.
 
         The argument can be either a function or a callable object that
         will receive as a single argument the batch read from the
@@ -141,7 +138,7 @@ class Engine(object):
         return self
 
     def add_hook(self, when, hook):
-        r"""Add a hook to be executed at some point during the run.
+        """Add a hook to be executed at some point during the run.
 
         When multiple hooks are added at the same point of the run, they will
         be run in order of addition.
@@ -157,7 +154,7 @@ class Engine(object):
 
     @action
     def run(self):
-        r"""Run a single epoch on the `dataset_loader`."""
+        """Run a single epoch on the `dataset_loader`."""
         assert self._data_loader is not None, "A data loader must be set"
         self._run_epoch()
         return self
@@ -212,7 +209,7 @@ class Engine(object):
             batch_iterator = tqdm(
                 self._data_loader,
                 desc=self._progress_bar
-                if isinstance(self._progress_bar, string_classes)
+                if isinstance(self._progress_bar, str)
                 else None,
             )
         else:
@@ -231,13 +228,12 @@ class Engine(object):
         try:
             yield
         except Exception as e:
-            wrapper = EngineException(
+            raise EngineException(
                 epoch=self._epochs,
                 iteration=self._iterations,
                 batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
                 cause=e,
-            )
-            raise_from(wrapper, e)
+            ) from e
 
     def state_dict(self):
         return {

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from laia.data.image_dataset import ImageDataset
 
 

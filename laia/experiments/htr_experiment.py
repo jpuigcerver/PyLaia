@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Callable, Optional, Sequence, List
 
 from laia.common.logging import get_logger

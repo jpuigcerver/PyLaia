@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import laia.common.logging as log
 from laia.meters import Meter
 
@@ -26,7 +23,7 @@ class AveragePrecisionMeter(Meter):
         return self
 
     def add(self, tp, fp, fn, score=None):
-        r"""Add objects to the set used to compute the AP."""
+        """Add objects to the set used to compute the AP."""
         self._done = False
         if score is None:
             score = -len(self._matches)
@@ -51,11 +48,9 @@ class AveragePrecisionMeter(Meter):
 
     @property
     def value(self):
-        r"""Return the Average Precision."""
+        """Return the Average Precision."""
         if not self._done:
             self._done = True
             self._matches.sort(reverse=self._desc_sort)
-            self._ap = self._compute_ap_ranked_matches(
-                map(lambda x: x[1:], self._matches)
-            )
+            self._ap = self._compute_ap_ranked_matches([x[1:] for x in self._matches])
         return self._ap

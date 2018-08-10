@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from torch.utils.data import DataLoader
 
 from laia.data.padding_collater import PaddingCollater

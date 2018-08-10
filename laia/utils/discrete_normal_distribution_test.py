@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import math
 import unittest
-from builtins import range
 
 from numpy import logaddexp
 from numpy.testing import assert_almost_equal

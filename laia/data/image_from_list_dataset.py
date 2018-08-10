@@ -1,9 +1,3 @@
-from __future__ import absolute_import
-
-from io import open
-
-from torch._six import string_classes
-
 import laia.common.logging as log
 from laia.data.image_dataset import ImageDataset
 from laia.data.text_image_from_text_table_dataset import (
@@ -42,10 +36,9 @@ class ImageFromListDataset(ImageDataset):
 
 
 def _load_image_list_from_file(img_list, encoding="utf-8"):
-    if isinstance(img_list, string_classes):
-        f = open(img_list, "r", encoding=encoding)
-        img_list = [i.rstrip() for i in f.readlines()]
-        f.close()
+    if isinstance(img_list, str):
+        with open(img_list, encoding=encoding) as f:
+            img_list = [line.rstrip() for line in f]
     return img_list
 
 

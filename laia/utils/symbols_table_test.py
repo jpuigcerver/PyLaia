@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import unittest
 from io import StringIO
@@ -66,7 +64,7 @@ class SymbolsTableTest(unittest.TestCase):
             next(it)
 
     def test_load(self):
-        table_file = StringIO(u"\n\na   1\nb     2\n")
+        table_file = StringIO("\n\na   1\nb     2\n")
         st = SymbolsTable(table_file)
         self.assertEqual(len(st), 2)
         self.assertEqual(st["a"], 1)
@@ -75,7 +73,7 @@ class SymbolsTableTest(unittest.TestCase):
         self.assertEqual(st[2], "b")
 
     def test_load_value_error(self):
-        table_file = StringIO(u"\n\na   1\nb     c\n")
+        table_file = StringIO("\n\na   1\nb     c\n")
         with self.assertRaises(ValueError):
             SymbolsTable(table_file)
 
@@ -85,7 +83,7 @@ class SymbolsTableTest(unittest.TestCase):
         st.add("b", 2)
         table_file = NamedTemporaryFile(delete=False)
         st.save(table_file)
-        with open(table_file.name, "r") as f:
+        with open(table_file.name) as f:
             table_content = f.read()
         self.assertEqual(table_content, "a 1\nb 2\n")
         os.remove(table_file.name)

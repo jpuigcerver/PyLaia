@@ -1,8 +1,8 @@
-from laia.engine.feeders.feeder import Feeder
-from laia.utils.symbols_table import SymbolsTable
-from laia.utils.phoc import unigram_phoc, new_unigram_phoc
-
 import torch
+
+from laia.engine.feeders.feeder import Feeder
+from laia.utils.phoc import unigram_phoc, new_unigram_phoc
+from laia.utils.symbols_table import SymbolsTable
 
 
 class PHOCFeeder(Feeder):

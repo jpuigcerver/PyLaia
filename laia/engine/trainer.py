@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Callable, Union, Iterable, Optional
 
 import torch
@@ -14,7 +12,7 @@ _logger = log.get_logger(__name__)
 
 
 class Trainer(Engine):
-    r"""Wrapper class to train a model.
+    """Wrapper class to train a model.
 
     See :class:`laia.engine.Engine` for more information.
 
@@ -99,7 +97,7 @@ class Trainer(Engine):
             self._iterations_per_update = num
 
     def add_evaluator(self, evaluator, when=EPOCH_END, condition=None):
-        r"""Add an evaluator to run at the end of each epoch."""
+        """Add an evaluator to run at the end of each epoch."""
         if evaluator is not None:
             self.add_hook(
                 when,
@@ -111,7 +109,7 @@ class Trainer(Engine):
 
     @action
     def run(self):
-        r"""Run training """
+        """Run training """
         assert callable(
             self._batch_input_fn
         ), "batch_input_fn (type: {!r}) is not callable".format(

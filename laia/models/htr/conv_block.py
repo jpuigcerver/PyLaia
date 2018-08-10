@@ -1,5 +1,3 @@
-from __future__ import division
-
 import math
 from itertools import product
 from typing import Optional, Union, Tuple
