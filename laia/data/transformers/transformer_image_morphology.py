@@ -2,76 +2,86 @@ from __future__ import absolute_import
 from __future__ import division
 
 import numpy as np
+import scipy.special
 from PIL import Image, ImageFilter
 
 from laia.data.transformers.transformer import Transformer
 
 
 class TransformerImageMorphology(Transformer):
-    def __init__(
-        self,
-        dilate_probability=0.35,  # type: float
-        erode_probability=0.15,  # type: float
-        dilate_filter_max_size=7,  # type: int
-        dilate_filter_rate=0.5,  # type: float
-        erode_filter_max_size=3,  # type: int
-        erode_filter_rate=0.1,  # type: float
-    ):
-        # type: (...) -> None
-        assert dilate_probability >= 0.0
-        assert erode_probability >= 0.0
-        assert dilate_filter_max_size >= 3, "Max filter size must be >= 3"
-        assert erode_filter_max_size >= 3, "Max filter size must be >= 3"
-        assert dilate_filter_rate > 0
-        assert erode_filter_rate > 0
-        super(TransformerImageMorphology, self).__init__()
-        self.dilate_probability = dilate_probability
-        self.erode_probability = erode_probability
-        self.dilate_filter_sizes, self.dilate_filter_probs = self._create_filter_distribution(
-            3, dilate_filter_max_size, dilate_filter_rate
-        )
-        self.erode_filter_sizes, self.erode_filter_probs = self._create_filter_distribution(
-            3, erode_filter_max_size, erode_filter_rate
+    def __init__(self, filter_size_min, filter_size_max, alpha, beta):
+        # type: (int, int, float, float) -> None
+        assert filter_size_min % 2 != 0, "Filter size must be odd"
+        assert filter_size_max % 2 != 0, "Filter size must be odd"
+        self.filter_sizes, self.filter_probs = self._create_filter_distribution(
+            filter_size_min, filter_size_max, alpha, beta
         )
 
     @staticmethod
-    def _create_filter_distribution(min_filter_size, max_filter_size, rate_filter_size):
-        filter_sizes = [min_filter_size]
-        filter_weights = [1.0]
-        for size in range(min_filter_size + 2, max_filter_size + 1, 2):
-            filter_sizes.append(size)
-            filter_weights.append(filter_weights[-1] * rate_filter_size)
-        filter_weights = np.asarray(filter_weights, dtype=np.float32)
-        filter_weights = filter_weights / filter_weights.sum()
-        return filter_sizes, filter_weights
+    def _create_filter_distribution(filter_size_min, filter_size_max, alpha, beta):
+        n = (filter_size_max - filter_size_min) // 2 + 1
+        if n < 2:
+            return [filter_size_min], np.asarray([1.0], dtype=np.float32)
+        else:
+            filter_sizes = []
+            filter_probs = []
+            for k in range(n):
+                filter_sizes.append(filter_size_min + 2 * k)
+                filter_probs.append(
+                    scipy.special.comb(n, k)
+                    * scipy.special.beta(alpha + k, n - k + beta)
+                )
+            filter_probs = np.asarray(filter_probs, dtype=np.float32)
+            filter_probs = filter_probs / filter_probs.sum()
+            return filter_sizes, filter_probs
+
+    def sample_filter_size(self):
+        filter_size = np.random.choice(self.filter_sizes, p=self.filter_probs)
+        print("filter_size = {}".format(filter_size))
+        return filter_size
+
+
+class TransformerImageDilate(TransformerImageMorphology):
+    def __init__(self, filter_size_min=3, filter_size_max=7, alpha=1, beta=3):
+        super(TransformerImageDilate, self).__init__(
+            filter_size_min, filter_size_max, alpha, beta
+        )
 
     def __call__(self, x):
         # type: (Image) -> Image
-        r = np.random.rand()
-        if r < self.dilate_probability:
-            filter_size = np.random.choice(
-                self.dilate_filter_sizes, p=self.dilate_filter_probs
-            )
-            return x.filter(ImageFilter.MaxFilter(filter_size))
-        elif r < self.dilate_probability + self.erode_probability:
-            filter_size = np.random.choice(
-                self.erode_filter_sizes, p=self.erode_filter_probs
-            )
-            return x.filter(ImageFilter.MinFilter(filter_size))
-        else:
-            return x
+        filter_size = self.sample_filter_size()
+        return x.filter(ImageFilter.MaxFilter(filter_size))
+
+
+class TransformerImageErode(TransformerImageMorphology):
+    def __init__(self, filter_size_min=3, filter_size_max=5, alpha=1, beta=3):
+        super(TransformerImageErode, self).__init__(
+            filter_size_min, filter_size_max, alpha, beta
+        )
+
+    def __call__(self, x):
+        # type: (Image) -> Image
+        filter_size = self.sample_filter_size()
+        return x.filter(ImageFilter.MinFilter(filter_size))
 
 
 if __name__ == "__main__":
     import argparse
+    from PIL import ImageOps
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--operation", choices=("dilate", "erode"), default="dilate")
     parser.add_argument("image", type=argparse.FileType("r"), nargs="+")
     args = parser.parse_args()
 
-    transformer = TransformerImageMorphology()
+    if args.operation == "dilate":
+        transformer = TransformerImageDilate()
+    else:
+        transformer = TransformerImageErode()
+
     for f in args.image:
         x = Image.open(f, "r").convert("L")
+        x = ImageOps.invert(x)
         y = transformer(x)
 
         w, h = x.size

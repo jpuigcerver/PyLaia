@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     default_img_transform = transformers.TransformerList(
         transformers.TransformerImageConvert("L"),
-        transformers.TransformerImageInvert(probability=1.0),
+        transformers.TransformerImageInvert(),
         transformers.TransformerImageTensor(),
     )
     if args.use_distortions:

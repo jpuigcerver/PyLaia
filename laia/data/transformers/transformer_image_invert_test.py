@@ -9,8 +9,8 @@ from laia.data.transformers.transformer_image_invert import TransformerImageInve
 
 
 class TransformerImageInvertTest(unittest.TestCase):
-    def test_prob_one(self):
-        t = TransformerImageInvert(probability=1.0)
+    def test(self):
+        t = TransformerImageInvert()
         x = Image.new("L", (30, 40), color=0)
         y = t(x)
         self.assertTupleEqual(x.size, y.size)
@@ -18,9 +18,3 @@ class TransformerImageInvertTest(unittest.TestCase):
         y = np.asarray(y)
         self.assertEqual(y.max(), 255)
         self.assertEqual(y.min(), 255)
-
-    def test_prob_zero(self):
-        t = TransformerImageInvert(probability=0.0)
-        x = Image.new("L", (30, 40), color=0)
-        y = t(x)
-        self.assertEqual(x, y)

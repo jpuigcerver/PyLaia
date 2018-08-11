@@ -10,7 +10,6 @@ import numpy as np
 class TransformerImagePerspective(Transformer):
     def __init__(
         self,
-        probability=0.5,  # type: float
         max_offset_ratio=0.5,  # type: float
         alpha=6,  # type: float
         beta=6,  # type: float
@@ -20,7 +19,6 @@ class TransformerImagePerspective(Transformer):
         assert alpha > 0
         assert beta > 0
         super(Transformer, self).__init__()
-        self.probability = probability
         self.max_offset_ratio = max_offset_ratio
         self.alpha = alpha
         self.beta = beta
@@ -28,23 +26,20 @@ class TransformerImagePerspective(Transformer):
 
     def __call__(self, x):
         # type: (Image) -> Image
-        if np.random.rand() < self.probability:
-            max_offset = min(x.size) * self.max_offset_ratio
-            z = np.random.beta(self.alpha, self.beta, size=(4, 2))
-            offset = ((2.0 * z - 1.0) * max_offset).astype(np.float32)
-            w, h = x.size
-            src = np.asarray([(0, 0), (0, h), (w, 0), (w, h)], dtype=np.float32)
-            dst = src + offset
-            perspective_transform = self.warp_perspective(src, dst)
-            return x.transform(
-                x.size,
-                method=Image.PERSPECTIVE,
-                data=perspective_transform,
-                resample=Image.BILINEAR,
-                fillcolor=self.fillcolor,
-            )
-        else:
-            return x
+        max_offset = min(x.size) * self.max_offset_ratio
+        z = np.random.beta(self.alpha, self.beta, size=(4, 2))
+        offset = ((2.0 * z - 1.0) * max_offset).astype(np.float32)
+        w, h = x.size
+        src = np.asarray([(0, 0), (0, h), (w, 0), (w, h)], dtype=np.float32)
+        dst = src + offset
+        perspective_transform = self.warp_perspective(src, dst)
+        return x.transform(
+            x.size,
+            method=Image.PERSPECTIVE,
+            data=perspective_transform,
+            resample=Image.BILINEAR,
+            fillcolor=self.fillcolor,
+        )
 
     @staticmethod
     def warp_perspective(pa, pb):
@@ -64,7 +59,6 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--probability", type=float, default=1.0)
     parser.add_argument("--alpha", type=float, default=6)
     parser.add_argument("--beta", type=float, default=6)
     parser.add_argument("--max_offset_ratio", type=float, default=0.5)
@@ -72,10 +66,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     transformer = TransformerImagePerspective(
-        probability=args.probability,
-        max_offset_ratio=args.max_offset_ratio,
-        alpha=args.alpha,
-        beta=args.beta,
+        max_offset_ratio=args.max_offset_ratio, alpha=args.alpha, beta=args.beta
     )
     for f in args.image:
         x = Image.open(f, "r").convert("L")
