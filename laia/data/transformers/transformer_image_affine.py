@@ -15,7 +15,7 @@ class TransformerImageAffine(Transformer):
 
     def __init__(
         self,
-        max_offset_ratio=0.3,  # type: float
+        max_offset_ratio=0.2,  # type: float
         alpha=2,  # type: float
         beta=2,  # type: float
         fillcolor=None,  # type: Union[None, int, Tuple[int, int, int]]
@@ -46,6 +46,13 @@ class TransformerImageAffine(Transformer):
             fillcolor=self.fillcolor,
         )
 
+    def _to_string(self, spaces):
+        return self._type() + "(max_offset_ratio=%g, alpha=%g, beta=%g)" % (
+            self.max_offset_ratio,
+            self.alpha,
+            self.beta,
+        )
+
     @staticmethod
     def get_affine_transform(src, dst):
         # type: (np.ndarray, np.ndarray) -> np.ndarray
@@ -71,6 +78,7 @@ if __name__ == "__main__":
     transformer = TransformerImageAffine(
         alpha=args.alpha, beta=args.beta, max_offset_ratio=args.max_offset_ratio
     )
+    print(transformer)
     for f in args.image:
         x = Image.open(f, "r").convert("L")
         y = transformer(x)
