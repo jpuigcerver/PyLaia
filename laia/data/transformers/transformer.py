@@ -8,6 +8,15 @@ class Transformer(object):
     def __call__(self, x):
         return x
 
+    def __str__(self):
+        return self._to_string(0)
+
+    def _type(self):
+        return self.__class__.__name__
+
+    def _to_string(self, spaces):
+        return (" " * spaces) + self._type()
+
 
 class TransformerList(Transformer):
     """Apply a sequence of transformations to the input sample."""
@@ -22,6 +31,18 @@ class TransformerList(Transformer):
         for transformer in self._transformers:
             x = transformer(x)
         return x
+
+    def _to_string(self, spaces):
+        s = (" " * spaces) + "{}[\n".format(self._type())
+        for transformer in self._transformers:
+            if hasattr(transformer, "_to_string"):
+                s += transformer._to_string(spaces + 2) + ",\n"
+            elif hasattr(transformer, "__str__"):
+                s += (" " * (spaces + 2)) + str(transformer) + ",\n"
+            else:
+                s += (" " * (spaces + 2)) + repr(transformer) + ",\n"
+        s += (" " * spaces) + "]"
+        return s
 
 
 class TransformerConditional(Transformer):
@@ -38,6 +59,17 @@ class TransformerConditional(Transformer):
             return self._transformer(x)
         else:
             return x
+
+    def _to_string(self, spaces):
+        s = (" " * spaces) + "%s(probability=%g)[\n" % (self._type(), self._p)
+        if hasattr(self._transformer, "_to_string"):
+            s += self._transformer._to_string(spaces + 2) + "\n"
+        elif hasattr(self._transformer, "__str__"):
+            s += (" " * (spaces + 2)) + str(self._transformer) + "\n"
+        else:
+            s += (" " * (spaces + 2)) + repr(self._transformer) + "\n"
+        s += "]"
+        return s
 
 
 class TransformerChoice(Transformer):
