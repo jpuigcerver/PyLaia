@@ -21,7 +21,7 @@ def fc(x):
 
 
 class TransformerTest(unittest.TestCase):
-    def test_optional(self):
+    def test_conditional(self):
         t = TransformerConditional(fa, p=1.0)
         self.assertEqual(4, t(3))
         t = TransformerConditional(fa, p=0.0)

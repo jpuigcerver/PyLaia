@@ -105,12 +105,13 @@ if __name__ == "__main__":
     if args.use_distortions:
         tr_img_transform = transformers.TransformerList(
             transformers.TransformerImageConvert("L"),
-            transformers.TransformerImageInvert(probability=1.0),
+            transformers.TransformerImageInvert(),
             transformers.TransformerImageAffine(),
             transformers.TransformerImageTensor(),
         )
     else:
         tr_img_transform = default_img_transform
+    log.info("Training data transformer: {}", str(tr_img_transform))
 
     tr_dataset = TextImageFromTextTableDataset(
         args.tr_txt_table,

@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 from typing import Union, Tuple
 
@@ -41,6 +43,13 @@ class TransformerImagePerspective(Transformer):
             fillcolor=self.fillcolor,
         )
 
+    def _to_string(self, spaces):
+        return self._type() + "(max_offset_ratio=%g, alpha=%g, beta=%g)" % (
+            self.max_offset_ratio,
+            self.alpha,
+            self.beta,
+        )
+
     @staticmethod
     def warp_perspective(pa, pb):
         matrix = []
@@ -68,6 +77,7 @@ if __name__ == "__main__":
     transformer = TransformerImagePerspective(
         max_offset_ratio=args.max_offset_ratio, alpha=args.alpha, beta=args.beta
     )
+    print(transformer)
     for f in args.image:
         x = Image.open(f, "r").convert("L")
         y = transformer(x)
