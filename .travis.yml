@@ -22,4 +22,4 @@ before_script:
 
 script:
   - ./travis/run_tests.sh
-  - mypy --ignore-missing-imports --scripts-are-modules laia pylaia*
+  - mypy --ignore-missing-imports --scripts-are-modules laia pylaia* | tee
