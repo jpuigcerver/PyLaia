@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Any, Dict
+from typing import Callable, Sequence, Any, Dict, Union
 
 
 class Hook:
@@ -38,7 +38,7 @@ class Hook:
 class HookList:
     """When called, calls a collection of :class:`~Hook`` objects."""
 
-    def __init__(self, *hooks: Sequence[Callable]) -> None:
+    def __init__(self, *hooks: Union[Callable, Hook]) -> None:
         assert all(isinstance(h, Hook) for h in hooks)
         self._hooks = hooks
 

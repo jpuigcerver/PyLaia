@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 
 import laia.common.logging as log
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 _logger = log.get_logger(__name__)
 

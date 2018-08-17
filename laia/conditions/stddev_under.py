@@ -1,4 +1,4 @@
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, List
 
 import numpy as np
 
@@ -41,7 +41,7 @@ class StdDevUnder(LoggingCondition):
         super().__init__(obj, key, _logger, name)
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
-        self._values = []
+        self._values = []  # type: List
         self._nval = 0
 
     def __call__(self) -> bool:

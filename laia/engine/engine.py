@@ -1,13 +1,13 @@
 from contextlib import contextmanager
-from typing import Iterable, Callable, Union, Optional, Any
+from typing import Iterable, Callable, Union, Optional, Any, Tuple, Dict, List
 
 import torch
 from tqdm import tqdm
 
-import laia
 import laia.common.logging as log
 from laia.engine.engine_exception import EngineException
 from laia.hooks import action
+from laia.hooks.hook import HookCollection, Hook
 
 _logger = log.get_logger(__name__)
 
@@ -60,7 +60,12 @@ class Engine:
         self._epochs = 0
         self._iterations = 0
         self._must_stop = False
-        self._hooks = {EPOCH_START: [], EPOCH_END: [], ITER_START: [], ITER_END: []}
+        self._hooks = {
+            EPOCH_START: [],
+            EPOCH_END: [],
+            ITER_START: [],
+            ITER_END: [],
+        }  # type: Dict[str, List]
 
     @property
     def batch_input_fn(self):
@@ -137,7 +142,7 @@ class Engine:
         self._progress_bar = progress_bar
         return self
 
-    def add_hook(self, when: str, hook: laia.hooks.Hook):
+    def add_hook(self, when: str, hook: Union[Hook, HookCollection]):
         """Add a hook to be executed at some point during the run.
 
         When multiple hooks are added at the same point of the run, they will
@@ -192,7 +197,7 @@ class Engine:
         action_kwargs["batch_output"] = batch_output
         self._call_hooks(ITER_END, **action_kwargs)
 
-    def _prepare_input_and_target(self, batch: Any) -> (Any, Any):
+    def _prepare_input_and_target(self, batch: Any) -> Tuple[Any, Any]:
         # Prepare input to the model.
         batch_input = self._batch_input_fn(batch) if self._batch_input_fn else batch
         # Prepare target to be passed to the loss function.
@@ -224,7 +229,7 @@ class Engine:
             self._call_hooks(EPOCH_END, epoch=self._epochs)
 
     @contextmanager
-    def exception_catcher(self, batch: Any) -> None:
+    def exception_catcher(self, batch: Any) -> Any:
         try:
             yield
         except Exception as e:

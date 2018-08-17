@@ -1,11 +1,12 @@
 from collections import Sequence
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Dict
 
 import laia
 from laia.common.logging import get_logger
 from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, Engine
 from laia.hooks import action
-from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
+from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter
+from laia.meters.meter import Meter
 
 _logger = get_logger(__name__)
 
@@ -49,7 +50,7 @@ class Experiment:
             self._va_loss = None
 
         self._summary_order = summary_order
-        self._summary = None
+        self._summary = None  # type: List[Dict]
         self._tr_engine.add_hook(EPOCH_END, self._log_epoch_summary)
 
     def train_timer(self) -> Meter:
@@ -87,7 +88,7 @@ class Experiment:
             dict(label="TR Loss", format="{.value[0]:.3e}", source=self._tr_loss),
             dict(label="TR Time", format="{.value:.2f}s", source=self._tr_timer),
             dict(label="Memory", format="{.value}", source=MemoryMeter()),
-        ]
+        ]  # type: List[Dict]
         if self._va_engine:
             summary.append(
                 dict(label="VA Loss", format="{.value[0]:.3e}", source=self._va_loss)

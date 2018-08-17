@@ -110,7 +110,11 @@ for name, kwargs in (
     ("use_masks", {"use_masks": True}),
     ("inplace", {"inplace": True}),
 ):
-    test_dict["module_kwargs"] = dict(in_channels=3, out_channels=5, **kwargs)
+    test_dict["module_kwargs"] = {
+        "in_channels": 3,
+        "out_channels": 5,
+        **kwargs,  # type: ignore
+    }
     tests.append(("backprop_{{}}_{{}}_{}".format(name), test_dict))
 generate_backprop_floating_point_tests(ConvBlockTest, tests=tests)
 

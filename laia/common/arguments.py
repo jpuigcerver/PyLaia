@@ -291,7 +291,7 @@ def add_argument(*args, **kwargs):
     return _parser
 
 
-def args():
+def args() -> argparse.Namespace:
     a = _get_parser().parse_args()
     import laia.common.logging as log
 

@@ -182,14 +182,14 @@ if __name__ == "__main__":
     assert len(set(dimensions)) == 1, "Wrong cnn layer dimensions"
 
     if args.fixed_input_height:
-        fixed_size_after_conv = LaiaCRNN.get_conv_output_size(
-            size=(args.fixed_input_height, args.fixed_input_height),
+        conv_output_size = LaiaCRNN.get_conv_output_size(
+            sizes=(args.fixed_input_height, args.fixed_input_height),
             cnn_kernel_size=args.cnn_kernel_size,
             cnn_stride=args.cnn_stride,
             cnn_dilation=args.cnn_dilation,
             cnn_poolsize=args.cnn_poolsize,
         )
-        fixed_size_after_conv = fixed_size_after_conv[1 if args.vertical_text else 0]
+        fixed_size_after_conv = conv_output_size[1 if args.vertical_text else 0]
         assert fixed_size_after_conv > 0, "The image size after the convolution is zero"
         image_sequencer = "none-{}".format(fixed_size_after_conv)
     else:

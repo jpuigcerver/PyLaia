@@ -9,7 +9,7 @@ from laia.data import PaddedTensor
 try:
     from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
 except ImportError:
-    AdaptiveMaxPool2d = None
+    AdaptiveMaxPool2d = None  # type: ignore
 
 
 @unittest.skipIf(AdaptiveMaxPool2d is None, "nnutils does not seem installed")

@@ -1,6 +1,6 @@
 import editdistance
 
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class SequenceErrorMeter(Meter):

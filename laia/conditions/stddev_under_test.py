@@ -1,7 +1,7 @@
 import unittest
 
 from laia.conditions import StdDevUnder
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class ExceptionMeter(Meter):

@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Union, Sequence, Optional
+from typing import List, Union, Sequence, Optional, Tuple, Dict
 
 import torch
 from torch.autograd import Function
@@ -21,7 +21,7 @@ _logger = log.get_logger(__name__)
 
 def transform_output(
     output: Union[torch.Tensor, PackedSequence]
-) -> (torch.Tensor, List[int]):
+) -> Tuple[torch.Tensor, List[int]]:
     # Size: T x N x D
     if isinstance(output, PackedSequence):
         acts, act_lens = pad_packed_sequence(output)
@@ -37,7 +37,7 @@ def copy_valid_indices(
     target: List[List[int]],
     act_lens: List[int],
     valid_indices: List[int],
-) -> (Optional[torch.Tensor], List[List[int]], List[int]):
+) -> Tuple[Optional[torch.Tensor], List[List[int]], List[int]]:
     """Copy the CTC inputs without the erroneous samples"""
     if len(valid_indices) == 0:
         return None, [], []
@@ -61,7 +61,7 @@ def set_zeros_in_errors(
 
 def get_valids_and_errors(
     act_lens: List[int], labels: List[List[int]]
-) -> (List[int], List[int]):
+) -> Tuple[List[int], List[int]]:
     """Check for sequences which are too short to produce the given
     target, according to CTC model.
 
@@ -91,7 +91,7 @@ class CTCPrepare(Function):
         target: List[List[int]],
         act_lens: List[int],
         valid_indices: Optional[List[int]] = None,
-    ) -> (torch.Tensor, torch.IntTensor, torch.IntTensor, torch.IntTesor):
+    ) -> Tuple[torch.Tensor, torch.IntTensor, torch.IntTensor, torch.IntTesor]:
         """
         Args:
             acts: Contains the output from the network.
@@ -123,7 +123,7 @@ class CTCPrepare(Function):
         ctx: torch.autograd.function.BackwardCFunction,
         grad_output: torch.Tensor,
         *_: None
-    ) -> (torch.Tensor, None, None, None):
+    ) -> Tuple[torch.Tensor, None, None, None]:
         valid_indices, original_size = ctx.saved
         return (
             set_zeros_in_errors(original_size, grad_output, valid_indices)
@@ -151,8 +151,8 @@ class CTCLoss(Loss):
         self._length_average = length_average
 
     def forward(
-        self, output: torch.Tensor, target: List[List[int]], **kwargs: dict
-    ) -> (torch.FloatTensor, List[int]):
+        self, output: torch.Tensor, target: List[List[int]], **kwargs: Dict
+    ) -> Tuple[torch.FloatTensor, List[int]]:
         """
         Args:
             output: Size seqLength x outputDim, contains

@@ -3,7 +3,7 @@ import math
 import numpy as np
 import torch
 
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class RunningAverageMeter(Meter):

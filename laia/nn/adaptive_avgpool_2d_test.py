@@ -9,7 +9,7 @@ from laia.data import PaddedTensor
 try:
     from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
 except ImportError:
-    AdaptiveAvgPool2d = None
+    AdaptiveAvgPool2d = None  # type: ignore
 
 
 @unittest.skipIf(AdaptiveAvgPool2d is None, "nnutils does not seem installed")

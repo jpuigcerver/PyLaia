@@ -4,7 +4,7 @@ from typing import Optional
 import torch
 import torch.cuda as cuda
 
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class MemoryMeter(Meter):

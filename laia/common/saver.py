@@ -106,7 +106,7 @@ class RollingSaver(Saver):
         assert keep > 0
         self._saver = saver
         self._keep = keep
-        self._last_saved = deque()
+        self._last_saved = deque()  # type: deque
 
     def save(self, *args: Any, **kwargs: Any) -> str:
         path = self._saver.save(*args, **kwargs)

@@ -1,6 +1,6 @@
 import time
 
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class TimeMeter(Meter):

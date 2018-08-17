@@ -1,11 +1,12 @@
 from itertools import count
-from typing import Sequence, Tuple, Union
+from typing import Sequence, Union, List
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import PackedSequence
 
+from laia.common.types import Param2d, ParamNd
 from laia.data import PaddedTensor
 from laia.models.htr.conv_block import ConvBlock
 from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
@@ -17,11 +18,11 @@ class LaiaCRNN(nn.Module):
         num_input_channels: int,
         num_output_labels: int,
         cnn_num_features: Sequence[int],
-        cnn_kernel_size: Sequence[Union[int, Tuple[int, int]]],
-        cnn_stride: Sequence[Union[int, Tuple[int, int]]],
-        cnn_dilation: Sequence[Union[int, Tuple[int, int]]],
+        cnn_kernel_size: Sequence[Param2d],
+        cnn_stride: Sequence[Param2d],
+        cnn_dilation: Sequence[Param2d],
         cnn_activation: Sequence[nn.Module],
-        cnn_poolsize: Sequence[Union[int, Tuple[int, int]]],
+        cnn_poolsize: Sequence[Param2d],
         cnn_dropout: Sequence[float],
         cnn_batchnorm: Sequence[bool],
         image_sequencer: str,
@@ -118,20 +119,23 @@ class LaiaCRNN(nn.Module):
 
     @staticmethod
     def get_conv_output_size(
-        size,  # type: Tuple[int, int]
-        cnn_kernel_size,  # type: Sequence[Union[int, Tuple[int, int]]]
-        cnn_stride,  # type: Sequence[Union[int, Tuple[int, int]]]
-        cnn_dilation,  # type: Sequence[Union[int, Tuple[int, int]]]
-        cnn_poolsize,  # type: Sequence[Union[int, Tuple[int, int]]]
-    ):
-        size_h, size_w = size
-        for ks, st, di, ps in zip(
-            cnn_kernel_size, cnn_stride, cnn_dilation, cnn_poolsize
-        ):
-            size_h = ConvBlock.get_output_size(
-                size_h, kernel_size=ks[0], dilation=di[0], stride=st[0], poolsize=ps[0]
+        sizes: Sequence[int],
+        cnn_kernel_size: Sequence[ParamNd],
+        cnn_stride: Sequence[ParamNd],
+        cnn_dilation: Sequence[ParamNd],
+        cnn_poolsize: Sequence[ParamNd],
+    ) -> List[Union[torch.Tensor, int]]:
+        kernel_size, stride, dilation, poolsize = ConvBlock.prepare_dimensional_args(
+            cnn_kernel_size, cnn_stride, cnn_dilation, cnn_poolsize, dims=len(sizes)
+        )
+        return [
+            ConvBlock.get_output_size(
+                size,
+                kernel_size=ks[dim],
+                dilation=di[dim],
+                stride=st[dim],
+                poolsize=ps[dim],
             )
-            size_w = ConvBlock.get_output_size(
-                size_w, kernel_size=ks[1], dilation=di[1], stride=st[1], poolsize=ps[1]
-            )
-        return size_h, size_w
+            for dim, size in enumerate(sizes)
+            for ks, st, di, ps in zip(kernel_size, stride, dilation, poolsize)
+        ]

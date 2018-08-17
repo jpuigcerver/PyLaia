@@ -1,8 +1,9 @@
-from typing import Callable, Union, Iterable, Optional, Any
+from typing import Callable, Union, Iterable, Optional, Any, Dict
 
 import torch
 
 import laia.common.logging as log
+from laia.common.types import Loss as LossT
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.hooks import Hook, action
 from laia.losses.loss import Loss
@@ -179,7 +180,9 @@ class Trainer(Engine):
             iteration=self._iterations,
         )
 
-        batch_loss = self.compute_loss(batch, batch_output, batch_target)
+        batch_loss = self.compute_loss(
+            batch, batch_output, batch_target
+        )  # type: torch.FloatTensor
         if batch_loss is None:
             return
 
@@ -218,11 +221,9 @@ class Trainer(Engine):
         )
         self._call_hooks(ITER_END, **action_kwargs)
 
-    def compute_loss(
-        self, batch: Any, batch_output: Any, batch_target: Any
-    ) -> Union[float, torch.FloatTensor]:
+    def compute_loss(self, batch: Any, batch_output: Any, batch_target: Any) -> LossT:
         with self.exception_catcher(batch):
-            kwargs = {}
+            kwargs = {}  # type: Dict
             if isinstance(self._criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
             return self._criterion(batch_output, batch_target, **kwargs)
