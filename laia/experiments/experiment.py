@@ -81,7 +81,7 @@ class Experiment:
 
     def epoch_summary(
         self, summary_order: Optional[Sequence[str]] = None
-    ) -> List[dict]:
+    ) -> List[Dict]:
         summary = [
             dict(label="Epoch", format="{:4d}"),
             dict(label="TR Loss", format="{.value[0]:.3e}", source=self._tr_loss),
@@ -112,7 +112,7 @@ class Experiment:
         ]
         _logger.info(", ".join(parsed_summary))
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         return {
             k: v.state_dict() if hasattr(v, "state_dict") else None
             for k, v in (
@@ -122,7 +122,7 @@ class Experiment:
             )
         }
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         if state is None:
             return
         for k, v in (
@@ -134,5 +134,5 @@ class Experiment:
                 v.load_state_dict(state[k])
 
     @staticmethod
-    def get_model_state_dict(state: dict) -> dict:
+    def get_model_state_dict(state: Dict) -> Dict:
         return Engine.get_model_state_dict(state["tr_engine"])

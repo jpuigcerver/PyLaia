@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 
 import laia.common.logging as log
 
@@ -55,8 +55,8 @@ class Meter:
                 )
         return value
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         return {"exceptions": self._exceptions}
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         self._exceptions = state["exceptions"]

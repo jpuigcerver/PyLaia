@@ -1,4 +1,4 @@
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Dict
 
 from torch._six import inf
 
@@ -30,11 +30,11 @@ class Highest(LoggingCondition):
         )
         return False
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         state = super().state_dict()
         state["highest"] = self._highest
         return state
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         super().load_state_dict(state)
         self._highest = state["highest"]

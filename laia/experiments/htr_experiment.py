@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, List, Union, Any
+from typing import Callable, Optional, Sequence, List, Union, Any, Dict
 
 import torch
 
@@ -148,7 +148,7 @@ class HTRExperiment(Experiment):
 
     def epoch_summary(
         self, summary_order: Optional[Sequence[str]] = None
-    ) -> List[dict]:
+    ) -> List[Dict]:
         summary = super().epoch_summary(summary_order=summary_order)
         summary.append(
             dict(label="TR CER", format="{.value:5.1%}", source=self._tr_cer)
@@ -171,7 +171,7 @@ class HTRExperiment(Experiment):
             _logger.debug("Could not sort the summary. Reason: {}", e)
             return summary
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         state = super().state_dict()
         for k, v in (
             ("tr_cer", self._tr_cer),
@@ -183,7 +183,7 @@ class HTRExperiment(Experiment):
                 state[k] = v.state_dict()
         return state
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         if state is None:
             return
         super().load_state_dict(state)

@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Sequence, List
+from typing import Optional, Callable, Sequence, List, Dict
 
 import torch
 from torch.nn.functional import sigmoid
@@ -119,7 +119,7 @@ class PHOCExperiment(Experiment):
 
     def epoch_summary(
         self, summary_order: Optional[Sequence[str]] = None
-    ) -> List[dict]:
+    ) -> List[Dict]:
         summary = super().epoch_summary(summary_order=summary_order)
         if self._va_engine:
             summary.append(
@@ -134,13 +134,13 @@ class PHOCExperiment(Experiment):
             _logger.debug("Could not sort the summary. Reason: {}", e)
             return summary
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         state = super().state_dict()
         if hasattr(self._va_ap, "state_dict"):
             state["va_ap"] = self._va_ap.state_dict()
         return state
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         if state is None:
             return
         super().load_state_dict(state)

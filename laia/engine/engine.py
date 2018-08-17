@@ -235,7 +235,7 @@ class Engine:
                 cause=e,
             ) from e
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         return {
             "model": self._model.state_dict(),
             "epochs": self._epochs,
@@ -249,7 +249,7 @@ class Engine:
             },
         }
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         self._model.load_state_dict(state["model"])
         self._epochs = state["epochs"]
         self._iterations = state["iterations"]
@@ -263,7 +263,7 @@ class Engine:
                     hook.load_state_dict(hook_states[i])
 
     @staticmethod
-    def get_model_state_dict(state: dict) -> dict:
+    def get_model_state_dict(state: Dict) -> Dict:
         return state["model"]
 
 

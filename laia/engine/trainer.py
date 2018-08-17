@@ -227,13 +227,13 @@ class Trainer(Engine):
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
             return self._criterion(batch_output, batch_target, **kwargs)
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         state = super().state_dict()
         state["optimizer"] = self._optimizer.state_dict()
         state["updates"] = self._updates
         return state
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         super().load_state_dict(state)
         self._optimizer.load_state_dict(state["optimizer"])
         self._updates = state["updates"]

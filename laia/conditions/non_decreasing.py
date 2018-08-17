@@ -1,4 +1,4 @@
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Dict
 
 from torch._six import inf
 
@@ -42,14 +42,14 @@ class NonDecreasing(LoggingCondition):
             self._lowest_calls += 1
         return False
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         state = super().state_dict()
         state["lowest"] = self._lowest
         state["lowest_calls"] = self._lowest_calls
         state["calls"] = self._calls
         return state
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         super().load_state_dict(state)
         self._lowest = state["lowest"]
         self._lowest_calls = state["lowest_calls"]
@@ -89,13 +89,13 @@ class ConsecutiveNonDecreasing(LoggingCondition):
             self._calls = 0
         return False
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         state = super().state_dict()
         state["lowest"] = self._lowest
         state["calls"] = self._calls
         return state
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         super().load_state_dict(state)
         self._lowest = state["lowest"]
         self._calls = state["calls"]

@@ -1,4 +1,4 @@
-from typing import Callable, Any as AnyT, Optional
+from typing import Callable, Any as AnyT, Optional, Dict
 
 from laia.common.logging import get_logger, DEBUG, INFO, ERROR, Logger
 
@@ -29,12 +29,12 @@ class Condition:
             return None
         return value if self._key is None else value[self._key]
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         return {
             "obj": self._obj.state_dict() if hasattr(self._obj, "state_dict") else None
         }
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         if hasattr(self._obj, "load_state_dict"):
             self._obj.load_state_dict(state["obj"])
 

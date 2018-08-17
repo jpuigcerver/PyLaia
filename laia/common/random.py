@@ -1,5 +1,5 @@
 import random
-from typing import Optional
+from typing import Optional, Dict
 
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ def manual_seed(seed: int) -> None:
     random.seed(seed)
 
 
-def get_rng_state(device: Optional[torch.device] = None) -> dict:
+def get_rng_state(device: Optional[torch.device] = None) -> Dict:
     return {
         "numpy": np.random.get_state(),
         "torch_cpu": torch.get_rng_state(),
@@ -22,7 +22,7 @@ def get_rng_state(device: Optional[torch.device] = None) -> dict:
     }
 
 
-def set_rng_state(state: dict, device: Optional[torch.device] = None) -> None:
+def set_rng_state(state: Dict, device: Optional[torch.device] = None) -> None:
     np.random.set_state(state["numpy"])
     torch.set_rng_state(state["torch_cpu"])
     if state["torch_cuda"] is not None:

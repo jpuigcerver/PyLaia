@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Any
+from typing import Callable, Sequence, Any, Dict
 
 
 class Hook:
@@ -23,13 +23,13 @@ class Hook:
         kw = {**kwargs, **self._kwargs}
         return self._action(*a, **kw) if self._condition() else False
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         return {
             k: v.state_dict() if hasattr(v, "state_dict") else None
             for k, v in (("condition", self._condition), ("action", self._action))
         }
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         for k, v in ("condition", self._condition), ("action", self._action):
             if hasattr(v, "load_state_dict"):
                 v.load_state_dict(state[k])
@@ -45,7 +45,7 @@ class HookList:
     def __call__(self, *args: Any, **kwargs: Any) -> bool:
         return any([h(*args, **kwargs) for h in self._hooks])
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         return {
             "hooks": [
                 hook.state_dict() if hasattr(hook, "state_dict") else None
@@ -53,7 +53,7 @@ class HookList:
             ]
         }
 
-    def load_state_dict(self, state: dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         state = state["hooks"]
         for i, hook in enumerate(self._hooks):
             if i >= len(state):
