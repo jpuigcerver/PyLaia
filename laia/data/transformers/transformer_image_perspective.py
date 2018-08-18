@@ -12,9 +12,9 @@ import numpy as np
 class TransformerImagePerspective(Transformer):
     def __init__(
         self,
-        max_offset_ratio=0.5,  # type: float
-        alpha=6,  # type: float
-        beta=6,  # type: float
+        max_offset_ratio=0.2,  # type: float
+        alpha=2,  # type: float
+        beta=2,  # type: float
         fillcolor=None,  # type: Union[None, int, Tuple[int, int, int]]
     ):
         assert max_offset_ratio > 0
@@ -69,9 +69,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--alpha", type=float, default=6)
-    parser.add_argument("--beta", type=float, default=6)
-    parser.add_argument("--max_offset_ratio", type=float, default=0.5)
+    parser.add_argument("--alpha", type=float, default=2)
+    parser.add_argument("--beta", type=float, default=2)
+    parser.add_argument("--max_offset_ratio", type=float, default=0.2)
     parser.add_argument("image", type=argparse.FileType("r"), nargs="+")
     args = parser.parse_args()
 
