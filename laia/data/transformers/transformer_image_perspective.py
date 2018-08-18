@@ -45,11 +45,10 @@ class TransformerImagePerspective(Transformer):
 
     def _to_string(self, spaces):
         return (
-            " " * spaces
-        ) * self._type() + "(max_offset_ratio=%g, alpha=%g, beta=%g)" % (
-            self.max_offset_ratio,
-            self.alpha,
-            self.beta,
+            (" " * spaces)
+            + self._type()
+            + "(max_offset_ratio=%g, alpha=%g, beta=%g)"
+            % (self.max_offset_ratio, self.alpha, self.beta)
         )
 
     @staticmethod

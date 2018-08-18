@@ -68,7 +68,7 @@ class TransformerConditional(Transformer):
             s += (" " * (spaces + 2)) + str(self._transformer) + "\n"
         else:
             s += (" " * (spaces + 2)) + repr(self._transformer) + "\n"
-        s += "]"
+        s += (" " * spaces) + "]"
         return s
 
 
@@ -96,3 +96,15 @@ class TransformerChoice(Transformer):
     def __call__(self, x):
         t = np.random.choice(np.arange(len(self._transformers)), p=self._probs)
         return self._transformers[t](x)
+
+    def _to_string(self, spaces):
+        s = (" " * spaces) + "{}[\n".format(self._type())
+        for transformer in self._transformers:
+            if hasattr(transformer, "_to_string"):
+                s += transformer._to_string(spaces + 2) + ",\n"
+            elif hasattr(transformer, "__str__"):
+                s += (" " * (spaces + 2)) + str(transformer) + ",\n"
+            else:
+                s += (" " * (spaces + 2)) + repr(transformer) + ",\n"
+        s += (" " * spaces) + "]"
+        return s
