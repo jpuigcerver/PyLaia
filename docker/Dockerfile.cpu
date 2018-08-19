@@ -47,10 +47,6 @@ RUN git clone https://"$USR":"$PW"@github.com/jpuigcerver/PyLaia && \
     pip install -v .
 
 # Install third party libraries
-WORKDIR /PyLaia/third_party/imgdistort/build
-RUN cmake -DPYTORCH_SETUP_PREFIX=/opt/conda .. && \
-    make && make install
-
 WORKDIR /PyLaia/third_party/nnutils/pytorch
 RUN python setup.py build && python setup.py install
 
