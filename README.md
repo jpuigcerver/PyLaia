@@ -15,7 +15,6 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized fo
 ## Optional requirements (depending on your usage)
 
 - [prob-phoc](./third_party/prob-phoc)
-- [imgdistort](./third_party/imgdistort)
 
 ## Usage
 
