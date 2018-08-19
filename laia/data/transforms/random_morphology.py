@@ -5,10 +5,8 @@ import numpy as np
 import scipy.special
 from PIL import Image, ImageFilter
 
-from laia.data.transformers.transformer import Transformer
 
-
-class TransformerImageMorphology(Transformer):
+class RandomMorphology(object):
     def __init__(self, filter_size_min, filter_size_max, alpha, beta):
         # type: (int, int, float, float) -> None
         assert filter_size_min % 2 != 0, "Filter size must be odd"
@@ -40,29 +38,29 @@ class TransformerImageMorphology(Transformer):
         print("filter_size = {}".format(filter_size))
         return filter_size
 
+    def __repr__(self):
+        s = "{name}(filter_size_min={filter_size_min}, filter_size_max={filter_size_max}, alpha={alpha}, beta={beta})"
+        return s.format(name=self.__class__.__name__, **self.__dict__)
 
-class TransformerImageDilate(TransformerImageMorphology):
+
+class Dilate(RandomMorphology):
     def __init__(self, filter_size_min=3, filter_size_max=7, alpha=1, beta=3):
-        super(TransformerImageDilate, self).__init__(
-            filter_size_min, filter_size_max, alpha, beta
-        )
+        super(Dilate, self).__init__(filter_size_min, filter_size_max, alpha, beta)
 
-    def __call__(self, x):
+    def __call__(self, img):
         # type: (Image) -> Image
         filter_size = self.sample_filter_size()
-        return x.filter(ImageFilter.MaxFilter(filter_size))
+        return img.filter(ImageFilter.MaxFilter(filter_size))
 
 
-class TransformerImageErode(TransformerImageMorphology):
+class Erode(RandomMorphology):
     def __init__(self, filter_size_min=3, filter_size_max=5, alpha=1, beta=3):
-        super(TransformerImageErode, self).__init__(
-            filter_size_min, filter_size_max, alpha, beta
-        )
+        super(Erode, self).__init__(filter_size_min, filter_size_max, alpha, beta)
 
-    def __call__(self, x):
+    def __call__(self, img):
         # type: (Image) -> Image
         filter_size = self.sample_filter_size()
-        return x.filter(ImageFilter.MinFilter(filter_size))
+        return img.filter(ImageFilter.MinFilter(filter_size))
 
 
 if __name__ == "__main__":
@@ -71,15 +69,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--operation", choices=("dilate", "erode"), default="dilate")
-    parser.add_argument("image", type=argparse.FileType("r"), nargs="+")
+    parser.add_argument("images", type=argparse.FileType("rb"), nargs="+")
     args = parser.parse_args()
 
     if args.operation == "dilate":
-        transformer = TransformerImageDilate()
+        transformer = Dilate()
     else:
-        transformer = TransformerImageErode()
+        transformer = Erode()
 
-    for f in args.image:
+    for f in args.images:
         x = Image.open(f, "r").convert("L")
         x = ImageOps.invert(x)
         y = transformer(x)
