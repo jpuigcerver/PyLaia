@@ -4,12 +4,11 @@ from __future__ import print_function
 
 from typing import Union, Tuple
 
-from laia.data.transformers.transformer import Transformer
-from PIL import Image
 import numpy as np
+from PIL import Image
 
 
-class TransformerImagePerspective(Transformer):
+class RandomPerspective(object):
     def __init__(
         self,
         max_offset_ratio=0.2,  # type: float
@@ -20,36 +19,34 @@ class TransformerImagePerspective(Transformer):
         assert max_offset_ratio > 0
         assert alpha > 0
         assert beta > 0
-        super(Transformer, self).__init__()
         self.max_offset_ratio = max_offset_ratio
         self.alpha = alpha
         self.beta = beta
         self.fillcolor = fillcolor
 
-    def __call__(self, x):
+    def __call__(self, img):
         # type: (Image) -> Image
-        max_offset = min(x.size) * self.max_offset_ratio
+        max_offset = min(img.size) * self.max_offset_ratio
         z = np.random.beta(self.alpha, self.beta, size=(4, 2))
         offset = ((2.0 * z - 1.0) * max_offset).astype(np.float32)
-        w, h = x.size
+        w, h = img.size
         src = np.asarray([(0, 0), (0, h), (w, 0), (w, h)], dtype=np.float32)
         dst = src + offset
         perspective_transform = self.warp_perspective(src, dst)
-        return x.transform(
-            x.size,
+        return img.transform(
+            img.size,
             method=Image.PERSPECTIVE,
             data=perspective_transform,
             resample=Image.BILINEAR,
             fillcolor=self.fillcolor,
         )
 
-    def _to_string(self, spaces):
-        return (
-            (" " * spaces)
-            + self._type()
-            + "(max_offset_ratio=%g, alpha=%g, beta=%g)"
-            % (self.max_offset_ratio, self.alpha, self.beta)
-        )
+    def __repr__(self):
+        s = "{name}(max_offset_ratio={max_offset_ratio}, alpha={alpha}, beta={beta}"
+        if self.fillcolor:
+            s += ", fillcolor={fillcolor}"
+        s += ")"
+        return s.format(name=self.__class__.__name__, **self.__dict__)
 
     @staticmethod
     def warp_perspective(pa, pb):
@@ -72,14 +69,14 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=2)
     parser.add_argument("--beta", type=float, default=2)
     parser.add_argument("--max_offset_ratio", type=float, default=0.2)
-    parser.add_argument("image", type=argparse.FileType("r"), nargs="+")
+    parser.add_argument("images", type=argparse.FileType("rb"), nargs="+")
     args = parser.parse_args()
 
-    transformer = TransformerImagePerspective(
+    transformer = RandomPerspective(
         max_offset_ratio=args.max_offset_ratio, alpha=args.alpha, beta=args.beta
     )
     print(transformer)
-    for f in args.image:
+    for f in args.images:
         x = Image.open(f, "r").convert("L")
         y = transformer(x)
 

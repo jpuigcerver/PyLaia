@@ -4,10 +4,11 @@ from __future__ import absolute_import
 import argparse
 import os
 
+import torchvision
 from torch.optim import RMSprop
 
 import laia.common.logging as log
-import laia.data.transformers as transformers
+import laia.data.transforms as transforms
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.arguments_types import NumberInOpenRange
 from laia.common.loader import ModelLoader, StateCheckpointLoader
@@ -97,21 +98,25 @@ if __name__ == "__main__":
         exit(1)
     model = model.cuda(args.gpu - 1) if args.gpu else model.cpu()
 
-    default_img_transform = transformers.TransformerList(
-        transformers.TransformerImageConvert("L"),
-        transformers.TransformerImageInvert(),
-        transformers.TransformerImageTensor(),
+    default_img_transform = torchvision.transforms.Compose(
+        [
+            transforms.Convert("L"),
+            transforms.Invert(),
+            torchvision.transforms.ToTensor(),
+        ]
     )
     if args.use_distortions:
-        tr_img_transform = transformers.TransformerList(
-            transformers.TransformerImageConvert("L"),
-            transformers.TransformerImageInvert(),
-            transformers.TransformerImageAffine(),
-            transformers.TransformerImageTensor(),
+        tr_img_transform = torchvision.transforms.Compose(
+            [
+                transforms.Convert("L"),
+                transforms.Invert(),
+                transforms.RandomBetaAffine(),
+                torchvision.transforms.ToTensor(),
+            ]
         )
     else:
         tr_img_transform = default_img_transform
-    log.info("Training data transformer: {}", str(tr_img_transform))
+    log.info("Training data transforms:\n{}", str(tr_img_transform))
 
     tr_dataset = TextImageFromTextTableDataset(
         args.tr_txt_table,

@@ -1,7 +1,7 @@
 from laia.utils.symbols_table import SymbolsTable
 
 
-# TODO: Deprecate this class in favor of laia.data.transformers
+# TODO: Deprecate this class in favor of laia.data.transforms
 class TextToTensor(object):
     def __init__(self, syms):
         assert isinstance(syms, (dict, SymbolsTable))
