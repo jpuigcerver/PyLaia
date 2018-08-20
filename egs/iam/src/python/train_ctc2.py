@@ -12,7 +12,7 @@ from laia.data import (ImageDataLoader, TextImageFromTextTableDataset,
 from laia.engine import Trainer, Evaluator, HtrEngineWrapper
 from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.hooks import Hook, HookCollection, action, Action, ActionCollection
+from laia.hooks import Hook, HookList, action, Action, ActionList
 from laia.hooks.conditions import Lowest, MultipleOf, GEqThan
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.loader import (TrainerLoader, ModelLoader,
@@ -143,27 +143,27 @@ if __name__ == '__main__':
     log.get_logger('laia.hooks.conditions.multiple_of').setLevel(log.WARNING)
 
     # Set hooks
-    trainer.add_hook(EPOCH_END, HookCollection(
+    trainer.add_hook(EPOCH_END, HookList(
         # Save on best CER
         Hook(Lowest(engine_wrapper.valid_cer(), name='Lowest CER'),
-             ActionCollection(Action(save, saver=tr_saver_best_cer),
-                              Action(save, saver=mo_saver_best_cer))),
+             ActionList(Action(save, saver=tr_saver_best_cer),
+                        Action(save, saver=mo_saver_best_cer))),
         # Save on best WER
         Hook(Lowest(engine_wrapper.valid_wer(), name='Lowest WER'),
-             ActionCollection(Action(save, saver=tr_saver_best_wer),
-                              Action(save, saver=mo_saver_best_wer))),
+             ActionList(Action(save, saver=tr_saver_best_wer),
+                        Action(save, saver=mo_saver_best_wer))),
         # Save every 5 epochs
         Hook(MultipleOf(trainer.epochs, 5),
-             ActionCollection(Action(save, saver=tr_saver),
-                              Action(save, saver=mo_saver)))))
+             ActionList(Action(save, saver=tr_saver),
+                        Action(save, saver=mo_saver)))))
 
     if args.max_epochs:
         # Save always the last 5 epochs
         trainer.add_hook(
             EPOCH_END,
             Hook(GEqThan(trainer.epochs, args.max_epochs - 5),
-                 ActionCollection(Action(save, saver=tr_saver),
-                                  Action(save, saver=mo_saver))))
+                 ActionList(Action(save, saver=tr_saver),
+                            Action(save, saver=mo_saver))))
         # Stop if the number of epochs has been reached
         trainer.add_hook(
             EPOCH_START,

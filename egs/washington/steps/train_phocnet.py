@@ -11,7 +11,7 @@ import torch
 from dortmund_utils import build_dortmund_model, ModelCheckpointKeepLastSaver
 from laia.engine.engine import EPOCH_START, EPOCH_END
 from laia.engine.phoc_engine_wrapper import PHOCEngineWrapper
-from laia.hooks import Hook, HookCollection, action
+from laia.hooks import Hook, HookList, action
 from laia.hooks.conditions import GEqThan, Highest
 from laia.losses.dortmund_bce_loss import DortmundBCELoss
 from laia.common.arguments import add_argument, add_defaults, args
@@ -150,7 +150,7 @@ if __name__ == '__main__':
         # Set hooks
 
 
-    trainer.add_hook(EPOCH_END, HookCollection(
+    trainer.add_hook(EPOCH_END, HookList(
         Hook(Highest(engine_wrapper.valid_ap(), key=0, name='Highest gAP'),
              highest_gap_saver),
         Hook(Highest(engine_wrapper.valid_ap(), key=1, name='Highest mAP'),

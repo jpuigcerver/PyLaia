@@ -36,7 +36,7 @@ class Hook(object):
                 v.load_state_dict(state[k])
 
 
-class HookCollection(object):
+class HookList(object):
     r"""When called, calls a collection of :class:`~Hook`` objects."""
 
     def __init__(self, *hooks):

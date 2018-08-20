@@ -100,8 +100,9 @@ setuptools.setup(
         "scipy",
         "tqdm",
         "torch==0.3.1",
+        "torchvision",
         'typing;python_version<"3.5"',
-        "Pillow",
+        "Pillow>=5.2",
     ],
     # Package contents
     packages=setuptools.find_packages(),
