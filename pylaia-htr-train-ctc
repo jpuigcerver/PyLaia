@@ -25,7 +25,7 @@ from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
 from laia.hooks import Hook, HookList, action, Action
-from laia.utils import SymbolsTable, TextToTensor
+from laia.utils import SymbolsTable
 
 if __name__ == "__main__":
     add_defaults(
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         args.tr_txt_table,
         args.img_dirs,
         img_transform=tr_img_transform,
-        txt_transform=TextToTensor(syms),
+        txt_transform=transforms.text.ToTensor(syms),
     )
     tr_dataset_loader = ImageDataLoader(
         dataset=tr_dataset,
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         args.va_txt_table,
         args.img_dirs,
         img_transform=default_img_transform,
-        txt_transform=TextToTensor(syms),
+        txt_transform=transforms.text.ToTensor(syms),
     )
     va_dataset_loader = ImageDataLoader(
         dataset=va_dataset,
