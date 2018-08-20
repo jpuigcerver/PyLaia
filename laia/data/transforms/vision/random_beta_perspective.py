@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 
-class RandomPerspective(object):
+class RandomBetaPerspective(object):
     def __init__(
         self,
         max_offset_ratio=0.2,  # type: float
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     parser.add_argument("images", type=argparse.FileType("rb"), nargs="+")
     args = parser.parse_args()
 
-    transformer = RandomPerspective(
+    transformer = RandomBetaPerspective(
         max_offset_ratio=args.max_offset_ratio, alpha=args.alpha, beta=args.beta
     )
     print(transformer)

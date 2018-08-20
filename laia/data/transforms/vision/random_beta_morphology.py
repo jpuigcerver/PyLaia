@@ -6,7 +6,7 @@ import scipy.special
 from PIL import Image, ImageFilter
 
 
-class RandomMorphology(object):
+class RandomBetaMorphology(object):
     def __init__(self, filter_size_min, filter_size_max, alpha, beta):
         # type: (int, int, float, float) -> None
         assert filter_size_min % 2 != 0, "Filter size must be odd"
@@ -39,11 +39,14 @@ class RandomMorphology(object):
         return filter_size
 
     def __repr__(self):
-        s = "vision.{name}(filter_size_min={filter_size_min}, filter_size_max={filter_size_max}, alpha={alpha}, beta={beta}) "
+        s = (
+            "vision.{name}(filter_size_min={filter_size_min}, "
+            "filter_size_max={filter_size_max}, alpha={alpha}, beta={beta}) "
+        )
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
 
-class Dilate(RandomMorphology):
+class Dilate(RandomBetaMorphology):
     def __init__(self, filter_size_min=3, filter_size_max=7, alpha=1, beta=3):
         super(Dilate, self).__init__(filter_size_min, filter_size_max, alpha, beta)
 
@@ -53,7 +56,7 @@ class Dilate(RandomMorphology):
         return img.filter(ImageFilter.MaxFilter(filter_size))
 
 
-class Erode(RandomMorphology):
+class Erode(RandomBetaMorphology):
     def __init__(self, filter_size_min=3, filter_size_max=5, alpha=1, beta=3):
         super(Erode, self).__init__(filter_size_min, filter_size_max, alpha, beta)
 
