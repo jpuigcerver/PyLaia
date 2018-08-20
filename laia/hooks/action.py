@@ -47,7 +47,7 @@ class Action(object):
         return self._callable(*a, **kw)
 
 
-class ActionCollection(object):
+class ActionList(object):
     """When called, calls a collection of :class:`~Action` objects."""
 
     def __init__(self, *actions):

@@ -1,11 +1,13 @@
-from laia.utils.symbols_table import SymbolsTable
+import warnings
+
+from laia.data.transforms.text import ToTensor
 
 
-class TextToTensor(object):
-    def __init__(self, syms):
-        assert isinstance(syms, (dict, SymbolsTable))
-        self._syms = syms
-
-    def __call__(self, x):
-        x = [self._syms[c] for c in x]
-        return x
+# TODO: Remove this
+class TextToTensor(ToTensor):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "The use of laia.utils.TextToTensor is deprecated, "
+            "please use laia.data.transforms.text.ToTensor instead."
+        )
+        super(TextToTensor, self).__init__(*args, **kwargs)
