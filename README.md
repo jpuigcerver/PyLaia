@@ -67,4 +67,4 @@ For optional arguments check `$ pylaia-htr-decode-ctc -h`
 ## FAQ
 
 #### Where can I find the last version PyTorch 0.3.1 compatible?
-You can check out the repository using this [tag](https://github.com/jpuigcerver/PyLaia/tree/PyTorch-v0.3.1)
+You can check out the repository using this [branch](https://github.com/jpuigcerver/PyLaia/tree/PyTorch-v0.3.1)
