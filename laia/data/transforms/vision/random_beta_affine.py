@@ -46,7 +46,7 @@ class RandomBetaAffine(object):
         )
 
     def __repr__(self):
-        s = "{name}(max_offset_ratio={max_offset_ratio}, alpha={alpha}, beta={beta}"
+        s = "vision.{name}(max_offset_ratio={max_offset_ratio}, alpha={alpha}, beta={beta}"
         if self.fillcolor:
             s += ", fillcolor={fillcolor}"
         s += ")"

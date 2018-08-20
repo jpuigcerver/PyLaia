@@ -3,11 +3,10 @@ from __future__ import absolute_import
 from typing import Callable, Union, Tuple, Sequence
 
 import numpy as np
-from PIL import Image, ImageOps
-from torchvision.transforms.transforms import RandomTransforms
+import torchvision
 
 
-class RandomProbChoice(RandomTransforms):
+class RandomProbChoice(torchvision.transforms.transforms.RandomTransforms):
     """Apply a randomly transformation chosen from a given set with some probability."""
 
     def __init__(self, transforms):
@@ -33,32 +32,4 @@ class RandomProbChoice(RandomTransforms):
         return self._transforms[t](x)
 
 
-class Invert(object):
-    """Invert the colors of a PIL image with the given probability."""
-
-    def __call__(self, img):
-        # type: (Image) -> Image
-        return ImageOps.invert(img)
-
-    def __repr__(self):
-        return self.__class__.__name__ + "()"
-
-
-class Convert(object):
-    """Convert a PIL image to Greyscale, RGB or RGBA."""
-
-    def __init__(self, mode):
-        # type: (str) -> None
-        assert mode in ("L", "RGB", "RGBA")
-        self.mode = mode
-
-    def __call__(self, img):
-        # type: (Image) -> Image
-        return img.convert(self.mode)
-
-    def __repr__(self):
-        format_string = self.__class__.__name__ + "("
-        if self.mode is not None:
-            format_string += "mode={}".format(self.mode)
-        format_string += ")"
-        return format_string
+Compose = torchvision.transforms.transforms.Compose

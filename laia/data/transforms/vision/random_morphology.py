@@ -39,7 +39,7 @@ class RandomMorphology(object):
         return filter_size
 
     def __repr__(self):
-        s = "{name}(filter_size_min={filter_size_min}, filter_size_max={filter_size_max}, alpha={alpha}, beta={beta})"
+        s = "vision.{name}(filter_size_min={filter_size_min}, filter_size_max={filter_size_max}, alpha={alpha}, beta={beta}) "
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
 
