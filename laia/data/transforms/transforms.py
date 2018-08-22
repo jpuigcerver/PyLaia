@@ -11,25 +11,36 @@ class RandomProbChoice(torchvision.transforms.transforms.RandomTransforms):
 
     def __init__(self, transforms):
         # type: (Sequence[Union[Callable, Tuple[float, Callable]]]) -> None
-        super(RandomProbChoice, self).__init__(transforms)
         assert transforms, "You must specify at least one choice"
 
-        self._transforms = []
+        callables = []
         self._probs = []
         for transformer in transforms:
             if isinstance(transformer, tuple):
                 self._probs.append(transformer[0])
-                self._transforms.append(transformer[1])
+                callables.append(transformer[1])
             else:
-                self._transforms.append(transformer)
+                callables.append(transformer)
         if self._probs:
-            assert len(self._probs) == len(self._transforms)
+            assert len(self._probs) == len(callables)
         else:
             self._probs = None
 
+        super(RandomProbChoice, self).__init__(callables)
+
     def __call__(self, x):
-        t = np.random.choice(np.arange(len(self._transforms)), p=self._probs)
-        return self._transforms[t](x)
+        t = np.random.choice(np.arange(len(self.transforms)), p=self._probs)
+        return self.transforms[t](x)
+
+
+class Identity(object):
+    def __call__(self, x):
+        return x
+
+    def __repr__(self):
+        return self.__class__.__name__ + "()"
 
 
 Compose = torchvision.transforms.transforms.Compose
+RandomApply = torchvision.transforms.transforms.RandomApply
+RandomChoice = torchvision.transforms.transforms.RandomChoice

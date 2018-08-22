@@ -11,6 +11,10 @@ class RandomBetaMorphology(object):
         # type: (int, int, float, float) -> None
         assert filter_size_min % 2 != 0, "Filter size must be odd"
         assert filter_size_max % 2 != 0, "Filter size must be odd"
+        self.filter_size_min = filter_size_min
+        self.filter_size_max = filter_size_max
+        self.alpha = alpha
+        self.beta = beta
         self.filter_sizes, self.filter_probs = self._create_filter_distribution(
             filter_size_min, filter_size_max, alpha, beta
         )
@@ -35,7 +39,6 @@ class RandomBetaMorphology(object):
 
     def sample_filter_size(self):
         filter_size = np.random.choice(self.filter_sizes, p=self.filter_probs)
-        print("filter_size = {}".format(filter_size))
         return filter_size
 
     def __repr__(self):
