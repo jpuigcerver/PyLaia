@@ -3,9 +3,8 @@ from __future__ import division
 
 import unittest
 
-import numpy as np
 import torch
-from torch.autograd import Variable, gradcheck
+from torch.autograd import gradcheck
 from torch.nn.functional import adaptive_max_pool2d
 
 from laia.data import PaddedTensor
@@ -19,7 +18,7 @@ except ImportError:
 @unittest.skipIf(AdaptiveMaxPool2d is None, "nnutils does not seem installed")
 class AdaptiveMaxPool2dTest(unittest.TestCase):
     def setUp(self):
-        self.x = torch.Tensor(
+        self.x = torch.tensor(
             [
                 # n = 0
                 [
@@ -63,23 +62,23 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
                         [9, 2, 6, 3],
                     ],
                 ],
-            ]
+            ],
+            dtype=torch.float,
         )
 
-    @staticmethod
-    def test_identity_tensor():
+    def test_identity_tensor(self):
         h, w = 5, 6
         m = AdaptiveMaxPool2d(output_size=(h, w))
-        x = Variable(torch.randn(2, 3, h, w), requires_grad=True)
+        x = torch.randn(2, 3, h, w, requires_grad=True)
         y = m(x)
-        np.testing.assert_almost_equal(y.data.cpu().numpy(), x.data.cpu().numpy())
-        dx, = torch.autograd.grad(y.sum(), inputs=(x,))
-        np.testing.assert_almost_equal(dx.data.cpu().numpy(), np.ones((2, 3, h, w)))
+        torch.testing.assert_allclose(y, x)
+        dx, = torch.autograd.grad(y.sum(), inputs=x)
+        torch.testing.assert_allclose(dx, torch.ones(2, 3, h, w))
 
     def test_forward_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
         y = m(self.x)
-        expected_y = np.asarray(
+        expected_y = torch.tensor(
             [
                 # n = 0
                 [
@@ -95,21 +94,20 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
                     # c = 1
                     [[9, 6]],
                 ],
-            ]
+            ],
+            dtype=torch.float,
         )
-        self.assertListEqual(list(y.size()), list(expected_y.shape))
-        np.testing.assert_almost_equal(y.data.cpu().numpy(), expected_y)
+        self.assertEqual(expected_y.size(), y.size())
+        torch.testing.assert_allclose(y, expected_y)
         # Check against PyTorch's adaptive pooling
         y2 = adaptive_max_pool2d(self.x, output_size=(1, 2))
-        np.testing.assert_almost_equal(y.data.cpu().numpy(), y2.data.cpu().numpy())
+        torch.testing.assert_allclose(y, y2)
 
     def test_forward_padded_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
-        x = PaddedTensor(
-            data=self.x, sizes=Variable(torch.LongTensor([[2, 2], [1, 3]]))
-        )
+        x = PaddedTensor(self.x, torch.tensor([[2, 2], [1, 3]]))
         y = m(x)
-        expected_y = np.asarray(
+        expected_y = torch.tensor(
             [
                 # n = 0
                 [
@@ -125,24 +123,16 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
                     # c = 1
                     [[4, 4]],
                 ],
-            ]
+            ],
+            dtype=torch.float,
         )
-        np.testing.assert_almost_equal(y.data.cpu().numpy(), expected_y)
+        torch.testing.assert_allclose(y, expected_y)
 
     def test_backward_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
-
-        def wrap_func(x):
-            return m(x).sum()
-
-        gradcheck(func=wrap_func, inputs=(self.x,))
+        gradcheck(lambda x: m(x).sum(), self.x)
 
     def test_backward_padded_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
-
-        def wrap_func(x):
-            return m(
-                PaddedTensor(data=x, sizes=Variable(torch.LongTensor([[2, 2], [1, 3]])))
-            ).sum()
-
-        gradcheck(func=wrap_func, inputs=(self.x,))
+        xs = torch.tensor([[2, 2], [1, 3]])
+        gradcheck(lambda x: m(PaddedTensor(x, xs)).sum(), self.x)

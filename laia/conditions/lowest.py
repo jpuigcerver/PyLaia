@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from typing import Callable, Any
 
-import numpy as np
+from torch._six import inf
 
 import laia.common.logging as log
 from laia.conditions.condition import LoggingCondition
@@ -16,7 +16,7 @@ class Lowest(LoggingCondition):
     def __init__(self, obj, key=None, name=None):
         # type: (Callable, Any, str) -> None
         super(Lowest, self).__init__(obj, key, _logger, name)
-        self._lowest = np.inf
+        self._lowest = inf
 
     def __call__(self):
         value = self._process_value()
