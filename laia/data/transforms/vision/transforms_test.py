@@ -5,12 +5,22 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from laia.data.transformers.transformer_image_convert import TransformerImageConvert
+from laia.data.transforms.vision import Invert, Convert
 
 
-class TransformerImageConvertTest(unittest.TestCase):
-    def test_greyscale(self):
-        t = TransformerImageConvert(mode="L")
+class TransformerTest(unittest.TestCase):
+    def test_invert(self):
+        t = Invert()
+        x = Image.new("L", (30, 40), color=0)
+        y = t(x)
+        self.assertTupleEqual(x.size, y.size)
+        self.assertEqual(x.mode, y.mode)
+        y = np.asarray(y)
+        self.assertEqual(y.max(), 255)
+        self.assertEqual(y.min(), 255)
+
+    def test_convert_greyscale(self):
+        t = Convert(mode="L")
         x = Image.new("RGB", (30, 40), color=(127, 127, 127))
         y = t(x)
         self.assertTupleEqual(x.size, y.size)
@@ -19,8 +29,8 @@ class TransformerImageConvertTest(unittest.TestCase):
         self.assertEqual(y.max(), 127)
         self.assertEqual(y.min(), 127)
 
-    def test_rgba(self):
-        t = TransformerImageConvert(mode="RGBA")
+    def test_convert_rgba(self):
+        t = Convert(mode="RGBA")
         x = Image.new("L", (30, 40), color=127)
         y = t(x)
         self.assertTupleEqual(x.size, y.size)
