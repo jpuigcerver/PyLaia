@@ -8,7 +8,7 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized fo
 
 ## Requirements
 
-- [PyTorch 0.3.1](https://pytorch.org)
+- [PyTorch 0.4.1](https://pytorch.org)
 - [warp-ctc](./third_party/warp-ctc)
 
 ## Optional requirements (depending on your usage)

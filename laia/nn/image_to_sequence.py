@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import torch
 from torch.nn.utils.rnn import pack_padded_sequence
-from torch.autograd import Variable
 
 from laia.data import PaddedTensor
 
@@ -11,9 +10,9 @@ def image_to_sequence(x, columnwise=True, return_packed=False):
     x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
 
     if x.dim() == 2:
-        x = x.view(1, 1, x.size()[0], x.size()[1])
+        x = x.view(1, 1, x.size(0), x.size(1))
     elif x.dim() == 3:
-        x = x.view(1, x.size()[0], x.size()[1], x.size()[2])
+        x = x.view(1, x.size(0), x.size(1), x.size(2))
     assert x.dim() == 4
 
     n, c, h, w = x.size()
@@ -25,15 +24,10 @@ def image_to_sequence(x, columnwise=True, return_packed=False):
     if xs is None:
         return x
     else:
-        if columnwise:
-            xs = xs.data[:, 1] if isinstance(xs, Variable) else xs[:, 1]
-        else:
-            xs = xs.data[:, 0] if isinstance(xs, Variable) else xs[:, 0]
-
-        if return_packed:
-            return pack_padded_sequence(x, xs.tolist())
-        else:
-            return x, xs.tolist()
+        xs = xs[:, 1 if columnwise else 0]
+        return (
+            pack_padded_sequence(x, xs.tolist()) if return_packed else (x, xs.tolist())
+        )
 
 
 class ImageToSequence(torch.nn.Module):

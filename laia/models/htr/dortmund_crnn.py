@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict
+from typing import Union
 
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 from torch.nn.utils.rnn import PackedSequence
-from typing import Union
 
 from laia.data.padding_collater import PaddedTensor
 from laia.models.kws.dortmund_phocnet import build_conv_model, size_after_conv
@@ -38,31 +37,30 @@ class DortmundCRNN(torch.nn.Module):
 
     def dropout(self, x, p=0.5):
         if 0.0 < p < 1.0:
-            if isinstance(x, PackedSequence):
-                return PackedSequence(
-                    data=F.dropout(x.data, p, self.training), batch_sizes=x.batch_sizes
-                )
-            elif isinstance(x, PaddedTensor):
-                return PaddedTensor(
-                    data=F.dropout(x.data, p, self.training), sizes=x.sizes
-                )
-            else:
-                return F.dropout(x, p, self.training)
+            cls = None
+            if isinstance(x, PaddedTensor):
+                cls = PaddedTensor
+                x, xs = x.data, x.sizes
+            elif isinstance(x, PackedSequence):
+                cls = PackedSequence
+                x, xs = x.data, x.batch_sizes
+            d = F.dropout(x, p=p, training=self.training)
+            return cls(d, xs) if cls is not None else d
         else:
             return x
 
     def forward(self, x):
-        # type: (Union[Variable, PaddedTensor]) -> Union[Variable, PackedSequence]
+        # type: (Union[torch.Tensor, PaddedTensor]) -> Union[torch.Tensor, PackedSequence]
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         x = self.conv(x)
         if xs is not None:
             xs = size_after_conv(xs)
-        x = self.sequencer(x if xs is None else PaddedTensor(data=x, sizes=xs))
+        x = self.sequencer(x if xs is None else PaddedTensor(x, xs))
         x = self.dropout(x, p=self._dropout)
         x, _ = self.blstm(x)
         x = self.dropout(x, p=self._dropout)
         return (
-            PackedSequence(data=self.linear(x.data), batch_sizes=x.batch_sizes)
+            PackedSequence(self.linear(x), x.batch_sizes)
             if isinstance(x, PackedSequence)
             else self.linear(x)
         )
