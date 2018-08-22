@@ -106,12 +106,11 @@ c="$(basename "$tr_txt" .txt)";
 # Count n-grams of external data
 for f in "${external_txt[@]}"; do
   c="$(basename "$f" .txt)";
-  [ "$overwrite" = false -a -s "$output_dir/$c.count.fst" ] || {
-    farcompilestrings \
-      --symbols="$output_dir/chars.txt" --unknown_symbol="<unk>" --keep_symbols=true \
-      "$f" |
-    ngramcount --order="$ngram_order" > "$output_dir/$c.count.fst";
-  } || exit 1;
+  [ "$overwrite" = false -a -s "$output_dir/$c.count.fst" ] ||
+  farcompilestrings \
+    --symbols="$output_dir/chars.txt" --unknown_symbol="<unk>" --keep_symbols=true \
+    "$f" |
+  ngramcount --order="$ngram_order" > "$output_dir/$c.count.fst" || exit 1;
 done;
 
 lm_files=();
@@ -176,5 +175,3 @@ for txt in "$va_txt" "$te_txt"; do
   }' || exit 1;
   rm "$tmp";
 done;
-
-
