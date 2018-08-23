@@ -128,7 +128,7 @@ def make_posteriorgram_process(
     )
 
 
-def make_simple_kws_eval_process(kws_ref, queries=None):
+def make_simple_kws_eval_process(kws_ref, queries=None, verbose=False):
     # type (AnyStr, Optional[AnyStr]) -> subprocess.Popen
     return subprocess.Popen(
         [
@@ -145,17 +145,20 @@ def make_simple_kws_eval_process(kws_ref, queries=None):
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
+        stderr=None if verbose else DEV_NULL,
     )
 
 
-def make_kws_assessment_process(table_file, queries=None):
+def make_kws_assessment_process(table_file, queries=None, verbose=False):
     # type: (Optional[AnyStr]) -> subprocess.Popen
     popen_args = (
         ["kws-assessment-joan", "-a", "-m", "-t"]
         + (["-w", queries] if queries else [])
         + [table_file]
     )
-    return subprocess.Popen(popen_args, stdout=subprocess.PIPE)
+    return subprocess.Popen(
+        popen_args, stdout=subprocess.PIPE, stderr=None if verbose else DEV_NULL
+    )
 
 
 def simple_kws_eval_utterance_index(
@@ -169,7 +172,7 @@ def simple_kws_eval_utterance_index(
     p1 = make_index_utterance_process(
         syms, lattice_ark, acoustic_scale, queries, verbose
     )
-    p2 = make_simple_kws_eval_process(kws_ref, queries)
+    p2 = make_simple_kws_eval_process(kws_ref, queries, verbose)
     for line in p1.stdout:
         line = line.split()
         utt = line[0]
@@ -193,7 +196,7 @@ def simple_kws_eval_segment_index(
     p1 = make_index_utterance_process(
         syms, lattice_ark, acoustic_scale, queries, verbose
     )
-    p2 = make_simple_kws_eval_process(kws_ref, queries)
+    p2 = make_simple_kws_eval_process(kws_ref, queries, verbose)
     for line in p1.stdout:
         line = line.split()
         utt = line[0]
@@ -259,7 +262,7 @@ def kws_assessment_utterance_index(
     p1.stdout.close()
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
 
-    p2 = make_kws_assessment_process(tmppath, queries)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose)
     out = p2.communicate()[0]
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
@@ -294,7 +297,7 @@ def kws_assessment_segment_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose)
     out = p2.communicate()[0]
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
@@ -331,7 +334,7 @@ def kws_assessment_position_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose)
     out = p2.communicate()[0]
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
@@ -374,7 +377,7 @@ def kws_assessment_column_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose)
     out = p2.communicate()[0]
     os.remove(tmppath)
     return kws_assessment_parse_output(out)

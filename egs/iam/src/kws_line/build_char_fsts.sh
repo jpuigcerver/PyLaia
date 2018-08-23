@@ -7,13 +7,27 @@ cd "$SDIR/../..";
 source "$PWD/../utils/functions_check.inc.sh" || exit 1;
 export PATH="$PWD/../utils:$PATH";
 
+ctc="<ctc>";
+eps="<eps>";
 loop_scale=1;
 overwrite=false;
 transition_scale=1;
+wspace="<space>";
 help_message="
 Usage: ${0##*/} [options] lm_dir output_dir
+
+IMPORTANT: This script assumes that the first symbol in the text line
+is the whitespace symbol (see --wspace).
+
+Options:
+  --ctc              : (type = string, default = \"$ctc\")
+  --eps              : (type = string, default = \"$eps\")
+  --loop_scale       : (type = float, default = $loop_scale)
+  --overwrite        : (type = boolean, default = $overwrite)
+  --transition_scale : (type = float, default = $transition_scale)
+  --wspace           : (type = string, default = \"$wspace\")
 ";
-source ../utils/parse_options.inc.sh || exit 1;
+source $PWD/../utils/parse_options.inc.sh || exit 1;
 [ $# -ne 2 ] && echo "$help_message" >&2 && exit 1;
 
 lm_dir="$1";
@@ -30,7 +44,7 @@ char_disambig_sym=`grep \#0 "$lm_dir/chars.txt" | awk '{print $2}'`;
 
 # Create HMM model and tree
 create_ctc_hmm_model.sh \
-  --eps "<eps>" --ctc "<ctc>" \
+  --eps "$eps" --ctc "$ctc" \
   --overwrite "$overwrite" \
   --dregex "^(#.+|<unk>)" \
   "$lm_dir/chars.txt" \
@@ -52,11 +66,9 @@ fstarcsort --sort_type=olabel > "$output_dir/L.fst" || exit 1;
 # the resulting FST.
 # We enforce that text starts with the character <sp> to handle the fake
 # frame added at the start of the utterance.
-sp_int="$(grep -w "<space>" $output_dir/chars.txt | awk '{ print $2 }')";
+sp_int="$(grep -w "$wspace" $lm_dir/chars.txt | awk '{ print $2 }')";
 [[ "$overwrite" = false && -s "$output_dir/LG.fst" ]] ||
-fstrelabel \
-  --relabel_ipairs=<(echo "0 $char_disambig_sym") \
-  "$lm_dir/lm.fst" |
+fstrelabel --relabel_ipairs=<(echo "0 $char_disambig_sym") "$lm_dir/lm.fst" |
 fstconcat <(echo -e "0  1  $sp_int $sp_int\n1" | fstcompile) - |
 fstarcsort --sort_type=ilabel |
 fsttablecompose "$output_dir/L.fst" - |

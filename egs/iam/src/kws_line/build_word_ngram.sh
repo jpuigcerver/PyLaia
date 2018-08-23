@@ -10,14 +10,24 @@ export PATH="$PWD/../utils:$PATH";
 
 check_opengrm || exit 1;
 
+eps="<eps>";
 lowercase=false;
 ngram_method=kneser_ney;
 ngram_order=3;
 overwrite=false;
+unk="<unk>";
 voc_size=50000;
 voc_tune=false;
+wspace="<space>";
 help_message="
-Usage: ${0##*/} [options] syms_ctc output_dir
+Usage: ${0##*/} [options] output_dir
+
+IMPORTANT: This script assumes that the first symbol in the text line
+is the whitespace symbol (see --wspace).
+
+Options:
+  --eps           : (type = string, default = \"$eps\")
+                    Symbol representing the epsilon label.
   --lowercase     : (type = boolean, default = $lowercase)
                     If true, train a model of lowercase only words.
   --ngram_method  : (type = string, default = \"$ngram_method\")
@@ -26,16 +36,19 @@ Usage: ${0##*/} [options] syms_ctc output_dir
                     Order of the n-gram language model.
   --overwrite     : (type = boolean, default = $overwrite)
                     Overwrite previously created files.
+  --unk           : (type = string, default = \"$unk\")
+                    Symbol representing unknown words.
   --voc_size      : (type = integer, default = $voc_size)
                     Keep this number of most frequent words.
   --voc_tune      : (type = boolean, default = $voc_tune)
                     If true, use hyperopt to tune the vocabulary.
+  --wspace        : (type = string, default = \"$wspace\")
+                    Symbol representing the whitespace character.
 ";
-source ../utils/parse_options.inc.sh || exit 1;
-[ $# -ne 2 ] && echo "$help_message" >&2 && exit 1;
+source $PWD/../utils/parse_options.inc.sh || exit 1;
+[ $# -ne 1 ] && echo "$help_message" >&2 && exit 1;
 
-syms_ctc="$1";
-output_dir="$2";
+output_dir="$1";
 
 if [ "$lowercase" = true ]; then
   syms_ctc=data/kws_line/lang/char/syms_ctc_lowercase.txt;
@@ -99,10 +112,10 @@ function filter_words_missing_symbol () {
     sort | uniq -c | sort -nrk1 | head -n "$voc_size" | awk '{print $2}';
   fi |
   sort |
-  gawk 'BEGIN{
+  gawk -v eps="$eps" -v unk="$unk" 'BEGIN{
     N = 0;
-    print "<eps>", N++;
-    print "<unk>", N++;
+    print eps, N++;
+    print unk, N++;
     print "<s>", N++;
     print "</s>", N++;
   }{
@@ -114,14 +127,14 @@ function filter_words_missing_symbol () {
 
 # Create word lexicon
 [ "$overwrite" = false -a -s "$output_dir/lexicon.txt" ] ||
-gawk 'BEGIN{
-  IGNORE["<eps>"] = 1;
-  IGNORE["<unk>"] = 1;
+gawk -v eps="$eps" -v unk="$unk" -v wspace="$wspace"  'BEGIN{
+  IGNORE[eps] = 1;
+  IGNORE[unk] = 1;
   IGNORE["<s>"] = 1;
   IGNORE["</s>"] = 1;
   IGNORE["#0"] = 1;
 }!($1 in IGNORE){
-  printf("%20-s <space>", $1);
+  printf("%20-s %s", $1, wspace);
   for (j = 1; j <= length($1); ++j) {
     printf(" %s", substr($1, j, 1));
   }
@@ -135,8 +148,8 @@ gawk 'BEGIN{
   -s "$output_dir/chars.txt" ] || {
   ndisambig=$(add_lex_disambig.pl "$output_dir/lexicon.txt" \
                                   "$output_dir/lexicon_disambig.txt");
-  gawk -v nd="$ndisambig" 'BEGIN{
-    print "<eps>", 0;
+  gawk -v eps="$eps" -v nd="$ndisambig" 'BEGIN{
+    print eps, 0;
   }{
     print $1, NR;
   }END{
@@ -162,7 +175,7 @@ c="$(basename "$tr_txt" .txt)";
   tmp="$(mktemp)";
   cut -d\  -f2- "$tr_txt" > "$tmp";
   farcompilestrings \
-    --symbols="$output_dir/words.txt" --unknown_symbol="<unk>" --keep_symbols=true \
+    --symbols="$output_dir/words.txt" --unknown_symbol="$unk" --keep_symbols=true \
     "$tmp" |
   ngramcount --order="$ngram_order" > "$output_dir/$c.count.fst";
   rm "$tmp";
@@ -172,10 +185,8 @@ c="$(basename "$tr_txt" .txt)";
 for f in "${external_txt[@]}"; do
   c="$(basename "$f" .txt)";
   [ "$overwrite" = false -a -s "$output_dir/$c.count.fst" ] || {
-
-
     farcompilestrings \
-      --symbols="$output_dir/words.txt" --unknown_symbol="<unk>" --keep_symbols=true \
+      --symbols="$output_dir/words.txt" --unknown_symbol="$unk" --keep_symbols=true \
       "$f" |
     ngramcount --order="$ngram_order" > "$output_dir/$c.count.fst"
   } || exit 1;
@@ -188,10 +199,11 @@ for f in "$tr_txt" "${external_txt[@]}"; do
 
   # Make individual ARPA files, ignoring <unk> token
   [ "$overwrite" = false -a -s "$output_dir/$c.lm.fst" ] ||
-  ngramprint --integers "$output_dir/$c.count.fst" | grep -v "<unk>" | ngramread |
+  ngramprint --integers "$output_dir/$c.count.fst" | grep -v "$unk" |
+  ngramread --symbols="$output_dir/words.txt" --OOV_symbol="$unk" \
+            --epsilon_symbol="$eps" |
   ngrammake --method="$ngram_method" > "$output_dir/$c.lm.fst" || exit 1;
 
-  # Remove n-grams containing <unk>
   [ "$overwrite" = false -a -s "$output_dir/$c.lm.info" ] ||
   ngramprint --ARPA "$output_dir/$c.lm.fst" |
   ngram -order "$ngram_order" -debug 2 -ppl <(cut -d\  -f2- "$va_txt") -lm - \
@@ -220,7 +232,9 @@ ngram -order "$ngram_order" \
       -mix-lambda2 "${lambdas[2]}" \
       -mix-lambda3 "${lambdas[3]}" \
       -write-lm - |
-ngramread --ARPA > "$output_dir/lm.fst" || exit 1;
+ngramread \
+  --symbols="$output_dir/words.txt" --OOV_symbol="$unk" \
+  --epsilon_symbol="$eps" --ARPA > "$output_dir/lm.fst" || exit 1;
 
 
 # Compute validation and test perplexity and running OOV
@@ -228,7 +242,7 @@ for txt in "$va_txt" "$te_txt"; do
   tmp="$(mktemp)";
   cut -d\  -f2- "$txt" > "$tmp";
   farcompilestrings \
-    --symbols="$output_dir/words.txt" --unknown_symbol="<unk>" \
+    --symbols="$output_dir/words.txt" --unknown_symbol="$unk" \
     --keep_symbols=true "$tmp" |
   ngramperplexity "$output_dir/lm.fst" 2> /dev/null |
   gawk -v txt="$txt" '{
