@@ -96,6 +96,41 @@ for p in te te_lowercase tr tr_lowercase va va_lowercase; do
   sort -u > "data/kws_line/lang/kws_refs/$p.txt" || exit 1;
 done;
 
+# Download full list of English stopwords
+[ -s data/kws_line/lang/english_stopwords.txt ] ||
+wget -P data/kws_line/lang -N \
+   https://gist.githubusercontent.com/jpuigcerver/c0c5bc715f2df2bfde8d0d79ae049a05/raw/926fa0c1379eec2d562a97875ffdc55aa39f7ca6/english_stopwords.txt || exit 1;
+
+# Prepare query lists
+mkdir -p data/kws_line/lang/queries;
+for p in te tr va; do
+  # Case-insensitive queries
+  [ -s data/kws_line/lang/queries/${p}_lowercase.txt ] ||
+  cut -d\  -f1 data/kws_line/lang/kws_refs/${p}_lowercase.txt | sort -u |
+  comm -23 - <(sort data/kws_line/lang/english_stopwords.txt) |
+  gawk '$0 ~ /[0-9a-z]+/' |
+  sort > data/kws_line/lang/queries/${p}_lowercase.txt || exit 1;
+  # Case-sensitive queries
+  [ -s data/kws_line/lang/queries/${p}.txt ] ||
+  cut -d\  -f1 data/kws_line/lang/kws_refs/${p}.txt | sort -u |
+  gawk -v qfile=data/kws_line/lang/queries/${p}_lowercase.txt \
+  'BEGIN{ while((getline < qfile) > 0) Q[$1] = 1; }(tolower($0) in Q)' |
+  sort > data/kws_line/lang/queries/${p}.txt || exit 1;
+done;
+
+# Download list of queries used in old KWS experiments for IAM
+[ -s data/kws_line/lang/queries/iam_old_papers_queries.txt ] ||
+wget -P data/kws_line/lang/queries -N \
+     https://gist.githubusercontent.com/jpuigcerver/a2c94a2196211aea6b2c08774f50f541/raw/de52fe19e53ecb87df8e3e614e4e5815c4a045d9/iam_old_papers_queries.txt || exit 1;
+
+# Convert old queries to lowercase
+[ -s data/kws_line/lang/queries/iam_old_papers_queries_lowercase.txt ] ||
+awk '{ print tolower($0); }' \
+  data/kws_line/lang/queries/iam_old_papers_queries.txt |
+sort -u > \
+  data/kws_line/lang/queries/iam_old_papers_queries_lowercase.txt || exit 1;
+
+
 function process_image_resize_h128 () {
   local bn="$(basename "$1" .png)";
   [ -s "data/kws_line/imgs/resize_h128/$bn.png" ] ||

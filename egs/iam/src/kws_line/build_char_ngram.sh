@@ -10,12 +10,21 @@ export PATH="$PWD/../utils:$PATH";
 
 check_opengrm || exit 1;
 
+ctc="<ctc>";
+eps="<eps>";
 lowercase=false;
 ngram_method=kneser_ney;
 ngram_order=6;
 overwrite=false;
+unk="<unk>";
 help_message="
 Usage: ${0##*/} [options] output_dir
+
+Options:
+  --ctc           : (type = string, default = \"$ctc\")
+                    Symbol representing the CTC label.
+  --eps           : (type = string, default = \"$eps\")
+                    Symbol representing the epsilon label.
   --lowercase     : (type = boolean, default = $lowercase)
                     If true, train a model of lowercase only characters.
   --ngram_method  : (type = string, default = \"$ngram_method\")
@@ -24,8 +33,10 @@ Usage: ${0##*/} [options] output_dir
                     Order of the n-gram language model.
   --overwrite     : (type = boolean, default = $overwrite)
                     Overwrite previously created files.
+  --unk           : (type = string, default = \"$unk\")
+                    Symbol representing unknown words.
 ";
-source ../utils/parse_options.inc.sh || exit 1;
+source $PWD/../utils/parse_options.inc.sh || exit 1;
 [ $# -ne 1 ] && echo "$help_message" >&2 && exit 1;
 
 output_dir="$1";
@@ -58,8 +69,8 @@ mkdir -p "$output_dir" || exit 1;
 
 # Create the lexicon file
 [ "$overwrite" = false -a -s "$output_dir/lexicon.txt" ] ||
-gawk '{
-  if ($1 != "<eps>" && $1 != "<ctc>") {
+gawk -v ctc="$ctc" -v eps="$eps" '{
+  if ($1 != "$eps" && $1 != "$ctc") {
     printf("%8-s %s\n", $1, $1);
   }
 }' "$syms_ctc" > "$output_dir/lexicon.txt";
@@ -70,12 +81,12 @@ gawk '{
   -s "$output_dir/chars.txt" ] || {
   ndisambig=$(add_lex_disambig.pl "$output_dir/lexicon.txt" \
               "$output_dir/lexicon_disambig.txt");
-  gawk -v nd="$ndisambig" 'BEGIN{
-    print "<eps>", 0;
+  gawk -v eps="$eps" -v nd="$ndisambig" -v unk="<unk>" 'BEGIN{
+    print eps, 0;
   }{
     print $1, NR;
   }END{
-    print "<unk>", NR + 1;
+    print unk, NR + 1;
     for (d = 0; d <= nd; ++d) {
       printf("#%d %d\n", d, NR + d + 2);
     }
@@ -97,7 +108,7 @@ c="$(basename "$tr_txt" .txt)";
   tmp="$(mktemp)";
   cut -d\  -f2- "$tr_txt" > "$tmp";
   farcompilestrings \
-    --symbols="$output_dir/chars.txt" --unknown_symbol="<unk>" --keep_symbols=true \
+    --symbols="$output_dir/chars.txt" --unknown_symbol="$unk" --keep_symbols=true \
     "$tmp" |
   ngramcount --order="$ngram_order" > "$output_dir/$c.count.fst";
   rm "$tmp";
@@ -108,7 +119,7 @@ for f in "${external_txt[@]}"; do
   c="$(basename "$f" .txt)";
   [ "$overwrite" = false -a -s "$output_dir/$c.count.fst" ] ||
   farcompilestrings \
-    --symbols="$output_dir/chars.txt" --unknown_symbol="<unk>" --keep_symbols=true \
+    --symbols="$output_dir/chars.txt" --unknown_symbol="$unk" --keep_symbols=true \
     "$f" |
   ngramcount --order="$ngram_order" > "$output_dir/$c.count.fst" || exit 1;
 done;
@@ -120,10 +131,11 @@ for f in "$tr_txt" "${external_txt[@]}"; do
 
   # Make individual ARPA files, ignoring <unk> token
   [ "$overwrite" = false -a -s "$output_dir/$c.lm.fst" ] ||
-  ngramprint --integers "$output_dir/$c.count.fst" | grep -v "<unk>" | ngramread |
+  ngramprint --integers "$output_dir/$c.count.fst" | grep -v "$unk" |
+  ngramread --symbols="$output_dir/chars.txt" --OOV_symbol="$unk" \
+            --epsilon_symbol="$eps" |
   ngrammake --method="$ngram_method" > "$output_dir/$c.lm.fst" || exit 1;
 
-  # Remove n-grams containing <unk>
   [ "$overwrite" = false -a -s "$output_dir/$c.lm.info" ] ||
   ngramprint --ARPA "$output_dir/$c.lm.fst" |
   ngram -order "$ngram_order" -debug 2 -ppl <(cut -d\  -f2- "$va_txt") -lm - \
@@ -152,7 +164,9 @@ ngram -order "$ngram_order" \
       -mix-lambda2 "${lambdas[2]}" \
       -mix-lambda3 "${lambdas[3]}" \
       -write-lm - |
-ngramread --ARPA > "$output_dir/lm.fst" || exit 1;
+ngramread \
+  --symbols="$output_dir/chars.txt" --OOV_symbol="$unk" \
+  --epsilon_symbol="$eps" --ARPA > "$output_dir/lm.fst" || exit 1;
 
 # Compute validation and test perplexity and running OOV
 for txt in "$va_txt" "$te_txt"; do
