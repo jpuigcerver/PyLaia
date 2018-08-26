@@ -88,3 +88,44 @@ gawk 'BEGIN{
     print $0 > "data/lang/lines/char/tr.txt";
   }
 }' data/lang/lines/char/tr_normalized.txt;
+
+for p in tr va; do
+  [ -s data/lang/lines/word/$p.txt ] ||
+  join -1 1 \
+       <(sort -k1b,1 data/lang/lines/word/tr_normalized.txt) \
+       <(cut -d\  -f1 data/lang/lines/char/$p.txt | sort) \
+       > data/lang/lines/word/$p.txt || exit 1;
+done;
+
+# Prepare list of delimiter characters (that separate words).
+[ -s data/lang/delimiters.txt ] ||
+cat <<EOF > data/lang/delimiters.txt
+<sp>
+<@>
+<#>
+|
+_
+!
+?
+/
+(
+)
+[
+]
+EOF
+
+# Prepare a list of queries to perform line-level KWS for
+# validation porpuses.
+[ -s data/lang/lines/queries.txt ] ||
+cut -d\  -f2- data/lang/lines/word/va.txt |
+tr \  \\n |
+awk '$0 ~ /^([0-9a-z-]+)$/ && length($0) > 4' |
+sort -u > data/lang/lines/queries.txt;
+
+# Prepare KWS reference data for the validation lines.
+mkdir -p data/lang/lines/kws_refs;
+[ -s data/lang/lines/kws_refs/va.txt ] ||
+awk '{
+  for (i=2; i<=NF; ++i) printf("%s %s\n", $i, $1);
+}' data/lang/lines/word/va.txt |
+sort -u > data/lang/lines/kws_refs/va.txt;
