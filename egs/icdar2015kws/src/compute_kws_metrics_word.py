@@ -1,0 +1,1 @@
+../../iam/src/kws_line/compute_kws_metrics_word.py
