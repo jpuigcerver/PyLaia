@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from typing import Callable, Union, Tuple, Sequence
+from typing import Callable, Union, Tuple, Sequence, List
 
 import numpy as np
 import torchvision
@@ -9,13 +7,14 @@ import torchvision
 class RandomProbChoice(torchvision.transforms.transforms.RandomTransforms):
     """Apply a randomly transformation chosen from a given set with some probability."""
 
-    def __init__(self, transforms):
-        # type: (Sequence[Union[Callable, Tuple[float, Callable]]]) -> None
-        super(RandomProbChoice, self).__init__(transforms)
+    def __init__(
+        self, transforms: Sequence[Union[Callable, Tuple[float, Callable]]]
+    ) -> None:
+        super().__init__(transforms)
         assert transforms, "You must specify at least one choice"
 
-        self._transforms = []
-        self._probs = []
+        self._transforms = []  # type: List[Callable]
+        self._probs = []  # type: Union[None, List[float]]
         for transformer in transforms:
             if isinstance(transformer, tuple):
                 self._probs.append(transformer[0])
