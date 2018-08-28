@@ -97,12 +97,20 @@ for p in Validation Test; do
   k=$[k+1];
 done;
 
-# Download autosegmented test Page XML
+# Download autosegmented valid Page XMLs
+autosegm_file=ICDAR2015KWS_Valid_Transkribus_AutoSegment.tar.gz;
+url="https://www.prhlt.upv.es/~jpuigcerver/$autosegm_file";
+[[ -s "data/$autosegm_file" || -d data/xml/va ]] ||
+wget --no-check-certificate -P data -N "$url" || exit 1;
+[[ -d data/xml/va ]] ||
+( mkdir -p data/xml/va && tar zxf "data/$autosegm_file" -C data/xml/va; ) ||
+exit 1;
+
+# Download autosegmented test Page XMLs
 autosegm_file=ICDAR2015KWS_Test_Transkribus_AutoSegment.tar.gz;
 url="https://www.prhlt.upv.es/~jpuigcerver/$autosegm_file";
 [[ -s "data/$autosegm_file" || -d data/xml/te ]] ||
 wget --no-check-certificate -P data -N "$url" || exit 1;
-
 [[ -d data/xml/te ]] ||
 ( mkdir -p data/xml/te && tar zxf "data/$autosegm_file" -C data/xml/te; ) ||
 exit 1;

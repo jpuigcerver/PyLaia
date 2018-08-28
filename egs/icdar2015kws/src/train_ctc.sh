@@ -19,11 +19,12 @@ cnn_kernel_size="7 5 3 3";
 cnn_num_features="12 24 48 48";
 cnn_pool_size="2 2 2 0";
 cnn_stride="1 1 1 1";
-height=80;
+height=128;
 learning_rate=0.0005;
-max_epochs=90;
+max_epochs=200;
 rnn_units=256;
 rnn_layers=3;
+use_distortions=false;
 help_message="
 Usage: ${0##*/} [options] <output_dir>
 
@@ -40,6 +41,7 @@ Options:
   --max_epochs       : (type = integer, default = $max_epochs)
   --rnn_layers       : (type = integer, default = $rnn_layers)
   --rnn_units        : (type = integer, default = $rnn_units)
+  --use_distortions  : (type = boolean, default = $use_distortions)
 ";
 source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 1 ] && echo "$help_message" >&2 && exit 1;
@@ -89,9 +91,10 @@ pylaia-htr-train-ctc \
   --train_samples_per_epoch 5000 \
   --delimiters "<sp>" \
   --max_epochs "${max_epochs}" \
-  --save_checkpoint_interval 5 \
-  --batch_size ${batch_size} \
+  --save_checkpoint_interval 10 \
+  --batch_size "${batch_size}" \
   --show_progress_bar true \
+  --use_distortions "${use_distortions}" \
   -- \
   data/lang/syms_ctc.txt \
   "data/images/train_lines_proc_h${height}" \
