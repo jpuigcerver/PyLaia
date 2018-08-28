@@ -223,7 +223,7 @@ def get_kws_ref_set(kws_ref):
 def add_missing_words(kws_ref_set, kws_hyp_set, tmpf):
     for word, utt in kws_ref_set:
         if (word, utt) not in kws_hyp_set:
-            tmpf.write("{} {} {} {}\n".format(utt, word, 1, "-inf"))
+            tmpf.write(u"{} {} {} {}\n".format(utt, word, 1, "-inf").encode("utf-8"))
     tmpf.close()
 
 
@@ -257,7 +257,7 @@ def kws_assessment_utterance_index(
             word = syms[int(line[i])]
             score = line[i + 1]
             rel = 1 if (word, utt) in kws_ref_set else 0
-            tmpf.write("{} {} {} {}\n".format(utt, word, rel, score))
+            tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
             kws_hyp_set.add((word, utt))
     p1.stdout.close()
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
@@ -291,7 +291,7 @@ def kws_assessment_segment_index(
             score = line[i + 3]
             rel = 1 if (word, utt) in kws_ref_set else 0
             if word not in seen_words:
-                tmpf.write("{} {} {} {}\n".format(utt, word, rel, score))
+                tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
                 kws_hyp_set.add((word, utt))
                 seen_words.add(word)
     p1.stdout.close()
@@ -328,7 +328,7 @@ def kws_assessment_position_index(
             score = line[i + 4]
             rel = 1 if (word, utt) in kws_ref_set else 0
             if word not in seen_words:
-                tmpf.write("{} {} {} {}\n".format(utt, word, rel, score))
+                tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
                 kws_hyp_set.add((word, utt))
                 seen_words.add(word)
     p1.stdout.close()
@@ -372,7 +372,7 @@ def kws_assessment_column_index(
 
         for word, score in best_score.items():
             rel = 1 if (word, utt) in kws_ref_set else 0
-            tmpf.write("{} {} {} {}\n".format(utt, word, rel, score))
+            tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
             kws_hyp_set.add((word, utt))
     p1.stdout.close()
 
