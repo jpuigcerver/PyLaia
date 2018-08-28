@@ -8,8 +8,10 @@ import logging
 from hyperopt import fmin, tpe, hp
 
 from compute_kws_metrics_char import (
-    kws_assessment_segment_index,
+    kws_assessment_column_index,
     kws_assessment_position_index,
+    kws_assessment_segment_index,
+    kws_assessment_utterance_index,
 )
 from laia.utils.symbols_table import SymbolsTable
 
@@ -42,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument("--max-iters", type=int, default=400)
     parser.add_argument("--optimize-for", choices=("mAP", "gAP", "avg"), default="avg")
     parser.add_argument("--nbest", type=int, default=100)
+    parser.add_argument("--max-states", type=int, default=None)
+    parser.add_argument("--max-arcs", type=int, default=None)
     parser.add_argument("syms")
     parser.add_argument("kws_refs")
     parser.add_argument("lattice_ark_pattern")
@@ -52,7 +56,7 @@ if __name__ == "__main__":
         if args.use_kws_eval:
             raise NotImplementedError
         else:
-            raise NotImplementedError
+            func = kws_assessment_utterance_index
     elif args.index_type == "segment":
         if args.use_kws_eval:
             raise NotImplementedError
@@ -67,7 +71,7 @@ if __name__ == "__main__":
         if args.use_kws_eval:
             raise NotImplementedError
         else:
-            raise NotImplementedError
+            func = kws_assessment_column_index
     else:
         raise NotImplementedError
 
@@ -137,6 +141,8 @@ if __name__ == "__main__":
             args.nbest,
             args.queries,
             args.verbose,
+            args.max_states,
+            args.max_arcs,
         )
         logger.info(
             "acoustic_scale = {}  prior_scale = {}  mAP = {}  gAP = {}".format(
