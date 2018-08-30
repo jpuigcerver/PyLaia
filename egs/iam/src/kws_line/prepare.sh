@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e;
+
+SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+cd "$SDIR/../..";
+source "$PWD/../utils/functions_check.inc.sh" || exit 1;
 export LC_NUMERIC=C;
+
+check_all_programs gawk sed tr sort wget join cut comm || exit 1;
+check_imgtxtenh || exit 1;
+check_all_files -s data/original/ascii/lines.txt || exit 1;
+check_all_dirs data/original/lines || exit 1;
 
 wspace="<space>";
 mkdir -p data/kws_line/lang/{char,word};
