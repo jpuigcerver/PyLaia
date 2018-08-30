@@ -214,3 +214,47 @@ readarray -t original_imgs < <(find data/original/lines -name "*.png");
   done;
   wait || exit 1;
 }
+
+# List of delimiter characters used by lexicon-free KWS methods
+[ -s data/kws_line/lang/delimiters.txt ] ||
+cat <<EOF > data/kws_line/lang/delimiters.txt
+<ctc>
+#
+&
+(
+)
+*
+:
+;
+<space>
+?
+<unk>
+EOF
+
+# Use all available training lines (11504).
+[ -s data/kws_line/lang/char/tr.11504.txt ] ||
+join -1 1 \
+  <(sort -k1b,1 data/kws_line/lang/char/all.txt) \
+  <(comm -23 <(cut -d\  -f1 data/kws_line/lang/char/all.txt | sort -k1b,1) \
+             <(cat data/kws_line/lang/char/{te,va}.txt | cut -d\  -f1 | sort -k1b,1)) |
+awk 'BEGIN{
+  while ((getline < "data/kws_line/lang/char/syms_ctc.txt") > 0) {
+    SYMS[$1] = $2;
+  }
+}NF > 1{
+  ok = 1;
+  for (i = 2; i <= NF && ok; ++i) {
+    if (!($i in SYMS)) ok = 0;
+  }
+  if (ok) print;
+}' > data/kws_line/lang/char/tr.11504.txt;
+
+# Select smaller subsets of all the available training data
+# (1/3, 2/3, 4/3 of the original training set).
+for n in 2054 4108 8216; do
+    [ -s "data/kws_line/lang/char/tr.$n.txt" ] ||
+    sort -R --random-source=data/original/ascii/lines.txt \
+        data/kws_line/lang/char/tr.11504.txt |
+    head -n "$n" |
+    sort > "data/kws_line/lang/char/tr.$n.txt";
+done;

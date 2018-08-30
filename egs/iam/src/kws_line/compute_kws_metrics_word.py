@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -181,7 +181,7 @@ def simple_kws_eval_utterance_index(
             score = line[i + 1]
             p2.stdin.write("{} {} {}\n".format(word, utt, score))
     p1.stdout.close()
-    out = p2.communicate()[0]
+    out = p2.communicate()[0].decode("utf-8")
     return out.splitlines()
 
 
@@ -208,7 +208,7 @@ def simple_kws_eval_segment_index(
                 p2.stdin.write("{} {} {}\n".format(word, utt, score))
                 seen_words.add(word)
     p1.stdout.close()
-    out = p2.communicate()[0]
+    out = p2.communicate()[0].decode("utf-8")
     return out.splitlines()
 
 
@@ -223,7 +223,7 @@ def get_kws_ref_set(kws_ref):
 def add_missing_words(kws_ref_set, kws_hyp_set, tmpf):
     for word, utt in kws_ref_set:
         if (word, utt) not in kws_hyp_set:
-            tmpf.write(u"{} {} {} {}\n".format(utt, word, 1, "-inf").encode("utf-8"))
+            tmpf.write(u"{} {} {} {}\n".format(utt, word, 1, "-inf"))
     tmpf.close()
 
 
@@ -251,7 +251,7 @@ def kws_assessment_utterance_index(
     tmpf = os.fdopen(fd, "w")
     kws_hyp_set = set()
     for line in p1.stdout:
-        line = line.split()
+        line = line.decode("utf-8").split()
         utt = line[0]
         for i in range(1, len(line), 3):
             word = syms[int(line[i])]
@@ -263,7 +263,7 @@ def kws_assessment_utterance_index(
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
 
     p2 = make_kws_assessment_process(tmppath, queries, verbose)
-    out = p2.communicate()[0]
+    out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
 
@@ -283,7 +283,7 @@ def kws_assessment_segment_index(
     tmpf = os.fdopen(fd, "w")
     kws_hyp_set = set()
     for line in p1.stdout:
-        line = line.split()
+        line = line.decode("utf-8").split()
         utt = line[0]
         seen_words = set()
         for i in range(1, len(line), 5):
@@ -298,7 +298,7 @@ def kws_assessment_segment_index(
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
     p2 = make_kws_assessment_process(tmppath, queries, verbose)
-    out = p2.communicate()[0]
+    out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
 
@@ -320,7 +320,7 @@ def kws_assessment_position_index(
     tmpf = os.fdopen(fd, "w")
     kws_hyp_set = set()
     for line in p1.stdout:
-        line = line.split()
+        line = line.decode("utf-8").split()
         utt = line[0]
         seen_words = set()
         for i in range(1, len(line), 6):
@@ -335,7 +335,7 @@ def kws_assessment_position_index(
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
     p2 = make_kws_assessment_process(tmppath, queries, verbose)
-    out = p2.communicate()[0]
+    out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
 
@@ -356,7 +356,7 @@ def kws_assessment_column_index(
     tmpf = os.fdopen(fd, "w")
     kws_hyp_set = set()
     for line in p1.stdout:
-        line = line.strip()
+        line = line.decode("utf-8").strip()
         m = re.match(r"^([^ ]+) (.)+$", line)
         utt = m.group(1)
         best_score = {}
@@ -378,7 +378,7 @@ def kws_assessment_column_index(
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
     p2 = make_kws_assessment_process(tmppath, queries, verbose)
-    out = p2.communicate()[0]
+    out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
     return kws_assessment_parse_output(out)
 

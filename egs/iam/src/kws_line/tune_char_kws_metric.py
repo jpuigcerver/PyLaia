@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
 import argparse
 import logging
+import sys
 
 from hyperopt import fmin, tpe, hp
 
@@ -15,16 +16,15 @@ from compute_kws_metrics_char import (
 )
 from laia.utils.symbols_table import SymbolsTable
 
-try:
-    from functools import lru_cache
-except ImportError:
-    from functools32 import lru_cache
+
+from functools import lru_cache
+from shlex import quote
 
 
 if __name__ == "__main__":
     logging.basicConfig()
     logger = logging.getLogger("tune_kws_metric")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--queries", type=str, default=None)
@@ -51,6 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("lattice_ark_pattern")
     parser.add_argument("delimiters", type=int, nargs="+")
     args = parser.parse_args()
+    logger.info("Command line: %s", " ".join([quote(x) for x in sys.argv[1:]]))
 
     if args.index_type == "utterance":
         if args.use_kws_eval:
