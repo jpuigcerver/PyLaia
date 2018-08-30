@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e;
 
-# Directory where the prepare.sh script is placed.
+# Directory where the script is placed.
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 cd "${SDIR}/..";
 
