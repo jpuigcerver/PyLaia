@@ -188,9 +188,9 @@ function process_image_pad_h128 () {
   return 0;
 }
 
-mkdir -p data/kws_line/imgs/{padding_h128,resize_h128,original_size};
 readarray -t original_imgs < <(find data/original/lines -name "*.png");
 
+mkdir -p data/kws_line/imgs/resize_h128;
 [ "$(find data/kws_line/imgs/resize_h128 -name "*.png" | wc -l)" -eq \
   "${#original_imgs[@]}" ] || {
   n=0;
@@ -202,6 +202,8 @@ readarray -t original_imgs < <(find data/original/lines -name "*.png");
   wait || exit 1;
 }
 
+: <<EOF
+mkdir -p data/kws_line/imgs/padding_h128;
 [ "$(find data/kws_line/imgs/padding_h128 -name "*.png" | wc -l)" -eq \
   "${#original_imgs[@]}" ] || {
   n=0;
@@ -213,6 +215,7 @@ readarray -t original_imgs < <(find data/original/lines -name "*.png");
   wait || exit 1;
 }
 
+mkdir -p data/kws_line/imgs/original_size;
 [ "$(find data/kws_line/imgs/original_size -name "*.png" | wc -l)" -eq \
   "${#original_imgs[@]}" ] || {
   n=0;
@@ -223,6 +226,7 @@ readarray -t original_imgs < <(find data/original/lines -name "*.png");
   done;
   wait || exit 1;
 }
+EOF
 
 # List of delimiter characters used by lexicon-free KWS methods
 [ -s data/kws_line/lang/delimiters.txt ] ||
