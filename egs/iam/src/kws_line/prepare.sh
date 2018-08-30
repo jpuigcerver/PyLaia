@@ -202,7 +202,7 @@ mkdir -p data/kws_line/imgs/resize_h128;
   wait || exit 1;
 }
 
-: <<EOF
+: '
 mkdir -p data/kws_line/imgs/padding_h128;
 [ "$(find data/kws_line/imgs/padding_h128 -name "*.png" | wc -l)" -eq \
   "${#original_imgs[@]}" ] || {
@@ -226,7 +226,7 @@ mkdir -p data/kws_line/imgs/original_size;
   done;
   wait || exit 1;
 }
-EOF
+'
 
 # List of delimiter characters used by lexicon-free KWS methods
 [ -s data/kws_line/lang/delimiters.txt ] ||
