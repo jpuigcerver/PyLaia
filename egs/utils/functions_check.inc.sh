@@ -35,6 +35,14 @@ function check_textFeats () {
   return 0;
 }
 
+function check_imgtxtenh () {
+  ! which imgtxtenh &> /dev/null && \
+  echo "ERROR: Program \"imgtxtenh\" was not found in your PATH." \
+       "Please, download it from https://github.com/mauvilsa/imgtxtenh" >&2 && \
+  return 1;
+  return 0;
+}
+
 function check_opengrm () {
   for p in farcompilestrings ngramcount ngrammake ngramperplexity; do
     ! which "$p" &> /dev/null && \
