@@ -26,7 +26,7 @@ except ImportError:
 if __name__ == "__main__":
     logging.basicConfig()
     logger = logging.getLogger("tune_kws_metric")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--queries", type=str, default=None)
@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("kws_refs")
     parser.add_argument("lattice_ark_pattern")
     args = parser.parse_args()
+    logger.info("Command line: %s", " ".join([quote(x) for x in sys.argv[1:]]))
 
     if args.index_type == "utterance":
         if args.use_kws_eval:

@@ -27,7 +27,7 @@ show_progress_bar=true;
 use_distortions=false;
 lowercase=false;
 help_message="
-Usage: ${0##*/} [options] imgs_dir output_dir
+Usage: ${0##*/} [options] imgs_dir tr_txt output_dir
 Options:
   --batch_size        : (type = integer, default = $batch_size)
                         Batch size for training.
@@ -78,9 +78,9 @@ Options:
   --use_distortions   : (type = boolean, default = $use_distortions)
                         If true, train using data augmentation.
 ";
-source ../utils/parse_options.inc.sh || exit 1;
-[ $# -eq 2 ] || { echo "$help_message" >&2 && exit 1; }
-mkdir -p "$2" || exit 1;
+source "$PWD/../utils/parse_options.inc.sh" || exit 1;
+[ $# -eq 3 ] || { echo "$help_message" >&2 && exit 1; }
+train_txt="$2";
 
 if [ $gpu -gt 0 ]; then
   export CUDA_VISIBLE_DEVICES=$((gpu-1));
@@ -97,11 +97,11 @@ fi;
 
 if [ "$lowercase" = true ]; then
   syms_ctc=data/kws_line/lang/char/syms_ctc_lowercase.txt;
-  train_txt=data/kws_line/lang/char/tr_lowercase.txt;
+  #train_txt=data/kws_line/lang/char/tr_lowercase.txt;
   valid_txt=data/kws_line/lang/char/va_lowercase.txt;
 else
   syms_ctc=data/kws_line/lang/char/syms_ctc.txt;
-  train_txt=data/kws_line/lang/char/tr.txt;
+  #train_txt=data/kws_line/lang/char/tr.txt;
   valid_txt=data/kws_line/lang/char/va.txt;
 fi;
 
@@ -110,11 +110,13 @@ for f in "$syms_ctc" "$train_txt" "$valid_txt"; do
   [ ! -s "$f" ] && echo "File \"$f\" does not exist!" >&2 && exit 1;
 done;
 
-[ -s "$2/experiment.ckpt-${max_epochs}" ] &&
-echo "File \"$2/experiment.ckpt-${max_epochs}\" exists, cancel training!" >&2 && exit 0;
+mkdir -p "$3" || exit 1;
+
+[ -s "$3/experiment.ckpt-${max_epochs}" ] &&
+echo "File \"$3/experiment.ckpt-${max_epochs}\" exists, cancel training!" >&2 && exit 0;
 
 # Remove previous partial results
-rm -f "$2/train.log" "$2/experiment.ckpt"*;
+rm -f "$3/train.log" "$3/experiment.ckpt"*;
 
 pylaia-htr-create-model \
   --cnn_num_features $cnn_num_features \
@@ -128,9 +130,9 @@ pylaia-htr-create-model \
   --rnn_units $rnn_units \
   --rnn_layers $rnn_layers \
   --adaptive_pooling $adaptive_pooling \
-  --logging_file "$2/train.log" \
+  --logging_file "$3/train.log" \
   --logging_also_to_stderr INFO \
-  --train_path "$2" \
+  --train_path "$3" \
   "${extra_args[@]}" \
   -- \
   1 "$syms_ctc" || exit 1;
@@ -144,8 +146,9 @@ pylaia-htr-train-ctc \
   --num_rolling_checkpoints $num_rolling_checkpoints \
   --show_progress_bar $show_progress_bar \
   --use_distortions $use_distortions \
-  --logging_file "$2/train.log" \
+  --train_samples_per_epoch 6161 \
+  --logging_file "$3/train.log" \
   --logging_also_to_stderr INFO \
-  --train_path "$2" \
+  --train_path "$3" \
   -- \
   "$syms_ctc" "$1" "$train_txt" "$valid_txt" || exit 1;
