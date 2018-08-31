@@ -2,8 +2,12 @@
 from __future__ import absolute_import
 
 import argparse
+import multiprocessing
 import os
+import random
 
+import numpy
+import torch
 from torch.optim import RMSprop
 
 import laia.common.logging as log
@@ -26,6 +30,14 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
 from laia.hooks import Hook, HookList, action, Action
 from laia.utils import SymbolsTable
+
+
+def worker_init_fn(_):
+    # We need to reset the Numpy and Python PRNG, or we will get the
+    # same numbers in each epoch (when the workers are re-generated)
+    random.seed(torch.initial_seed() % 2 ** 31)
+    numpy.random.seed(torch.initial_seed() % 2 ** 31)
+
 
 if __name__ == "__main__":
     add_defaults(
@@ -127,11 +139,12 @@ if __name__ == "__main__":
         dataset=tr_dataset,
         image_channels=1,
         batch_size=args.batch_size,
-        num_workers=8,
+        num_workers=multiprocessing.cpu_count(),
         shuffle=not bool(args.train_samples_per_epoch),
         sampler=FixedSizeSampler(tr_dataset, args.train_samples_per_epoch)
         if args.train_samples_per_epoch
         else None,
+        worker_init_fn=worker_init_fn,
     )
     trainer = Trainer(
         model=model,
@@ -157,7 +170,7 @@ if __name__ == "__main__":
         dataset=va_dataset,
         image_channels=1,
         batch_size=args.batch_size,
-        num_workers=8,
+        num_workers=multiprocessing.cpu_count(),
         sampler=FixedSizeSampler(va_dataset, args.valid_samples_per_epoch)
         if args.valid_samples_per_epoch
         else None,
