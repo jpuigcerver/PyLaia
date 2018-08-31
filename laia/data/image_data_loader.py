@@ -23,6 +23,7 @@ class ImageDataLoader(DataLoader):
         num_workers=0,
         pin_memory=False,
         drop_last=False,
+        worker_init_fn=None,
     ):
         super(ImageDataLoader, self).__init__(
             dataset=dataset,
@@ -37,4 +38,5 @@ class ImageDataLoader(DataLoader):
                 {"img": [image_channels, image_height, image_width]},
                 sort_key=sort_by_descending_width,
             ),
+            worker_init_fn=worker_init_fn,
         )
