@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -8,10 +8,11 @@ import torch
 
 from laia.data import ImageDataLoader
 from laia.data import TextImageFromTextTableDataset
+from laia.losses.ctc_loss import transform_output
 from laia.models.htr.dortmund_crnn import DortmundCRNN
 from laia.plugins.arguments import add_argument, add_defaults, args
-from laia.utils import ImageToTensor, TextToTensor
 from laia.utils.symbols_table import SymbolsTable
+import laia.data.transforms as transforms
 
 
 def ctc_lattice(img_ids, outputs, fileout):
@@ -74,10 +75,12 @@ if __name__ == "__main__":
     dataset = TextImageFromTextTableDataset(
         args.gt_file,
         args.img_dir,
-        img_transform=ImageToTensor(),
-        txt_transform=TextToTensor(syms),
+        img_transform=transforms.vision.ToTensor(),
+        txt_transform=transforms.text.ToTensor(syms),
     )
     dataset_loader = ImageDataLoader(dataset=dataset, image_channels=1, num_workers=8)
+
+    import sys
 
     with torch.cuda.device(args.gpu - 1):
         for batch in dataset_loader:
@@ -85,7 +88,8 @@ if __name__ == "__main__":
                 x = batch["img"].data.cuda(args.gpu - 1)
             else:
                 x = batch["img"].data.cpu()
-            y = model(torch.autograd.Variable(x)).data
+            y = model(torch.autograd.Variable(x))
+            y = y.permute(1, 0, 2)
             if args.add_softmax:
                 y = torch.nn.functional.log_softmax(y, dim=-1)
-            ctc_lattice(batch["id"], [y], args.output)
+            ctc_lattice(batch["id"], y, args.output)

@@ -54,9 +54,10 @@ fi;
 [ ! -f "$OUT.gz" ] && { gzip -9 "$OUT"; }
 
 which SimpleKwsEval &> /dev/null &&
-( zcat "$OUT.gz" | SimpleKwsEval \
-  --collapse_matches true \
-  --trapezoid_integral false \
-  --interpolated_precision false \
-  --sort desc \
-  "$REL" );
+( zcat "$OUT.gz" |
+  SimpleKwsEval \
+    --collapse_matches true \
+    --trapezoid_integral false \
+    --interpolated_precision false \
+    --sort desc \
+    "$REL" );
