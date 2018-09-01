@@ -21,7 +21,7 @@ for f in "$2" "$TXT" "$REL"; do
 done;
 
 [ -s "$3/lat.ark" -a -s "$3/lat.scp" ] || {
-  python steps/generate_ctc_lattice.py \
+  python src/python/generate_ctc_lattice.py \
      --add_softmax \
 	 data/lang/dortmund/syms_ctc.txt \
 	 data/imgs/dortmund \
@@ -31,6 +31,7 @@ done;
        lattice-prune --beam=$MAXBEAM ark:- "ark:$3/lat.ark");
 }
 
+exit 0;
 # Get 1-best path
 [ -s "$3/b0.fst.ark" -a -s "$3/b0.fst.scp" ] || {
   lattice-1best "ark:$3/lat.ark" ark:- |
