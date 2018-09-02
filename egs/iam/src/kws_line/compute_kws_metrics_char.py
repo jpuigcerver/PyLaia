@@ -166,6 +166,7 @@ def make_index_utterance_process(
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
     queries=None,  # type: Optional[AnyStr]
+    char_sep=u"",  # type: str
 ):
     # type (...) -> (subprocess.Popen, str)
     word_symbols_table = get_tmp_filename()
@@ -197,7 +198,7 @@ def make_index_utterance_process(
         with io.open(word_symbols_table, "r", encoding="utf-8") as f:
             for line in f:
                 word_chars, word_id = line.split()
-                word = u"".join([syms[int(x)] for x in word_chars.split("_")])
+                word = char_sep.join([syms[int(x)] for x in word_chars.split("_")])
                 if word in queries_set:
                     include_words.add(word_id)
 
@@ -233,6 +234,7 @@ def kws_assessment_segment_index(
     verbose=False,  # type: bool
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
+    char_sep=u"",  # type: str
 ):
     p1 = make_index_segment_process(
         delimiters, lattice_ark, acoustic_scale, nbest, verbose, max_states, max_arcs
@@ -248,7 +250,7 @@ def kws_assessment_segment_index(
         utt = line[0]
         seen_words = set()
         for i in range(1, len(line), 5):
-            word = u"".join([syms[int(x)] for x in line[i].split("_")])
+            word = char_sep.join([syms[int(x)] for x in line[i].split("_")])
             score = line[i + 3]
             rel = 1 if (word, utt) in kws_ref_set else 0
             if (queries_set is None or word in queries_set) and word not in seen_words:
@@ -275,6 +277,7 @@ def kws_assessment_position_index(
     verbose=False,  # type: bool
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
+    char_sep=u"",  # type: str
 ):
     p1 = make_index_position_process(
         delimiters, lattice_ark, acoustic_scale, nbest, verbose, max_states, max_arcs
@@ -290,7 +293,7 @@ def kws_assessment_position_index(
         utt = line[0]
         seen_words = set()
         for i in range(1, len(line), 6):
-            word = "".join([syms[int(x)] for x in line[i].split("_")])
+            word = char_sep.join([syms[int(x)] for x in line[i].split("_")])
             score = line[i + 4]
             rel = 1 if (word, utt) in kws_ref_set else 0
             if (queries_set is None or word in queries_set) and word not in seen_words:
@@ -317,6 +320,7 @@ def kws_assessment_column_index(
     verbose=False,  # type: bool
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
+    char_sep=u"",  # type: str
 ):
     p1, word_syms_str = make_posteriorgram_process(
         delimiters, lattice_ark, acoustic_scale, verbose, max_states, max_arcs
@@ -347,7 +351,7 @@ def kws_assessment_column_index(
     kws_hyp_set = set()
     for utt in index:
         for score, word in index[utt]:
-            word = "".join([syms[int(x)] for x in word_syms[word].split("_")])
+            word = char_sep.join([syms[int(x)] for x in word_syms[word].split("_")])
             if queries_set is None or word in queries_set:
                 rel = 1 if (word, utt) in kws_ref_set else 0
                 tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
@@ -372,6 +376,7 @@ def kws_assessment_utterance_index(
     verbose=False,  # type: bool
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
+    char_sep=u"",  # type: str
 ):
     p1, word_syms_str = make_index_utterance_process(
         delimiters,
@@ -394,7 +399,7 @@ def kws_assessment_utterance_index(
         utt = line[0]
         for i in range(1, len(line), 3):
             word = word_syms[int(line[i])]
-            word = "".join([syms[int(x)] for x in word.split("_")])
+            word = char_sep.join([syms[int(x)] for x in word.split("_")])
             score = line[i + 1]
             rel = 1 if (word, utt) in kws_ref_set else 0
             tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
@@ -418,6 +423,7 @@ if __name__ == "__main__":
     parser.add_argument("--nbest", type=int, default=100)
     parser.add_argument("--max-states", type=int, default=None)
     parser.add_argument("--max-arcs", type=int, default=None)
+    parser.add_argument("--char-separator", type=str, default="")
     parser.add_argument(
         "--index-type",
         choices=("utterance", "segment", "position", "column"),
@@ -457,15 +463,16 @@ if __name__ == "__main__":
     syms = SymbolsTable(args.syms)
     print(
         func(
-            syms,
-            args.delimiters,
-            args.kws_refs,
-            args.lattice_ark,
-            args.acoustic_scale,
-            args.nbest,
-            args.queries,
-            args.verbose,
-            args.max_states,
-            args.max_arcs,
+            syms=syms,
+            delimiters=args.delimiters,
+            kws_ref=args.kws_refs,
+            lattice_ark=args.lattice_ark,
+            acoustic_scale=args.acoustic_scale,
+            nbest=args.nbest,
+            queries=args.queries,
+            verbose=args.verbose,
+            max_states=args.max_states,
+            max_arcs=args.max_arcs,
+            char_sep=args.char_separator,
         )
     )
