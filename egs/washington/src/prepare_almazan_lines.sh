@@ -36,18 +36,20 @@ gawk '{
 
 # Prepare character-level reference for all lines.
 mkdir -p data/almazan_lines/lang/char;
-[ -s data/almazan_lines/lang/char/normalized.txt ] ||
-awk '{
-  printf("%s", $1);
-  for (i=2;i<=NF;++i) {
-    for(j=1;j<=length($i);++j) {
-      printf(" %s", substr($i, j, 1));
+for p in normalized original; do
+  [ -s data/almazan_lines/lang/char/$p.txt ] ||
+  awk '{
+    printf("%s", $1);
+    for (i=2;i<=NF;++i) {
+      for(j=1;j<=length($i);++j) {
+        printf(" %s", substr($i, j, 1));
+      }
+      if (i < NF) { printf(" <sp>"); }
     }
-    if (i < NF) { printf(" <sp>"); }
-  }
-  printf("\n");
-}' data/almazan_lines/lang/word/normalized.txt \
-    > data/almazan_lines/lang/char/normalized.txt || exit 1;
+    printf("\n");
+  }' data/almazan_lines/lang/word/$p.txt \
+      > data/almazan_lines/lang/char/$p.txt || exit 1;
+done;
 
 # Prepare list of CTC symbols.
 [ -s data/almazan_lines/lang/syms_ctc_normalized.txt ] ||

@@ -6,11 +6,13 @@ import os
 import os.path
 from PIL import Image
 
+
 def read_pages(fname):
     with io.open(fname, "r", encoding="utf-8") as f:
         for line in f:
             yield line.strip().split(".tif")[0]
     raise StopIteration
+
 
 def read_boxes(fname, w, h):
     with io.open(fname, "r", encoding="utf-8") as f:
@@ -23,21 +25,25 @@ def read_boxes(fname, w, h):
             yield int(x1), int(x2), int(y1), int(y2), int(ly1), int(ly2)
     raise StopIteration
 
+
 def read_words(fname, encoding="utf-8"):
     with io.open(fname, "r", encoding=encoding) as f:
         for line in f:
             yield line.strip()
     raise StopIteration
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("gw_20p_wannot",
-                        help="Directory containing the gw_20p_wannot data")
-    parser.add_argument("output_dir",
-                        help="Output directpory for the text line images")
+    parser.add_argument(
+        "gw_20p_wannot", help="Directory containing the gw_20p_wannot data"
+    )
+    parser.add_argument("output_dir", help="Output directpory for the text line images")
     args = parser.parse_args()
 
-    words_iter = read_words(os.path.join(args.gw_20p_wannot, "annotations.txt"), encoding="iso-8859-1")
+    words_iter = read_words(
+        os.path.join(args.gw_20p_wannot, "annotations.txt"), encoding="iso-8859-1"
+    )
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -46,7 +52,9 @@ if __name__ == "__main__":
         im_w, im_h = im.size
 
         lines = {}
-        for (x1, x2, y1, y2, ly1, ly2) in read_boxes(os.path.join(args.gw_20p_wannot, "{}_boxes.txt".format(page)), im_w, im_h):
+        for (x1, x2, y1, y2, ly1, ly2) in read_boxes(
+            os.path.join(args.gw_20p_wannot, "{}_boxes.txt".format(page)), im_w, im_h
+        ):
             word = next(words_iter)
             if (ly1, ly2) in lines:
                 lines[(ly1, ly2)].append((x1, x2, word))
