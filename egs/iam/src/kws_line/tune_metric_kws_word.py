@@ -5,8 +5,9 @@ from __future__ import print_function
 import argparse
 import logging
 import sys
-
-from hyperopt import fmin, tpe, hp
+from functools import lru_cache
+from shlex import quote
+import numpy as np
 
 from compute_kws_metrics_word import (
     simple_kws_eval_utterance_index,
@@ -16,11 +17,9 @@ from compute_kws_metrics_word import (
     kws_assessment_position_index,
     kws_assessment_column_index,
 )
+from hyperopt import fmin, tpe, hp
+
 from laia.utils.symbols_table import SymbolsTable
-
-from functools import lru_cache
-from shlex import quote
-
 
 if __name__ == "__main__":
     logging.basicConfig()
@@ -44,6 +43,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--max-iters", type=int, default=400)
     parser.add_argument("--optimize-for", choices=("mAP", "gAP", "avg"), default="avg")
+    parser.add_argument("--seed", type=int, default=0x12345)
     parser.add_argument("syms")
     parser.add_argument("kws_refs")
     parser.add_argument("lattice_ark_pattern")
@@ -77,7 +77,9 @@ if __name__ == "__main__":
 
     # Configure hyperparamter search space
     space = []
+    params_to_optimize = []
     if args.prior_scale_max != args.prior_scale_min:
+        params_to_optimize.append("prior_scale")
         space.append(
             hp.quniform(
                 "prior_scale",
@@ -86,13 +88,14 @@ if __name__ == "__main__":
                 args.prior_scale_quant,
             )
         )
-        prior_scale = None
+        prior_scale_global = None
         prior_scale_key = len(space) - 1
     else:
-        prior_scale = args.prior_scale_max
+        prior_scale_global = args.prior_scale_max
         prior_scale_key = None
 
     if args.acoustic_scale_max != args.acoustic_scale_min:
+        params_to_optimize.append("acoustic_scale")
         space.append(
             hp.quniform(
                 "acoustic_scale",
@@ -101,18 +104,23 @@ if __name__ == "__main__":
                 args.acoustic_scale_quant,
             )
         )
-        acoustic_scale = None
+        acoustic_scale_global = None
         acoustic_scale_key = len(space) - 1
     else:
-        acoustic_scale = args.acoustic_scale_max
+        acoustic_scale_global = args.acoustic_scale_max
         acoustic_scale_key = None
 
     @lru_cache(maxsize=None)
     def objective(params):
         if prior_scale_key is not None:
             prior_scale = params[prior_scale_key]
+        else:
+            prior_scale = prior_scale_global
+
         if acoustic_scale_key is not None:
             acoustic_scale = params[acoustic_scale_key]
+        else:
+            acoustic_scale = acoustic_scale_global
 
         lattice_ark = args.lattice_ark_pattern.format(
             acoustic_scale=acoustic_scale, prior_scale=prior_scale
@@ -140,5 +148,11 @@ if __name__ == "__main__":
             return -(result["mAP"] + result["gAP"]) / 2.0
 
     logger.info("Optimizing for: {}".format(args.optimize_for))
-    best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=args.max_iters)
+    best = fmin(
+        fn=objective,
+        space=space,
+        algo=tpe.suggest,
+        max_evals=args.max_iters,
+        rstate=np.random.RandomState(args.seed),
+    )
     print(best)

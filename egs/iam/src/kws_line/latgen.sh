@@ -30,7 +30,7 @@ Options:
                           If true, do a second pass of determinization on words only
                           (see also --phone_determinize).
 ";
-source ../utils/parse_options.inc.sh || exit 1;
+source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 3 ] && echo "$help_message" >&2 && exit 1;
 
 lkhs_dir="$1";

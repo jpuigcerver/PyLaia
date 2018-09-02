@@ -39,8 +39,8 @@ gawk '$1 ~ /^#.+/{ print $2 }' "$lm_dir/chars.txt" > "$output_dir/chars_disambig
 [ "$overwrite" = false -a -s "$output_dir/words_disambig.int" ] ||
 gawk '$1 ~ /^#.+/{ print $2 }' "$lm_dir/words.txt" > "$output_dir/words_disambig.int";
 
-char_disambig_sym=`grep \#0 "$lm_dir/chars.txt" | awk '{print $2}'`;
-word_disambig_sym=`grep \#0 "$lm_dir/words.txt" | awk '{print $2}'`;
+char_disambig_sym="$(grep -w "#0" "$lm_dir/chars.txt" | awk '{print $2}')";
+word_disambig_sym="$(grep -w "#0" "$lm_dir/words.txt" | awk '{print $2}')";
 
 # Create HMM model and tree
 create_ctc_hmm_model.sh \

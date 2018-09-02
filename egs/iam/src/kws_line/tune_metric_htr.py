@@ -9,15 +9,8 @@ from functools import lru_cache
 from shlex import quote
 import numpy as np
 
-from compute_kws_metrics_char import (
-    kws_assessment_column_index,
-    kws_assessment_position_index,
-    kws_assessment_segment_index,
-    kws_assessment_utterance_index,
-)
+from compute_metric_htr import htr_assessment
 from hyperopt import fmin, tpe, hp
-
-from laia.utils.symbols_table import SymbolsTable
 
 if __name__ == "__main__":
     logging.basicConfig()
@@ -25,58 +18,24 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--queries", type=str, default=None)
-    parser.add_argument(
-        "--index-type",
-        choices=("utterance", "segment", "position", "column"),
-        default="utterance",
-    )
     parser.add_argument("--acoustic-scale-max", default=5.0, type=float)
     parser.add_argument("--acoustic-scale-min", default=0.1, type=float)
     parser.add_argument("--acoustic-scale-quant", default=0.05, type=float)
     parser.add_argument("--prior-scale-max", default=1.0, type=float)
     parser.add_argument("--prior-scale-min", default=0.0, type=float)
     parser.add_argument("--prior-scale-quant", default=0.1, type=float)
-    parser.add_argument("--use-kws-eval", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--wspace", default="<space>")
     parser.add_argument("--max-iters", type=int, default=400)
-    parser.add_argument("--optimize-for", choices=("mAP", "gAP", "avg"), default="avg")
-    parser.add_argument("--nbest", type=int, default=100)
-    parser.add_argument("--max-states", type=int, default=None)
-    parser.add_argument("--max-arcs", type=int, default=None)
+    parser.add_argument("--optimize-for", choices=("CER", "WER", "avg"), default="avg")
     parser.add_argument("--seed", type=int, default=0x12345)
-    parser.add_argument("--char-separator", type=str, default="")
+    parser.add_argument("--char-separator", default="")
     parser.add_argument("syms")
-    parser.add_argument("kws_refs")
+    parser.add_argument("model")
     parser.add_argument("lattice_ark_pattern")
-    parser.add_argument("delimiters", type=int, nargs="+")
+    parser.add_argument("ref_txt")
     args = parser.parse_args()
     logger.info("Command line: %s", " ".join([quote(x) for x in sys.argv[1:]]))
-
-    if args.index_type == "utterance":
-        if args.use_kws_eval:
-            raise NotImplementedError
-        else:
-            func = kws_assessment_utterance_index
-    elif args.index_type == "segment":
-        if args.use_kws_eval:
-            raise NotImplementedError
-        else:
-            func = kws_assessment_segment_index
-    elif args.index_type == "position":
-        if args.use_kws_eval:
-            raise NotImplementedError
-        else:
-            func = kws_assessment_position_index
-    elif args.index_type == "column":
-        if args.use_kws_eval:
-            raise NotImplementedError
-        else:
-            func = kws_assessment_column_index
-    else:
-        raise NotImplementedError
-
-    syms = SymbolsTable(args.syms)
 
     # Configure hyperparamter search space
     space = []
@@ -133,32 +92,28 @@ if __name__ == "__main__":
                 acoustic_scale, lattice_ark
             )
         )
-        result = func(
-            syms=syms,
-            delimiters=args.delimiters,
-            kws_ref=args.kws_refs,
+        result = htr_assessment(
+            ref_txt=args.ref_txt,
             lattice_ark=lattice_ark,
+            model=args.model,
+            syms=args.syms,
+            wspace=args.wspace,
             acoustic_scale=acoustic_scale,
-            nbest=args.nbest,
-            queries=args.queries,
-            verbose=args.verbose,
-            max_states=args.max_states,
-            max_arcs=args.max_arcs,
             char_sep=args.char_separator,
+            verbose=args.verbose,
         )
         logger.info(
             "acoustic_scale = {:.2f}  prior_scale = {:.1f}  "
-            "mAP = {}  gAP = {}".format(
-                acoustic_scale, prior_scale, result["mAP"], result["gAP"]
+            "CER = {:.2f}  WER = {:.2f}".format(
+                acoustic_scale, prior_scale, result["CER"], result["WER"]
             )
         )
-        # Note: minimize -criterion
-        if args.optimize_for == "mAP":
-            return -result["mAP"]
-        elif args.optimize_for == "gAP":
-            return -result["gAP"]
+        if args.optimize_for == "CER":
+            return result["CER"]
+        elif args.optimize_for == "WER":
+            return result["WER"]
         else:
-            return -(result["mAP"] + result["gAP"]) / 2.0
+            return (result["CER"] + result["WER"]) / 2.0
 
     logger.info(
         "Optimizing {} for: {}".format(str(params_to_optimize), args.optimize_for)
