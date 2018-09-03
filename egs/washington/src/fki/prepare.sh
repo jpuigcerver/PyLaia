@@ -135,4 +135,24 @@ for cv in cv1 cv2 cv3 cv4; do
       > "data/fki/lang/queries/$cv.txt";
 done;
 
+for cv in cv1 cv2 cv3 cv4; do
+  mkdir -p data/fki/lang/kws_refs/$cv;
+  for p in tr te va; do
+    [[ "$overwrite" = false && -s "data/fki/lang/kws_refs/$cv/$p.txt" ]] ||
+    gawk '{
+      for (i = 2; i <= NF; ++i) {
+        print $i, $1;
+      }
+    }' data/fki/lang/word/$cv/$p.txt |
+    sort | uniq > data/fki/lang/kws_refs/$cv/$p.txt || exit 1;
+  done;
+done;
+
+[[ "$overwrite" = false && -s data/fki/lang/delimiters.txt ]] ||
+cat <<EOF > data/fki/lang/delimiters.txt
+<space>
+(
+)
+EOF
+
 exit 0;
