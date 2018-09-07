@@ -167,6 +167,7 @@ def make_index_utterance_process(
     max_arcs=None,  # type: Optional[int]
     queries=None,  # type: Optional[AnyStr]
     char_sep=u"",  # type: str
+    nbest=None,  # type: Optional[int]
 ):
     # type (...) -> (subprocess.Popen, str)
     word_symbols_table = get_tmp_filename()
@@ -206,17 +207,18 @@ def make_index_utterance_process(
     else:
         include_words = ""
 
+    args = [
+        "lattice-word-index-utterance",
+        "--print-args=false",
+        "--include-words=%s" % include_words,
+        "--acoustic-scale=%f" % acoustic_scale,
+        "--num-threads=4",
+        "--verbose=1",
+    ]
+    if nbest:
+        args.append("--nbest=%d" % nbest)
     p3 = subprocess.Popen(
-        [
-            "lattice-word-index-utterance",
-            "--print-args=false",
-            "--include-words=%s" % include_words,
-            "--acoustic-scale=%f" % acoustic_scale,
-            "--num-threads=4",
-            "--verbose=1",
-            "ark:%s" % expanded_lattice,
-            "ark,t:-",
-        ],
+        args + ["ark:%s" % expanded_lattice, "ark,t:-"],
         stderr=None if verbose else DEV_NULL,
         stdout=subprocess.PIPE,
     )
@@ -235,6 +237,7 @@ def kws_assessment_segment_index(
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
     char_sep=u"",  # type: str
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_segment_process(
         delimiters, lattice_ark, acoustic_scale, nbest, verbose, max_states, max_arcs
@@ -260,10 +263,13 @@ def kws_assessment_segment_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p3 = make_kws_assessment_process(tmppath, queries, verbose)
+    p3 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p3.communicate()[0].decode("utf-8")
     os.remove(tmppath)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 def kws_assessment_position_index(
@@ -278,6 +284,7 @@ def kws_assessment_position_index(
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
     char_sep=u"",  # type: str
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_position_process(
         delimiters, lattice_ark, acoustic_scale, nbest, verbose, max_states, max_arcs
@@ -303,10 +310,13 @@ def kws_assessment_position_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p3 = make_kws_assessment_process(tmppath, queries, verbose)
+    p3 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p3.communicate()[0].decode("utf-8")
     os.remove(tmppath)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 def kws_assessment_column_index(
@@ -321,6 +331,7 @@ def kws_assessment_column_index(
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
     char_sep=u"",  # type: str
+    compute_curve=False,  # type: bool
 ):
     p1, word_syms_str = make_posteriorgram_process(
         delimiters, lattice_ark, acoustic_scale, verbose, max_states, max_arcs
@@ -358,11 +369,14 @@ def kws_assessment_column_index(
                 kws_hyp_set.add((word, utt))
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries, verbose)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
     os.remove(word_syms_str)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 def kws_assessment_utterance_index(
@@ -377,6 +391,7 @@ def kws_assessment_utterance_index(
     max_states=None,  # type: Optional[int]
     max_arcs=None,  # type: Optional[int]
     char_sep=u"",  # type: str
+    compute_curve=False,  # type: bool
 ):
     p1, word_syms_str = make_index_utterance_process(
         delimiters,
@@ -387,6 +402,8 @@ def kws_assessment_utterance_index(
         max_states,
         max_arcs,
         queries,
+        char_sep,
+        nbest,
     )
 
     word_syms = SymbolsTable(word_syms_str)
@@ -405,13 +422,16 @@ def kws_assessment_utterance_index(
             tmpf.write(u"{} {} {} {}\n".format(utt, word, rel, score))
             kws_hyp_set.add((word, utt))
     p1.stdout.close()
-    add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
 
-    p2 = make_kws_assessment_process(tmppath, queries, verbose)
+    add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
     os.remove(word_syms_str)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 if __name__ == "__main__":
@@ -431,6 +451,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--use-kws-eval", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--print-curve", action="store_true")
     parser.add_argument("syms")
     parser.add_argument("kws_refs")
     parser.add_argument("lattice_ark")
@@ -474,5 +495,6 @@ if __name__ == "__main__":
             max_states=args.max_states,
             max_arcs=args.max_arcs,
             char_sep=args.char_separator,
+            compute_curve=args.print_curve,
         )
     )

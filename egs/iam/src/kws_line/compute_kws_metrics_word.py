@@ -149,13 +149,20 @@ def make_simple_kws_eval_process(kws_ref, queries=None, verbose=False):
     )
 
 
-def make_kws_assessment_process(table_file, queries=None, verbose=False):
+def make_kws_assessment_process(table_file, queries=None, verbose=False, compute_curve=False):
     # type: (Optional[AnyStr]) -> subprocess.Popen
-    popen_args = (
-        ["kws-assessment-joan", "-a", "-m", "-t"]
-        + (["-w", queries] if queries else [])
-        + [table_file]
-    )
+    if compute_curve:
+        popen_args = (
+            ["kws-assessment-joan", "-t"]
+            + (["-w", queries] if queries else [])
+            + [table_file]
+        )
+    else:
+        popen_args = (
+            ["kws-assessment-joan", "-a", "-m", "-t"]
+            + (["-w", queries] if queries else [])
+            + [table_file]
+        )
     return subprocess.Popen(
         popen_args, stdout=subprocess.PIPE, stderr=None if verbose else DEV_NULL
     )
@@ -168,6 +175,7 @@ def simple_kws_eval_utterance_index(
     acoustic_scale,  # type: float
     queries=None,  # type: Optional[AnyStr]
     verbose=False,  # type: bool
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_utterance_process(
         syms, lattice_ark, acoustic_scale, queries, verbose
@@ -192,6 +200,7 @@ def simple_kws_eval_segment_index(
     acoustic_scale,  # type: float
     queries=None,  # type: Optional[AnyStr]
     verbose=False,  # type: bool
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_utterance_process(
         syms, lattice_ark, acoustic_scale, queries, verbose
@@ -241,6 +250,7 @@ def kws_assessment_utterance_index(
     acoustic_scale,  # type: float
     queries=None,  # type: Optional[AnyStr]
     verbose=False,  # type: bool
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_utterance_process(
         syms, lattice_ark, acoustic_scale, queries, verbose
@@ -275,6 +285,7 @@ def kws_assessment_segment_index(
     acoustic_scale,  # type: float
     queries=None,  # type: Optional[AnyStr]
     verbose=False,  # type: bool
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_segment_process(syms, lattice_ark, acoustic_scale, queries, verbose)
 
@@ -297,10 +308,13 @@ def kws_assessment_segment_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries, verbose)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 def kws_assessment_position_index(
@@ -310,6 +324,7 @@ def kws_assessment_position_index(
     acoustic_scale,  # type: float
     queries=None,  # type: Optional[AnyStr]
     verbose=False,  # type: bool
+    compute_curve=False,  # type: bool
 ):
     p1 = make_index_position_process(
         syms, lattice_ark, acoustic_scale, queries, verbose
@@ -334,10 +349,13 @@ def kws_assessment_position_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries, verbose)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 def kws_assessment_column_index(
@@ -347,6 +365,7 @@ def kws_assessment_column_index(
     acoustic_scale,  # type: float
     queries=None,  # type: Optional[AnyStr]
     verbose=False,  # type: bool
+    compute_curve=False,  # type: bool
 ):
     p1 = make_posteriorgram_process(lattice_ark, acoustic_scale, verbose)
 
@@ -377,10 +396,13 @@ def kws_assessment_column_index(
     p1.stdout.close()
 
     add_missing_words(kws_ref_set, kws_hyp_set, tmpf)
-    p2 = make_kws_assessment_process(tmppath, queries, verbose)
+    p2 = make_kws_assessment_process(tmppath, queries, verbose, compute_curve)
     out = p2.communicate()[0].decode("utf-8")
     os.remove(tmppath)
-    return kws_assessment_parse_output(out)
+    if compute_curve:
+        return out
+    else:
+        return kws_assessment_parse_output(out)
 
 
 if __name__ == "__main__":
@@ -396,6 +418,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--use-kws-eval", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--print-curve", action="store_true")
     parser.add_argument("syms")
     parser.add_argument("kws_refs")
     parser.add_argument("lattice_ark")
@@ -433,5 +456,6 @@ if __name__ == "__main__":
             args.acoustic_scale,
             args.queries,
             args.verbose,
+            compute_curve=args.print_curve,
         )
     )
