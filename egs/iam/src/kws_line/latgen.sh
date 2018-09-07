@@ -10,6 +10,7 @@ export PATH="$PWD/../utils:$PATH";
 beam=25;
 determinize_lattice=true;
 lattice_beam=15;
+num_threads="$(nproc)";
 phone_determinize=true;
 word_determinize=true;
 help_message="
@@ -55,7 +56,7 @@ for p in te va; do
     --beam="$beam" \
     --determinize-lattice="$determinize_lattice" \
     --lattice-beam="$lattice_beam" \
-    --num-threads=$(nproc) \
+    --num-threads="$num_threads" \
     --phone-determinize="$phone_determinize" \
     --prune-interval=500 \
     --word-determinize="$word_determinize" \
