@@ -23,14 +23,16 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized fo
 Create a model using:
 
 ```bash
-$ pylaia-htr-create-model "$INPUT_HEIGHT" "$CHANNELS" "$SYM_TABLE"
+$ pylaia-htr-create-model --fixed_input_height="$INPUT_HEIGHT" "$CHANNELS" "$SYM_TABLE"
 ```
 
 Required arguments:
 
-- `$INPUT_HEIGHT`: Height of the input images. Set this to 0 to use a variable height model.
 - `$CHANNELS`: Number of channels of the input images.
 - `$SYM_TABLE`: Path to the table file mapping symbols to their ids.
+- Unless you have installed nnutils, you will need to use models that process images 
+  of a fixed height. Use `--fixed_input_height=$INPUT_HEIGHT` to specify the height of 
+  the image.
 
 For optional arguments check `$ pylaia-htr-create-model -h`
 
