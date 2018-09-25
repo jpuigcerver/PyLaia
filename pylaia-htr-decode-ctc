@@ -4,7 +4,7 @@ import os
 import torch
 
 import laia.common.logging as log
-from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments import add_argument, parse_args, add_defaults
 from laia.common.arguments_types import str2bool
 from laia.common.loader import ModelLoader, CheckpointLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     add_argument(
         "--space", type=str, help="Replace <space> with this. Used with --use_letters"
     )
-    args = args()
+    args = parse_args()
 
     syms = SymbolsTable(args.syms)
     device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")

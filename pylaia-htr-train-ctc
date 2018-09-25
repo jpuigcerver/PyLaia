@@ -7,7 +7,7 @@ from torch.optim import RMSprop
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
-from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments import add_argument, parse_args, add_defaults
 from laia.common.arguments_types import NumberInOpenRange
 from laia.common.loader import ModelLoader, StateCheckpointLoader
 from laia.common.random import manual_seed
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         default="ckpt.lowest-valid-cer*",
         help="Suffix of the checkpoint to use, can be a glob pattern",
     )
-    args = args()
+    args = parse_args()
 
     manual_seed(args.seed)
     syms = SymbolsTable(args.syms)

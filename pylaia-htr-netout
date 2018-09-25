@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as functional
 
 import laia.common.logging as log
-from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments import add_argument, parse_args, add_defaults
 from laia.common.loader import ModelLoader, CheckpointLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.engine.feeders import ImageFeeder, ItemFeeder
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         default=10,
         help="Number of digits to be used for formatting",
     )
-    args = args()
+    args = parse_args()
 
     device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
 

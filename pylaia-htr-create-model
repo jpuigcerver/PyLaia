@@ -5,7 +5,7 @@ import torch.nn as nn
 
 import laia.common.logging as log
 from laia.common import ModelSaver
-from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments import add_argument, parse_args, add_defaults
 from laia.common.arguments_types import NumberInClosedRange, TupleList, str2bool
 from laia.models.htr import LaiaCRNN
 from laia.utils import SymbolsTable
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         help="If true, apply a zero mask after each convolution and non-linear "
         "activation.",
     )
-    args = args()
+    args = parse_args()
 
     dimensions = map(
         len,
