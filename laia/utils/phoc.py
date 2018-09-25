@@ -5,13 +5,6 @@ import torch
 
 from laia.utils.symbols_table import SymbolsTable
 
-try:
-    from prob_phoc import cphoc, pphoc
-except ImportError:
-    import warnings
-
-    warnings.warn("Probabilistic PHOC methods could not be imported.")
-
 
 def unigram_phoc(sequence, unigram_map, unigram_levels, ignore_missing=False):
     r"""Compute the Pyramid of Histograms of Characters (PHOC) of a given
