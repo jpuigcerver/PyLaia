@@ -9,8 +9,24 @@ notifications:
     on_success: change
     on_failure: always
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-4.9
+      - g++-4.9
+
+env:
+  global:
+    - CC=gcc-4.9 CXX=g++-4.9
+
 before_install:
-  - pip install cffi
+  # Upgrade PIP to latest version, in order to support --progres-bar
+  - pip install -U pip
+  # Manually install torch, since it is required in the setup of nnutils
+  - pip install torch --progress-bar off
+  - pip install cffi --progress-bar off
 
 install:
   - python setup.py install
