@@ -96,6 +96,7 @@ setuptools.setup(
         "future",
         'mock;python_version<"3.0"',
         "natsort",
+        "nnutils-pytorch>=0.2",
         "numpy",
         "scipy",
         "tqdm",
