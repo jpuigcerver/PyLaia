@@ -19,6 +19,14 @@ class DortmundCRNNTest(unittest.TestCase):
     pass
 
 
+def cost_function(y):
+    return torch.sum(y)
+
+
+def padded_cost_function(y):
+    return torch.sum(y.data)
+
+
 # Add some tests to make sure that the backprop is working correctly.
 # Note: this only checks that the gradient w.r.t. all layers is different from zero.
 if nnutils_installed:
@@ -26,8 +34,8 @@ if nnutils_installed:
         "module": DortmundCRNN,
         "batch_data": torch.randn(2, 1, 17, 19),
         "batch_sizes": [[13, 19], [17, 13]],
-        "cost_function": lambda y: y.sum(),
-        "padded_cost_function": lambda y: y.sum(),
+        "cost_function": cost_function,
+        "padded_cost_function": padded_cost_function,
     }
     tests = []
     for name, kwargs in ("default", {}), ("no_dropout", {"dropout": 0}):

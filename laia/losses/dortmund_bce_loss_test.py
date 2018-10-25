@@ -17,7 +17,7 @@ class DortmundBCELossTest(unittest.TestCase):
         y[y >= 0] = 1
         y[y < 0] = 0
 
-        mref = BCEWithLogitsLoss(size_average=False)
+        mref = BCEWithLogitsLoss(reduction="sum")
         loss_ref = mref(x1, y)
         loss_ref.backward()
 
