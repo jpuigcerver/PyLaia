@@ -60,7 +60,7 @@ class DortmundCRNN(torch.nn.Module):
         x, _ = self.blstm(x)
         x = self.dropout(x, p=self._dropout)
         return (
-            PackedSequence(self.linear(x), x.batch_sizes)
+            PackedSequence(self.linear(x.data), x.batch_sizes)
             if isinstance(x, PackedSequence)
             else self.linear(x)
         )

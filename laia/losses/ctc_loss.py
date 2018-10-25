@@ -11,7 +11,7 @@ import laia.common.logging as log
 from laia.losses.loss import Loss
 
 try:
-    from warpctc_pytorch import _CTC as _WARP_CTC
+    from torch_baidu_ctc import ctc_loss
 except ImportError:
     import warnings
 
@@ -137,18 +137,22 @@ class CTCPrepare(Function):
 class CTCLoss(Loss):
     """
     Attributes:
-        size_average (optional): normalize the loss by the batch size
-            (default: `True`)
-        length_average (optional): normalize the loss by the total number of frames
-            in the batch. If `True`, supersedes `size_average`
-            (default: `False`)
+      reduction (string, optional): Specifies the type of reduction to
+        perform on the minibatch costs: 'none' | 'mean' | 'sum'.
+        With 'none': no reduction is done and a tensor with the cost of each
+        sample in the minibatch is returned,
+        'mean': the mean of all costs in the minibatch is returned,
+        'sum': the sum of all costs in the minibatch is returned.
+        Default: 'sum'.
+      average_frames (bool, optional): Specifies whether the loss of each
+        sample should be divided by its number of frames. Default: ``False''.
     """
 
-    def __init__(self, size_average=True, length_average=False):
+    def __init__(self, reduction="mean", average_frames=False):
         # type: (bool, bool) -> None
         super(CTCLoss, self).__init__()
-        self._size_average = size_average
-        self._length_average = length_average
+        self._reduction = reduction
+        self._average_frames = average_frames
 
     def forward(self, output, target, **kwargs):
         # type: (torch.Tensor, List[List[int]]) -> (FloatScalar, List[int])
@@ -184,6 +188,11 @@ class CTCLoss(Loss):
             acts, target, act_lens, valid_indices if err_indices else None
         )
 
-        return _WARP_CTC.apply(
-            acts, labels, act_lens, label_lens, self._size_average, self._length_average
+        return ctc_loss(
+            acts=acts,
+            labels=labels,
+            acts_lens=act_lens,
+            labels_lens=label_lens,
+            reduction=self._reduction,
+            average_frames=self._average_frames,
         )
