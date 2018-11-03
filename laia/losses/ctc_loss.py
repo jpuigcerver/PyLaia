@@ -115,9 +115,15 @@ class CTCPrepare(Function):
             )
 
         # Prepare tensors of the correct type
-        act_lens = torch.IntTensor(act_lens)
-        labels = torch.IntTensor(list(itertools.chain.from_iterable(target)))
-        label_lens = torch.IntTensor([len(x) for x in target])
+        act_lens = torch.tensor(act_lens, dtype=torch.int32, device=torch.device("cpu"))
+        labels = torch.tensor(
+            list(itertools.chain.from_iterable(target)),
+            dtype=torch.int32,
+            device=torch.device("cpu"),
+        )
+        label_lens = torch.tensor(
+            [len(x) for x in target], dtype=torch.int32, device=torch.device("cpu")
+        )
 
         return acts, labels, act_lens, label_lens
 
@@ -184,15 +190,20 @@ class CTCLoss(Loss):
             _logger.warning("All samples in the batch were ignored!")
             return None
 
+        # TODO(jpuigcerver): We need to change this because CTCPrepare.apply
+        # will set requires_grad of *all* outputs to True if *any* of the
+        # inputs requires_grad is True.
         acts, labels, act_lens, label_lens = CTCPrepare.apply(
             acts, target, act_lens, valid_indices if err_indices else None
         )
 
+        # TODO(jpuigcerver): Remove the detach() once the previous TODO is
+        # fixed.
         return ctc_loss(
             acts=acts,
-            labels=labels,
-            acts_lens=act_lens,
-            labels_lens=label_lens,
+            labels=labels.detach(),
+            acts_lens=act_lens.detach(),
+            labels_lens=label_lens.detach(),
             reduction=self._reduction,
             average_frames=self._average_frames,
         )
