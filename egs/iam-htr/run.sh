@@ -5,7 +5,9 @@ set -e;
 SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 [ "$(pwd)" != "$SDIR" ] &&
 echo "Please, run this script from the experiment top directory!" >&2 &&
-exit 1;
+  exit 1;
+
+export PATH="$PWD/../..:$PATH";
 
 # Step 1. Download data.
 ./src/download.sh --iam_user "$IAM_USER" --iam_pass "$IAM_PASS";
