@@ -15,14 +15,11 @@ class PHOCFeeder(Feeder):
         self._syms = syms
         self._levels = levels
         self._ignore_missing = ignore_missing
-        if new_phoc:
-            self._phoc_func = new_unigram_phoc
-        else:
-            self._phoc_func = unigram_phoc
+        self._phoc_func = new_unigram_phoc if new_phoc else unigram_phoc
 
     def _feed(self, batch):
         assert isinstance(batch, (list, tuple))
-        return torch.Tensor(
+        return torch.tensor(
             [
                 self._phoc_func(x, self._syms, self._levels, self._ignore_missing)
                 for x in batch

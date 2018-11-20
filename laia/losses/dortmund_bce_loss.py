@@ -5,7 +5,7 @@ from torch.nn import BCEWithLogitsLoss
 
 class DortmundBCELoss(BCEWithLogitsLoss):
     def __init__(self):
-        super(DortmundBCELoss, self).__init__(size_average=False)
+        super(DortmundBCELoss, self).__init__(reduction="sum")
 
     def forward(self, output, target):
         loss = super(DortmundBCELoss, self).forward(output, target)

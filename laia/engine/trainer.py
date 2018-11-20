@@ -211,7 +211,9 @@ class Trainer(Engine):
 
         action_kwargs["iterations"] = self._iterations
         action_kwargs["batch_output"] = batch_output
-        action_kwargs["batch_loss"] = batch_loss
+        action_kwargs["batch_loss"] = (
+            batch_loss.item() if isinstance(batch_loss, torch.Tensor) else batch_loss
+        )
         self._call_hooks(ITER_END, **action_kwargs)
 
     def compute_loss(self, batch, batch_output, batch_target):
