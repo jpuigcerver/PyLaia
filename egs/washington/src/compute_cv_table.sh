@@ -18,7 +18,7 @@ case "$1" in
     sort=desc;
     ;;
   ctc)
-    sort=desc;
+    sort=asc;
     ;;
   *)
     echo -e "Unknown method: \"$1\"!\n$help_message" >&2 && exit 1;
@@ -32,11 +32,11 @@ check_all_files -s data/lang/dortmund/cv1_rel_qbe.txt \
                    data/lang/dortmund/cv4_rel_qbe.txt || exit 1;
 
 tmpf="$(mktemp)";
-for r in 01 02 03 04 05 06 07 08 09 10; do
+for r in 01 02 04 05 06 07 08 09; do
   for cv in cv1 cv2 cv3 cv4; do
     ckpt="index/dortmund/$1/$cv/r$r/epoch-160.dat.gz";
     check_all_files -s "$ckpt" || exit 1;
-    zcat "$ckpt" |
+    zcat "$ckpt" | awk '($3 != "inf" && $3 != "-inf")' |
     SimpleKwsEval \
       --collapse_matches true \
       --trapezoid_integral false \
