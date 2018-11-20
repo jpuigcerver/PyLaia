@@ -12,11 +12,13 @@ export PATH="$PWD/../utils:$PATH";
 export PATH="$PWD/../..:$PATH";
 
 # Parse options
+tr_txt="data/kws_line/lang/char/tr.txt";
 prior_scale=0.3;
 help_message="
 Usage: ${0##*/} [options] syms_ctc images_dir train_dir output_dir
 Options:
   --prior_scale : (type = float, default = $prior_scale)
+  --tr_txt      : (type = string, default = \"$tr_txt\")
 ";
 source "$PWD/../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 4 ] && echo "$help_message" >&2 && exit 1;
@@ -30,9 +32,8 @@ check_all_dirs "$images_dir" "$train_dir" || exit 1;
 mkdir -p "$output_dir" || exit 1;
 
 # Check for required files
-check_all_files -s "$syms_ctc" \
+check_all_files -s "$syms_ctc" "$tr_txt" \
                    data/kws_line/lang/char/te.txt \
-                   data/kws_line/lang/char/tr.txt \
                    data/kws_line/lang/char/va.txt;
 
 ############################################################
@@ -47,7 +48,7 @@ pylaia-htr-netout \
   --output_format matrix \
   --show_progress_bar true \
   "$images_dir" \
-  <(cut -d\  -f1 data/kws_line/lang/char/tr.txt) |
+  <(cut -d\  -f1 "$tr_txt") |
   compute_ctc_priors.sh ark:- > "$output_dir/tr.prior";
 
 

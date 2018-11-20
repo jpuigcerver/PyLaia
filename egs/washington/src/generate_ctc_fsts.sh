@@ -20,30 +20,28 @@ for f in "$2" "$TXT" "$REL"; do
   [ ! -s "$f" ] && echo "File \"$f\" was not found!" >&2 && exit 1;
 done;
 
-[ -s "$3/lat.ark" -a -s "$3/lat.scp" ] || {
-  python src/python/generate_ctc_lattice.py \
-     --add_softmax \
-	 data/lang/dortmund/syms_ctc.txt \
-	 data/imgs/dortmund \
-	 <(join -1 1 <(sort "$TXT") <(cut -d\  -f1 "$REL" | sort -u)) \
-	 "$2" \
+[ -s "$3/lat.ark" ] ||
+python src/python/generate_ctc_lattice.py \
+       --add_softmax \
+       data/lang/dortmund/syms_ctc.txt \
+       data/imgs/dortmund \
+       <(join -1 1 <(sort "$TXT") <(cut -d\  -f1 "$REL" | sort -u)) \
+         "$2" \
 	 >(lattice-remove-ctc-blank 1 ark:- ark:- | \
-       lattice-prune --beam=$MAXBEAM ark:- "ark:$3/lat.ark");
-}
+	   lattice-prune --beam=$MAXBEAM ark:- "ark:$3/lat.ark") || exit 1;
 
-exit 0;
 # Get 1-best path
-[ -s "$3/b0.fst.ark" -a -s "$3/b0.fst.scp" ] || {
-  lattice-1best "ark:$3/lat.ark" ark:- |
-  lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
-      ark:- "ark,scp:$3/b0.fst.ark,$3/b0.fst.scp";
-}
+[ -s "$3/b0.fst.ark" -a -s "$3/b0.fst.scp" ] ||
+lattice-1best "ark:$3/lat.ark" ark:- |
+lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
+	       ark:- "ark,scp:$3/b0.fst.ark,$3/b0.fst.scp" || exit 1;
+
 
 # Prune for different beam thresholds
-for b in $(seq $MAXBEAM); do
-  [ -s "$3/b$b.fst.ark" -a -s "$3/b$b.fst.scp" ] || {
-    lattice-prune --beam=$b "ark:$3/lat.ark" ark:- |
-    lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
-      ark:- "ark,scp:$3/b$b.fst.ark,$3/b$b.fst.scp";
-  }
+#for b in $(seq $MAXBEAM); do
+for b in $MAXBEAM; do
+  [ -s "$3/b$b.fst.ark" -a -s "$3/b$b.fst.scp" ] ||
+  lattice-prune --beam=$b "ark:$3/lat.ark" ark:- |
+  lattice-to-fst --acoustic-scale=1 --lm-scale=1 \
+		 ark:- "ark,scp:$3/b$b.fst.ark,$3/b$b.fst.scp" || exit 1;
 done;
