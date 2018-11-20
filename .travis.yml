@@ -9,13 +9,29 @@ notifications:
     on_success: change
     on_failure: always
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-4.9
+      - g++-4.9
+
+env:
+  global:
+    - CC=gcc-4.9 CXX=g++-4.9
+
 before_install:
-  - pip install cffi
+  # Upgrade PIP to latest version, in order to support --progres-bar
+  - pip install -U pip
+  # Manually install torch, since it is required in the setup of nnutils
+  - pip install numpy --progress-bar off
+  - pip install torch --progress-bar off
+  - pip install nnutils-pytorch --progress-bar off
+  - pip install torch-baidu-ctc --progress-bar off
 
 install:
   - python setup.py install
-  - ./travis/build_nnutils.sh
-  - ./travis/build_warp_ctc.sh
 
 script:
   - ./travis/run_tests.sh

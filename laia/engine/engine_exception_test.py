@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-import sys
 import unittest
 
-from torch._six import raise_from
+from torch._six import raise_from, PY2
 
 from laia.engine.engine_exception import EngineException
 
-if sys.version_info[:2] == (2, 7):
+if PY2:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 

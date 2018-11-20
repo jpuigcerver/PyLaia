@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from typing import Callable, Any
 
-import numpy as np
+from torch._six import inf
 
 import laia.common.logging as log
 from laia.conditions.condition import LoggingCondition
@@ -17,7 +17,7 @@ class NonDecreasing(LoggingCondition):
     def __init__(self, obj, max_no_decreasing_calls, key=None, name=None):
         # type: (Callable, int, Any, str) -> None
         super(NonDecreasing, self).__init__(obj, key, _logger, name)
-        self._lowest = np.inf
+        self._lowest = inf
         self._max_no_decrease = max_no_decreasing_calls
         self._lowest_calls = 0
         self._calls = 0
@@ -60,7 +60,7 @@ class ConsecutiveNonDecreasing(LoggingCondition):
     def __init__(self, obj, max_no_decreasing_calls, key=None, name=None):
         # type: (Callable, int, Any, str) -> None
         super(ConsecutiveNonDecreasing, self).__init__(obj, key, _logger, name)
-        self._lowest = np.inf
+        self._lowest = inf
         self._max_no_decrease = max_no_decreasing_calls
         self._calls = 0
 
