@@ -10,12 +10,8 @@ from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 import laia.common.logging as log
 from laia.losses.loss import Loss
 
-try:
-    from torch_baidu_ctc import ctc_loss
-except ImportError:
-    import warnings
+from torch_baidu_ctc import ctc_loss
 
-    warnings.warn("Missing CTC loss function library")
 
 FloatScalar = Union[float, torch.FloatTensor]
 

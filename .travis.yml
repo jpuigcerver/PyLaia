@@ -1,9 +1,10 @@
 language: python
-distro: xenial
+dist: xenial
+sudo: true
 python:
-  - "3.5"
-  - "3.6"
-  - "3.7"
+  - 3.5
+  - 3.6
+  - 3.7
 
 notifications:
   email:
@@ -24,12 +25,12 @@ env:
 
 before_install:
   # Upgrade PIP to latest version, in order to support --progres-bar
-  - pip install -U pip
+  - python -m pip install -U pip
   # Manually install torch, since it is required in the setup of nnutils
-  - pip install numpy --progress-bar off
-  - pip install torch --progress-bar off
-  - pip install nnutils-pytorch --progress-bar off
-  - pip install torch-baidu-ctc --progress-bar off
+  - python -m pip install numpy --progress-bar off
+  - ./travis/install_pytorch.sh
+  - python -m pip install nnutils-pytorch --progress-bar off
+  - python -m pip install torch-baidu-ctc --progress-bar off
 
 install:
   - python setup.py install
