@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import io
 import os
 import subprocess
 
@@ -10,7 +11,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def _git_output(args):
-    stderr = open(os.devnull, "w")
+    stderr = io.open(os.devnull, "w", encoding="utf-8")
     output = None
     try:
         output = subprocess.check_output(args, cwd=cwd).decode("ascii").strip()
@@ -55,7 +56,7 @@ class create_version_file(setuptools.Command):
     def run(self):
         print("creating version file")
         version_path = os.path.join(cwd, "laia", "version.py")
-        with open(version_path, "w") as f:
+        with io.open(version_path, "w", encoding="utf-8") as f:
             full_version = "{}+{}{}".format(
                 VERSION, git_commit(short=True), "-dirty" if git_is_dirty() else ""
             )
@@ -83,6 +84,12 @@ def get_scripts():
     ]
 
 
+def get_requirements():
+    requirements_file = os.path.join(os.path.dirname(__file__), "requirements.txt")
+    with io.open(requirements_file, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f]
+
+
 setuptools.setup(
     name="laia",
     version=VERSION,
@@ -91,21 +98,7 @@ setuptools.setup(
     license="MIT",
     url="https://github.com/jpuigcerver/PyLaia",
     # Requirements
-    install_requires=[
-        "editdistance",
-        "future",
-        'mock;python_version<"3.0"',
-        "natsort",
-        "nnutils-pytorch>=0.2.1.post1",
-        "numpy",
-        "scipy",
-        "tqdm",
-        "torch==0.4.1",
-        "torchvision",
-        "torch-baidu-ctc>=0.1.1",
-        'typing;python_version<"3.5"',
-        "Pillow>=5.2",
-    ],
+    install_requires=get_requirements(),
     # Package contents
     packages=setuptools.find_packages(),
     scripts=get_scripts(),
