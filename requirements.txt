@@ -1,0 +1,13 @@
+editdistance
+future
+mock;python_version<"3.0"
+natsort
+nnutils-pytorch==0.2.1.post1
+numpy
+Pillow>=5.2
+scipy
+torch>=0.4.1,<0.5.0
+torch-baidu-ctc==0.1.1
+torchvision
+tqdm
+typing;python_version<"3.5"
