@@ -28,6 +28,31 @@ class TestWriteBinaryMatrix(unittest.TestCase):
         self._run_test(torch.float64)
 
 
+class TestWriteTextLattice(unittest.TestCase):
+    def _run_test(self, dtype):
+        f = io.StringIO()
+        x = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]], dtype=dtype)
+        kaldi.write_text_lattice(f, x, digits=3)
+        expected_value = (
+            "0\t1\t1\t1\t0,1.0\n"
+            "0\t1\t2\t2\t0,2.0\n"
+            "0\t1\t3\t3\t0,3.0\n"
+            "0\t1\t4\t4\t0,4.0\n"
+            "1\t2\t1\t1\t0,5.0\n"
+            "1\t2\t2\t2\t0,6.0\n"
+            "1\t2\t3\t3\t0,7.0\n"
+            "1\t2\t4\t4\t0,8.0\n"
+            "2\t0,0\n\n"
+        )
+        self.assertEqual(f.getvalue(), expected_value)
+
+    def test_f32(self):
+        self._run_test(torch.float32)
+
+    def test_f64(self):
+        self._run_test(torch.float64)
+
+
 class TestArchiveMatrixWriter(unittest.TestCase):
     def test_write(self):
         f = io.BytesIO()

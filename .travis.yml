@@ -27,10 +27,7 @@ before_install:
   # Upgrade PIP to latest version, in order to support --progres-bar
   - python -m pip install -U pip
   # Manually install torch, since it is required in the setup of nnutils
-  - python -m pip install numpy --progress-bar off
-  - ./travis/install_pytorch.sh
-  - python -m pip install nnutils-pytorch --progress-bar off
-  - python -m pip install torch-baidu-ctc --progress-bar off
+  - python -m pip install --progress-bar off -r requirements.txt
 
 install:
   - python setup.py install
