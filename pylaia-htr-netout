@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 import argparse
 import os
+import sys
+from tqdm import tqdm
 from typing import Any
 
 import torch
@@ -16,64 +18,7 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments import Experiment
 from laia.losses.ctc_loss import transform_output
 from laia.utils import ImageToTensor
-
-
-def output_matrix(
-    img_id,  # type: str
-    output,  # type: torch.Tensor
-    output_size,  # type: int
-    add_boundary_ctc_blank=False,  # type: bool
-    digits=10,  # type: int
-):
-    # type: (...) -> str
-    output = output.cpu()
-    matrix = "{} [\n".format(img_id)
-
-    def boundary_blank(cols):
-        # type: (int) -> str
-        matrix = "0 "
-        matrix += " ".join(["-1e+30"] * (cols - 1))
-        return matrix + "\n"
-
-    boundary = boundary_blank(output.size(1)) if add_boundary_ctc_blank else ""
-    matrix += boundary
-    matrix += (
-        "\n".join(
-            " ".join(
-                "{:.{digits}}".format(float(output[row, col]), digits=digits)
-                for col in range(output.size(1))
-            )
-            for row in range(output_size)
-        )
-        + "\n"
-    )
-    matrix += boundary
-    matrix += "]\n"
-    return matrix
-
-
-def output_lattice(
-    img_id,  # type: str
-    output,  # type: torch.Tensor
-    output_size,  # type: int
-    digits=10,  # type: int
-    **_  # type: **Any
-):
-    # type: (...) -> str
-    output = output.cpu()
-    matrix = "{}\n".format(img_id)
-    matrix += (
-        "\n".join(
-            "{:d}\t{:d}\t{:d}\t0,{:.{digits}},{:d}".format(
-                row, row + 1, col + 1, -float(output[row, col]), col + 1, digits=digits
-            )
-            for row in range(output_size)
-            for col in range(output.size(1))
-        )
-        + "\n"
-    )
-    matrix += "{:d}\t0,0,\n".format(output_size)
-    return matrix
+from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
 if __name__ == "__main__":
@@ -112,18 +57,19 @@ if __name__ == "__main__":
         "output of the model",
     )
     add_argument(
-        "--output_format",
-        default="matrix",
-        choices=["matrix", "lattice"],
-        help='Format of the output file. Use "matrix" to get a '
-        "Kaldi's archive of matrices (one for each sample), where each row is a "
-        'timestep and each column represents a label; use "lattice" to get a '
-        "Kaldi's archive of CompactLattices",
+        "--output_matrix",
+        type=argparse.FileType("wb"),
+        default=None,
+        help="Path of the Kaldi's archive containing the output matrices "
+        "(one for each sample), where each row represents a timestep and "
+        "each column represents a CTC label",
     )
     add_argument(
-        "--add_boundary_ctc_blank",
-        action="store_true",
-        help="Boundary CTC blank symbol added to the start and end of the matrix",
+        "--output_lattice",
+        type=argparse.FileType("w"),
+        default=None,
+        help="Path of the Kaldi's archive containing the output lattices"
+        "(one for each sample), representing the CTC output",
     )
     add_argument(
         "--digits",
@@ -159,9 +105,23 @@ if __name__ == "__main__":
     )
     batch_input_fn = ImageFeeder(device=device, parent_feeder=ItemFeeder("img"))
 
-    output_fn = globals()["output_{}".format(args.output_format)]
+    archive_writers = []
+    if args.output_matrix is not None:
+        archive_writers.append(ArchiveMatrixWriter(args.output_matrix))
 
-    for batch in dataset_loader:
+    if args.output_lattice is not None:
+        archive_writers.append(
+            ArchiveLatticeWriter(args.output_lattice, digits=args.digits, negate=True)
+        )
+
+    if not archive_writers:
+        log.error(
+            "You did not specify any output file! "
+            "Use --output_matrix and/or --output_lattice"
+        )
+        exit(1)
+
+    for batch in tqdm(dataset_loader):
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
         batch_output, batch_sizes = transform_output(batch_output)
@@ -170,12 +130,9 @@ if __name__ == "__main__":
             batch_output = getattr(functional, args.output_transform)(
                 batch_output, dim=-1
             )
-        for img_id, out, out_size in zip(batch["id"], batch_output, batch_sizes):
-            matrix = output_fn(
-                img_id,
-                out,
-                out_size,
-                add_boundary_ctc_blank=args.add_boundary_ctc_blank,
-                digits=args.digits,
-            )
-            print(matrix)
+
+        batch_output = batch_output.detach().numpy()
+        for key, out, out_size in zip(batch["id"], batch_output, batch_sizes):
+            out = out[:out_size, :]
+            for writer in archive_writers:
+                writer.write(key, out)
