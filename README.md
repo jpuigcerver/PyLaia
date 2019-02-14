@@ -8,13 +8,13 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized fo
 
 ## Requirements
 
-- [PyTorch 0.4.1](https://pytorch.org)
-- [warp-ctc](./third_party/warp-ctc)
+The file `[requirements.txt](https://github.com/jpuigcerver/PyLaia/blob/master/requirements.txt)`
+includes all the Python packages required to install and use PyLaia.
 
-## Optional requirements (depending on your usage)
-
-- [nnutils](./third_party/nnutils)
-- [prob-phoc](./third_party/prob-phoc)
+The recipes for some datasets also need additional tools and packages.
+For instance, typically ImageMagick is used to process images, or Kaldi
+is employed to perform Viterbi decoding (and lattice generation) combining
+the output of the neural network with a n-gram language model.
 
 ## Usage
 
@@ -30,8 +30,8 @@ Required arguments:
 
 - `$CHANNELS`: Number of channels of the input images.
 - `$SYM_TABLE`: Path to the table file mapping symbols to their ids.
-- Unless you have installed nnutils, you will need to use models that process images 
-  of a fixed height. Use `--fixed_input_height=$INPUT_HEIGHT` to specify the height of 
+- Unless you have installed nnutils, you will need to use models that process images
+  of a fixed height. Use `--fixed_input_height=$INPUT_HEIGHT` to specify the height of
   the image.
 
 For optional arguments check `$ pylaia-htr-create-model -h`

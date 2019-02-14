@@ -6,68 +6,62 @@ SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 [ "$(pwd)/src" != "$SDIR" ] && \
     echo "Please, run this script from the experiment top directory!" >&2 && \
     exit 1;
-[ ! -f "$(pwd)/src/parse_options.inc.sh" ] &&
-echo "Missing $(pwd)/src/parse_options.inc.sh file!" >&2 && exit 1;
 
-iam_pass=;
-iam_user=;
-partition=lines;
+
+iam_password=;
+iam_username=;
 help_message="
 Usage: ${0##*/} [options]
 
 Options:
-  --iam_pass   : (type = string, default = \"$iam_pass\")
-                 Password for the IAM server.
-  --iam_user   : (type = string, default = \"$iam_user\")
-                 Username for the IAM server.
-  --partition  : (type = string, default = \"$partition\")
-                 Select the \"lines\" or \"sentences\" partition. Note: Aachen
-                 typically uses the sentences partition.
+  --iam_password : (type = string, default = \"$iam_password\")
+                   Password for the IAM server.
+  --iam_username : (type = string, default = \"$iam_username\")
+                   Username for the IAM server.
 ";
-source "$(pwd)/src/parse_options.inc.sh" || exit 1;
+source "../utils/parse_options.inc.sh" || exit 1;
 
 # Utility function to download files from IAM.
 function download_url () {
-  [ -z "$iam_user" -o -z "$iam_pass" ] && \
-    echo "Please, use the --iam_user and --iam_pass options to download" \
-	 "the database from the IAM servers." >&2 && return 1;
-  wget -P data/original --user="$iam_user" --password="$iam_pass" "$1" ||
+  [ -z "$iam_username" -o -z "$iam_password" ] && \
+    echo "Please, use the --iam_username and --iam_password options to " \
+	 "download the database from the IAM servers." >&2 && return 1;
+  wget -P data/original --user="$iam_username" --password="$iam_password" \
+       "$1" ||
   { echo "ERROR: Failed downloading $1!" >&2 && return 1; }
   return 0;
 }
 
 
-tmpd="$(mktemp -d)";
+partitions=(lines sentences words);
+imgs_url=(
+  http://www.fki.inf.unibe.ch/DBs/iamDB/data/lines/lines.tgz
+  http://www.fki.inf.unibe.ch/DBs/iamDB/data/sentences/sentences.tgz
+  http://www.fki.inf.unibe.ch/DBs/iamDB/data/words/words.tgz
+);
+expected_count=(13353 16752 115320);
 
+for p in $(seq ${#partitions[@]}); do
+  partition="${partitions[p-1]}";
+  mkdir -p "data/original/${partition}";
 
-case "$partition" in
-  "lines")
-    mkdir -p data/original/lines;
-    url="http://www.fki.inf.unibe.ch/DBs/iamDB/data/lines/lines.tgz";
-    # Download lines images from IAM.
-    [ -s data/original/lines.tgz ] || download_url "$url" || exit 1;
-    # Untar and put all lines images into a single directory.
-    [ -s data/original/lines/a01-000u-00.png -a \
-      -s data/original/lines/r06-143-04.png ] || (
-      tar zxf data/original/lines.tgz -C "$tmpd" &&
-      find "$tmpd" -name "*.png" | xargs -I{} mv {} data/original/lines; ) ||
-      ( echo "ERROR: Failed extracting IAM line image files." >&2 && exit 1 );
-    ;;
-  "sentences")
-    mkdir -p data/original/sentences;
-    url="http://www.fki.inf.unibe.ch/DBs/iamDB/data/sentences/sentences.tgz";
-    # Download sentences images from IAM.
-    [ -s data/original/sentences.tgz ] || download_url "$url" || exit 1;
-    # Untar and put all sentence images into a single directory.
-    [ -s data/original/sentences/a01-000u-s00-00.png -a \
-      -s data/original/sentences/r06-143-s04-01.png ] || (
-      tar zxf data/original/sentences.tgz -C "$tmpd" &&
-      find "$tmpd" -name "*.png" | xargs -I{} mv {} data/original/sentences;) ||
-    ( echo "ERROR: Failed extracting IAM sentence image files." >&2 && exit 1 );
-    ;;
-  *)
-    echo "ERROR: Unknown partition \"$partition\"!" >&2 && exit 1;
-esac;
+  actual_count="$(find data/original/$partition -name "*.png" | wc -l)";
+  [ "${actual_count}" -eq "${expected_count[p-1]}" ] || {
+    # Download images from IAM.
+    [ -s "data/original/${partition}.tgz" ] ||
+    download_url "${imgs_url[p-1]}" || exit 1;
+    # Extract images.
+    {
+      tmpd="$(mktemp -d)";
+      tar zxf "data/original/${partition}.tgz" -C "$tmpd";
+      find "$tmpd" -name "*.png" | xargs -I{} mv {} "data/original/$partition";
+      rm -rf "$tmpd";
+      # Note: Remove tar file not needed anymore.
+      rm "data/original/${partition}.tgz";
+    } ||
+    { echo "ERROR: Failed extracting file data/origina/${partition}.tgz" >&2 && exit 1; }
+  }
+done;
 
 # Download ascii files.
 url="http://www.fki.inf.unibe.ch/DBs/iamDB/data/ascii/ascii.tgz";
@@ -78,6 +72,28 @@ url="http://www.fki.inf.unibe.ch/DBs/iamDB/data/ascii/ascii.tgz";
   -a -s data/original/forms.txt -a -s data/original/words.txt ] ||
 tar zxf data/original/ascii.tgz -C data/original ||
 ( echo "ERROR: Failed extracting IAM ascii files." >&2 && exit 1 );
+
+# Dowload splits typically used in HTR papers.
+[ -s data/splits/graves/te.lst -a \
+  -s data/splits/graves/tr.lst -a \
+  -s data/splits/graves/va.lst -a \
+  -s data/splits/original/te.lst -a \
+  -s data/splits/original/tr.lst -a \
+  -s data/splits/original/va1.lst -a \
+  -s data/splits/original/va2.lst -a \
+  -s data/splits/pham/te.lst -a \
+  -s data/splits/pham/tr.lst -a \
+  -s data/splits/pham/va.lst -a \
+  -s data/splits/puigcerver/te.lst -a \
+  -s data/splits/puigcerver/tr.lst -a \
+  -s data/splits/puigcerver/va.lst ] || {
+  [ -s data/iam_splits.tar.gz ] ||
+  wget --no-check-certificate -P data \
+       https://www.prhlt.upv.es/~jpuigcerver/iam_splits.tar.gz ||
+  { echo "ERROR: Failed downloading IAM splits files!" >&2 && return 1; }
+  tar zxf data/iam_splits.tar.gz -C data;
+  rm data/iam_splits.tar.gz;
+}
 
 rm -rf "$tmpd";
 exit 0;

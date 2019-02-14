@@ -35,6 +35,14 @@ function check_textFeats () {
   return 0;
 }
 
+function check_imagemagick () {
+  ! which convert &> /dev/null && \
+  echo "ERROR: Program \"convert\" was not found in your PATH." \
+       "Please, install ImageMagick in your computer" >&2 && \
+  return 1;
+  return 0;
+}
+
 function check_imgtxtenh () {
   ! which imgtxtenh &> /dev/null && \
   echo "ERROR: Program \"imgtxtenh\" was not found in your PATH." \
@@ -75,5 +83,14 @@ function confirm_overwrite_all_files () {
         [[ ! ( "$REPLY" =~ ^[Yy]$ ) ]] && { echo "$REPLY"; return 1; }
     fi;
   done;
+  return 0;
+}
+
+function check_running_from_parent () {
+  local dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)";
+  [ "$PWD" == "$dir" ] || {
+    echo "Please, run this script from the experiment top directory!" >&2 && \
+    return 1;
+  }
   return 0;
 }
