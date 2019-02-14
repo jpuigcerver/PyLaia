@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 import laia.common.logging as log
 from laia.losses.loss import Loss
 
-from torch_baidu_ctc import ctc_loss
+##from torch_baidu_ctc import ctc_loss
 
 
 FloatScalar = Union[float, torch.FloatTensor]
@@ -142,19 +142,21 @@ class CTCLoss(Loss):
       reduction (string, optional): Specifies the type of reduction to
         perform on the minibatch costs: 'none' | 'mean' | 'sum'.
         With 'none': no reduction is done and a tensor with the cost of each
-        sample in the minibatch is returned,
-        'mean': the mean of all costs in the minibatch is returned,
-        'sum': the sum of all costs in the minibatch is returned.
-        Default: 'sum'.
+        example in the minibatch is returned,
+        'mean': the mean of the per-example losses is returned,
+        'sum': the sum of all per-example losses is returned.
+        Default: 'mean'.
       average_frames (bool, optional): Specifies whether the loss of each
         sample should be divided by its number of frames. Default: ``False''.
+      blank (integer, optional): Index of the blank label. Default: 0.
     """
 
-    def __init__(self, reduction="mean", average_frames=False):
+    def __init__(self, reduction="mean", average_frames=False, blank=0):
         # type: (bool, bool) -> None
         super(CTCLoss, self).__init__()
         self._reduction = reduction
         self._average_frames = average_frames
+        self._blank = blank
 
     def forward(self, output, target, **kwargs):
         # type: (torch.Tensor, List[List[int]]) -> (FloatScalar, List[int])
@@ -192,14 +194,27 @@ class CTCLoss(Loss):
         acts, labels, act_lens, label_lens = CTCPrepare.apply(
             acts, target, act_lens, valid_indices if err_indices else None
         )
+        labels = labels.detach()
+        act_lens = act_lens.detach()
+        label_lens = label_lens.detach()
 
-        # TODO(jpuigcerver): Remove the detach() once the previous TODO is
-        # fixed.
-        return ctc_loss(
-            acts=acts,
-            labels=labels.detach(),
-            acts_lens=act_lens.detach(),
-            labels_lens=label_lens.detach(),
-            reduction=self._reduction,
-            average_frames=self._average_frames,
+        losses = torch.nn.functional.ctc_loss(
+            log_probs=acts,
+            targets=labels,
+            input_lengths=act_lens,
+            target_lengths=label_lens,
+            blank=self._blank,
+            reduction="none",
         )
+
+        if self._average_frames:
+            losses = losses / input_lengths.to(losses)
+
+        if self._reduction == "none":
+            return losses
+        elif self._reduction == "mean":
+            return losses.mean()
+        elif self._reduction == "sum":
+            return losses.sum()
+        else:
+            raise ValueError("Reduction {!r} not supported!".format(self._reduction))

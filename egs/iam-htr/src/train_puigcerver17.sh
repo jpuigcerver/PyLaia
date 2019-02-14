@@ -2,13 +2,10 @@
 set -e;
 export LC_NUMERIC=C;
 
-# Directory where the script is placed.
-SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
-[ "$(pwd)/src" != "$SDIR" ] && \
-    echo "Please, run this script from the experiment top directory!" >&2 && \
-    exit 1;
-[ ! -f "$(pwd)/src/parse_options.inc.sh" ] && \
-    echo "Missing $(pwd)/src/parse_options.inc.sh file!" >&2 && exit 1;
+# Move to the top directory of the experiment.
+cd "$(dirname "${BASH_SOURCE[0]}")/..";
+
+source ../utils/functions_check.inc.sh || exit 1;
 
 # Model parameters
 cnn_num_features="16 32 48 64 80";
@@ -22,7 +19,7 @@ cnn_batchnorm="f f f f f";
 rnn_units=256;
 rnn_layers=5;
 adaptive_pooling="avgpool-16";
-fixed_height=true;
+fixed_height=128;
 # Trainer parameters
 batch_size=10;
 learning_rate=0.0003;
@@ -68,10 +65,10 @@ Options:
                                Number of recurrent layers.
   --rnn_units                : (type = integer, default = $rnn_units)
                                Number of units in the recurrent layers.
-  --adaptive_poolingg        : (type = string, default = $adaptive_pooling)
+  --adaptive_pooling         : (type = string, default = $adaptive_pooling)
                                Type of adaptive pooling to use, format:
                                {none,maxpool,avgpool}-[0-9]+
-  --fixed_height             : (type = boolean, default = $fixed_height)
+  --fixed_height             : (type = integer, default = $fixed_height)
                                Use a fixed height model.
   --batch_size               : (type = integer, default = $batch_size)
                                Batch size for training.
@@ -98,7 +95,7 @@ Options:
   --checkpoint               : (type = str, default = $checkpoint)
                                Suffix of the checkpoint to use, can be a glob pattern.
 ";
-source "$(pwd)/src/parse_options.inc.sh" || exit 1;
+source "../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 0 ] && echo "$help_message" >&2 && exit 1;
 
 if [ $gpu -gt 0 ]; then
@@ -106,17 +103,24 @@ if [ $gpu -gt 0 ]; then
   gpu=1;
 fi;
 
-for f in data/lang/lines/char/aachen/{tr,va}.txt train/syms.txt; do
-  [ ! -s "$f" ] && echo "ERROR: File \"$f\" does not exist!" >&2 && exit 1;
-done;
+check_all_files \
+  data/lang/puigcerver/lines/char/tr.txt \
+  data/lang/puigcerver/lines/char/va.txt;
 
-if [ $fixed_height = true ]; then
-  extra_args="--fixed_input_height 128";
+mkdir -p exper/puigcerver17/train;
+[ -s exper/puigcerver17/train/syms_ctc.txt ] ||
+cut -d\  -f2- data/lang/puigcerver/lines/char/{tr,va}.txt | tr \  \\n |
+sort -u | awk 'BEGIN{ print "<ctc>", 0; }{ print $1, NR; }' \
+  > exper/puigcerver17/train/syms_ctc.txt
+
+extra_args=();
+if [ -n "$fixed_height" ]; then
+  extra_args+=(--fixed_input_height "$fixed_height");
 fi;
 
 # Create model
 pylaia-htr-create-model \
-  1 "train/syms.txt" \
+  1 "exper/puigcerver17/train/syms_ctc.txt" \
   --cnn_num_features $cnn_num_features \
   --cnn_kernel_size $cnn_kernel_size \
   --cnn_stride $cnn_stride \
@@ -125,29 +129,31 @@ pylaia-htr-create-model \
   --cnn_poolsize $cnn_poolsize \
   --cnn_dropout $cnn_dropout \
   --cnn_batchnorm $cnn_batchnorm \
-  --rnn_units $rnn_units \
-  --rnn_layers $rnn_layers \
-  $extra_args \
-  --adaptive_pooling $adaptive_pooling \
-  --logging_file "train/experiment.log" \
+  --rnn_units "$rnn_units" \
+  --rnn_layers "$rnn_layers" \
+  --adaptive_pooling "$adaptive_pooling" \
+  --logging_file "exper/puigcerver17/train/log" \
   --logging_also_to_stderr INFO \
-  --train_path "train";
+  --train_path "exper/puigcerver17/train" \
+  "${extra_args[@]}";
 
+# Train
 pylaia-htr-train-ctc \
-  "train/syms.txt" \
-  $img_directories \
-  data/lang/lines/char/aachen/{tr,va}.txt \
-  --gpu $gpu \
-  --batch_size $batch_size \
-  --max_nondecreasing_epochs $early_stop_epochs \
-  --learning_rate $learning_rate \
-  --save_checkpoint_interval $save_checkpoint_interval \
-  --num_rolling_checkpoints $num_rolling_checkpoints \
-  --show_progress_bar $show_progress_bar \
-  --use_distortions $use_distortions \
-  --checkpoint $checkpoint \
-  --logging_file "train/experiment.log" \
+  "exper/puigcerver17/train/syms_ctc.txt" \
+  "$img_directories" \
+  data/lang/puigcerver/lines/char/{tr,va}.txt \
+  --delimiters "@" \
+  --gpu "$gpu" \
+  --batch_size "$batch_size" \
+  --max_nondecreasing_epochs "$early_stop_epochs" \
+  --learning_rate "$learning_rate" \
+  --save_checkpoint_interval "$save_checkpoint_interval" \
+  --num_rolling_checkpoints "$num_rolling_checkpoints" \
+  --show_progress_bar "$show_progress_bar" \
+  --use_distortions "$use_distortions" \
+  --checkpoint "$checkpoint" \
+  --logging_file "exper/puigcerver17/train/log" \
   --logging_also_to_stderr INFO \
-  --train_path "train";
+  --train_path "exper/puigcerver17/train";
 
 exit 0;
