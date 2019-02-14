@@ -37,29 +37,28 @@ class ImageFeeder(TensorFeeder):
         self._keep_channels_in_size = keep_channels_in_size
 
     @classmethod
-    def _view_as_4d(cls, batch):
-        if batch.dim() == 2:
-            batch = batch.view(1, 1, batch.size(0), batch.size(1))
-        elif batch.dim() == 3:
-            batch = batch.view(1, batch.size(0), batch.size(1), batch.size(2))
-        elif batch.dim() == 4:
+    def _view_as_4d(cls, x):
+        if x.dim() == 2:
+            x = x.view(1, 1, x.size(0), x.size(1))
+        elif x.dim() == 3:
+            x = x.view(1, x.size(0), x.size(1), x.size(2))
+        elif x.dim() == 4:
             pass
         else:
             raise ValueError(
                 "Tensor with {} dimensions is not supported "
-                "as an Image".format(batch.dim())
+                "as an Image".format(x.dim())
             )
-        return batch
+        return x
 
-    def _feed(self, batch):
-        batch = super(ImageFeeder, self)._feed(batch)
+    def _feed(self, x):
+        x = super(ImageFeeder, self)._feed(x)
         # View image batch as a N-C-H-W
-        batch = self._view_as_4d(
-            batch.data if isinstance(batch, PaddedTensor) else batch
-        )
-        batch.requires_grad_(self._requires_grad)
-        if isinstance(batch, PaddedTensor) and self._keep_padded_tensors:
-            xs = batch.sizes
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
+        x = self._view_as_4d(x)
+        x.requires_grad_(self._requires_grad)
+
+        if xs is not None and self._keep_padded_tensors:
             # Ensure that the size tensor is the expected
             if xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3):
                 raise ValueError(
@@ -68,5 +67,6 @@ class ImageFeeder(TensorFeeder):
                 )
             if xs.size(1) == 3 and not self._keep_channels_in_size:
                 xs = xs[:, 1:]
-            return PaddedTensor(batch, xs)
-        return batch
+            return PaddedTensor(x, xs)
+        else:
+            return x

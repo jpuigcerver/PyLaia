@@ -14,17 +14,17 @@ class Feeder(object):
         assert parent_feeder is None or callable(parent_feeder)
         self._parent_feeder = parent_feeder
 
-    def __call__(self, batch):
+    def __call__(self, x):
         if self._parent_feeder:
-            batch = self._parent_feeder(batch)
-        return self._feed(batch)
+            x = self._parent_feeder(x)
+        return self._feed(x)
 
-    def _feed(self, batch):
+    def _feed(self, x):
         raise NotImplementedError("Abstract class.")
 
 
 class ItemFeeder(Feeder):
-    r"""Feed an element from a batch dictionary, by its key.
+    r"""Feed an element from a dictionary, by its key.
 
     Args:
       key: the key to use.
@@ -36,8 +36,6 @@ class ItemFeeder(Feeder):
         super(ItemFeeder, self).__init__(parent_feeder)
         self._key = key
 
-    def _feed(self, batch):
-        assert self._key in batch, "Could not find batch[{}] for batch {}".format(
-            self._key, batch
-        )
-        return batch[self._key]
+    def _feed(self, x):
+        assert self._key in x, "Could not find key {} in {}".format(self._key, x)
+        return x[self._key]
