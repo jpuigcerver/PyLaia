@@ -17,11 +17,11 @@ class PHOCFeeder(Feeder):
         self._ignore_missing = ignore_missing
         self._phoc_func = new_unigram_phoc if new_phoc else unigram_phoc
 
-    def _feed(self, batch):
-        assert isinstance(batch, (list, tuple))
+    def _feed(self, x):
+        assert isinstance(x, (list, tuple))
         return torch.tensor(
             [
                 self._phoc_func(x, self._syms, self._levels, self._ignore_missing)
-                for x in batch
+                for x in x
             ]
         )

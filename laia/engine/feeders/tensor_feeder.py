@@ -29,19 +29,19 @@ class TensorFeeder(Feeder):
         self._device = device
         self._requires_grad = requires_grad
 
-    def _feed(self, batch):
-        if isinstance(batch, torch.Tensor):
-            return batch.requires_grad(self._requires_grad).to(self._device)
-        elif isinstance(batch, PaddedTensor):
-            x = batch.data.requires_grad_(self._requires_grad).to(self._device)
-            xs = batch.sizes.to(self._device)
+    def _feed(self, x):
+        if isinstance(x, torch.Tensor):
+            return x.requires_grad(self._requires_grad).to(self._device)
+        elif isinstance(x, PaddedTensor):
+            xs = x.sizes.to(self._device)
+            x = x.data.requires_grad_(self._requires_grad).to(self._device)
             return PaddedTensor(x, xs)
-        elif isinstance(batch, PackedSequence):
-            x = batch.data.requires_grad_(self._requires_grad).to(self._device)
-            xs = batch.batch_sizes.to(self._device)
+        elif isinstance(x, PackedSequence):
+            xs = x.batch_sizes.to(self._device)
+            x = x.data.requires_grad_(self._requires_grad).to(self._device)
             return PackedSequence(x, xs)
         else:
-            raise ValueError("Type {!r} is not supported".format(type(batch)))
+            raise ValueError("Type {!r} is not supported".format(type(x)))
 
 
 # For backward compatibility
