@@ -112,7 +112,8 @@ class CTCLossTest(unittest.TestCase):
             ],
             device=device,
         )
-        paths2 = torch.tensor(xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2])
+        paths2 = xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2]
+        paths2 = paths2.clone().detach()
         ctc = CTCLoss(reduction="sum")
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)

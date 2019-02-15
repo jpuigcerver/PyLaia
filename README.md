@@ -1,7 +1,7 @@
 # PyLaia
 
 [![Build Status](https://travis-ci.com/jpuigcerver/PyLaia.svg?token=HF64eTvPxEUcjjUPXpgm&branch=master)](https://travis-ci.com/jpuigcerver/PyLaia)
-[![Python Version](https://img.shields.io/badge/python-2.7%2C%203.5%2C%203.6-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.5%2C%203.6%2C%203.7-blue.svg)](https://www.python.org/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized for handwritten document analysis. It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).
@@ -64,8 +64,3 @@ Required arguments:
 - `$IMG_LIST`: A file containing a list of images to transcribe. They can be image ids with or without extension or full paths to the images.
 
 For optional arguments check `$ pylaia-htr-decode-ctc -h`
-
-## FAQ
-
-#### Where can I find the last version PyTorch 0.3.1 compatible?
-You can check out the repository using this [branch](https://github.com/jpuigcerver/PyLaia/tree/PyTorch-v0.3.1)
