@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import itertools
 import unittest
 
 import torch
@@ -81,22 +82,25 @@ class CTCLossTest(unittest.TestCase):
         labels = [[1], [2], [3]]
         self.assertRaises(AssertionError, get_valids_and_errors, act_lens, labels)
 
-    def _run_test_forward(self, dtype, device):
+    def _run_test_forward(self, dtype, device, reduction, average_frames):
         # Size: T x N x 3
-        x = torch.tensor(
-            [
-                [[0, 1, 2], [2, 3, 1], [0, 0, 1]],
-                [[-1, -1, 1], [-3, -2, 2], [1, 0, 0]],
-                [[0, 0, 0], [0, 0, 1], [1, 1, 1]],
-                [[0, 0, 2], [0, 0, -1], [0, 2, 1]],
-            ],
-            dtype=dtype,
-            device=device,
+        x = log_softmax(
+            torch.tensor(
+                [
+                    [[0, 1, 2], [2, 3, 1], [0, 0, 1]],
+                    [[-1, -1, 1], [-3, -2, 2], [1, 0, 0]],
+                    [[0, 0, 0], [0, 0, 1], [1, 1, 1]],
+                    [[0, 0, 2], [0, 0, -1], [0, 2, 1]],
+                ],
+                dtype=dtype,
+                device=device,
+            ),
+            dim=-1,
         )
-        xn = log_softmax(x, dim=-1)
+        y = [[1], [1, 1, 2, 1], [1, 2, 2]]  # targets
         paths0 = torch.tensor(
             [
-                xn[0, 0, a] + xn[1, 0, b] + xn[2, 0, c] + xn[3, 0, d]
+                x[0, 0, a] + x[1, 0, b] + x[2, 0, c] + x[3, 0, d]
                 for a, b, c, d in [
                     (1, 1, 1, 1),
                     (1, 1, 1, 0),
@@ -110,17 +114,25 @@ class CTCLossTest(unittest.TestCase):
                     (0, 0, 0, 1),
                 ]
             ],
+            dtype=dtype,
             device=device,
         )
-        paths2 = xn[0, 2, 1] + xn[1, 2, 2] + xn[2, 2, 0] + xn[3, 2, 2]
-        paths2 = paths2.clone().detach()
-        ctc = CTCLoss(reduction="sum")
-        y = [[1], [1, 1, 2, 1], [1, 2, 2]]
+        paths2 = x[0, 2, 1] + x[1, 2, 2] + x[2, 2, 0] + x[3, 2, 2]
+        ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
-        expected = -torch.logsumexp(paths0 + paths2, 0)
-        torch.testing.assert_allclose(expected, loss)
+        expected = torch.stack([-torch.logsumexp(paths0, dim=0), -paths2])
+        if average_frames:
+            expected = expected / 4.0
+        if reduction == "sum":
+            expected = torch.sum(expected)
+        elif reduction == "mean":
+            expected = torch.mean(expected)
+        torch.testing.assert_allclose(expected.cpu(), loss.cpu())
 
-    def _run_test_backward(self, dtype, device):
+    def _run_test_backward(self, dtype, device, reduction, average_frames):
+        ctc_logger = log.get_logger("laia.losses.ctc_loss")
+        prev_level = ctc_logger.getEffectiveLevel()
+        ctc_logger.setLevel(log.ERROR)
         # Size: T x N x 3
         x = torch.tensor(
             [
@@ -134,28 +146,36 @@ class CTCLossTest(unittest.TestCase):
             requires_grad=True,
         )
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
-        ctc = CTCLoss(reduction="sum")
+        ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
         # TODO: Fix gradcheck
-        # gradcheck(lambda x, y: ctc(x, y), (x, y))
+        gradcheck(lambda x: ctc(x, y), (x,))
+        ctc_logger.setLevel(prev_level)
 
 
-def _generate_tests(dtype, test_name):
-    devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
-    for device in devices:
-        setattr(
-            CTCLossTest,
-            "test_forward_{}_{}".format(device, test_name),
-            lambda self: self._run_test_forward(dtype, device),
+def _generate_test(test_name, method, dtype, device, reduction, average_frames):
+    avg_str = "avg" if average_frames else "no_avg"
+    setattr(
+        CTCLossTest,
+        test_name + "_{}_{}_{}_{}".format(avg_str, reduction, device, str(dtype)[6:]),
+        lambda self: getattr(self, method)(dtype, device, reduction, average_frames),
+    )
+
+
+dtypes = (torch.float, torch.double)
+devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
+average_frames = [False, True]
+reductions = ["none", "mean", "sum"]
+for dtype, device, avg_frames, reduction in itertools.product(
+    dtypes, devices, average_frames, reductions
+):
+    _generate_test(
+        "test_forward", "_run_test_forward", dtype, device, reduction, avg_frames
+    )
+    if dtype == torch.double:
+        _generate_test(
+            "test_backward", "_run_test_backward", dtype, device, reduction, avg_frames
         )
-        setattr(
-            CTCLossTest,
-            "test_backward_{}_{}".format(device, test_name),
-            lambda self: self._run_test_backward(dtype, device),
-        )
 
-
-for dtype in (torch.float,):
-    _generate_tests(dtype, str(dtype)[6:])
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,9 +10,6 @@ from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 import laia.common.logging as log
 from laia.losses.loss import Loss
 
-##from torch_baidu_ctc import ctc_loss
-
-
 FloatScalar = Union[float, torch.FloatTensor]
 
 # TODO(jpuigcerver): Properly tests the logged messages.
@@ -111,7 +108,10 @@ class CTCPrepare(Function):
             )
 
         # Prepare tensors of the correct type
-        act_lens = torch.tensor(act_lens, dtype=torch.int32, device=torch.device("cpu"))
+        if isinstance(act_lens, torch.Tensor):
+            act_lens = act_lens.detach().cpu().to(torch.int32)
+        else:
+            act_lens = torch.tensor(act_lens, dtype=torch.int32, device="cpu")
         labels = torch.tensor(
             list(itertools.chain.from_iterable(target)),
             dtype=torch.int32,
@@ -149,14 +149,20 @@ class CTCLoss(Loss):
       average_frames (bool, optional): Specifies whether the loss of each
         sample should be divided by its number of frames. Default: ``False''.
       blank (integer, optional): Index of the blank label. Default: 0.
+      add_logsoftmax (bool, optional): By default (True), the CTCLoss normalizes
+        the input activations to obtain label log-probabilities. If False, it
+        will assume that the activations are already (log-)normalized.
     """
 
-    def __init__(self, reduction="mean", average_frames=False, blank=0):
+    def __init__(
+        self, reduction="mean", average_frames=False, blank=0, add_logsoftmax=True
+    ):
         # type: (bool, bool) -> None
         super(CTCLoss, self).__init__()
         self._reduction = reduction
         self._average_frames = average_frames
         self._blank = blank
+        self._add_logsoftmax = add_logsoftmax
 
     def forward(self, output, target, **kwargs):
         # type: (torch.Tensor, List[List[int]]) -> (FloatScalar, List[int])
@@ -198,6 +204,9 @@ class CTCLoss(Loss):
         act_lens = act_lens.detach()
         label_lens = label_lens.detach()
 
+        if self._add_logsoftmax:
+            acts = torch.nn.functional.log_softmax(acts, dim=-1)
+
         losses = torch.nn.functional.ctc_loss(
             log_probs=acts,
             targets=labels,
@@ -208,7 +217,7 @@ class CTCLoss(Loss):
         )
 
         if self._average_frames:
-            losses = losses / input_lengths.to(losses)
+            losses = losses / act_lens.to(losses)
 
         if self._reduction == "none":
             return losses
