@@ -11,17 +11,7 @@ notifications:
     on_success: change
     on_failure: always
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-4.9
-      - g++-4.9
-
 env:
-  global:
-    - CC=gcc-4.9 CXX=g++-4.9
   matrix:
     - PIP_PYTORCH_PKG="torch==1.0.0"
     - PIP_PYTORCH_PKG="torch"
