@@ -117,7 +117,7 @@ class CTCLossTest(unittest.TestCase):
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
         expected = -torch.logsumexp(paths0 + paths2, 0)
-        self.assertAlmostEqual(expected, loss)
+        torch.testing.assert_allclose(expected, loss)
 
     def _run_test_backward(self, dtype, device):
         # Size: T x N x 3
