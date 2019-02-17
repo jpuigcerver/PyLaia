@@ -166,8 +166,8 @@ class CTCPrepare(Function):
 
 @enum.unique
 class CTCLossImpl(enum.Enum):
-    PYTORCH = enum.auto()
-    BAIDU = enum.auto()
+    PYTORCH = 1
+    BAIDU = 2
 
 
 _default_implementation = CTCLossImpl.PYTORCH
