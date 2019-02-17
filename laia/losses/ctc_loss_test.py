@@ -13,7 +13,16 @@ from laia.losses.ctc_loss import (
     set_zeros_in_errors,
     get_valids_and_errors,
     CTCLoss,
+    CTCLossImpl,
+    get_default_add_logsoftmax,
+    set_default_add_logsoftmax,
 )
+
+try:
+    import torch_baidu_ctc
+except ImportError:
+    torch_baidu_ctc = None
+
 
 log.basic_config()
 
@@ -82,7 +91,29 @@ class CTCLossTest(unittest.TestCase):
         labels = [[1], [2], [3]]
         self.assertRaises(AssertionError, get_valids_and_errors, act_lens, labels)
 
-    def _run_test_forward(self, dtype, device, reduction, average_frames):
+    def test_default_add_logsoftmax(self):
+        # Get original default value.
+        default_value = get_default_add_logsoftmax()
+        # Test set to False
+        set_default_add_logsoftmax(False)
+        loss1 = CTCLoss()
+        self.assertFalse(loss1.add_logsoftmax)
+        self.assertFalse(get_default_add_logsoftmax())
+        # Test set to True
+        set_default_add_logsoftmax(True)
+        loss2 = CTCLoss()
+        self.assertTrue(loss2.add_logsoftmax)
+        self.assertTrue(get_default_add_logsoftmax())
+        # Value of created objects should not change.
+        self.assertFalse(loss1.add_logsoftmax)
+        self.assertTrue(loss2.add_logsoftmax)
+        # Set to the original default value.
+        set_default_add_logsoftmax(default_value)
+        self.assertEqual(default_value, get_default_add_logsoftmax())
+
+    def _run_test_forward(
+        self, implementation, dtype, device, reduction, average_frames
+    ):
         # Size: T x N x 3
         x = log_softmax(
             torch.tensor(
@@ -118,7 +149,11 @@ class CTCLossTest(unittest.TestCase):
             device=device,
         )
         paths2 = x[0, 2, 1] + x[1, 2, 2] + x[2, 2, 0] + x[3, 2, 2]
-        ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
+        ctc = CTCLoss(
+            reduction=reduction,
+            average_frames=average_frames,
+            implementation=implementation,
+        )
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
         expected = torch.stack([-torch.logsumexp(paths0, dim=0), -paths2])
         if average_frames:
@@ -129,7 +164,9 @@ class CTCLossTest(unittest.TestCase):
             expected = torch.mean(expected)
         torch.testing.assert_allclose(expected.cpu(), loss.cpu())
 
-    def _run_test_backward(self, dtype, device, reduction, average_frames):
+    def _run_test_backward(
+        self, implementation, dtype, device, reduction, average_frames
+    ):
         ctc_logger = log.get_logger("laia.losses.ctc_loss")
         prev_level = ctc_logger.getEffectiveLevel()
         ctc_logger.setLevel(log.ERROR)
@@ -146,18 +183,30 @@ class CTCLossTest(unittest.TestCase):
             requires_grad=True,
         )
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
-        ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
+        ctc = CTCLoss(
+            reduction=reduction,
+            average_frames=average_frames,
+            implementation=implementation,
+        )
         # TODO: Fix gradcheck
         gradcheck(lambda x: ctc(x, y), (x,))
         ctc_logger.setLevel(prev_level)
 
 
-def _generate_test(test_name, method, dtype, device, reduction, average_frames):
-    avg_str = "avg" if average_frames else "no_avg"
+def _generate_test(
+    test_name, method, impl_str, dtype, device, reduction, average_frames
+):
+    avg_str = "avg_frames" if average_frames else "no_avg_frames"
+    implementation = CTCLossImpl.BAIDU if impl_str == "baidu" else CTCLossImpl.PYTORCH
     setattr(
         CTCLossTest,
-        test_name + "_{}_{}_{}_{}".format(avg_str, reduction, device, str(dtype)[6:]),
-        lambda self: getattr(self, method)(dtype, device, reduction, average_frames),
+        test_name
+        + "_{}_{}_{}_{}_{}".format(
+            impl_str, avg_str, reduction, device, str(dtype)[6:]
+        ),
+        lambda self: getattr(self, method)(
+            implementation, dtype, device, reduction, average_frames
+        ),
     )
 
 
@@ -165,15 +214,29 @@ dtypes = (torch.float, torch.double)
 devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
 average_frames = [False, True]
 reductions = ["none", "mean", "sum"]
-for dtype, device, avg_frames, reduction in itertools.product(
-    dtypes, devices, average_frames, reductions
+implementations = ["pytorch", "baidu"] if torch_baidu_ctc is not None else [""]
+for dtype, device, avg_frames, reduction, implementation in itertools.product(
+    dtypes, devices, average_frames, reductions, implementations
 ):
     _generate_test(
-        "test_forward", "_run_test_forward", dtype, device, reduction, avg_frames
+        "test_forward",
+        "_run_test_forward",
+        implementation,
+        dtype,
+        device,
+        reduction,
+        avg_frames,
     )
-    if dtype == torch.double:
+    # Check gradients only for double, and not Baidu's implementation, since it is not very stable.
+    if dtype == torch.double and implementation != "baidu":
         _generate_test(
-            "test_backward", "_run_test_backward", dtype, device, reduction, avg_frames
+            "test_backward",
+            "_run_test_backward",
+            implementation,
+            dtype,
+            device,
+            reduction,
+            avg_frames,
         )
 
 
