@@ -21,20 +21,27 @@ rnn_layers=5;
 adaptive_pooling="avgpool-16";
 fixed_height=128;
 # Trainer parameters
+add_logsoftmax_to_loss=false;
 batch_size=10;
-learning_rate=0.0003;
-gpu=1;
-early_stop_epochs=20;
-save_checkpoint_interval=10;
-num_rolling_checkpoints=3;
-show_progress_bar=true;
-use_distortions=false;
-img_directories="data/imgs/lines_h128";
 checkpoint="ckpt.lowest-valid-cer*";
+early_stop_epochs=20;
+gpu=1;
+img_directories="data/imgs/lines_h128";
+learning_rate=0.0003;
+num_rolling_checkpoints=3;
+save_checkpoint_interval=10;
+show_progress_bar=true;
+use_baidu_ctc=true;
+use_distortions=false;
 help_message="
 Usage: ${0##*/} [options]
 
 Options:
+  --add_logsoftmax_to_loss   : (type = boolean, default = $add_logsoftmax_to_loss)
+                               If true, add a logsoftmax operation to the CTC loss.
+  --adaptive_pooling         : (type = string, default = $adaptive_pooling)
+                               Type of adaptive pooling to use, format:
+                               {none,maxpool,avgpool}-[0-9]+
   --cnn_batchnorm            : (type = boolean list, default = \"$cnn_batchnorm\")
                                Batch normalization before the activation in each conv
                                layer.
@@ -65,15 +72,14 @@ Options:
                                Number of recurrent layers.
   --rnn_units                : (type = integer, default = $rnn_units)
                                Number of units in the recurrent layers.
-  --adaptive_pooling         : (type = string, default = $adaptive_pooling)
-                               Type of adaptive pooling to use, format:
-                               {none,maxpool,avgpool}-[0-9]+
   --fixed_height             : (type = integer, default = $fixed_height)
                                Use a fixed height model.
   --batch_size               : (type = integer, default = $batch_size)
                                Batch size for training.
   --learning_rate            : (type = float, default = $learning_rate)
                                Learning rate from RMSProp.
+  --use_baidu_ctc            : (type = boolean, default = $use_baidu_ctc)
+                               If true, use Baidu's CTC implementation.
   --gpu                      : (type = integer, default = $gpu)
                                Select which GPU to use, index starts from 1.
                                Set to 0 for CPU.
@@ -82,16 +88,16 @@ Options:
                                without a significant improvement in the validation CER.
                                If n=0, early stopping will not be used.
   --save_checkpoint_interval : (type=integer, default=$save_checkpoint_interval)
-                               Make checkpoints of the training process every N epochs
+                               Make checkpoints of the training process every N epochs.
   --num_rolling_checkpoints  : (type=integer, default=$num_rolling_checkpoints)
-                               Keep this number of checkpoints during training
+                               Keep this number of checkpoints during training.
   --show_progress_bar        : (type=boolean, default=$show_progress_bar)
-                               Whether or not to show a progress bar for each epoch
+                               Whether or not to show a progress bar for each epoch.
   --use_distortions          : (type=boolean, default=$use_distortions)
-                               Whether or not to use distortions to augment
-                               the training data
+                               Whether or not to use distortions to augment the training data.
   --img_directories          : (type = string list, default = \"$img_directories\")
-                               Image directories to use.
+                               Image directories to use. If more than one, separate them with
+                               spaces.
   --checkpoint               : (type = str, default = $checkpoint)
                                Suffix of the checkpoint to use, can be a glob pattern.
 ";
@@ -121,6 +127,7 @@ fi;
 # Create model
 pylaia-htr-create-model \
   1 "exper/puigcerver17/train/syms_ctc.txt" \
+  --adaptive_pooling "$adaptive_pooling" \
   --cnn_num_features $cnn_num_features \
   --cnn_kernel_size $cnn_kernel_size \
   --cnn_stride $cnn_stride \
@@ -131,7 +138,6 @@ pylaia-htr-create-model \
   --cnn_batchnorm $cnn_batchnorm \
   --rnn_units "$rnn_units" \
   --rnn_layers "$rnn_layers" \
-  --adaptive_pooling "$adaptive_pooling" \
   --logging_file "exper/puigcerver17/train/log" \
   --logging_also_to_stderr INFO \
   --train_path "exper/puigcerver17/train" \
@@ -140,20 +146,23 @@ pylaia-htr-create-model \
 # Train
 pylaia-htr-train-ctc \
   "exper/puigcerver17/train/syms_ctc.txt" \
-  "$img_directories" \
+  $img_directories \
   data/lang/puigcerver/lines/char/{tr,va}.txt \
+  --add_logsoftmax_to_loss "$add_logsoftmax_to_loss" \
+  --batch_size "$batch_size" \
+  --checkpoint "$checkpoint" \
   --delimiters "@" \
   --gpu "$gpu" \
-  --batch_size "$batch_size" \
-  --max_nondecreasing_epochs "$early_stop_epochs" \
   --learning_rate "$learning_rate" \
-  --save_checkpoint_interval "$save_checkpoint_interval" \
-  --num_rolling_checkpoints "$num_rolling_checkpoints" \
-  --show_progress_bar "$show_progress_bar" \
-  --use_distortions "$use_distortions" \
-  --checkpoint "$checkpoint" \
-  --logging_file "exper/puigcerver17/train/log" \
   --logging_also_to_stderr INFO \
-  --train_path "exper/puigcerver17/train";
+  --logging_file "exper/puigcerver17/train/log" \
+  --max_nondecreasing_epochs "$early_stop_epochs" \
+  --num_rolling_checkpoints "$num_rolling_checkpoints" \
+  --save_checkpoint_interval "$save_checkpoint_interval" \
+  --show_progress_bar "$show_progress_bar" \
+  --train_path "exper/puigcerver17/train" \
+  --use_baidu_ctc "$use_baidu_ctc" \
+  --use_distortions "$use_distortions";
+
 
 exit 0;

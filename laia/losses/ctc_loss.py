@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import enum
 import itertools
 from typing import List, Union, Sequence
 
@@ -10,10 +11,34 @@ from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 import laia.common.logging as log
 from laia.losses.loss import Loss
 
+# Try to import torch_baidu_ctc
+try:
+    import torch_baidu_ctc
+except ImportError:
+    torch_baidu_ctc = None
+
 FloatScalar = Union[float, torch.FloatTensor]
 
-# TODO(jpuigcerver): Properly tests the logged messages.
 _logger = log.get_logger(__name__)
+
+
+_WARNING_BAIDU_NOT_AVAILABLE = (
+    "Baidu's CTC implementation is not available, PyTorch's own implementation "
+    "will be used instead. If you want to use Baidu's, please install the package "
+    "`torch_baidu_ctc`."
+)
+
+_WARNING_BAIDU_WRONG = (
+    "You are using Baidu's implementation of the CTC loss. Be aware that this implementation "
+    "is WRONG. During the forward pass, their implementation performs an implicit softmax "
+    "normalization of the input activations. However, this operation is not taken into account "
+    "during the computation of the gradients w.r.t. the original activations."
+)
+
+_WARNING_PYTORCH_LOGSOFTMAX = (
+    "You are using PyTorch's CTC loss, but add_logsoftmax is False. Notice that the activations "
+    "must be properly normalized (i.e. the log-sum-exp equals to 0.0) for a correct behavior."
+)
 
 
 def transform_output(output):
@@ -109,7 +134,7 @@ class CTCPrepare(Function):
 
         # Prepare tensors of the correct type
         if isinstance(act_lens, torch.Tensor):
-            act_lens = act_lens.detach().cpu().to(torch.int32)
+            act_lens = act_lens.detach().to(torch.int32).cpu()
         else:
             act_lens = torch.tensor(act_lens, dtype=torch.int32, device="cpu")
         labels = torch.tensor(
@@ -136,6 +161,45 @@ class CTCPrepare(Function):
         )
 
 
+# Class and functions to represent and set the default CTC implementation to use.
+
+
+@enum.unique
+class CTCLossImpl(enum.Enum):
+    PYTORCH = enum.auto()
+    BAIDU = enum.auto()
+
+
+_default_implementation = CTCLossImpl.PYTORCH
+
+
+def get_default_implementation():
+    global _default_implementation
+    return _default_implementation
+
+
+def set_default_implementation(implementation):
+    assert isinstance(implementation, CTCLossImpl)
+    global _default_implementation
+    _default_implementation = implementation
+
+
+# Functions to control whether or not to add a logsoftmax operation by default.
+
+_default_add_logsoftmax = True
+
+
+def get_default_add_logsoftmax():
+    global _default_add_logsoftmax
+    return _default_add_logsoftmax
+
+
+def set_default_add_logsoftmax(add_logsoftmax):
+    assert add_logsoftmax in (True, False)
+    global _default_add_logsoftmax
+    _default_add_logsoftmax = add_logsoftmax
+
+
 class CTCLoss(Loss):
     """
     Attributes:
@@ -149,20 +213,96 @@ class CTCLoss(Loss):
       average_frames (bool, optional): Specifies whether the loss of each
         sample should be divided by its number of frames. Default: ``False''.
       blank (integer, optional): Index of the blank label. Default: 0.
-      add_logsoftmax (bool, optional): By default (True), the CTCLoss normalizes
-        the input activations to obtain label log-probabilities. If False, it
-        will assume that the activations are already (log-)normalized.
+      add_logsoftmax (bool, optional): Whether or not to add an implicit
+        logsoftmax operation on the activations before the loss.
+        If not specified, uses the default value given by
+        `ctc_loss.get_default_add_logsoftmax()`.
+      implementation (integer, optional): Specify the implementation of the
+        CTCLoss to use. If not specified, uses the default implementation
+        given by `ctc_loss.get_default_implementation()`.
     """
 
     def __init__(
-        self, reduction="mean", average_frames=False, blank=0, add_logsoftmax=True
+        self,
+        reduction="mean",
+        average_frames=False,
+        blank=0,
+        add_logsoftmax=None,
+        implementation=None,
     ):
         # type: (bool, bool) -> None
         super(CTCLoss, self).__init__()
         self._reduction = reduction
         self._average_frames = average_frames
         self._blank = blank
-        self._add_logsoftmax = add_logsoftmax
+        self._add_logsoftmax = None
+        self._implementation = None
+
+        self.add_logsoftmax = add_logsoftmax
+        self.implementation = implementation
+
+    @property
+    def add_logsoftmax(self):
+        return self._add_logsoftmax
+
+    @add_logsoftmax.setter
+    def add_logsoftmax(self, value):
+        if value is None:
+            value = get_default_add_logsoftmax()
+
+        self._add_logsoftmax = value
+        if self._implementation == CTCLossImpl.PYTORCH and not self._add_logsoftmax:
+            _logger.warning(_WARNING_PYTORCH_LOGSOFTMAX)
+
+    @property
+    def average_frames(self):
+        return self._average_frames
+
+    @average_frames.setter
+    def average_frames(self, value):
+        assert value in (True, False)
+        self._average_frames = average_frames
+
+    @property
+    def blank(self):
+        return self._blank
+
+    @blank.setter
+    def blank(self, value):
+        assert isinstance(value, int) and value >= 0
+        self._blank = value
+
+    @property
+    def implementation(self):
+        return self._implementation
+
+    @implementation.setter
+    def implementation(self, value):
+        if value is None:
+            value = get_default_implementation()
+
+        if value not in (CTCLossImpl.PYTORCH, CTCLossImpl.BAIDU):
+            raise ValueError("Unknown CTC implementation: {!r}".format(value))
+        elif value == CTCLossImpl.BAIDU:
+            if torch_baidu_ctc is None:
+                _logger.warning(_WARNING_BAIDU_NOT_AVAILABLE)
+                value = CTCLossImpl.PYTORCH
+            else:
+                _logger.warning(_WARNING_BAIDU_WRONG)
+
+        if value == CTCLossImpl.PYTORCH and not self._add_logsoftmax:
+            _logger.warning(_WARNING_PYTORCH_LOGSOFTMAX)
+
+        self._implementation = value
+        return self
+
+    @property
+    def reduction(self):
+        return self._reduction
+
+    @reduction.setter
+    def reduction(self, value):
+        self._reduction = value
 
     def forward(self, output, target, **kwargs):
         # type: (torch.Tensor, List[List[int]]) -> (FloatScalar, List[int])
@@ -207,23 +347,39 @@ class CTCLoss(Loss):
         if self._add_logsoftmax:
             acts = torch.nn.functional.log_softmax(acts, dim=-1)
 
-        losses = torch.nn.functional.ctc_loss(
-            log_probs=acts,
-            targets=labels,
-            input_lengths=act_lens,
-            target_lengths=label_lens,
-            blank=self._blank,
-            reduction="none",
-        )
+        if self._implementation == CTCLossImpl.PYTORCH:
+            losses = torch.nn.functional.ctc_loss(
+                log_probs=acts,
+                targets=labels,
+                input_lengths=act_lens,
+                target_lengths=label_lens,
+                blank=self._blank,
+                reduction="none",
+            )
 
-        if self._average_frames:
-            losses = losses / act_lens.to(losses)
+            if self._average_frames:
+                losses = losses / act_lens.to(losses)
 
-        if self._reduction == "none":
-            return losses
-        elif self._reduction == "mean":
-            return losses.mean()
-        elif self._reduction == "sum":
-            return losses.sum()
+            if self._reduction == "none":
+                return losses
+            elif self._reduction == "mean":
+                return losses.mean()
+            elif self._reduction == "sum":
+                return losses.sum()
+            else:
+                raise ValueError(
+                    "Reduction {!r} not supported!".format(self._reduction)
+                )
+        elif self._implementation == CTCLossImpl.BAIDU:
+            return torch_baidu_ctc.ctc_loss(
+                acts=acts,
+                labels=labels,
+                acts_lens=act_lens,
+                labels_lens=label_lens,
+                reduction=self._reduction,
+                average_frames=self._average_frames,
+            )
         else:
-            raise ValueError("Reduction {!r} not supported!".format(self._reduction))
+            raise ValueError(
+                "Unknown CTC implementation: {!r}".format(self._implementation)
+            )
