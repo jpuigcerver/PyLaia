@@ -13,7 +13,7 @@ from torch.optim import RMSprop
 import laia.common.logging as log
 import laia.data.transforms as transforms
 from laia.common.arguments import add_argument, args, add_defaults
-from laia.common.arguments_types import NumberInOpenRange, str2bool
+from laia.common.arguments_types import NumberInClosedRange, str2bool
 from laia.common.loader import ModelLoader, StateCheckpointLoader
 from laia.common.random import manual_seed
 from laia.common.saver import (
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     )
     add_argument(
         "--max_nondecreasing_epochs",
-        type=NumberInOpenRange(int, vmin=0),
+        type=NumberInClosedRange(int, vmin=0),
         help="Stop the training once there has been this number "
         "consecutive epochs without a new lowest validation CER.",
     )
