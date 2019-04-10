@@ -4,63 +4,42 @@
 [![Python Version](https://img.shields.io/badge/python-3.5%2C%203.6%2C%203.7-blue.svg)](https://www.python.org/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized for handwritten document analysis. It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).
+PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized 
+for handwritten document analysis. It is also a successor to 
+[Laia](https://github.com/jpuigcerver/Laia).
 
-## Requirements
+> **Disclaimer**: The easiest way to learn to use PyLaia is to follow the 
+> [IAM example for HTR](egs/iam-htr). Apologies for not having a better 
+> documentation at this moment, I will keep improving it and adding other 
+> examples.
 
-The file `[requirements.txt](https://github.com/jpuigcerver/PyLaia/blob/master/requirements.txt)`
-includes all the Python packages required to install and use PyLaia.
+## Installation
 
-The recipes for some datasets also need additional tools and packages.
+In order to install PyLaia, follow this recipe:
+
+```bash
+git clone https://github.com/jpuigcerver/PyLaia
+cd PyLaia
+pip install -r requirements.txt
+python setup.py install
+```
+
+The following Python scripts will be installed in your system:
+
+- **pylaia-htr-create-model**: Create a VGG-like model with BLSTMs on top for 
+  handwriting text recognition. The script has different options to costumize 
+  the model. The architecture is based on the paper ["Are Multidimensional 
+  Recurrent Layers Really Necessary for Handwritten Text Recognition?"](https://ieeexplore.ieee.org/document/8269951) 
+  (2017) by J. Puigcerver.
+- **pylaia-htr-decode-ctc**: Decode text line images using a trained model and
+  the CTC algorithm.
+- **pylaia-htr-train-ctc**: Train a model using the CTC algorithm and a set of
+  text-line images and their transcripts.
+- **pylaia-htr-netout**: Dump the output of the model for a set of text-line images
+  in order to decode using an external language model.
+
+Some examples need additional tools and packages, which are not installed 
+with `pip install -r requirements.txt`.
 For instance, typically ImageMagick is used to process images, or Kaldi
 is employed to perform Viterbi decoding (and lattice generation) combining
 the output of the neural network with a n-gram language model.
-
-## Usage
-
-### Training a Laia model using CTC:
-
-Create a model using:
-
-```bash
-$ pylaia-htr-create-model --fixed_input_height="$INPUT_HEIGHT" "$CHANNELS" "$SYM_TABLE"
-```
-
-Required arguments:
-
-- `$CHANNELS`: Number of channels of the input images.
-- `$SYM_TABLE`: Path to the table file mapping symbols to their ids.
-- Unless you have installed nnutils, you will need to use models that process images
-  of a fixed height. Use `--fixed_input_height=$INPUT_HEIGHT` to specify the height of
-  the image.
-
-For optional arguments check `$ pylaia-htr-create-model -h`
-
-Train the model using:
-
-```bash
-$ pylaia-htr-train-ctc "$SYM_TABLE" "$IMG_DIRS" "$TRAIN_GT" "$VALID_GT"
-```
-
-Required arguments:
-
-- `$SYM_TABLE`: Path to the table file mapping symbols to their ids.
-- `$IMG_DIRS`: Directory(s) where the images are located.
-- `$TRAIN_GT`: A file containing the list of training transcripts.
-- `$VALID_GT`: A file containing the list of validation transcripts.
-
-For optional arguments check `$ pylaia-htr-train-ctc -h`
-
-### Transcribing
-
-```bash
-$ pylaia-htr-decode-ctc "$SYM_TABLE" "$IMG_DIRS" "$IMG_LIST"
-```
-
-Required arguments:
-
-- `$SYM_TABLE`: Path to the table file mapping symbols to their ids.
-- `$IMG_DIRS`: Directory(s) where the images are located. This is ignored if `$IMG_LIST` elements are full paths.
-- `$IMG_LIST`: A file containing a list of images to transcribe. They can be image ids with or without extension or full paths to the images.
-
-For optional arguments check `$ pylaia-htr-decode-ctc -h`
