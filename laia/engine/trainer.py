@@ -211,9 +211,7 @@ class Trainer(Engine):
 
         action_kwargs["iterations"] = self._iterations
         action_kwargs["batch_output"] = batch_output
-        action_kwargs["batch_loss"] = (
-            batch_loss.item() if isinstance(batch_loss, torch.Tensor) else batch_loss
-        )
+        action_kwargs["batch_loss"] = batch_loss.item()
         self._call_hooks(ITER_END, **action_kwargs)
 
     def compute_loss(self, batch, batch_output, batch_target):
@@ -221,7 +219,13 @@ class Trainer(Engine):
             kwargs = {}
             if isinstance(self._criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
-            return self._criterion(batch_output, batch_target, **kwargs)
+            loss = self._criterion(batch_output, batch_target, **kwargs)
+            if loss is not None:
+                if torch.sum(torch.isnan(loss)).item() > 0:
+                    raise ValueError("The loss is NaN")
+                if torch.sum(torch.isinf(loss)).item() > 0:
+                    raise ValueError("The loss is +/-Inf")
+            return loss
 
     def state_dict(self):
         state = super(Trainer, self).state_dict()

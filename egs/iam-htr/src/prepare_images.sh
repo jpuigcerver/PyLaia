@@ -48,38 +48,34 @@ function process_image () {
 }
 
 
-function wait_jobs () {
-  local n=0;
-  while [ $# -gt 0 ]; do
-    if ! wait "$1"; then
-      echo "Failed image processing:" >&2 && cat "$tmpd/$n" >&2 && return 1
-    fi;
-    shift 1; ((++n));
-  done;
-  return 0;
-}
-
 tmpd="$(mktemp -d)";
-
+partitions=(lines sentences);
+expected_count=(13353 16752 115320);
 bkg_pids=();
-for partition in lines sentences; do
+for p in $(seq ${#partitions[@]}); do
+  partition="${partitions[p-1]}";
+
   # Check that the partition was downloaded and extracted!
   [ ! -d "data/original/$partition" ] &&
   echo "ERROR: No data found for partition \"$partition\"!" >&2 &&
   exit 1;
 
-  # Enhance images with Mauricio's tool, deskew the line, crop white borders
-  # and resize to the given height.
+
   img_dir="data/imgs/${partition}";
   img_resize_dir="data/imgs/${partition}_h${resize_height}";
   mkdir -p "${img_dir}" "${img_resize_dir}";
-  for f in data/original/$partition/*.png; do
-    process_image "$f" &> "$tmpd/${#bkg_pids[@]}" &
-    bkg_pids+=("$!");
-    [ "${#bkg_pids[@]}" -lt "$num_parallel" ] ||
-    { wait_jobs "${bkg_pids[@]}" && bkg_pids=(); } || exit 1;
-  done;
+  actual_count="$(find "$img_resize_dir" -name "*.jpg" | wc -l)";
+  [[ "$overwrite" = false && "$actual_count" -eq "${expected_count[p-1]}" ]] || {
+    # Enhance images with Mauricio's tool, deskew the line, crop white borders
+    # and resize to the given height.
+    for f in $(find "data/original/$partition" -name "*.png"); do
+      process_image "$f" &> "$tmpd/${#bkg_pids[@]}" &
+      bkg_pids+=("$!");
+      [ "${#bkg_pids[@]}" -lt "$num_parallel" ] ||
+      { wait_jobs --log_dir "$tmpd" "${bkg_pids[@]}" && bkg_pids=(); } || exit 1;
+    done;
+  }
 done;
-wait_jobs "${bkg_pids[@]}" || exit 1;
+wait_jobs --log_dir "$tmpd"  "${bkg_pids[@]}" || exit 1;
 rm -rf "$tmpd";
 exit 0;

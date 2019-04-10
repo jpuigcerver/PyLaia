@@ -136,7 +136,7 @@ if __name__ == "__main__":
                 batch_output, dim=-1
             )
 
-        batch_output = batch_output.detach().numpy()
+        batch_output = batch_output.detach().cpu().numpy()
         for key, out, out_size in zip(batch["id"], batch_output, batch_sizes):
             out = out[:out_size, :]
             for writer in archive_writers:

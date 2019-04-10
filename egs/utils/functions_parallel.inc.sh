@@ -9,12 +9,12 @@ function wait_jobs () {
   local n=0;
   local log_dir=;
   if [ "$1" = "--log_dir" ]; then
-    log_dir="$1";
-    shift 1;
+    log_dir="$2";
+    shift 2;
   fi;
   while [ $# -gt 0 ]; do
     if ! wait "$1"; then
-      echo "Failed subprocess with PID ${1}." >&2;
+      echo "Failed subprocess with PID $1." >&2;
       if [ -n "$log_dir" ]; then
 	echo "Dumping content of ${log_dir}/$n..." >&2;
 	cat "${log_dir}/$n" >&2;
