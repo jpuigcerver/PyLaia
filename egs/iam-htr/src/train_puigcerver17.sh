@@ -7,6 +7,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")/..";
 
 source ../utils/functions_check.inc.sh || exit 1;
 
+
+# General parameters
+exper_path=exper/puigcerver17/train;
 # Model parameters
 cnn_num_features="16 32 48 64 80";
 cnn_kernel_size="3 3 3 3 3";
@@ -21,7 +24,7 @@ rnn_layers=5;
 adaptive_pooling="avgpool-16";
 fixed_height=128;
 # Trainer parameters
-add_logsoftmax_to_loss=false;
+add_logsoftmax_to_loss=true;
 batch_size=10;
 checkpoint="ckpt.lowest-valid-cer*";
 early_stop_epochs=20;
@@ -31,7 +34,7 @@ learning_rate=0.0003;
 num_rolling_checkpoints=3;
 save_checkpoint_interval=10;
 show_progress_bar=true;
-use_baidu_ctc=true;
+use_baidu_ctc=false;
 use_distortions=false;
 help_message="
 Usage: ${0##*/} [options]
@@ -113,11 +116,11 @@ check_all_files \
   data/lang/puigcerver/lines/char/tr.txt \
   data/lang/puigcerver/lines/char/va.txt;
 
-mkdir -p exper/puigcerver17/train;
-[ -s exper/puigcerver17/train/syms_ctc.txt ] ||
+mkdir -p "$exper_path";
+[ -s "$exper_path"/syms_ctc.txt ] ||
 cut -d\  -f2- data/lang/puigcerver/lines/char/{tr,va}.txt | tr \  \\n |
 sort -u | awk 'BEGIN{ print "<ctc>", 0; }{ print $1, NR; }' \
-  > exper/puigcerver17/train/syms_ctc.txt
+  > "$exper_path/syms_ctc.txt";
 
 extra_args=();
 if [ -n "$fixed_height" ]; then
@@ -126,7 +129,7 @@ fi;
 
 # Create model
 pylaia-htr-create-model \
-  1 "exper/puigcerver17/train/syms_ctc.txt" \
+  1 "$exper_path/syms_ctc.txt" \
   --adaptive_pooling "$adaptive_pooling" \
   --cnn_num_features $cnn_num_features \
   --cnn_kernel_size $cnn_kernel_size \
@@ -138,16 +141,17 @@ pylaia-htr-create-model \
   --cnn_batchnorm $cnn_batchnorm \
   --rnn_units "$rnn_units" \
   --rnn_layers "$rnn_layers" \
-  --logging_file "exper/puigcerver17/train/log" \
+  --logging_file "$exper_path/log" \
   --logging_also_to_stderr INFO \
-  --train_path "exper/puigcerver17/train" \
+  --train_path "$exper_path" \
   "${extra_args[@]}";
 
 # Train
 pylaia-htr-train-ctc \
-  "exper/puigcerver17/train/syms_ctc.txt" \
+  "$exper_path/syms_ctc.txt" \
   $img_directories \
-  data/lang/puigcerver/lines/char/{tr,va}.txt \
+  data/lang/puigcerver/lines/char/tr.txt \
+  data/lang/puigcerver/lines/char/va.txt \
   --add_logsoftmax_to_loss "$add_logsoftmax_to_loss" \
   --batch_size "$batch_size" \
   --checkpoint "$checkpoint" \
@@ -155,14 +159,13 @@ pylaia-htr-train-ctc \
   --gpu "$gpu" \
   --learning_rate "$learning_rate" \
   --logging_also_to_stderr INFO \
-  --logging_file "exper/puigcerver17/train/log" \
+  --logging_file "$exper_path/log" \
   --max_nondecreasing_epochs "$early_stop_epochs" \
   --num_rolling_checkpoints "$num_rolling_checkpoints" \
   --save_checkpoint_interval "$save_checkpoint_interval" \
   --show_progress_bar "$show_progress_bar" \
-  --train_path "exper/puigcerver17/train" \
+  --train_path "$exper_path" \
   --use_baidu_ctc "$use_baidu_ctc" \
   --use_distortions "$use_distortions";
-
 
 exit 0;
