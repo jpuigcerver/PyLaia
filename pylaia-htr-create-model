@@ -9,8 +9,10 @@ import laia.common.logging as log
 from laia.common import ModelSaver
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.arguments_types import NumberInClosedRange, TupleList, str2bool
+from laia.common.random import manual_seed
 from laia.models.htr import LaiaCRNN
 from laia.utils import SymbolsTable
+
 
 """
 Create a model for HTR composed of a set of convolutional
@@ -23,7 +25,7 @@ by a dropout layer.
 """
 
 if __name__ == "__main__":
-    add_defaults("train_path")
+    add_defaults("train_path", "seed")
     add_argument(
         "num_input_channels",
         type=NumberInClosedRange(int, vmin=1),
@@ -167,6 +169,7 @@ if __name__ == "__main__":
         "activation.",
     )
     args = args()
+    manual_seed(args.seed)
 
     dimensions = map(
         len,

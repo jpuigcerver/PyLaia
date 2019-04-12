@@ -33,6 +33,7 @@ img_directories="data/imgs/lines_h128";
 learning_rate=0.0003;
 num_rolling_checkpoints=3;
 save_checkpoint_interval=10;
+seed=0x12345;
 show_progress_bar=true;
 use_baidu_ctc=false;
 use_distortions=false;
@@ -144,6 +145,7 @@ pylaia-htr-create-model \
   --logging_file "$exper_path/log" \
   --logging_also_to_stderr INFO \
   --train_path "$exper_path" \
+  --seed "$seed" \
   "${extra_args[@]}";
 
 # Train
@@ -166,6 +168,7 @@ pylaia-htr-train-ctc \
   --show_progress_bar "$show_progress_bar" \
   --train_path "$exper_path" \
   --use_baidu_ctc "$use_baidu_ctc" \
-  --use_distortions "$use_distortions";
+  --use_distortions "$use_distortions" \
+  --seed "$seed";
 
 exit 0;
