@@ -13,7 +13,7 @@ notifications:
 
 env:
   matrix:
-    - PIP_PYTORCH_PKG="torch==1.0.1"
+    - PIP_PYTORCH_PKG="torch==1.1.0"
     - PIP_PYTORCH_PKG="torch"
 
 before_install:
