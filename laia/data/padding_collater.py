@@ -8,7 +8,7 @@ from functools import reduce
 
 import torch
 from torch._six import string_classes, int_classes, inf
-from torch.utils.data.dataloader import numpy_type_map
+from torch.utils.data._utils.collate import numpy_type_map
 
 PaddedTensor = collections.namedtuple("PaddedTensor", ["data", "sizes"])
 
