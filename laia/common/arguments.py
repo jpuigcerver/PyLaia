@@ -49,7 +49,11 @@ _default_args = {
     ),
     "seed": (
         ("--seed",),
-        {"type": int, "default": 0x12345, "help": "Seed for random number generators"},
+        {
+            "type": lambda x: int(x, 0),
+            "default": 0x12345,
+            "help": "Seed for random number generators",
+        },
     ),
     "final_fixed_height": (
         ("--final_fixed_height",),
