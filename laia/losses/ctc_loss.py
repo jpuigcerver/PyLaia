@@ -348,14 +348,16 @@ class CTCLoss(Loss):
             acts = torch.nn.functional.log_softmax(acts, dim=-1)
 
         if self._implementation == CTCLossImpl.PYTORCH:
+            torch.backends.cudnn.enabled = False
             losses = torch.nn.functional.ctc_loss(
                 log_probs=acts,
-                targets=labels,
+                targets=labels.to(acts.device),
                 input_lengths=act_lens,
                 target_lengths=label_lens,
                 blank=self._blank,
                 reduction="none",
             )
+            torch.backends.cudnn.enabled = True
 
             if self._average_frames:
                 losses = losses / act_lens.to(losses)
