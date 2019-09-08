@@ -13,14 +13,14 @@ notifications:
 
 env:
   matrix:
-    - PIP_PYTORCH_PKG="torch==1.1.0"
-    - PIP_PYTORCH_PKG="torch"
+    - PIP_PYTORCH_PKG="torch==1.1.0" PIP_TORCHVISION_PKG="torchvision==0.2.2"
+    - PIP_PYTORCH_PKG="torch" PIP_TORCHVISION_PKG="torchvision"
 
 before_install:
   # Upgrade PIP to latest version, in order to support --progres-bar
   - python -m pip install -U pip
   # Install dependencies first.
-  - python -m pip install --progress-bar off -r requirements.txt -c <(echo "$PIP_PYTORCH_PKG")
+  - python -m pip install --progress-bar off -r requirements.txt -c <(echo "$PIP_PYTORCH_PKG") -c <(echo "$PIP_TORCHVISION_PKG")
 
 install:
   - python setup.py install
