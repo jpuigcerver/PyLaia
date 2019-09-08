@@ -19,8 +19,12 @@ env:
 before_install:
   # Upgrade PIP to latest version, in order to support --progres-bar
   - python -m pip install -U pip
+  # Restrict requirements to certain versions.
+  - echo "$PIP_PYTORCH_PKG" >  req_restrict.txt
+  - echo "$PIP_TORCHVISION_PKG" >> req_restrict.txt
+  - echo "tqdm==4.19.9" >> req_restrict.txt
   # Install dependencies first.
-  - python -m pip install --progress-bar off -r requirements.txt -c <(echo "$PIP_PYTORCH_PKG") -c <(echo "$PIP_TORCHVISION_PKG")
+  - python -m pip install --progress-bar off -r requirements.txt -c req_restrict.txt
 
 install:
   - python setup.py install
