@@ -8,7 +8,6 @@ from functools import reduce
 
 import torch
 from torch._six import string_classes, int_classes, inf
-from torch.utils.data._utils.collate import numpy_type_map
 
 PaddedTensor = collections.namedtuple("PaddedTensor", ["data", "sizes"])
 
@@ -80,10 +79,6 @@ class PaddingCollater(object):
             and elem_type.__name__ != "string_"
         ):
             elem = batch[0]
-            if elem.shape == ():  # scalars
-                py_type = float if elem.dtype.name.startswith("float") else int
-                return numpy_type_map[elem.dtype.name](list(map(py_type, batch)))
-
             if elem_type.__name__ == "ndarray":
                 # array of string classes and object
                 if re.search("[SaUO]", elem.dtype.str) is not None:
@@ -92,6 +87,9 @@ class PaddingCollater(object):
                 return self._collate(
                     [torch.from_numpy(b) for b in batch], padded_shapes
                 )
+            elif elem.shape == ():  # scalars
+                return torch.as_tensor(batch)
+
         elif isinstance(batch[0], int_classes):
             return torch.tensor(batch, dtype=torch.long)
         elif isinstance(batch[0], float):
