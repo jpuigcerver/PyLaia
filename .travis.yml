@@ -13,18 +13,16 @@ notifications:
 
 env:
   matrix:
-    - PIP_PYTORCH_PKG="torch==1.1.0" PIP_TORCHVISION_PKG="torchvision==0.2.2"
-    - PIP_PYTORCH_PKG="torch" PIP_TORCHVISION_PKG="torchvision"
+    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.1.0.txt"
+    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.2.0.txt"
+    - PYTORCH_REQUIREMENTS=""
 
 before_install:
   # Upgrade PIP to latest version, in order to support --progres-bar
   - python -m pip install -U pip
-  # Restrict requirements to certain versions.
-  - echo "$PIP_PYTORCH_PKG" >  req_restrict.txt
-  - echo "$PIP_TORCHVISION_PKG" >> req_restrict.txt
-  - echo "tqdm==4.19.9" >> req_restrict.txt
-  # Install dependencies first.
-  - python -m pip install --progress-bar off -r requirements.txt -c req_restrict.txt
+  # Install dependencies for a particular PyTorch version first.
+  - if [ -n "$PYTORCH_REQUIREMENTS" ]; then python -m pip install --progress-bar off -r travis/${PYTORCH_REQUIREMENTS}; fi
+  - python -m pip install --progress-bar off -r requirements.txt
 
 install:
   - python setup.py install
