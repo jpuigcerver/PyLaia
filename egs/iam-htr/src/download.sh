@@ -2,11 +2,7 @@
 set -e;
 
 # Directory where the script is placed.
-SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
-[ "$(pwd)/src" != "$SDIR" ] && \
-    echo "Please, run this script from the experiment top directory!" >&2 && \
-    exit 1;
-
+source "../utils/functions_check.inc.sh" || exit 1;
 
 iam_password=;
 iam_username=;
@@ -20,6 +16,8 @@ Options:
                    Username for the IAM server.
 ";
 source "../utils/parse_options.inc.sh" || exit 1;
+
+check_all_programs find tar wget || exit 1;
 
 # Utility function to download files from IAM.
 function download_url () {

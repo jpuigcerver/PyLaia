@@ -17,6 +17,8 @@ Options:
 ";
 source "../utils/parse_options.inc.sh" || exit 1;
 
+check_all_programs cut gawk sed sort tr || exit 1;
+
 partitions=(lines sentences words);
 cut_fields=(1,9- 1,10- 1,9-);
 for p in $(seq ${#partitions[@]}); do
