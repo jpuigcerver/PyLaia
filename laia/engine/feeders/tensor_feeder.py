@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Optional, Callable, Union
 
 import torch
@@ -10,7 +8,7 @@ from laia.engine.feeders.feeder import Feeder
 
 
 class TensorFeeder(Feeder):
-    r"""Feed a PyTorch Tensor to the model.
+    """Feed a PyTorch Tensor to the model.
 
     Args:
       device: Device Where the data should be allocated.
@@ -20,12 +18,11 @@ class TensorFeeder(Feeder):
 
     def __init__(
         self,
-        device,  # type: Union[str, torch.device]
-        requires_grad=False,  # type: bool
-        parent_feeder=None,  # type: Optional[Callable]
-    ):
-        # type: (...) -> None
-        super(TensorFeeder, self).__init__(parent_feeder)
+        device: Union[str, torch.device],
+        requires_grad: bool = False,
+        parent_feeder: Optional[Callable] = None,
+    ) -> None:
+        super().__init__(parent_feeder)
         self._device = device
         self._requires_grad = requires_grad
 

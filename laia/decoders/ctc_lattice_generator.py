@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import pywrapfst as fst
 from torch.nn.functional import log_softmax
 
 from laia.losses.ctc_loss import transform_output
 
 
-class CTCLatticeGenerator(object):
+class CTCLatticeGenerator:
     def __init__(self, normalize=False):
         self._normalize = normalize
 

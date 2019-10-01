@@ -1,11 +1,11 @@
-from __future__ import absolute_import
+from typing import Any, Dict
 
 import laia.common.logging as log
 
 _logger = log.get_logger(__name__)
 
 
-class Meter(object):
+class Meter:
     """A meter returns its :attr:`~.Meter.value` when it is called
 
     Meters are used for measuring times, computing running averages, and
@@ -28,8 +28,7 @@ class Meter(object):
             meter before logging. (default: 5)
     """
 
-    def __init__(self, exceptions_threshold=5):
-        # type: (int) -> None
+    def __init__(self, exceptions_threshold: int = 5) -> None:
         self._exceptions = 0
         self._exceptions_threshold = exceptions_threshold
 
@@ -38,7 +37,7 @@ class Meter(object):
         """Access the latest value of the meter."""
         raise NotImplementedError("This method should be overridden.")
 
-    def __call__(self):
+    def __call__(self) -> Any:
         # Try to get the meter's last value, if some exception occurs,
         # we assume that the meter has not produced any value yet, and
         # we do not trigger.
@@ -56,8 +55,8 @@ class Meter(object):
                 )
         return value
 
-    def state_dict(self):
+    def state_dict(self) -> Dict:
         return {"exceptions": self._exceptions}
 
-    def load_state_dict(self, state):
+    def load_state_dict(self, state: Dict) -> None:
         self._exceptions = state["exceptions"]

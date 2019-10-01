@@ -1,7 +1,8 @@
-from __future__ import absolute_import
+from typing import Callable, Optional, Sequence, List, Union, Any, Dict
 
-from typing import Callable, Optional, Sequence, List
+import torch
 
+import laia
 from laia.common.logging import get_logger
 from laia.decoders import CTCGreedyDecoder
 from laia.engine import Trainer, Evaluator
@@ -25,12 +26,12 @@ def batch_char_to_word_seq(batch_sequence_of_characters, delimiters):
 class HTRExperiment(Experiment):
     def __init__(
         self,
-        train_engine,  # type: Trainer
-        valid_engine=None,  # type: Optional[Evaluator]
-        check_valid_hook_when=EPOCH_END,  # type: Optional[str]
-        valid_hook_condition=None,  # type: Optional[Callable]
-        word_delimiters=None,  # type: Optional[Sequence]
-        summary_order=(
+        train_engine: Trainer,
+        valid_engine: Optional[Evaluator] = None,
+        check_valid_hook_when: Optional[str] = EPOCH_END,
+        valid_hook_condition: Optional[Callable] = None,
+        word_delimiters: Optional[Sequence] = None,
+        summary_order: Sequence[str] = (
             "Epoch",
             "TR Loss",
             "VA Loss",
@@ -41,10 +42,9 @@ class HTRExperiment(Experiment):
             "TR Time",
             "VA Time",
             "Memory",
-        ),  # type: Sequence[str]
-    ):
-        # type: (...) -> None
-        super(HTRExperiment, self).__init__(
+        ),
+    ) -> None:
+        super().__init__(
             train_engine,
             valid_engine=valid_engine,
             check_valid_hook_when=check_valid_hook_when,
@@ -58,7 +58,7 @@ class HTRExperiment(Experiment):
         if not self._tr_engine.criterion:
             self._tr_engine.criterion = CTCLoss()
         elif not isinstance(self._tr_engine.criterion, CTCLoss):
-            self.logger.warn("Overriding the criterion of the trainer to CTC.")
+            _logger.warn("Overriding the criterion of the trainer to CTC.")
             self._tr_engine.criterion = CTCLoss()
 
         self._ctc_decoder = CTCGreedyDecoder()
@@ -76,35 +76,40 @@ class HTRExperiment(Experiment):
             self._va_cer = None
             self._va_wer = None
 
-    def train_cer(self):
+    def train_cer(self) -> laia.meters.Meter:
         return self._tr_cer
 
-    def valid_cer(self):
+    def valid_cer(self) -> laia.meters.Meter:
         return self._va_cer
 
-    def train_wer(self):
+    def train_wer(self) -> laia.meters.Meter:
         return self._tr_wer
 
-    def valid_wer(self):
+    def valid_wer(self) -> laia.meters.Meter:
         return self._va_wer
 
-    def set_word_delimiters(self, delimiters):
+    def set_word_delimiters(self, delimiters: Sequence) -> None:
         self._word_delimiters = delimiters
 
     @action
-    def train_reset_meters(self):
-        super(HTRExperiment, self).train_reset_meters()
+    def train_reset_meters(self) -> None:
+        super().train_reset_meters()
         self._tr_cer.reset()
         self._tr_wer.reset()
 
     @action
-    def valid_reset_meters(self):
-        super(HTRExperiment, self).valid_reset_meters()
+    def valid_reset_meters(self) -> None:
+        super().valid_reset_meters()
         self._va_cer.reset()
         self._va_wer.reset()
 
     @action
-    def _train_update_meters(self, batch_loss, batch_output, batch_target):
+    def _train_update_meters(
+        self,
+        batch_loss: Union[float, torch.FloatTensor],
+        batch_output: Any,
+        batch_target: Any,
+    ) -> None:
         self._tr_loss.add(batch_loss)
 
         # Compute CER
@@ -121,7 +126,9 @@ class HTRExperiment(Experiment):
         self._tr_timer.stop()
 
     @action
-    def _valid_update_meters(self, batch, batch_output, batch_target):
+    def _valid_update_meters(
+        self, batch: Any, batch_output: Any, batch_target: Any
+    ) -> None:
         batch_loss = self._tr_engine.compute_loss(batch, batch_output, batch_target)
         if batch_loss is not None:
             self._va_loss.add(batch_loss)
@@ -139,9 +146,10 @@ class HTRExperiment(Experiment):
         # Stop timer to avoid including extra costs
         self._va_timer.stop()
 
-    def epoch_summary(self, summary_order=None):
-        # type: (Optional[Sequence[str]]) -> List[dict]
-        summary = super(HTRExperiment, self).epoch_summary(summary_order=summary_order)
+    def epoch_summary(
+        self, summary_order: Optional[Sequence[str]] = None
+    ) -> List[Dict]:
+        summary = super().epoch_summary(summary_order=summary_order)
         summary.append(
             dict(label="TR CER", format="{.value:5.1%}", source=self._tr_cer)
         )
@@ -163,9 +171,8 @@ class HTRExperiment(Experiment):
             _logger.debug("Could not sort the summary. Reason: {}", e)
             return summary
 
-    def state_dict(self):
-        # type: () -> dict
-        state = super(HTRExperiment, self).state_dict()
+    def state_dict(self) -> Dict:
+        state = super().state_dict()
         for k, v in (
             ("tr_cer", self._tr_cer),
             ("va_cer", self._va_cer),
@@ -176,11 +183,10 @@ class HTRExperiment(Experiment):
                 state[k] = v.state_dict()
         return state
 
-    def load_state_dict(self, state):
-        # type: (dict) -> None
+    def load_state_dict(self, state: Dict) -> None:
         if state is None:
             return
-        super(HTRExperiment, self).load_state_dict(state)
+        super().load_state_dict(state)
         for k, v in (
             ("tr_cer", self._tr_cer),
             ("va_cer", self._va_cer),

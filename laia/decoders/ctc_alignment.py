@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import numpy as np
 import torch
 
@@ -42,10 +40,9 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
             "Reference symbol ({}) at position {} is too large "
             "for the given matrix {}x{}".format(sym, i, NT, NS)
         )
-        assert sym != ctc_sym, (
-            "Reference includes the CTC symbol ({}) at "
-            "position {}".format(ctc_sym, i)
-        )
+        assert (
+            sym != ctc_sym
+        ), "Reference includes the CTC symbol ({}) at " "position {}".format(ctc_sym, i)
 
     best_logp = np.ndarray((NT, len(canonical)))
     best_logp.fill(np.NINF)

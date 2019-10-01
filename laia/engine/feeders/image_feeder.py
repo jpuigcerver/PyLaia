@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Union, Optional, Callable
 
 import torch
@@ -9,7 +7,7 @@ from laia.engine.feeders.tensor_feeder import TensorFeeder
 
 
 class ImageFeeder(TensorFeeder):
-    r"""Feed an image as a PyTorch Tensor to the model.
+    """Feed an image as a PyTorch Tensor to the model.
 
     Args:
       device: Device Where the data should be allocated.
@@ -24,13 +22,13 @@ class ImageFeeder(TensorFeeder):
 
     def __init__(
         self,
-        device,  # type: Union[str, torch.device]
-        keep_padded_tensors=True,  # type: bool
-        keep_channels_in_size=False,  # type: bool
-        requires_grad=False,  # type: bool
-        parent_feeder=None,  # type: Optional[Callable]
-    ):
-        super(ImageFeeder, self).__init__(
+        device: Union[str, torch.device],
+        keep_padded_tensors: bool = True,
+        keep_channels_in_size: bool = False,
+        requires_grad: bool = False,
+        parent_feeder: Optional[Callable] = None,
+    ) -> None:
+        super().__init__(
             device=device, requires_grad=requires_grad, parent_feeder=parent_feeder
         )
         self._keep_padded_tensors = keep_padded_tensors
@@ -52,7 +50,7 @@ class ImageFeeder(TensorFeeder):
         return x
 
     def _feed(self, x):
-        x = super(ImageFeeder, self)._feed(x)
+        x = super()._feed(x)
         # View image batch as a N-C-H-W
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         x = self._view_as_4d(x)

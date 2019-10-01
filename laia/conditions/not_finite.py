@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 import numpy as np
 
@@ -11,11 +9,12 @@ _logger = log.get_logger(__name__)
 
 
 class NotFinite(LoggingCondition):
-    def __init__(self, obj, key=None, name=None):
-        # type: (Callable, Any,str) -> None
-        super(NotFinite, self).__init__(obj, key, _logger, name)
+    def __init__(
+        self, obj: Callable, key: Optional[Any] = None, name: str = None
+    ) -> None:
+        super().__init__(obj, key, _logger, name)
 
-    def __call__(self):
+    def __call__(self) -> bool:
         value = self._process_value()
         if value is None:
             return False

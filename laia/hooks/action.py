@@ -1,6 +1,5 @@
-import inspect
 from functools import wraps
-
+from inspect import getfullargspec
 from typing import Callable, Any, Tuple
 
 
@@ -19,42 +18,35 @@ def action(func):
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            argspec = inspect.getfullargspec(func)
-        except AttributeError:
-            argspec = inspect.getargspec(func)
-
-        non_kwargs_num = len(argspec.args) - len(argspec.defaults or [])
+    def wrapper(*args: Any, **kwargs: Any):
+        argspec = getfullargspec(func)
+        non_kwargs = len(argspec.args) - len(argspec.defaults or [])
         return func(
-            *args[:non_kwargs_num],
-            **{k: v for k, v in kwargs.items() if k in argspec.args}
+            *args[:non_kwargs], **{k: v for k, v in kwargs.items() if k in argspec.args}
         )
 
     return wrapper
 
 
-class Action(object):
-    def __init__(self, callable_, *args, **kwargs):
-        # type: (Callable, Any, Any) -> None
+class Action:
+    def __init__(self, callable_: Callable, *args: Any, **kwargs: Any) -> None:
         self._callable = callable_
         self._args = args
         self._kwargs = kwargs
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         a = self._args + args
-        kw = dict(self._kwargs, **kwargs)
+        kw = {**self._kwargs, **kwargs}
         return self._callable(*a, **kw)
 
 
-class ActionList(object):
+class ActionList:
     """When called, calls a collection of :class:`~Action` objects."""
 
-    def __init__(self, *actions):
-        # type: (Tuple[Callable]) -> None
+    def __init__(self, *actions: Callable) -> None:
         assert all(isinstance(a, Action) for a in actions)
         self._actions = actions
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         for action in self._actions:
             action(*args, **kwargs)

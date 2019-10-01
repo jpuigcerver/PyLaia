@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import torch
 
 from laia.utils.symbols_table import SymbolsTable
 
 
 def unigram_phoc(sequence, unigram_map, unigram_levels, ignore_missing=False):
-    r"""Compute the Pyramid of Histograms of Characters (PHOC) of a given
+    """Compute the Pyramid of Histograms of Characters (PHOC) of a given
     sequence of characters (or arbitrary symbols).
 
     Args:
@@ -95,7 +92,7 @@ def new_unigram_phoc(sequence, unigram_map, unigram_levels, ignore_missing=False
     return tuple(phoc)
 
 
-class TextToPHOC(object):
+class TextToPHOC:
     def __init__(self, syms, levels):
         assert isinstance(syms, (dict, SymbolsTable))
         assert isinstance(levels, (list, tuple))

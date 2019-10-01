@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from laia.data.image_dataset import ImageDataset
 
 
 class TextImageDataset(ImageDataset):
     def __init__(self, imgs, txts, img_transform=None, txt_transform=None):
-        super(TextImageDataset, self).__init__(imgs, img_transform)
+        super().__init__(imgs, img_transform)
         assert isinstance(txts, (list, tuple))
         assert len(imgs) == len(txts)
         self._txts = txts
@@ -19,7 +17,7 @@ class TextImageDataset(ImageDataset):
             ('txt') of the image.
         """
         # Get image
-        out = super(TextImageDataset, self).__getitem__(index)
+        out = super().__getitem__(index)
         # Get transcript
         txt = self._txts[index]
         if self._txt_transform:

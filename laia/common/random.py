@@ -1,21 +1,17 @@
-from __future__ import absolute_import
-
 import random
-from typing import Optional
+from typing import Optional, Dict
 
 import numpy as np
 import torch
 
 
-def manual_seed(seed):
-    # type: (int) -> None
+def manual_seed(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     random.seed(seed)
 
 
-def get_rng_state(device=None):
-    # type: (Optional[torch.Device]) -> dict
+def get_rng_state(device: Optional[torch.device] = None) -> Dict:
     torch_cuda_rng_state = (
         torch.cuda.get_rng_state(device=device.index) if device.type == "cuda" else None
     )
@@ -27,8 +23,7 @@ def get_rng_state(device=None):
     }
 
 
-def set_rng_state(state, device=None):
-    # type: (dict, Optional[torch.Device]) -> None
+def set_rng_state(state: Dict, device: Optional[torch.device] = None) -> None:
     np.random.set_state(state["numpy"])
     torch.set_rng_state(state["torch_cpu"].cpu())
     if state["torch_cuda"] is not None:

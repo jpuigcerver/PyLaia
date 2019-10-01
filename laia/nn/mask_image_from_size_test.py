@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 
 import torch
@@ -9,7 +7,7 @@ from laia.data import PaddedTensor
 try:
     from laia.nn.mask_image_from_size import MaskImageFromSize
 except ImportError:
-    MaskImageFromSize = None
+    MaskImageFromSize = None  # type: ignore
 
 
 @unittest.skipIf(MaskImageFromSize is None, "nnutils does not seem installed")

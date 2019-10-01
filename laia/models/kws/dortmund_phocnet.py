@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import math
 import operator
 from collections import OrderedDict
 from functools import reduce
-from typing import Union, Sequence, Optional
+from typing import Union, Sequence, Optional, Any
 
 import torch
 
@@ -14,14 +12,14 @@ from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
 
 
 class Identity(torch.nn.Module):
-    def __init__(self):
-        super(Identity, self).__init__()
+    def __init__(self) -> None:
+        super().__init__()
 
-    def forward(self, x):
+    def forward(self, x: Any):
         return x
 
 
-def build_conv_model(unittest=False):
+def build_conv_model(unittest: bool = False):
     model = torch.nn.Sequential(
         OrderedDict(
             [
@@ -72,8 +70,7 @@ def build_conv_model(unittest=False):
     return model
 
 
-def size_after_conv(xs):
-    # type: (torch.Tensor) -> torch.Tensor
+def size_after_conv(xs: torch.Tensor) -> torch.Tensor:
     xs = xs.float()
     xs = torch.ceil(xs / 2.0)
     xs = torch.ceil(xs / 2.0)
@@ -82,10 +79,13 @@ def size_after_conv(xs):
 
 class DortmundPHOCNet(torch.nn.Module):
     def __init__(
-        self, phoc_size, tpp_levels=range(1, 6), spp_levels=None, unittest=False
-    ):
-        # type: (int, Optional[Sequence[int]], Optional[Sequence[int]], bool) -> None
-        super(DortmundPHOCNet, self).__init__()
+        self,
+        phoc_size: int,
+        tpp_levels: Optional[Sequence[int]] = range(1, 6),
+        spp_levels: Optional[Sequence[int]] = None,
+        unittest: bool = False,
+    ) -> None:
+        super().__init__()
         assert tpp_levels or spp_levels
         if tpp_levels is None:
             tpp_levels = []
@@ -124,8 +124,7 @@ class DortmundPHOCNet(torch.nn.Module):
                 param.data.normal_(mean=0, std=math.sqrt(2.0 / fan_in))
         return self
 
-    def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> torch.Tensor
+    def forward(self, x: Union[torch.Tensor, PaddedTensor]) -> torch.Tensor:
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         x = self.conv(x)
         if xs is not None:
@@ -138,9 +137,8 @@ class DortmundPHOCNet(torch.nn.Module):
         return self.fc(x)
 
 
-def convert_old_parameters(params):
+def convert_old_parameters(params: OrderedDict) -> OrderedDict:
     """Convert parameters from the old model to the new one."""
-    # type: OrderedDict -> OrderedDict
     new_params = []
     for k, v in params.items():
         if k.startswith("conv"):

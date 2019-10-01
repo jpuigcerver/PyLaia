@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
 import editdistance
 
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class SequenceErrorMeter(Meter):
     def __init__(self, exceptions_threshold=5):
-        super(SequenceErrorMeter, self).__init__(exceptions_threshold)
+        super().__init__(exceptions_threshold)
         self._num_errors = 0
         self._ref_length = 0
 
@@ -32,7 +30,7 @@ class SequenceErrorMeter(Meter):
             return float(self._num_errors) / float(self._ref_length)
 
     def state_dict(self):
-        state = super(SequenceErrorMeter, self).state_dict()
+        state = super().state_dict()
         state["num_errors"] = self._num_errors
         state["ref_length"] = self._ref_length
         return state
@@ -40,6 +38,6 @@ class SequenceErrorMeter(Meter):
     def load_state_dict(self, state):
         if state is None:
             return
-        super(SequenceErrorMeter, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._num_errors = state["num_errors"]
         self._ref_length = state["ref_length"]

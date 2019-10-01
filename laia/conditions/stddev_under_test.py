@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 import unittest
 
 from laia.conditions import StdDevUnder
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class ExceptionMeter(Meter):
@@ -14,7 +12,7 @@ class ExceptionMeter(Meter):
 
 class MockMeter(Meter):
     def __init__(self):
-        super(MockMeter, self).__init__()
+        super().__init__()
         self._value = None
 
     def set_value(self, value, key=None):

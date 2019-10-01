@@ -38,7 +38,7 @@ class BasicBlock(nn.Module):
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, groups=1, norm_layer=None):
-        super(BasicBlock, self).__init__()
+        super().__init__()
         if groups != 1:
             raise ValueError("BasicBlock only supports groups=1")
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
@@ -77,7 +77,7 @@ class Bottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, groups=1, norm_layer=None):
-        super(Bottleneck, self).__init__()
+        super().__init__()
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, planes)
         self.bn1 = None if norm_layer is None else norm_layer(planes)
@@ -117,7 +117,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResnetOptions(object):
+class ResnetOptions:
     def __init__(
         self,
         block: Union[BasicBlock, Bottleneck],
@@ -200,7 +200,7 @@ class ResnetOptions(object):
 
 class ResnetConv(nn.Module):
     def __init__(self, options: ResnetOptions):
-        super(ResnetConv, self).__init__()
+        super().__init__()
 
         self.inplanes = options.planes[0]
         self.conv1 = nn.Conv2d(

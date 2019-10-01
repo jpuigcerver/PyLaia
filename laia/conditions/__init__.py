@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from laia.conditions.condition import Any, All, Not
 from laia.conditions.geq_than import GEqThan
 from laia.conditions.highest import Highest
