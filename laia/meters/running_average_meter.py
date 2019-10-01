@@ -3,7 +3,7 @@ import math
 import numpy as np
 import torch
 
-from laia.meters import Meter
+from laia.meters.meter import Meter
 
 
 class RunningAverageMeter(Meter):
@@ -19,7 +19,7 @@ class RunningAverageMeter(Meter):
     """
 
     def __init__(self, exceptions_threshold=5):
-        super(RunningAverageMeter, self).__init__(exceptions_threshold)
+        super().__init__(exceptions_threshold)
         self._n = 0.0
         self._s = 0.0
         self._s2 = 0.0
@@ -57,7 +57,7 @@ class RunningAverageMeter(Meter):
         elif isinstance(v, (list, tuple)):
             self._n += len(v)
             self._s += sum(v)
-            self._s2 += sum(map(lambda x: x * x, v))
+            self._s2 += sum(x * x for x in v)
         else:
             self._n += 1
             self._s += v
@@ -74,7 +74,7 @@ class RunningAverageMeter(Meter):
         return avg, math.sqrt(var)
 
     def state_dict(self):
-        state = super(RunningAverageMeter, self).state_dict()
+        state = super().state_dict()
         state["n"] = self._n
         state["s"] = self._s
         state["s2"] = self._s2
@@ -83,7 +83,7 @@ class RunningAverageMeter(Meter):
     def load_state_dict(self, state):
         if state is None:
             return
-        super(RunningAverageMeter, self).load_state_dict(state)
+        super().load_state_dict(state)
         self._n = state["n"]
         self._s = state["s"]
         self._s2 = state["s2"]

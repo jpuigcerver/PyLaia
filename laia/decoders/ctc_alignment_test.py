@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 import math
 import unittest
 
 import numpy as np
+
 from laia.decoders.ctc_alignment import ctc_alignment
 
 

@@ -1,14 +1,12 @@
-from __future__ import division
-
 import math
-from itertools import product
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, List, Any, Sequence, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
+from laia.common.types import Param2d
 from laia.data import PaddedTensor
 
 try:
@@ -22,34 +20,25 @@ except ImportError:
 class ConvBlock(nn.Module):
     def __init__(
         self,
-        in_channels,  # type: int
-        out_channels,  # type: int
-        kernel_size=3,  # type: Union[int, Tuple[int, int]]
-        stride=1,  # type: Union[int, Tuple[int, int]]
-        dilation=1,  # type: Union[int, Tuple[int, int]]
-        activation=nn.LeakyReLU,  # type: Optional[nn.Module]
-        poolsize=None,  # type: Optional[Union[int, Tuple[int, int]]]
-        dropout=None,  # type: Optional[float]
-        batchnorm=False,  # type: bool
-        inplace=False,  # type: bool
-        use_masks=False,  # type: bool
-    ):
-        # type: (...) -> None
-        super(ConvBlock, self).__init__()
-        if not isinstance(kernel_size, (list, tuple)):
-            kernel_size = (kernel_size, kernel_size)
-        if not isinstance(dilation, (list, tuple)):
-            dilation = (dilation,) * 2
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Param2d = 3,
+        stride: Param2d = 1,
+        dilation: Param2d = 1,
+        activation: Optional[nn.Module] = nn.LeakyReLU,
+        poolsize: Param2d = 0,
+        dropout: Optional[float] = None,
+        batchnorm: bool = False,
+        inplace: bool = False,
+        use_masks: bool = False,
+    ) -> None:
+        super().__init__()
+        ks, st, di, ps = ConvBlock.prepare_dimensional_args(
+            kernel_size, stride, dilation, poolsize
+        )
 
-        # Prepare poolsize
-        if poolsize and not isinstance(poolsize, (list, tuple)):
-            poolsize = (poolsize, poolsize)
-        elif isinstance(poolsize, (list, tuple)):
-            poolsize = (
-                None
-                if poolsize in product((0, 1), repeat=2)
-                else tuple(poolsize[dim] if poolsize[dim] else 1 for dim in (0, 1))
-            )
+        if ps[0] * ps[1] < 2:
+            ps = None
 
         if use_masks and mask_image_from_size is None:
             warnings.warn(
@@ -60,20 +49,18 @@ class ConvBlock(nn.Module):
         self.dropout = dropout
         self.in_channels = in_channels
         self.use_masks = use_masks
-        self.poolsize = poolsize
+        self.poolsize = ps
 
         # Add Conv2d layer (compute padding to perform a full convolution).
         self.conv = nn.Conv2d(
             in_channels,
             out_channels,
-            kernel_size,
-            stride=stride,
-            padding=tuple(
-                (kernel_size[dim] - 1) // 2 * dilation[dim] for dim in (0, 1)
-            ),
-            dilation=dilation,
-            # Note: If batchnorm is used, the bias does not affect the output
-            # of the unit.
+            ks,
+            stride=st,
+            padding=tuple((ks[dim] - 1) // 2 * di[dim] for dim in (0, 1)),
+            dilation=di,
+            # Note: If batchnorm is used, the bias does not
+            # affect the output of the unit.
             bias=not batchnorm,
         )
 
@@ -84,10 +71,16 @@ class ConvBlock(nn.Module):
         self.activation = activation(inplace=inplace) if activation else None
 
         # Add maxpool layer
-        self.pool = nn.MaxPool2d(poolsize) if self.poolsize else None
+        self.pool = nn.MaxPool2d(ps) if self.poolsize else None
 
-    def forward(self, x):
-        # type: (Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]
+    @staticmethod
+    def prepare_dimensional_args(*args: Any, dims: int = 2) -> List[Tuple]:
+        return [
+            tuple(arg) if isinstance(arg, (list, tuple)) else (arg,) * dims
+            for arg in args
+        ]
+
+    def forward(self, x: Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]:
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
             assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
@@ -127,7 +120,7 @@ class ConvBlock(nn.Module):
 
         return x if xs is None else PaddedTensor(x, self.get_output_batch_size(xs))
 
-    def get_output_batch_size(self, xs):
+    def get_output_batch_size(self, xs: torch.Tensor):
         ys = torch.zeros_like(xs)
         for dim in 0, 1:
             ys[:, dim] = self.get_output_size(
@@ -142,14 +135,13 @@ class ConvBlock(nn.Module):
 
     @staticmethod
     def get_output_size(
-        size,  # type: Union[torch.Tensor, int]
-        kernel_size,  # type: int
-        dilation,  # type: int
-        stride,  # type: int
-        poolsize,  # type: int
-        padding=None,  # type: Optional[int]
-    ):
-        # type: (...) -> Union[torch.Tensor, int]
+        size: Union[torch.Tensor, int],
+        kernel_size: int,
+        dilation: int,
+        stride: int,
+        poolsize: int,
+        padding: Optional[int] = None,
+    ) -> Union[torch.Tensor, int]:
         if padding is None:
             padding = (kernel_size - 1) // 2 * dilation
         size = size.float() if isinstance(size, torch.Tensor) else float(size)

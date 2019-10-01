@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import laia.common.arguments
 import laia.common.arguments_types
 import laia.common.logging

@@ -1,13 +1,11 @@
-from __future__ import absolute_import
+from typing import Callable, Any as AnyT, Optional, Dict
 
-from typing import Tuple, Callable, Any as AnyT
-
-from laia.common.logging import get_logger, DEBUG, INFO, ERROR
+from laia.common.logging import get_logger, DEBUG, INFO, ERROR, Logger
 
 _logger = get_logger(__name__)
 
 
-class Condition(object):
+class Condition:
     """Conditions are objects that when called return either `True` or `False`.
     Typically used inside of Hooks to trigger an action
 
@@ -17,35 +15,39 @@ class Condition(object):
             Useful when the obj() returns a tuple/list/dict. (default: None)
     """
 
-    def __init__(self, obj, key=None):
-        # type: (Callable, AnyT) -> None
+    def __init__(self, obj: Callable, key: Optional[AnyT] = None) -> None:
         self._obj = obj
         self._key = key
 
     def __call__(self):
         raise NotImplementedError
 
-    def _process_value(self):
+    def _process_value(self) -> AnyT:
         value = self._obj()
         if value is None:
             # An exception happened during the computation
             return None
         return value if self._key is None else value[self._key]
 
-    def state_dict(self):
+    def state_dict(self) -> Dict:
         return {
             "obj": self._obj.state_dict() if hasattr(self._obj, "state_dict") else None
         }
 
-    def load_state_dict(self, state):
+    def load_state_dict(self, state: Dict) -> None:
         if hasattr(self._obj, "load_state_dict"):
             self._obj.load_state_dict(state["obj"])
 
 
 class LoggingCondition(Condition):
-    def __init__(self, obj, key, logger, name=None):
-        # type: (obj, AnyT, Logger, str) -> None
-        super(LoggingCondition, self).__init__(obj, key)
+    def __init__(
+        self,
+        obj: Callable,
+        key: Optional[AnyT],
+        logger: Logger,
+        name: Optional[str] = None,
+    ) -> None:
+        super().__init__(obj, key)
         self._logger = logger
         self._name = name
 
@@ -78,31 +80,29 @@ class LoggingCondition(Condition):
         self.log(ERROR, msg, *args, **kwargs)
 
 
-class Not(object):
+class Not:
     """True when the given condition is false.
 
     Arguments:
         condition (:obj:`~Condition`): condition to be negated
     """
 
-    def __init__(self, condition):
-        # type: (Callable) -> None
+    def __init__(self, condition: Callable) -> None:
         assert callable(condition)
         self._condition = condition
 
-    def __call__(self):
+    def __call__(self) -> bool:
         return not self._condition()
 
 
-class MultinaryCondition(object):
+class MultinaryCondition:
     """Base class for operators involving an arbitrary number of conditions.
 
     Arguments:
         conditions (:obj:`~Condition`): parameters of the operation.
     """
 
-    def __init__(self, *conditions):
-        # type: (Tuple[Callable]) -> None
+    def __init__(self, *conditions: Callable) -> None:
         assert all(callable(c) for c in conditions)
         self._conditions = conditions
 
@@ -113,12 +113,12 @@ class MultinaryCondition(object):
 class Any(MultinaryCondition):
     """Returns `True` if any of the given `conditions` returns `True`."""
 
-    def __call__(self):
+    def __call__(self) -> bool:
         return any(c() for c in self._conditions)
 
 
 class All(MultinaryCondition):
     """Returns `True` if all of the given `conditions` return `True`."""
 
-    def __call__(self):
+    def __call__(self) -> bool:
         return all(c() for c in self._conditions)

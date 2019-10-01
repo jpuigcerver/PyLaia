@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from typing import Optional, Callable, Sequence
+from typing import Optional, Callable, Sequence, List, Dict
 
 import torch
 from torch.nn.functional import sigmoid
@@ -17,21 +15,21 @@ _logger = log.get_logger(__name__)
 
 
 class PHOCExperiment(Experiment):
-    r"""Wrapper to perform KWS experiments with PHOC networks."""
+    """Wrapper to perform KWS experiments with PHOC networks."""
 
     def __init__(
         self,
         symbols_table,
         phoc_levels,
-        train_engine,  # type: Trainer
-        valid_engine=None,  # type: Optional[Evaluator]
-        check_valid_hook_when=EPOCH_END,  # type: Optional[str]
-        valid_hook_condition=None,  # type: Optional[Callable]
+        train_engine: Trainer,
+        valid_engine: Optional[Evaluator] = None,
+        check_valid_hook_when: Optional[str] = EPOCH_END,
+        valid_hook_condition: Optional[Callable] = None,
         gpu=0,
         exclude_labels=None,
         ignore_missing=False,
         use_new_phoc=False,
-        summary_order=(
+        summary_order: Sequence[str] = (
             "Epoch",
             "TR Loss",
             "VA Loss",
@@ -40,10 +38,9 @@ class PHOCExperiment(Experiment):
             "TR Time",
             "VA Time",
             "Memory",
-        ),  # type: Sequence[str]
-    ):
-        # type: (...) -> None
-        super(PHOCExperiment, self).__init__(
+        ),
+    ) -> None:
+        super().__init__(
             train_engine,
             valid_engine=valid_engine,
             check_valid_hook_when=check_valid_hook_when,
@@ -97,13 +94,12 @@ class PHOCExperiment(Experiment):
         else:
             self._va_ap = None
 
-    def valid_ap(self):
-        # type: () -> Meter
+    def valid_ap(self) -> Meter:
         return self._va_ap
 
     @action
     def valid_reset_meters(self):
-        super(PHOCExperiment, self).valid_reset_meters()
+        super().valid_reset_meters()
         self._va_ap.reset()
 
     @action
@@ -121,9 +117,10 @@ class PHOCExperiment(Experiment):
         self._va_ap.add(batch_output_phoc.numpy(), ["".join(w) for w in batch["txt"]])
         self._va_timer.stop()
 
-    def epoch_summary(self, summary_order=None):
-        # type: (Optional[Sequence[str]]) -> List[dict]
-        summary = super(PHOCExperiment, self).epoch_summary(summary_order=summary_order)
+    def epoch_summary(
+        self, summary_order: Optional[Sequence[str]] = None
+    ) -> List[Dict]:
+        summary = super().epoch_summary(summary_order=summary_order)
         if self._va_engine:
             summary.append(
                 dict(label="VA gAP", format="{.value[0]:5.1%}", source=self._va_ap)
@@ -137,17 +134,15 @@ class PHOCExperiment(Experiment):
             _logger.debug("Could not sort the summary. Reason: {}", e)
             return summary
 
-    def state_dict(self):
-        # type: () -> dict
-        state = super(PHOCExperiment, self).state_dict()
+    def state_dict(self) -> Dict:
+        state = super().state_dict()
         if hasattr(self._va_ap, "state_dict"):
             state["va_ap"] = self._va_ap.state_dict()
         return state
 
-    def load_state_dict(self, state):
-        # type: (dict) -> None
+    def load_state_dict(self, state: Dict) -> None:
         if state is None:
             return
-        super(PHOCExperiment, self).load_state_dict(state)
+        super().load_state_dict(state)
         if hasattr(self._va_ap, "load_state_dict"):
             self._va_ap.load_state_dict(state["va_ap"])

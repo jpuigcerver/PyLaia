@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from torch.utils.data import DataLoader
 
 from laia.data.padding_collater import PaddingCollater
@@ -25,7 +23,7 @@ class ImageDataLoader(DataLoader):
         drop_last=False,
         worker_init_fn=None,
     ):
-        super(ImageDataLoader, self).__init__(
+        super().__init__(
             dataset=dataset,
             batch_size=batch_size,
             shuffle=shuffle,

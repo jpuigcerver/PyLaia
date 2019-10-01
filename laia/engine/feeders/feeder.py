@@ -1,5 +1,5 @@
-class Feeder(object):
-    r"""This class is used to feed data to a model or loss.
+class Feeder:
+    """This class is used to feed data to a model or loss.
 
     During training or evaluation, a :class:`laia.engine.Engine` object
     will use feeders like this to feed data from a DataLoader into
@@ -24,7 +24,7 @@ class Feeder(object):
 
 
 class ItemFeeder(Feeder):
-    r"""Feed an element from a dictionary, by its key.
+    """Feed an element from a dictionary, by its key.
 
     Args:
       key: the key to use.
@@ -33,7 +33,7 @@ class ItemFeeder(Feeder):
     """
 
     def __init__(self, key, parent_feeder=None):
-        super(ItemFeeder, self).__init__(parent_feeder)
+        super().__init__(parent_feeder)
         self._key = key
 
     def _feed(self, x):

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from typing import Sequence, Union
 
 import torch
@@ -9,14 +7,12 @@ from laia.nn.temporal_pyramid_maxpool_2d import _adaptive_maxpool_2d
 
 
 class PyramidMaxPool2d(torch.nn.Module):
-    def __init__(self, levels, use_nnutils=True):
-        # type: (Sequence[int], bool) -> None
-        super(PyramidMaxPool2d, self).__init__()
+    def __init__(self, levels: Sequence[int], use_nnutils: bool = True) -> None:
+        super().__init__()
         self._levels = tuple(levels)
         self._use_nnutils = use_nnutils
 
-    def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> torch.Tensor
+    def forward(self, x: Union[torch.Tensor, PaddedTensor]) -> torch.Tensor:
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
         else:

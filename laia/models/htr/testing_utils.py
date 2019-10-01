@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import torch
 
 from laia.data.padding_collater import PaddedTensor

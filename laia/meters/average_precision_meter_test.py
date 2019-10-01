@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import unittest
 
 from laia.meters.average_precision_meter import AveragePrecisionMeter

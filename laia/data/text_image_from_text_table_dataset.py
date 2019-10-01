@@ -1,10 +1,5 @@
-from __future__ import absolute_import
-
-import io
 from os import listdir
 from os.path import isfile, join, splitext
-
-from torch._six import string_classes
 
 import laia.common.logging as log
 from laia.data.text_image_dataset import TextImageDataset
@@ -22,9 +17,9 @@ class TextImageFromTextTableDataset(TextImageDataset):
         img_transform=None,
         txt_transform=None,
         img_extensions=IMAGE_EXTENSIONS,
-        encoding="utf8",
+        encoding="utf-8",
     ):
-        if isinstance(img_dirs, string_classes):
+        if isinstance(img_dirs, str):
             img_dirs = [img_dirs]
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
@@ -32,9 +27,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
             txt_table, img_dirs, img_extensions, encoding=encoding
         )
         # Prepare dataset using the previous image filenames and transcripts.
-        super(TextImageFromTextTableDataset, self).__init__(
-            imgs, txts, img_transform, txt_transform
-        )
+        super().__init__(imgs, txts, img_transform, txt_transform)
 
     def __getitem__(self, index):
         """Returns the ID of the example, the image and its transcript from
@@ -47,7 +40,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
           dict: Dictionary containing the example ID ('id'), image ('img') and
             the transcript ('txt') of the image.
         """
-        out = super(TextImageFromTextTableDataset, self).__getitem__(index)
+        out = super().__getitem__(index)
         out["id"] = self._ids[index]
         return out
 
@@ -74,8 +67,8 @@ def find_image_filename_from_id(imgid, img_dir, img_extensions):
 
 
 def _load_text_table_from_file(table_file, encoding="utf-8"):
-    if isinstance(table_file, string_classes):
-        table_file = io.open(table_file, "r", encoding=encoding)
+    if isinstance(table_file, str):
+        table_file = open(table_file, encoding=encoding)
     for n, line in enumerate((l.split() for l in table_file), 1):
         # Skip empty lines and lines starting with #
         if not len(line) or line[0].startswith("#"):
@@ -85,7 +78,7 @@ def _load_text_table_from_file(table_file, encoding="utf-8"):
 
 
 def _get_images_and_texts_from_text_table(
-    table_file, img_dirs, img_extensions, encoding="utf8"
+    table_file, img_dirs, img_extensions, encoding="utf-8"
 ):
     assert len(img_dirs) > 0, "No image directory provided"
     ids, imgs, txts = [], [], []

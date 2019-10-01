@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from functools import reduce
 
 import torch
@@ -13,7 +11,7 @@ import pywrapfst as fst
 """
 
 
-class CTCNBestPathDecoder(object):
+class CTCNBestPathDecoder:
     """N-best path decoder based on CTC output.
 
     Examples:

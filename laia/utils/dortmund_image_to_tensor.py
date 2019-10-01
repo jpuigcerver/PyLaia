@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import cv2
 import numpy as np
 import torch
@@ -28,7 +25,7 @@ def dortmund_distort(img, random_limits=(0.8, 1.1)):
     return cv2.warpAffine(img, transform, dsize=(x, y), borderValue=border_value)
 
 
-class DortmundImageToTensor(object):
+class DortmundImageToTensor:
     def __init__(
         self, fixed_height=None, fixed_width=None, min_height=None, min_width=None
     ):

@@ -1,15 +1,15 @@
-from laia.engine.feeders.feeder import Feeder
-from laia.utils.symbols_table import SymbolsTable
-from laia.utils.phoc import unigram_phoc, new_unigram_phoc
-
 import torch
+
+from laia.engine.feeders.feeder import Feeder
+from laia.utils.phoc import unigram_phoc, new_unigram_phoc
+from laia.utils.symbols_table import SymbolsTable
 
 
 class PHOCFeeder(Feeder):
     def __init__(
         self, syms, levels, ignore_missing=True, new_phoc=False, parent_feeder=None
     ):
-        super(PHOCFeeder, self).__init__(parent_feeder)
+        super().__init__(parent_feeder)
         assert isinstance(syms, (dict, SymbolsTable))
         assert isinstance(levels, (list, tuple))
         self._syms = syms

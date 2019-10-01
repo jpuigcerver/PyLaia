@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from PIL import Image
 from torch.utils import data
 
@@ -7,7 +5,7 @@ from torch.utils import data
 class ImageDataset(data.Dataset):
     def __init__(self, imgs, transform=None):
         assert isinstance(imgs, (list, tuple))
-        super(ImageDataset, self).__init__()
+        super().__init__()
         self._imgs = imgs
         self._transform = transform
 

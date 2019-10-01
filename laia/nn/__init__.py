@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 from laia.nn.image_to_sequence import ImageToSequence, image_to_sequence
 

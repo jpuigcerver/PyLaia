@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from typing import Callable, Any
+from typing import Callable, Any, Optional, List
 
 import numpy as np
 
@@ -11,7 +9,7 @@ _logger = log.get_logger(__name__)
 
 
 class StdDevUnder(LoggingCondition):
-    r"""Returns True when the standard deviation
+    """Returns True when the standard deviation
     over the latest values is lower than some threshold.
 
     Each time this is called with a value, it will be stored.
@@ -27,20 +25,26 @@ class StdDevUnder(LoggingCondition):
         name (str): Name for the condition.
     """
 
-    def __init__(self, obj, threshold, num_values_to_keep, key=None, name=None):
-        # type: (Callable, float, int, Any, str) -> None
+    def __init__(
+        self,
+        obj: Callable,
+        threshold: float,
+        num_values_to_keep: int,
+        key: Optional[Any] = None,
+        name: str = None,
+    ) -> None:
         assert threshold > 0, "Standard deviation should be a positive value"
         assert num_values_to_keep > 1, (
             "The number of values to keep must be greater than 1 to compute "
             "the standard deviation"
         )
-        super(StdDevUnder, self).__init__(obj, key, _logger, name)
+        super().__init__(obj, key, _logger, name)
         self._threshold = threshold
         self._num_values_to_keep = num_values_to_keep
-        self._values = []
+        self._values = []  # type: List
         self._nval = 0
 
-    def __call__(self):
+    def __call__(self) -> bool:
         value = self._process_value()
         if value is None:
             return False
