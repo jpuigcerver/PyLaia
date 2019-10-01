@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import torch
 
 import laia.common.logging as log
@@ -9,7 +6,7 @@ _TENSOR_REAL = (torch.float, torch.double, torch.half)
 
 
 def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
-    r"""Check whether a tensor contains a +/- infinite value.
+    """Check whether a tensor contains a +/- infinite value.
 
     Arguments:
       tensor (torch.Tensor): tensor to check.
@@ -44,7 +41,7 @@ def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
 
 
 def check_nan(tensor, msg=None, name=None, raise_exception=False, **kwargs):
-    r"""Check whether a tensor contains a NaN value.
+    """Check whether a tensor contains a NaN value.
 
     Arguments:
       tensor (torch.Tensor): tensor to check.

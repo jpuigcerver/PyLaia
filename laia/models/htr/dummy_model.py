@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import torch
 from torch.nn.functional import adaptive_avg_pool2d
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -24,7 +22,7 @@ class DummyModel(torch.nn.Module):
     """
 
     def __init__(self, adaptive_size, num_output_labels, horizontal=True):
-        super(DummyModel, self).__init__()
+        super().__init__()
         self._horizontal = horizontal
         self._adaptive_size = adaptive_size
         self._linear = torch.nn.Linear(

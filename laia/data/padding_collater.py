@@ -1,20 +1,16 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import re
 from functools import reduce
 
 import torch
-from torch._six import string_classes, int_classes, inf
+from torch._six import inf
 
 PaddedTensor = collections.namedtuple("PaddedTensor", ["data", "sizes"])
 
 
 def _get_max_size_and_check_batch_tensor(batch, expected_shape):
     # All tensors in the batch must have the same number of dimensions
-    assert all(map(lambda x: x.dim() == batch[0].dim(), batch))
+    assert all([x.dim() == batch[0].dim() for x in batch])
     max_sizes = [len(batch)]
     for d in range(batch[0].dim()):
         maxv, minv = reduce(
@@ -37,7 +33,7 @@ def _get_max_size_and_check_batch_tensor(batch, expected_shape):
     return max_sizes, fixed_size
 
 
-class PaddingCollater(object):
+class PaddingCollater:
     def __init__(self, padded_shapes, sort_key=None):
         self._padded_shapes = padded_shapes
         self._sort_key = sort_key
@@ -90,11 +86,11 @@ class PaddingCollater(object):
             elif elem.shape == ():  # scalars
                 return torch.as_tensor(batch)
 
-        elif isinstance(batch[0], int_classes):
+        elif isinstance(batch[0], int):
             return torch.tensor(batch, dtype=torch.long)
         elif isinstance(batch[0], float):
             return torch.tensor(batch, dtype=torch.double)
-        elif isinstance(batch[0], string_classes):
+        elif isinstance(batch[0], str):
             return batch
         elif isinstance(batch[0], collections.Mapping):
             out = {}
@@ -107,7 +103,6 @@ class PaddingCollater(object):
                     out[key] = [d[key] for d in batch]
             return out
         elif isinstance(batch[0], collections.Sequence):
-            transposed = zip(*batch)
-            return [self._collate(samples) for samples in transposed]
+            return [self._collate(samples) for samples in zip(*batch)]
 
-        raise TypeError((error_msg.format(type(batch[0]))))
+        raise TypeError(error_msg.format(type(batch[0])))

@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import io
 import json
 import logging
 import sys
@@ -25,7 +22,7 @@ class TqdmStreamHandler(logging.StreamHandler):
         messages don't break the tqdm bar."""
 
     def __init__(self, level=logging.NOTSET):
-        super(TqdmStreamHandler, self).__init__(level)
+        super().__init__(level)
 
     def emit(self, record):
         try:
@@ -36,7 +33,7 @@ class TqdmStreamHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-class FormatMessage(object):
+class FormatMessage:
     def __init__(self, fmt, *args, **kwargs):
         self.fmt = fmt
         self.args = args
@@ -48,7 +45,7 @@ class FormatMessage(object):
 
 class Logger(logging.Logger):
     def __init__(self, name, level=logging.NOTSET):
-        super(Logger, self).__init__(name, level)
+        super().__init__(name, level)
 
     def _log(self, level, msg, args, **kwargs):
         if "exc_info" in kwargs:
@@ -66,9 +63,7 @@ class Logger(logging.Logger):
         if args or kwargs:
             msg = FormatMessage(msg, *args, **kwargs)
 
-        super(Logger, self)._log(
-            level=level, msg=msg, args=(), exc_info=exc_info, extra=extra
-        )
+        super()._log(level=level, msg=msg, args=(), exc_info=exc_info, extra=extra)
 
 
 def get_logger(name=None):
@@ -157,7 +152,7 @@ def config(
 ):
     if config_dict:
         try:
-            with io.open(config_dict, "r") as f:
+            with open(config_dict) as f:
                 config_dict = json.load(f)
             logging.config.dictConfig(config_dict)
         except Exception:

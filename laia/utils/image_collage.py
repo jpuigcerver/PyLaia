@@ -1,7 +1,4 @@
-from __future__ import division
-
 import math
-from builtins import range
 
 import numpy as np
 import torch

@@ -1,34 +1,32 @@
-from __future__ import absolute_import
-
 from collections import Sequence
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Dict
 
+import laia
 from laia.common.logging import get_logger
 from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, Engine
-from laia.engine.trainer import Trainer
 from laia.hooks import action
-from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter, Meter
+from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter
+from laia.meters.meter import Meter
 
 _logger = get_logger(__name__)
 
 
-class Experiment(object):
+class Experiment:
     def __init__(
         self,
-        train_engine,  # type: Trainer
-        valid_engine=None,  # type: Optional[Evaluator]
-        check_valid_hook_when=EPOCH_END,  # type: Optional[str]
-        valid_hook_condition=None,  # type: Optional[Callable]
-        summary_order=(
+        train_engine: laia.engine.Trainer,
+        valid_engine: Optional[Evaluator] = None,
+        check_valid_hook_when: Optional[str] = EPOCH_END,
+        valid_hook_condition: Optional[Callable] = None,
+        summary_order: List[str] = (
             "Epoch",
             "TR Loss",
             "VA Loss",
             "TR Time",
             "VA Time",
             "Memory",
-        ),  # type: Sequence[str]
-    ):
-        # type: (...) -> None
+        ),
+    ) -> None:
         self._tr_engine = train_engine
         self._va_engine = valid_engine
 
@@ -52,23 +50,19 @@ class Experiment(object):
             self._va_loss = None
 
         self._summary_order = summary_order
-        self._summary = None
+        self._summary = None  # type: List[Dict]
         self._tr_engine.add_hook(EPOCH_END, self._log_epoch_summary)
 
-    def train_timer(self):
-        # type: () -> Meter
+    def train_timer(self) -> Meter:
         return self._tr_timer
 
-    def valid_timer(self):
-        # type: () -> Meter
+    def valid_timer(self) -> Meter:
         return self._va_timer
 
-    def train_loss(self):
-        # type: () -> Meter
+    def train_loss(self) -> Meter:
         return self._tr_loss
 
-    def valid_loss(self):
-        # type: () -> Meter
+    def valid_loss(self) -> Meter:
         return self._va_loss
 
     def run(self):
@@ -86,14 +80,13 @@ class Experiment(object):
         self._va_timer.reset()
         self._va_loss.reset()
 
-    def epoch_summary(self, summary_order=None):
-        # type: (Optional[Sequence[str]]) -> List[dict]
+    def epoch_summary(self, summary_order: Optional[List[str]] = None) -> List[Dict]:
         summary = [
             dict(label="Epoch", format="{:4d}"),
             dict(label="TR Loss", format="{.value[0]:.3e}", source=self._tr_loss),
             dict(label="TR Time", format="{.value:.2f}s", source=self._tr_timer),
             dict(label="Memory", format="{.value}", source=MemoryMeter()),
-        ]
+        ]  # type: List[Dict]
         if self._va_engine:
             summary.append(
                 dict(label="VA Loss", format="{.value[0]:.3e}", source=self._va_loss)
@@ -108,8 +101,7 @@ class Experiment(object):
             return summary
 
     @action
-    def _log_epoch_summary(self, epoch):
-        # type: (int) -> None
+    def _log_epoch_summary(self, epoch: int) -> None:
         for item in self._summary:
             if item["label"] == "Epoch":
                 item["source"] = epoch
@@ -119,8 +111,7 @@ class Experiment(object):
         ]
         _logger.info(", ".join(parsed_summary))
 
-    def state_dict(self):
-        # type: () -> dict
+    def state_dict(self) -> Dict:
         return {
             k: v.state_dict() if hasattr(v, "state_dict") else None
             for k, v in (
@@ -130,8 +121,7 @@ class Experiment(object):
             )
         }
 
-    def load_state_dict(self, state):
-        # type: (dict) -> None
+    def load_state_dict(self, state: Dict) -> None:
         if state is None:
             return
         for k, v in (
@@ -143,6 +133,5 @@ class Experiment(object):
                 v.load_state_dict(state[k])
 
     @staticmethod
-    def get_model_state_dict(state):
-        # type: (dict) -> dict
+    def get_model_state_dict(state: Dict) -> Dict:
         return Engine.get_model_state_dict(state["tr_engine"])

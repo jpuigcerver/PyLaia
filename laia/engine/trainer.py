@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
-from typing import Callable, Union, Iterable, Optional
+from typing import Callable, Union, Iterable, Optional, Any, Dict
 
 import torch
 
 import laia.common.logging as log
+from laia.common.types import Loss as LossT
 from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
 from laia.hooks import Hook, action
 from laia.losses.loss import Loss
@@ -14,7 +13,7 @@ _logger = log.get_logger(__name__)
 
 
 class Trainer(Engine):
-    r"""Wrapper class to train a model.
+    """Wrapper class to train a model.
 
     See :class:`laia.engine.Engine` for more information.
 
@@ -41,18 +40,17 @@ class Trainer(Engine):
 
     def __init__(
         self,
-        model,  # type: torch.nn.Module
-        criterion,  # type: Optional[Callable]
-        optimizer,  # type: torch.optim.Optimizer
-        data_loader=None,  # type: Optional[Iterable]
-        batch_input_fn=None,  # type: Optional[Callable]
-        batch_target_fn=None,  # type: Optional[Callable]
-        batch_id_fn=None,  # type: Optional[Callable]
-        progress_bar=None,  # type: Optional[Union[bool, str]]
-        iterations_per_update=1,  # type: int
-    ):
-        # type: (...) -> None
-        super(Trainer, self).__init__(
+        model: torch.nn.Module,
+        criterion: Optional[Callable],
+        optimizer: torch.optim.Optimizer,
+        data_loader: Optional[Iterable] = None,
+        batch_input_fn: Optional[Callable] = None,
+        batch_target_fn: Optional[Callable] = None,
+        batch_id_fn: Optional[Callable] = None,
+        progress_bar: Optional[Union[bool, str]] = None,
+        iterations_per_update: int = 1,
+    ) -> None:
+        super().__init__(
             model=model,
             data_loader=data_loader,
             batch_input_fn=batch_input_fn,
@@ -90,7 +88,7 @@ class Trainer(Engine):
         return self._iterations_per_update
 
     @iterations_per_update.setter
-    def iterations_per_update(self, num):
+    def iterations_per_update(self, num: Optional[int]) -> None:
         if num is None:
             self._iterations_per_update = 1
         else:
@@ -98,8 +96,13 @@ class Trainer(Engine):
             assert num > 0
             self._iterations_per_update = num
 
-    def add_evaluator(self, evaluator, when=EPOCH_END, condition=None):
-        r"""Add an evaluator to run at the end of each epoch."""
+    def add_evaluator(
+        self,
+        evaluator: Optional[Engine],
+        when: str = EPOCH_END,
+        condition: Callable[[Any], bool] = None,
+    ):
+        """Add an evaluator to run at the end of each epoch."""
         if evaluator is not None:
             self.add_hook(
                 when,
@@ -111,7 +114,7 @@ class Trainer(Engine):
 
     @action
     def run(self):
-        r"""Run training """
+        """Run training """
         assert callable(
             self._batch_input_fn
         ), "batch_input_fn (type: {!r}) is not callable".format(
@@ -126,7 +129,7 @@ class Trainer(Engine):
             self._run_epoch()
         return self
 
-    def _run_iteration(self, batch_n, batch):
+    def _run_iteration(self, batch_n: int, batch: Any) -> None:
         batch_input, batch_target = self._prepare_input_and_target(batch)
 
         action_kwargs = {
@@ -177,7 +180,9 @@ class Trainer(Engine):
             iteration=self._iterations,
         )
 
-        batch_loss = self.compute_loss(batch, batch_output, batch_target)
+        batch_loss = self.compute_loss(
+            batch, batch_output, batch_target
+        )  # type: torch.FloatTensor
         if batch_loss is None:
             return
 
@@ -214,9 +219,9 @@ class Trainer(Engine):
         action_kwargs["batch_loss"] = batch_loss.item()
         self._call_hooks(ITER_END, **action_kwargs)
 
-    def compute_loss(self, batch, batch_output, batch_target):
+    def compute_loss(self, batch: Any, batch_output: Any, batch_target: Any) -> LossT:
         with self.exception_catcher(batch):
-            kwargs = {}
+            kwargs = {}  # type: Dict
             if isinstance(self._criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
             loss = self._criterion(batch_output, batch_target, **kwargs)
@@ -227,13 +232,13 @@ class Trainer(Engine):
                     raise ValueError("The loss is +/-Inf")
             return loss
 
-    def state_dict(self):
-        state = super(Trainer, self).state_dict()
+    def state_dict(self) -> Dict:
+        state = super().state_dict()
         state["optimizer"] = self._optimizer.state_dict()
         state["updates"] = self._updates
         return state
 
-    def load_state_dict(self, state):
-        super(Trainer, self).load_state_dict(state)
+    def load_state_dict(self, state: Dict) -> None:
+        super().load_state_dict(state)
         self._optimizer.load_state_dict(state["optimizer"])
         self._updates = state["updates"]

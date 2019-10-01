@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import unittest
 
 import torch
@@ -69,7 +66,7 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         expected_dx[0, 0, 2, 1] = 1
 
         # Check output and gradient w.r.t input
-        torch.testing.assert_allclose(y, torch.tensor([[20., 18., 20.]]))
+        torch.testing.assert_allclose(y, torch.tensor([[20.0, 18.0, 20.0]]))
         torch.testing.assert_allclose(dx, expected_dx)
 
     @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")

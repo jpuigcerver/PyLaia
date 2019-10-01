@@ -1,13 +1,6 @@
-from __future__ import absolute_import
-
 import unittest
 
-from torch._six import raise_from, PY2
-
 from laia.engine.engine_exception import EngineException
-
-if PY2:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class EngineExceptionTest(unittest.TestCase):
@@ -29,11 +22,11 @@ class EngineExceptionTest(unittest.TestCase):
             try:
                 f1()
             except TypeError as exc:
-                raise_from(
-                    EngineException(epoch=1, iteration=2, batch="Batch", cause=exc), exc
-                )
+                raise EngineException(
+                    epoch=1, iteration=2, batch="Batch", cause=exc
+                ) from exc
 
-        self.assertRaisesRegex(EngineException, '^Exception "TypeError\(.*$', f2)
+        self.assertRaisesRegex(EngineException, r'^Exception "TypeError\(.*$', f2)
 
 
 if __name__ == "__main__":

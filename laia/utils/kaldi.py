@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import io
 import numpy as np
 import sys
@@ -8,9 +6,8 @@ import torch
 from typing import Iterable, Tuple, Union
 
 
-def write_binary_matrix(f, mat):
+def write_binary_matrix(f: io.IOBase, mat: Union[torch.Tensor, np.ndarray]) -> None:
     """Write a matrix in Kaldi's binary format into a file-like object."""
-    # type: (io.IOBase, Union[torch.Tensor, np.ndarray]) -> None
     if isinstance(mat, torch.Tensor):
         assert mat.dim() == 2, "Input tensor must have 2 dimensions"
         # TODO(jpuigcerver): Avoid conversion to numpy.
@@ -34,9 +31,10 @@ def write_binary_matrix(f, mat):
     f.write(mat.tobytes())
 
 
-def write_text_lattice(f, mat, digits=8):
+def write_text_lattice(
+    f: io.IOBase, mat: Union[torch.Tensor, np.ndarray], digits: int = 8
+) -> None:
     """Write a matrix as a CTC lattice in Kaldi's text format into a file-like object."""
-    # type: (io.IOBase, Union[torch.Tensor, np.ndarray]) -> None
     if isinstance(mat, torch.Tensor):
         assert mat.dim() == 2, "Input tensor must have 2 dimensions"
         mat = mat.detach().numpy()
@@ -59,13 +57,12 @@ def write_text_lattice(f, mat, digits=8):
     )
 
 
-class ArchiveMatrixWriter(object):
+class ArchiveMatrixWriter:
     """Class to write a Kaldi's archive file containing binary matrixes."""
 
-    def __init__(self, f):
-        # type: (Union[io.IOBase, str]) -> None
+    def __init__(self, f: Union[io.IOBase, str]) -> None:
         if isinstance(f, str):
-            self._file = io.open(f, "wb")
+            self._file = open(f, "wb")
             self._owns_file = True
         else:
             self._file = f
@@ -75,38 +72,39 @@ class ArchiveMatrixWriter(object):
         if self._owns_file:
             self._file.close()
 
-    def write(self, key, matrix):
+    def write(self, key: str, matrix: Union[torch.Tensor, np.ndarray]) -> None:
         """Write a matrix with the given key to the archive.
 
         Args:
           key: the key for the given matrix.
           matrix: the matrix to write.
         """
-        # type: (str, Union[torch.Tensor, np.ndarray]) -> None
         if not isinstance(key, str):
             raise ValueError("Key %r is not a string" % repr(key))
         self._file.write(("%s " % key).encode("utf-8"))
         self._file.write(b"\x00B")
         write_binary_matrix(self._file, matrix)
 
-    def write_iterable(self, iterable):
+    def write_iterable(
+        self, iterable: Iterable[Tuple[str, Union[torch.Tensor, np.ndarray]]]
+    ) -> None:
         """Write a collection of matrixes to the archive from an iterable.
 
         Args:
           iterable: iterable containing pairs of (key, matrix).
         """
-        # type: Iterable[Tuple[str, Union[torch.Tensor, np.ndarray]]]) -> None
         for key, mat in iterable:
             self.write(key, mat)
 
 
-class ArchiveLatticeWriter(object):
+class ArchiveLatticeWriter:
     """Class to write a Kaldi's archive file containing text lattices."""
 
-    def __init__(self, f, digits=8, negate=False):
-        # type: (Union[io.IOBase, str], int) -> None
+    def __init__(
+        self, f: Union[io.IOBase, str], digits: int = 8, negate: bool = False
+    ) -> None:
         if isinstance(f, str):
-            self._file = io.open(f, "w")
+            self._file = open(f, "w")
             self._owns_file = True
         else:
             self._file = f
@@ -119,14 +117,13 @@ class ArchiveLatticeWriter(object):
         if self._owns_file:
             self._file.close()
 
-    def write(self, key, matrix):
+    def write(self, key: str, matrix: Union[torch.Tensor, np.ndarray]) -> None:
         """Write a matrix with the given key to the archive.
 
         Args:
           key: the key for the given matrix.
           matrix: the matrix to write.
         """
-        # type: (str, Union[torch.Tensor, np.ndarray]) -> None
         if not isinstance(key, str):
             raise ValueError("Key %r is not a string" % repr(key))
         self._file.write("{}\n".format(key))
@@ -134,12 +131,13 @@ class ArchiveLatticeWriter(object):
             matrix = -matrix
         write_text_lattice(self._file, matrix, digits=self._digits)
 
-    def write_iterable(self, iterable):
+    def write_iterable(
+        self, iterable: Iterable[Tuple[str, Union[torch.Tensor, np.ndarray]]]
+    ) -> None:
         """Write a collection of matrixes to the archive from an iterable.
 
         Args:
           iterable: iterable containing pairs of (key, matrix).
         """
-        # type: Iterable[Tuple[str, Union[torch.Tensor, np.ndarray]]]) -> None
         for key, mat in iterable:
             self.write(key, mat)

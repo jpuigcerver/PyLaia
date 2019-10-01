@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import warnings
 from typing import Union, Sequence
 
@@ -44,15 +42,15 @@ def _adaptive_maxpool_2d(batch_input, output_sizes, batch_sizes, use_nnutils):
 
 
 class TemporalPyramidMaxPool2d(torch.nn.Module):
-    def __init__(self, levels, vertical=False, use_nnutils=True):
-        # type: (Sequence[int], bool, bool) -> None
-        super(TemporalPyramidMaxPool2d, self).__init__()
+    def __init__(
+        self, levels: Sequence[int], vertical: bool = False, use_nnutils: bool = True
+    ) -> None:
+        super().__init__()
         self._levels = levels
         self._vertical = vertical
         self._use_nnutils = use_nnutils
 
-    def forward(self, x):
-        # type: (Union[torch.Tensor, PaddedTensor]) -> torch.Tensor
+    def forward(self, x: Union[torch.Tensor, PaddedTensor]) -> torch.Tensor:
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
         else:

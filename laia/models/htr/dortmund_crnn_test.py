@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 
 import torch
@@ -39,7 +37,7 @@ if nnutils_installed:
     }
     tests = []
     for name, kwargs in ("default", {}), ("no_dropout", {"dropout": 0}):
-        test_dict["module_kwargs"] = dict(num_outputs=36, **kwargs)
+        test_dict["module_kwargs"] = {"num_outputs": 36, **kwargs}  # type: ignore
         tests.append(("backprop_{{}}_{{}}_{}".format(name), test_dict))
     generate_backprop_floating_point_tests(DortmundCRNNTest, tests=tests)
 
