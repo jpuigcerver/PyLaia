@@ -188,7 +188,6 @@ class CTCLossTest(unittest.TestCase):
             average_frames=average_frames,
             implementation=implementation,
         )
-        # TODO: Fix gradcheck
         gradcheck(lambda x: ctc(x, y), (x,))
         ctc_logger.setLevel(prev_level)
 
