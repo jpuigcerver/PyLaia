@@ -7,13 +7,13 @@ SDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 [ "$(pwd)/src" != "$SDIR" ] && \
     echo "Please, run this script from the experiment top directory!" >&2 && \
     exit 1;
-[ ! -f "$(pwd)/src/parse_options.inc.sh" ] && \
-    echo "Missing $(pwd)/src/parse_options.inc.sh file!" >&2 && exit 1;
 
 batch_size=10;
 gpu=1;
 checkpoint="experiment.ckpt.lowest-valid-cer*";
 fixed_height=true;
+lang=puigcerver;
+exper_path=exper/puigcerver17/train;
 help_message="
 Usage: ${0##*/} [options]
 
@@ -28,7 +28,7 @@ Options:
   --fixed_height : (type = boolean, default = $fixed_height)
                    Use a fixed height model.
 ";
-source "$(pwd)/src/parse_options.inc.sh" || exit 1;
+source "../utils/parse_options.inc.sh" || exit 1;
 [ $# -ne 0 ] && echo "$help_message" >&2 && exit 1;
 
 if [ $gpu -gt 0 ]; then
@@ -36,7 +36,7 @@ if [ $gpu -gt 0 ]; then
   gpu=1;
 fi;
 
-for f in data/lang/lines/{char,word}/aachen/{te,va}.txt train/{syms.txt,model}; do
+for f in data/lang/"$lang"/lines/{char,word}/{te,va}.txt "$exper_path"/{syms_ctc.txt,model}; do
   [ ! -s "$f" ] && echo "ERROR: File \"$f\" does not exist!" >&2 && exit 1;
 done;
 
@@ -45,21 +45,21 @@ if which compute-wer-bootci &> /dev/null; then hasComputeWer=1; fi;
 [ $hasComputeWer -ne 0 ] ||
 echo "WARNING: compute-wer-bootci was not found, so CER/WER won't be computed!" >&2;
 
-mkdir -p decode/{forms,lines}/{char,word}/aachen;
+mkdir -p decode/{forms,lines}/{char,word};
 
 for p in va te; do
-  lines_char="decode/lines/char/aachen/${p}.txt";
-  lines_word="decode/lines/word/aachen/${p}.txt";
-  forms_char="decode/forms/char/aachen/${p}.txt";
-  forms_word="decode/forms/word/aachen/${p}.txt";
-  imgs_list="data/lists/lines/aachen/${p}.lst";
+  lines_char="decode/lines/char/${p}.txt";
+  lines_word="decode/lines/word/${p}.txt";
+  forms_char="decode/forms/char/${p}.txt";
+  forms_word="decode/forms/word/${p}.txt";
+  imgs_list="data/splits/$lang/${p}.lst";
 
   # Decode lines
   pylaia-htr-decode-ctc \
-    train/syms.txt \
+    "$exper_path"/syms_ctc.txt \
     data/imgs/lines_h128 \
     "$imgs_list" \
-    --train_path train \
+    --train_path $exper_path \
     --join_str=" " \
     --gpu $gpu \
     --batch_size $batch_size \
@@ -117,8 +117,8 @@ if [ $hasComputeWer -eq 1 ]; then
       for k in va te; do
         # Compute CER and WER using Kaldi's compute-wer-bootci
         compute-wer-bootci --print-args=false\
-          "ark:data/lang/${i}/${j}/aachen/${k}.txt" \
-          "ark:decode/${i}/${j}/aachen/${k}.txt" | \
+          "ark:data/lang/$lang/${i}/${j}/${k}.txt" \
+          "ark:decode/${i}/${j}/${k}.txt" | \
         awk -v i=$i -v j=$j -v k=$k '{ $1=""; $2=":"; print i"/"j"/"k$0}' | \
         tee -a decode/decode.out;
       done;

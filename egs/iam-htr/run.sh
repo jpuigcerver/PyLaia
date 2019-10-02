@@ -36,4 +36,4 @@ export PATH="$PWD/../..:$PATH";
 ./src/train_puigcerver17.sh;
 
 # Step 5. Decode using only the neural network.
-#./src/decode_net.sh;
+./src/decode_net.sh;
