@@ -9,13 +9,13 @@ import torch
 import torch.nn.functional as functional
 
 import laia.common.logging as log
+import laia.data.transforms as transforms
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.loader import ModelLoader, CheckpointLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments import Experiment
 from laia.losses.ctc_loss import transform_output
-from laia.utils import ImageToTensor
 from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
@@ -98,7 +98,9 @@ if __name__ == "__main__":
     model.eval()
 
     dataset = ImageFromListDataset(
-        args.img_list, img_dirs=args.img_dirs, img_transform=ImageToTensor()
+        args.img_list,
+        img_dirs=args.img_dirs,
+        img_transform=transforms.vision.ToImageTensor(),
     )
     dataset_loader = ImageDataLoader(
         dataset=dataset, image_channels=1, batch_size=args.batch_size, num_workers=8
