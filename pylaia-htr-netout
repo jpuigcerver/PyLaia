@@ -21,64 +21,6 @@ from laia.losses.ctc_loss import transform_output
 from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
-def output_matrix(
-    img_id,  # type: str
-    output,  # type: torch.Tensor
-    output_size,  # type: int
-    add_boundary_ctc_blank=False,  # type: bool
-    digits=10,  # type: int
-):
-    # type: (...) -> str
-    output = output.cpu()
-    matrix = "{} [\n".format(img_id)
-
-    def boundary_blank(cols):
-        # type: (int) -> str
-        matrix = "0 "
-        matrix += " ".join(["-1e+30"] * (cols - 1))
-        return matrix + "\n"
-
-    boundary = boundary_blank(output.size(1)) if add_boundary_ctc_blank else ""
-    matrix += boundary
-    matrix += (
-        "\n".join(
-            " ".join(
-                "{:.{digits}}".format(float(output[row, col]), digits=digits)
-                for col in range(output.size(1))
-            )
-            for row in range(output_size)
-        )
-        + "\n"
-    )
-    matrix += boundary
-    matrix += "]\n"
-    return matrix
-
-
-def output_lattice(
-    img_id,  # type: str
-    output,  # type: torch.Tensor
-    output_size,  # type: int
-    digits=10,  # type: int
-    **_  # type: **Any
-):
-    # type: (...) -> str
-    output = output.cpu()
-    matrix = "{}\n".format(img_id)
-    matrix += (
-        "\n".join(
-            "{:d}\t{:d}\t{:d}\t0,{:.{digits}},{:d}".format(
-                row, row + 1, col + 1, -float(output[row, col]), col + 1, digits=digits
-            )
-            for row in range(output_size)
-            for col in range(output.size(1))
-        )
-        + "\n"
-    )
-    matrix += "{:d}\t0,0,\n".format(output_size)
-    return matrix
-
-
 if __name__ == "__main__":
     add_defaults(
         "batch_size", "gpu", "train_path", "show_progress_bar", logging_level="WARNING"
