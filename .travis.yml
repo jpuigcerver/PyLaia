@@ -15,6 +15,7 @@ env:
   matrix:
     - PYTORCH_REQUIREMENTS="requirements_pytorch_1.1.0.txt"
     - PYTORCH_REQUIREMENTS="requirements_pytorch_1.2.0.txt"
+    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.4.0.txt"
     - PYTORCH_REQUIREMENTS=""
 
 before_install:
