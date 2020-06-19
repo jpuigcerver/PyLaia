@@ -2,12 +2,12 @@ editdistance
 future
 mock;python_version<"3.0"
 natsort
-nnutils-pytorch>=0.3.0
+nnutils-pytorch>=0.7.0
 numpy
 parameterized
 Pillow>=5.2
 scipy
-torch>=1.1.0
-torchvision>=0.2.2
+torch>=1.5.0
+torchvision>=0.6.0
 tqdm
 typing;python_version<"3.5"
