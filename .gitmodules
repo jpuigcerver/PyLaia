@@ -1,3 +1,0 @@
-[submodule "egs/icdar2015kws/src/htrsh"]
-	path = egs/icdar2015kws/src/htrsh
-	url = https://github.com/mauvilsa/htrsh.git

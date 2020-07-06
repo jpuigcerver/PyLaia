@@ -8,10 +8,7 @@ PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized
 for handwritten document analysis. It is also a successor to
 [Laia](https://github.com/jpuigcerver/Laia).
 
-> **Disclaimer**: The easiest way to learn to use PyLaia is to follow the
-> [IAM example for HTR](egs/iam-htr). Apologies for not having a better
-> documentation at this moment, I will keep improving it and adding other
-> examples.
+Several examples of its use are provided at [PyLaia-examples](https://github.com/carmocca/PyLaia-examples).
 
 ## Installation
 
