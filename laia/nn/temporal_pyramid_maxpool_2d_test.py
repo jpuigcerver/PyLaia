@@ -19,7 +19,7 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         layer = TemporalPyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
         y = layer(x)
         self.assertEqual((3, 5 * (1 + 2)), y.size())
-        dx, = torch.autograd.grad([torch.sum(y)], [x])
+        (dx,) = torch.autograd.grad([torch.sum(y)], [x])
 
         # Check gradient w.r.t. x
         _, i1 = x.view(3, 5, 7 * 8).max(dim=2)
@@ -58,7 +58,7 @@ class TemporalPyramidMaxPool2dTest(unittest.TestCase):
         )
         layer = TemporalPyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
         y = layer(PaddedTensor(x, torch.tensor([[3, 4]])))
-        dx, = torch.autograd.grad([torch.sum(y)], [x])
+        (dx,) = torch.autograd.grad([torch.sum(y)], [x])
 
         # Expected gradient w.r.t. inputs
         expected_dx = torch.zeros(1, 1, 4, 8)

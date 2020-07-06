@@ -52,7 +52,7 @@ def _generate_gradcheck_test(sequencer, fn, poolsize, columnwise, x, xs):
         ).to(x.device)
         x.requires_grad_()
         y = m(PaddedTensor(x, xs))
-        dx1, = torch.autograd.grad(y.data.sum(), (x,))
+        (dx1,) = torch.autograd.grad(y.data.sum(), (x,))
 
         for i, (xk, xsk) in enumerate(zip(x, xs.tolist())):
             xk = xk[:, : xsk[0], : xsk[1]].unsqueeze(0).to(x.device)
@@ -60,7 +60,7 @@ def _generate_gradcheck_test(sequencer, fn, poolsize, columnwise, x, xs):
             yk = fn(
                 xk, output_size=(poolsize, xsk[1]) if columnwise else (xsk[0], poolsize)
             )
-            dxk, = torch.autograd.grad(yk.sum(), (xk,))
+            (dxk,) = torch.autograd.grad(yk.sum(), (xk,))
             torch.testing.assert_allclose(dxk, (dx1[i, :, : xsk[0], : xsk[1]]))
 
     return _test

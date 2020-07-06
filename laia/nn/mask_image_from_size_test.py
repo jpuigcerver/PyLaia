@@ -17,7 +17,7 @@ class MaskImageFromSizeTest(unittest.TestCase):
         layer = MaskImageFromSize(mask_value=-99)
         y = layer(x)
         torch.testing.assert_allclose(y, x)
-        dx, = torch.autograd.grad([torch.sum(y)], [x])
+        (dx,) = torch.autograd.grad([torch.sum(y)], [x])
         torch.testing.assert_allclose(dx, torch.ones(3, 5, 7, 9))
 
     def test_padded_tensor(self):
@@ -37,7 +37,7 @@ class MaskImageFromSizeTest(unittest.TestCase):
         # Test backward pass (mask with 0, so that we can sum without masking)
         layer = MaskImageFromSize(mask_value=0)
         y = layer(PaddedTensor(x, xs))
-        dx, = torch.autograd.grad([torch.sum(y.data)], [x])
+        (dx,) = torch.autograd.grad([torch.sum(y.data)], [x])
         # Expected output
         expected_dx = torch.ones(3, 5, 7, 9)
         expected_dx[0, :, 1:, :] = 0

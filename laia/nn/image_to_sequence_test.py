@@ -26,7 +26,7 @@ class ImageToSequenceTest(unittest.TestCase):
         )
         m = ImageToSequence(columnwise=True)
         y = m(x)
-        dx, = torch.autograd.grad([y.sum()], [x])
+        (dx,) = torch.autograd.grad([y.sum()], [x])
         torch.testing.assert_allclose(dx, torch.ones(4, 3))
 
     def test_forward_with_size(self):
@@ -51,7 +51,7 @@ class ImageToSequenceTest(unittest.TestCase):
         xs = torch.tensor([[2, 3], [2, 2]])
         m = ImageToSequence(columnwise=True)
         y, ys = m(PaddedTensor(x, xs))
-        dx, = torch.autograd.grad(
+        (dx,) = torch.autograd.grad(
             [y[0, :, :].sum() + y[1, :, :].sum() + y[2, 0, :].sum()], [x]
         )
         expected_dx = torch.tensor(
@@ -75,7 +75,7 @@ class ImageToSequenceTest(unittest.TestCase):
         torch.testing.assert_allclose(y.data, expected_y)
         self.assertTrue(torch.equal(torch.tensor([2, 2, 1]), y.batch_sizes))
         # Test backward pass
-        dx, = torch.autograd.grad([y.data.sum()], [x])
+        (dx,) = torch.autograd.grad([y.data.sum()], [x])
         expected_dx = torch.tensor(
             [[[[1, 1, 1], [1, 1, 1]]], [[[1, 1, 0], [1, 1, 0]]]], dtype=torch.float
         )

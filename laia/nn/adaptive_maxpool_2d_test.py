@@ -70,7 +70,7 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
         x = torch.randn(2, 3, h, w, requires_grad=True)
         y = m(x)
         torch.testing.assert_allclose(y, x)
-        dx, = torch.autograd.grad(y.sum(), inputs=x)
+        (dx,) = torch.autograd.grad(y.sum(), inputs=x)
         torch.testing.assert_allclose(dx, torch.ones(2, 3, h, w))
 
     def test_forward_tensor(self):
