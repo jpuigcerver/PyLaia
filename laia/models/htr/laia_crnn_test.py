@@ -52,7 +52,7 @@ class LaiaCRNNTest(unittest.TestCase):
         # Check number of parameters
         self.assertEqual(2421982, sum(p.numel() for p in m.parameters()))
         # Check gradient
-        dx, = torch.autograd.grad([y.sum()], [x])
+        (dx,) = torch.autograd.grad([y.sum()], [x])
         self.assertNotAlmostEqual(0.0, torch.sum(dx).item())
 
     @unittest.skipIf(not nnutils_installed, "nnutils does not seem installed")
@@ -90,7 +90,7 @@ class LaiaCRNNTest(unittest.TestCase):
         # Check number of parameters
         self.assertEqual(2421982, sum(p.numel() for p in m.parameters()))
         # Check gradient
-        dx, = torch.autograd.grad([y.sum()], [x])
+        (dx,) = torch.autograd.grad([y.sum()], [x])
         self.assertNotAlmostEqual(0.0, torch.sum(dx).item())
 
 
