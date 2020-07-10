@@ -11,7 +11,7 @@ from torch.optim import RMSprop
 import laia.common.logging as log
 import laia.data.transforms as transforms
 from laia.common.arguments import add_argument, args, add_defaults
-from laia.common.arguments_types import NumberInClosedRange, str2bool
+from laia.common.arguments_types import NumberInClosedRange
 from laia.common.loader import ModelLoader, StateCheckpointLoader
 from laia.common.random import manual_seed
 from laia.common.saver import (
@@ -27,12 +27,6 @@ from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
 from laia.hooks import Hook, HookList, action, Action
-from laia.losses.ctc_loss import (
-    CTCLossImpl,
-    get_default_add_logsoftmax,
-    set_default_add_logsoftmax,
-    set_default_implementation,
-)
 from laia.utils import SymbolsTable
 
 
@@ -100,32 +94,11 @@ if __name__ == "__main__":
         default="ckpt.lowest-valid-cer*",
         help="Suffix of the checkpoint to use, can be a glob pattern.",
     )
-    add_argument(
-        "--use_baidu_ctc",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="If true, use Baidu's implementation of the CTC loss.",
-    )
-    add_argument(
-        "--add_logsoftmax_to_loss",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=get_default_add_logsoftmax(),
-        help="If true, add a logsoftmax operation before the CTC loss to normalize the activations.",
-    )
     args = args()
 
     manual_seed(args.seed)
     syms = SymbolsTable(args.syms)
     device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
-
-    # Set the default options for the CTCLoss.
-    set_default_add_logsoftmax(args.add_logsoftmax_to_loss)
-    if args.use_baidu_ctc:
-        set_default_implementation(CTCLossImpl.BAIDU)
 
     model = ModelLoader(
         args.train_path, filename=args.model_filename, device=device
