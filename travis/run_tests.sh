@@ -13,5 +13,5 @@ readarray -t TEST_MODULES < <(find laia -name "*_test.py" |
 # Move to a different directory to execute the tests.
 tmpdir=$(mktemp -d);
 cd $tmpdir;
-echo "${TEST_MODULES[@]}" | xargs -n1 python -m unittest;
+echo "${TEST_MODULES[@]}" | xargs -n1 python3 -m unittest;
 rm -r $tmpdir;
