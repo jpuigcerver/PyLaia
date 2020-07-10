@@ -1,7 +1,7 @@
 # PyLaia
 
 [![Build Status](https://travis-ci.com/jpuigcerver/PyLaia.svg?token=HF64eTvPxEUcjjUPXpgm&branch=master)](https://travis-ci.com/jpuigcerver/PyLaia)
-[![Python Version](https://img.shields.io/badge/python-3.5%2C%203.6%2C%203.7-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized
