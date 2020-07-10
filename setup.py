@@ -96,7 +96,7 @@ setuptools.setup(
     url="https://github.com/jpuigcerver/PyLaia",
     # Requirements
     install_requires=get_requirements(),
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     # Package contents
     packages=setuptools.find_packages(),
     scripts=get_scripts(),
