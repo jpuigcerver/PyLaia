@@ -80,9 +80,7 @@ class CTCLossTest(unittest.TestCase):
         labels = [[1], [2], [3]]
         self.assertRaises(AssertionError, get_valids_and_errors, act_lens, labels)
 
-    def _run_test_forward(
-        self, dtype, device, reduction, average_frames
-    ):
+    def _run_test_forward(self, dtype, device, reduction, average_frames):
         # Size: T x N x 3
         x = log_softmax(
             torch.tensor(
@@ -118,10 +116,7 @@ class CTCLossTest(unittest.TestCase):
             device=device,
         )
         paths2 = x[0, 2, 1] + x[1, 2, 2] + x[2, 2, 0] + x[3, 2, 2]
-        ctc = CTCLoss(
-            reduction=reduction,
-            average_frames=average_frames,
-        )
+        ctc = CTCLoss(reduction=reduction, average_frames=average_frames,)
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
         expected = torch.stack([-torch.logsumexp(paths0, dim=0), -paths2])
         if average_frames:
@@ -132,9 +127,7 @@ class CTCLossTest(unittest.TestCase):
             expected = torch.mean(expected)
         torch.testing.assert_allclose(expected.cpu(), loss.cpu())
 
-    def _run_test_backward(
-        self, dtype, device, reduction, average_frames
-    ):
+    def _run_test_backward(self, dtype, device, reduction, average_frames):
         ctc_logger = log.get_logger("laia.losses.ctc_loss")
         prev_level = ctc_logger.getEffectiveLevel()
         ctc_logger.setLevel(log.ERROR)
@@ -151,27 +144,17 @@ class CTCLossTest(unittest.TestCase):
             requires_grad=True,
         )
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
-        ctc = CTCLoss(
-            reduction=reduction,
-            average_frames=average_frames,
-        )
+        ctc = CTCLoss(reduction=reduction, average_frames=average_frames,)
         gradcheck(lambda x: ctc(x, y), (x,))
         ctc_logger.setLevel(prev_level)
 
 
-def _generate_test(
-    test_name, method, dtype, device, reduction, average_frames
-):
+def _generate_test(test_name, method, dtype, device, reduction, average_frames):
     avg_str = "avg_frames" if average_frames else "no_avg_frames"
     setattr(
         CTCLossTest,
-        test_name
-        + "_{}_{}_{}_{}".format(
-            avg_str, reduction, device, str(dtype)[6:]
-        ),
-        lambda self: getattr(self, method)(
-            implementation, dtype, device, reduction, average_frames
-        ),
+        test_name + "_{}_{}_{}_{}".format(avg_str, reduction, device, str(dtype)[6:]),
+        lambda self: getattr(self, method)(dtype, device, reduction, average_frames),
     )
 
 
@@ -183,22 +166,12 @@ for dtype, device, avg_frames, reduction in itertools.product(
     dtypes, devices, average_frames, reductions
 ):
     _generate_test(
-        "test_forward",
-        "_run_test_forward",
-        dtype,
-        device,
-        reduction,
-        avg_frames,
+        "test_forward", "_run_test_forward", dtype, device, reduction, avg_frames,
     )
     # Check gradients only for double
     if dtype == torch.double:
         _generate_test(
-            "test_backward",
-            "_run_test_backward",
-            dtype,
-            device,
-            reduction,
-            avg_frames,
+            "test_backward", "_run_test_backward", dtype, device, reduction, avg_frames,
         )
 
 

@@ -1,4 +1,3 @@
-from collections import Sequence
 from typing import Callable, Optional, List, Dict
 
 import laia

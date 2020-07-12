@@ -256,14 +256,12 @@ class ResnetConv(nn.Module):
         return self._options
 
     def _make_layer(self, block, planes, blocks, stride, groups, norm_layer):
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, groups, norm_layer))
+        layers = [block(self.inplanes, planes, stride, groups, norm_layer)]
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(
                 block(self.inplanes, planes, groups=groups, norm_layer=norm_layer)
             )
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
