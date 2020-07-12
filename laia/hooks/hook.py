@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Any, Dict, Union
+from typing import Callable, Any, Dict, Union
 
 
 class Hook:

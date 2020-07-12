@@ -150,10 +150,7 @@ class CTCLoss(Loss):
     """
 
     def __init__(
-        self,
-        reduction="mean",
-        average_frames=False,
-        blank=0,
+        self, reduction="mean", average_frames=False, blank=0,
     ):
         super().__init__()
         self._reduction = reduction
@@ -250,6 +247,4 @@ class CTCLoss(Loss):
         elif self._reduction == "sum":
             return losses.sum()
         else:
-            raise ValueError(
-                "Reduction {!r} not supported!".format(self._reduction)
-            )
+            raise ValueError("Reduction {!r} not supported!".format(self._reduction))

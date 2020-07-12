@@ -1,7 +1,7 @@
 import io
-import numpy as np
-import torch
 import unittest
+
+import torch
 
 from laia.utils import kaldi
 

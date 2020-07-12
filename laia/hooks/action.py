@@ -1,6 +1,6 @@
 from functools import wraps
 from inspect import getfullargspec
-from typing import Callable, Any, Tuple
+from typing import Callable, Any
 
 
 def action(func):

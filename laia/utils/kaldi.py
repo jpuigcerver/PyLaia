@@ -1,9 +1,9 @@
 import io
-import numpy as np
 import sys
-import torch
-
 from typing import Iterable, Tuple, Union
+
+import numpy as np
+import torch
 
 
 def write_binary_matrix(f: io.IOBase, mat: Union[torch.Tensor, np.ndarray]) -> None:

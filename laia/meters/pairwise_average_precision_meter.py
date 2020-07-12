@@ -1,6 +1,7 @@
+from itertools import accumulate
+
 import numpy as np
 from scipy.spatial.distance import pdist
-from itertools import accumulate
 
 import laia.common.logging as log
 from laia.meters.meter import Meter

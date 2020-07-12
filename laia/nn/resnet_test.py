@@ -1,10 +1,11 @@
+import unittest
+
 import numpy as np
 import parameterized
 import torch
-import unittest
 
-from laia.data import PaddedTensor
 import laia.nn.resnet as resnet
+from laia.data import PaddedTensor
 
 
 class BasicBlockTest(unittest.TestCase):

@@ -4,12 +4,11 @@ from importlib import import_module
 from io import BytesIO
 from typing import Optional, Callable, Any, Union
 
+import natsort as ns
 import torch
 
 from laia.common.logging import get_logger
 from laia.common.random import set_rng_state
-import natsort as ns
-
 
 _logger = get_logger(__name__)
 

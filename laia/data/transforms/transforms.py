@@ -1,4 +1,4 @@
-from typing import Callable, Union, Tuple, Sequence, List
+from typing import Callable, Union, Tuple, Sequence
 
 import numpy as np
 import torchvision
