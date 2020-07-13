@@ -47,7 +47,7 @@ def _get_ids_and_images_from_img_list(img_list, img_dirs, img_extensions):
     ids, imgs = [], []
     for imgid in img_list:
         imgid = imgid.rstrip()
-        if img_dirs is None:
+        if not img_dirs:
             # If no img directory is specified, then img_list
             # must contain whole paths to the images
             fname = imgid
