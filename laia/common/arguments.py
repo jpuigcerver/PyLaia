@@ -55,15 +55,6 @@ _default_args = {
             "help": "Seed for random number generators",
         },
     ),
-    "final_fixed_height": (
-        ("--final_fixed_height",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "default": 20,
-            "help": "Final height for the pseudo-images after the convolutions "
-            "(must be >= 1)",
-        },
-    ),
     "max_epochs": (
         ("--max_epochs",),
         {
