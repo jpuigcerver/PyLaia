@@ -7,8 +7,6 @@ from torch.nn.functional import log_softmax
 
 import laia.common.logging as log
 from laia.losses.ctc_loss import (
-    copy_valid_indices,
-    set_zeros_in_errors,
     get_valids_and_errors,
     CTCLoss,
 )
@@ -17,57 +15,6 @@ log.basic_config()
 
 
 class CTCLossTest(unittest.TestCase):
-    def test_copy_valid_indices(self):
-        acts = torch.tensor(
-            [
-                [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                [[10, 11, 12], [13, 14, 15], [16, 17, 18]],
-                [[19, 20, 21], [22, 23, 24], [25, 26, 27]],
-            ]
-        )
-        labels, act_lens, valid_indices = [[1], [2], [3]], [1, 2, 3], [1]
-        acts, target, act_lens = copy_valid_indices(
-            acts, labels, act_lens, valid_indices
-        )
-        expected_acts = torch.tensor([[[4, 5, 6]], [[13, 14, 15]], [[22, 23, 24]]])
-        expected_target, expected_act_lens = [[2]], [2]
-        self.assertTrue(torch.equal(expected_acts, acts))
-        self.assertEqual(expected_target, target)
-        self.assertEqual(expected_act_lens, act_lens)
-
-    def test_copy_valid_indices_when_empty(self):
-        acts = torch.tensor(
-            [
-                [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                [[10, 11, 12], [13, 14, 15], [16, 17, 18]],
-                [[19, 20, 21], [22, 23, 24], [25, 26, 27]],
-            ]
-        )
-        labels, act_lens, valid_indices = [[1], [2], [3]], [1, 2, 3], []
-        output = copy_valid_indices(acts, labels, act_lens, valid_indices)
-        expected = None, [], [], []
-        self.assertEqual(expected, output)
-
-    def test_set_zeros_in_errors(self):
-        input = torch.tensor(
-            [
-                [[1, 2, 3], [7, 8, 9]],
-                [[10, 11, 12], [16, 17, 18]],
-                [[19, 20, 21], [25, 26, 27]],
-            ],
-            dtype=torch.float,
-        )
-        output = set_zeros_in_errors([3, 3, 3], input, [0, 2])
-        expected = torch.tensor(
-            [
-                [[1, 2, 3], [0, 0, 0], [7, 8, 9]],
-                [[10, 11, 12], [0, 0, 0], [16, 17, 18]],
-                [[19, 20, 21], [0, 0, 0], [25, 26, 27]],
-            ],
-            dtype=torch.float,
-        )
-        torch.testing.assert_allclose(output, expected)
-
     def test_get_valids_and_errors(self):
         act_lens = [4, 4, 4, 5]
         labels = [[1, 2, 3, 4], [1, 2, 3, 4, 5], [1, 2, 2, 3], [1, 2, 2, 3]]
@@ -116,7 +63,7 @@ class CTCLossTest(unittest.TestCase):
             device=device,
         )
         paths2 = x[0, 2, 1] + x[1, 2, 2] + x[2, 2, 0] + x[3, 2, 2]
-        ctc = CTCLoss(reduction=reduction, average_frames=average_frames,)
+        ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
         expected = torch.stack([-torch.logsumexp(paths0, dim=0), -paths2])
         if average_frames:
@@ -144,7 +91,7 @@ class CTCLossTest(unittest.TestCase):
             requires_grad=True,
         )
         y = [[1], [1, 1, 2, 1], [1, 2, 2]]
-        ctc = CTCLoss(reduction=reduction, average_frames=average_frames,)
+        ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
         gradcheck(lambda x: ctc(x, y), (x,))
         ctc_logger.setLevel(prev_level)
 
