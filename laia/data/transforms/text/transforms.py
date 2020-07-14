@@ -1,4 +1,4 @@
-from typing import Union, Dict
+from typing import Union, Dict, List
 
 from laia.utils.symbols_table import SymbolsTable
 
@@ -8,8 +8,11 @@ class ToTensor:
         assert isinstance(syms, (Dict, SymbolsTable))
         self._syms = syms
 
-    def __call__(self, x):
-        return [self._syms[c] for c in x]
+    def __call__(self, x: str) -> List[int]:
+        return [
+            self._syms.get(c, None) if isinstance(self._syms, Dict) else self._syms[c]
+            for c in x.split()
+        ]
 
     def __repr__(self) -> str:
         return "text.{}()".format(self.__class__.__name__)
