@@ -1,15 +1,23 @@
+from typing import List, Callable
+
 from laia.data.image_dataset import ImageDataset
 
 
 class TextImageDataset(ImageDataset):
-    def __init__(self, imgs, txts, img_transform=None, txt_transform=None):
+    def __init__(
+        self,
+        imgs: List[str],
+        txts: List[str],
+        img_transform: Callable = None,
+        txt_transform: Callable = None,
+    ):
         super().__init__(imgs, img_transform)
         assert isinstance(txts, (list, tuple))
         assert len(imgs) == len(txts)
         self._txts = txts
         self._txt_transform = txt_transform
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         """
         Returns an image and its transcript from the dataset.
         :param index: Index of the item to return.

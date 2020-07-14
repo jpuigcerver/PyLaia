@@ -1,5 +1,6 @@
 from os import listdir
 from os.path import isfile, join, splitext
+from typing import TextIO, Union, List, Sequence, Generator, Tuple, Callable
 
 import laia.common.logging as log
 from laia.data.text_image_dataset import TextImageDataset
@@ -12,12 +13,12 @@ _logger = log.get_logger(__name__)
 class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(
         self,
-        txt_table,
-        img_dirs,
-        img_transform=None,
-        txt_transform=None,
-        img_extensions=IMAGE_EXTENSIONS,
-        encoding="utf-8",
+        txt_table: str,
+        img_dirs: Union[List[str], str],
+        img_transform: Callable = None,
+        txt_transform: Callable = None,
+        img_extensions: Sequence[str] = IMAGE_EXTENSIONS,
+        encoding: str = "utf-8",
     ):
         if isinstance(img_dirs, str):
             img_dirs = [img_dirs]
@@ -29,7 +30,7 @@ class TextImageFromTextTableDataset(TextImageDataset):
         # Prepare dataset using the previous image filenames and transcripts.
         super().__init__(imgs, txts, img_transform, txt_transform)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         """Returns the ID of the example, the image and its transcript from
         the dataset.
 
@@ -45,18 +46,20 @@ class TextImageFromTextTableDataset(TextImageDataset):
         return out
 
 
-def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
+def _get_valid_image_filenames_from_dir(img_dir: str, img_extensions: Sequence[str]):
     img_extensions = set(img_extensions)
     valid_image_filenames = {}
-    for fname in listdir(imgs_dir):
+    for fname in listdir(img_dir):
         bname, ext = splitext(fname)
-        fname = join(imgs_dir, fname)
+        fname = join(img_dir, fname)
         if isfile(fname) and ext.lower() in img_extensions:
             valid_image_filenames[bname] = fname
     return valid_image_filenames
 
 
-def find_image_filename_from_id(imgid, img_dir, img_extensions):
+def find_image_filename_from_id(
+    imgid: str, img_dir: str, img_extensions: Sequence[str]
+):
     extensions = set(ext.lower() for ext in img_extensions)
     extensions.update(ext.upper() for ext in img_extensions)
     for ext in extensions:
@@ -66,20 +69,25 @@ def find_image_filename_from_id(imgid, img_dir, img_extensions):
     return None
 
 
-def _load_text_table_from_file(table_file, encoding="utf-8"):
+def _load_text_table_from_file(
+    table_file: Union[TextIO, str], encoding: str = "utf-8"
+) -> Generator[Tuple[int, str, str], None, None]:
     if isinstance(table_file, str):
         table_file = open(table_file, encoding=encoding)
-    for n, line in enumerate((l.split() for l in table_file), 1):
+    for n, line in enumerate((l.split(maxsplit=1) for l in table_file), 1):
         # Skip empty lines and lines starting with #
         if not len(line) or line[0].startswith("#"):
             continue
-        yield n, line[0], line[1:]
+        yield n, line[0], line[1]
     table_file.close()
 
 
 def _get_images_and_texts_from_text_table(
-    table_file, img_dirs, img_extensions, encoding="utf-8"
-):
+    table_file: Union[TextIO, str],
+    img_dirs: Sequence[str],
+    img_extensions: Sequence[str],
+    encoding="utf-8",
+) -> Tuple[List[str], List[str], List[str]]:
     assert len(img_dirs) > 0, "No image directory provided"
     ids, imgs, txts = [], [], []
     for _, imgid, txt in _load_text_table_from_file(table_file, encoding=encoding):
