@@ -26,6 +26,30 @@ class LaiaCRNNTest(unittest.TestCase):
         )
         self.assertEqual(ys, (30 // 8, 40 // 8))
 
+    def test_exception_on_small_inputs(self):
+        m = LaiaCRNN(
+            1,
+            30,
+            cnn_num_features=[16, 32, 48, 64],
+            cnn_kernel_size=[3, 3, 3, 3],
+            cnn_stride=[1, 1, 1, 1],
+            cnn_dilation=[1, 1, 1, 1],
+            cnn_activation=[torch.nn.ReLU] * 4,
+            cnn_poolsize=[2, 2, 2, 0],
+            cnn_dropout=[0, 0, 0.2, 0.1],
+            cnn_batchnorm=[False, False, True, True],
+            image_sequencer="avgpool-16",
+            rnn_units=128,
+            rnn_layers=4,
+            rnn_dropout=0.5,
+            lin_dropout=0.5,
+        )
+        x = PaddedTensor(
+            data=torch.randn(4, 1, 150, 300, requires_grad=True),
+            sizes=torch.tensor([[10, 15], [3, 6], [150, 300], [5, 10]]),
+        )
+        self.assertRaises(ValueError, m, x)
+
     def test_fixed_height(self):
         m = LaiaCRNN(
             3,

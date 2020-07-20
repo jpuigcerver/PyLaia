@@ -160,7 +160,7 @@ class Trainer(Engine):
 
         # Note: These checks are only active when logging level <= DEBUG
         check_inf(
-            tensor=batch_output,
+            tensor=batch_output.data,
             logger=__name__,
             msg="Found {abs_num} ({rel_num:.2%}) INF values in the "
             "model output at epoch {epoch}, batch {batch} (absolute "
@@ -170,7 +170,7 @@ class Trainer(Engine):
             iteration=self._iterations,
         )
         check_nan(
-            tensor=batch_output,
+            tensor=batch_output.data,
             logger=__name__,
             msg="Found {abs_num} ({rel_num:.2%}) NAN values in the "
             "model output at epoch {epoch}, batch {batch} (absolute "
