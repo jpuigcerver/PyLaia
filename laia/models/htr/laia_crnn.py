@@ -1,5 +1,5 @@
 from itertools import count
-from typing import Sequence, Union, List
+from typing import Sequence, Union, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -106,6 +106,18 @@ class LaiaCRNN(nn.Module):
     def forward(
         self, x: Union[torch.Tensor, PaddedTensor]
     ) -> Union[torch.Tensor, PackedSequence]:
+        if isinstance(x, PaddedTensor):
+            xs = self.get_self_conv_output_size(x.sizes)
+            err_indices = [i for i, x in enumerate((xs < 1).any(1)) if x]
+            if err_indices:
+                raise ValueError(
+                    "The images at batch indices {} with sizes {} "
+                    "would produce invalid output sizes {}".format(
+                        err_indices,
+                        x.sizes[err_indices].tolist(),
+                        xs[err_indices].tolist(),
+                    )
+                )
         x = self.conv(x)
         x = self.sequencer(x)
         x = self.dropout(x, p=self._rnn_dropout)
@@ -124,7 +136,7 @@ class LaiaCRNN(nn.Module):
         cnn_stride: Sequence[ParamNd],
         cnn_dilation: Sequence[ParamNd],
         cnn_poolsize: Sequence[ParamNd],
-    ) -> List[Union[torch.Tensor, int]]:
+    ) -> Tuple[Union[torch.LongTensor, int]]:
         size_h, size_w = size
         for ks, st, di, ps in zip(
             cnn_kernel_size, cnn_stride, cnn_dilation, cnn_poolsize
@@ -136,3 +148,11 @@ class LaiaCRNN(nn.Module):
                 size_w, kernel_size=ks[1], dilation=di[1], stride=st[1], poolsize=ps[1]
             )
         return size_h, size_w
+
+    def get_self_conv_output_size(
+        self, size: Param2d
+    ) -> List[Union[torch.Tensor, int]]:
+        xs = size.clone()
+        for l in self.conv:
+            xs = l.get_batch_output_size(xs)
+        return xs

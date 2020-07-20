@@ -118,9 +118,9 @@ class ConvBlock(nn.Module):
         if self.pool:
             x = self.pool(x)
 
-        return x if xs is None else PaddedTensor(x, self.get_output_batch_size(xs))
+        return x if xs is None else PaddedTensor(x, self.get_batch_output_size(xs))
 
-    def get_output_batch_size(self, xs: torch.Tensor):
+    def get_batch_output_size(self, xs: torch.Tensor) -> torch.Tensor:
         ys = torch.zeros_like(xs)
         for dim in 0, 1:
             ys[:, dim] = self.get_output_size(
@@ -141,7 +141,7 @@ class ConvBlock(nn.Module):
         stride: int,
         poolsize: int,
         padding: Optional[int] = None,
-    ) -> Union[torch.Tensor, int]:
+    ) -> Union[torch.LongTensor, int]:
         if padding is None:
             padding = (kernel_size - 1) // 2 * dilation
         size = size.float() if isinstance(size, torch.Tensor) else float(size)
