@@ -94,6 +94,13 @@ if __name__ == "__main__":
         default="ckpt.lowest-valid-cer*",
         help="Suffix of the checkpoint to use, can be a glob pattern.",
     )
+    # Deprecated arguments:
+    add_argument(
+        "--use_baidu_ctc",
+        "--add_logsoftmax_to_loss",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     args = args()
 
     manual_seed(args.seed)
