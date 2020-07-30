@@ -24,12 +24,15 @@ if __name__ == "__main__":
         "batch_size", "gpu", "train_path", "show_progress_bar", logging_level="WARNING"
     )
     add_argument(
-        "img_dirs", type=str, nargs="+", help="Directory containing word images"
+        "img_dirs",
+        type=str,
+        nargs="*",
+        help="Directory containing word images. Optional if img_list contains whole paths",
     )
     add_argument(
         "img_list",
         type=argparse.FileType("r"),
-        help="File or list containing images to decode",
+        help="File containing images to decode. Doesn't require the extension",
     )
     add_argument(
         "--model_filename", type=str, default="model", help="File name of the model"
