@@ -30,7 +30,7 @@ class Convert:
         return format_string
 
 
-class ToImageTensor(object):
+class ToImageTensor:
     def __init__(
         self,
         invert=True,

@@ -118,6 +118,15 @@ _default_args = {
             "(must be > 0)",
         },
     ),
+    "color_mode": (
+        ("--color_mode",),
+        {
+            "type": str,
+            "default": "L",
+            "choices": ["L", "RGB", "RGBA"],
+            "help": "L (grayscale): 1 channel, RGB: 3 channels, RGBA: 4 channels",
+        },
+    ),
     "show_progress_bar": (
         ("--show_progress_bar",),
         {

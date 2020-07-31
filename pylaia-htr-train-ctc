@@ -52,6 +52,7 @@ if __name__ == "__main__":
         "train_samples_per_epoch",
         "valid_samples_per_epoch",
         "iterations_per_update",
+        "color_mode",
         "save_checkpoint_interval",
         "num_rolling_checkpoints",
         "use_distortions",
@@ -125,17 +126,13 @@ if __name__ == "__main__":
         exit(1)
     model = model.to(device)
 
-    default_img_transform = transforms.Compose(
-        [
-            transforms.vision.Convert("L"),
-            transforms.vision.Invert(),
-            transforms.vision.ToTensor(),
-        ]
+    default_img_transform = transforms.vision.ToImageTensor(
+        mode=args.color_mode, invert=True
     )
     if args.use_distortions:
         tr_img_transform = transforms.Compose(
             [
-                transforms.vision.Convert("L"),
+                transforms.vision.Convert(args.color_mode),
                 transforms.vision.Invert(),
                 transforms.vision.RandomBetaAffine(),
                 transforms.vision.ToTensor(),
@@ -153,7 +150,7 @@ if __name__ == "__main__":
     )
     tr_dataset_loader = ImageDataLoader(
         dataset=tr_dataset,
-        image_channels=1,
+        image_channels=len(args.color_mode),
         batch_size=args.batch_size,
         num_workers=multiprocessing.cpu_count(),
         shuffle=not bool(args.train_samples_per_epoch),
@@ -213,7 +210,7 @@ if __name__ == "__main__":
     )
     va_dataset_loader = ImageDataLoader(
         dataset=va_dataset,
-        image_channels=1,
+        image_channels=len(args.color_mode),
         batch_size=args.batch_size,
         num_workers=multiprocessing.cpu_count(),
         sampler=FixedSizeSampler(va_dataset, args.valid_samples_per_epoch)
