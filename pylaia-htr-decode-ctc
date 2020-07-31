@@ -15,7 +15,9 @@ from laia.experiments import Experiment
 from laia.utils import SymbolsTable
 
 if __name__ == "__main__":
-    add_defaults("batch_size", "gpu", "train_path", logging_level="WARNING")
+    add_defaults(
+        "batch_size", "gpu", "train_path", "color_mode", logging_level="WARNING"
+    )
     add_argument(
         "syms",
         type=argparse.FileType("r"),
@@ -92,10 +94,15 @@ if __name__ == "__main__":
     dataset = ImageFromListDataset(
         args.img_list,
         img_dirs=args.img_dirs,
-        img_transform=transforms.vision.ToImageTensor(),
+        img_transform=transforms.vision.ToImageTensor(
+            mode=args.color_mode, invert=True
+        ),
     )
     dataset_loader = ImageDataLoader(
-        dataset=dataset, image_channels=1, batch_size=args.batch_size, num_workers=8
+        dataset=dataset,
+        image_channels=len(args.color_mode),
+        batch_size=args.batch_size,
+        num_workers=8,
     )
     batch_input_fn = ImageFeeder(device=device, parent_feeder=ItemFeeder("img"))
 
