@@ -33,6 +33,14 @@ _default_args = {
             "help": "Momentum (must be >= 0)",
         },
     ),
+    "weight_l2_penalty": (
+        ("--weight_l2_penalty",),
+        {
+            "default": 0.0,
+            "type": NumberInClosedRange(type=float, vmin=0),
+            "help": "Apply this L2 weight penalty to the loss function",
+        },
+    ),
     "nesterov": (
         ("--nesterov",),
         {
@@ -170,14 +178,6 @@ _default_args = {
             "type": NumberInClosedRange(type=int, vmin=1),
             "metavar": "N",
             "help": "Update parameters every N iterations",
-        },
-    ),
-    "weight_l2_penalty": (
-        ("--weight_l2_penalty",),
-        {
-            "default": 0.0,
-            "type": NumberInClosedRange(type=float, vmin=0),
-            "help": "Apply this L2 weight penalty to the loss function",
         },
     ),
     "train_path": (

@@ -6,7 +6,7 @@ import random
 
 import numpy
 import torch
-from torch.optim import RMSprop
+from torch.optim import RMSprop, Adam, AdamW, SGD
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
@@ -42,6 +42,8 @@ if __name__ == "__main__":
         "batch_size",
         "learning_rate",
         "momentum",
+        "weight_l2_penalty",
+        "nesterov",
         "gpu",
         "max_epochs",
         "seed",
@@ -53,6 +55,7 @@ if __name__ == "__main__":
         "save_checkpoint_interval",
         "num_rolling_checkpoints",
         "use_distortions",
+        "print_args",
     )
     add_argument(
         "syms",
@@ -93,6 +96,13 @@ if __name__ == "__main__":
         type=str,
         default="ckpt.lowest-valid-cer*",
         help="Suffix of the checkpoint to use, can be a glob pattern.",
+    )
+    add_argument(
+        "--optimizer",
+        type=str,
+        default="RMSProp",
+        choices=["SGD", "RMSProp", "Adam", "AdamW"],
+        help="Optimization algorithm.",
     )
     # Deprecated arguments:
     add_argument(
@@ -152,12 +162,41 @@ if __name__ == "__main__":
         else None,
         worker_init_fn=worker_init_fn,
     )
+
+    if args.optimizer == "SGD":
+        optimizer = SGD(
+            model.parameters(),
+            lr=args.learning_rate,
+            momentum=args.momentum,
+            weight_decay=args.weight_l2_penalty,
+            nesterov=args.nesterov,
+        )
+    elif args.optimizer == "RMSProp":
+        optimizer = RMSprop(
+            model.parameters(),
+            lr=args.learning_rate,
+            weight_decay=args.weight_l2_penalty,
+            momentum=args.momentum,
+        )
+    elif args.optimizer == "Adam":
+        optimizer = Adam(
+            model.parameters(),
+            lr=args.learning_rate,
+            weight_decay=args.weight_l2_penalty,
+        )
+    elif args.optimizer == "AdamW":
+        if args.weight_l2_penalty == 0.0:
+            log.warning("Using 0.0 weight decay with AdamW")
+        optimizer = AdamW(
+            model.parameters(),
+            lr=args.learning_rate,
+            weight_decay=args.weight_l2_penalty,
+        )
+
     trainer = Trainer(
         model=model,
         criterion=None,  # Set automatically by HTRExperiment
-        optimizer=RMSprop(
-            model.parameters(), lr=args.learning_rate, momentum=args.momentum
-        ),
+        optimizer=optimizer,
         data_loader=tr_dataset_loader,
         batch_input_fn=ImageFeeder(device=device, parent_feeder=ItemFeeder("img")),
         batch_target_fn=ItemFeeder("txt"),
