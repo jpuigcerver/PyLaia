@@ -16,13 +16,6 @@ from laia.utils.char_to_word_seq import char_to_word_seq
 _logger = get_logger(__name__)
 
 
-def batch_char_to_word_seq(batch_sequence_of_characters, delimiters):
-    return [
-        ["_".join(map(str, seq)) for seq in char_to_word_seq(batch, delimiters)]
-        for batch in batch_sequence_of_characters
-    ]
-
-
 class HTRExperiment(Experiment):
     def __init__(
         self,
@@ -118,8 +111,12 @@ class HTRExperiment(Experiment):
 
         # Compute WER, if word delimiters are given
         if self._word_delimiters is not None:
-            decode_words = batch_char_to_word_seq(batch_decode, self._word_delimiters)
-            target_words = batch_char_to_word_seq(batch_target, self._word_delimiters)
+            decode_words = [
+                char_to_word_seq(b, self._word_delimiters) for b in batch_decode
+            ]
+            target_words = [
+                char_to_word_seq(b, self._word_delimiters) for b in batch_target
+            ]
             self._tr_wer.add(target_words, decode_words)
 
         # Stop timer to avoid including extra costs
@@ -139,8 +136,12 @@ class HTRExperiment(Experiment):
 
         # Compute WER, if word delimiters are given
         if self._word_delimiters is not None:
-            decode_words = batch_char_to_word_seq(batch_decode, self._word_delimiters)
-            target_words = batch_char_to_word_seq(batch_target, self._word_delimiters)
+            decode_words = [
+                char_to_word_seq(b, self._word_delimiters) for b in batch_decode
+            ]
+            target_words = [
+                char_to_word_seq(b, self._word_delimiters) for b in batch_target
+            ]
             self._va_wer.add(target_words, decode_words)
 
         # Stop timer to avoid including extra costs

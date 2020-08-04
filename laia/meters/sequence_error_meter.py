@@ -1,4 +1,4 @@
-import editdistance
+import textdistance
 
 from laia.meters.meter import Meter
 
@@ -20,7 +20,7 @@ class SequenceErrorMeter(Meter):
         assert hasattr(refs, "__len__") and hasattr(hyps, "__len__")
         assert len(refs) == len(hyps)
         for ref, hyp in zip(refs, hyps):
-            self._num_errors += editdistance.eval(ref, hyp)
+            self._num_errors += textdistance.levenshtein.distance(ref, hyp)
             self._ref_length += len(ref)
         return self
 
