@@ -27,6 +27,7 @@ class CTCLossTest(unittest.TestCase):
         labels = [[1], [2], [3]]
         self.assertRaises(AssertionError, get_valids_and_errors, act_lens, labels)
 
+    @unittest.skip("TODO(jpuigcerver): Test does not apply after removing Baidu's CTC")
     def _run_test_forward(self, dtype, device, reduction, average_frames):
         # Size: T x N x 3
         x = log_softmax(
@@ -72,8 +73,7 @@ class CTCLossTest(unittest.TestCase):
             expected = torch.sum(expected)
         elif reduction == "mean":
             expected = torch.mean(expected)
-        # FIXME: Test does not apply after removing Baidu's CTC
-        # torch.testing.assert_allclose(expected.cpu(), loss.cpu())
+        torch.testing.assert_allclose(expected.cpu(), loss.cpu())
 
     def _run_test_backward(self, dtype, device, reduction, average_frames):
         ctc_logger = log.get_logger("laia.losses.ctc_loss")

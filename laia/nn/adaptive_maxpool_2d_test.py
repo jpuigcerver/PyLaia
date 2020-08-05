@@ -5,14 +5,9 @@ from torch.autograd import gradcheck
 from torch.nn.functional import adaptive_max_pool2d
 
 from laia.data import PaddedTensor
-
-try:
-    from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
-except ImportError:
-    AdaptiveMaxPool2d = None  # type: ignore
+from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
 
 
-@unittest.skipIf(AdaptiveMaxPool2d is None, "nnutils does not seem installed")
 class AdaptiveMaxPool2dTest(unittest.TestCase):
     def setUp(self):
         self.x = torch.tensor(
@@ -126,21 +121,13 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
         )
         torch.testing.assert_allclose(y, expected_y)
 
-    @unittest.skip("fails in PyTorch 0.4")
+    @unittest.skip("TODO(jpuigcerver): Fix gradcheck")
     def test_backward_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
+        gradcheck(lambda x_: torch.sum(m(x_)), (self.x,))
 
-        def f(x_):
-            return torch.sum(m(x_))
-
-        gradcheck(f, (self.x,))
-
-    @unittest.skip("fails in PyTorch 0.4")
+    @unittest.skip("TODO(jpuigcerver): Fix gradcheck")
     def test_backward_padded_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
         xs = torch.tensor([[2, 2], [1, 3]])
-
-        def f(x_):
-            return torch.sum(m(PaddedTensor(x_, xs)))
-
-        gradcheck(f, (self.x,))
+        gradcheck(lambda x_: torch.sum(m(PaddedTensor(x_, xs))), (self.x,))

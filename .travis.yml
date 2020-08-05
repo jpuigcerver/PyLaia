@@ -13,19 +13,19 @@ notifications:
 
 env:
   matrix:
-    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.1.0.txt"
-    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.2.0.txt"
-    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.3.0.txt"
-    - PYTORCH_REQUIREMENTS="requirements_pytorch_1.4.0.txt"
-    - PYTORCH_REQUIREMENTS=""
+    - REQUIREMENTS="Pillow>=5.2,<7.0 torch>=1.1.0,<1.2.0 torchvision>=0.2.2,<0.4.0 nnutils-pytorch>=0.3.0,<0.5.0 tqdm==4.19.9"
+    - REQUIREMENTS="Pillow>=5.2,<7.0 torch>=1.2.0,<1.3.0 torchvision>=0.4.0,<0.4.1 nnutils-pytorch>=0.5.0,<0.6.0"
+    - REQUIREMENTS="Pillow>=5.2,<7.0 torch>=1.3.0,<1.4.0 torchvision>=0.4.1,<0.5.0 nnutils-pytorch>=0.5.0,<0.6.0"
+    - REQUIREMENTS="torch>=1.4.0,<1.5.0 torchvision>=0.5.0,<0.6.0 nnutils-pytorch>=0.6.0,<0.7.0"
+    - REQUIREMENTS=""
 
 before_install:
   # Upgrade PIP to latest version, in order to support --progress-bar
   - pip install -U pip
   # Install dependencies for a particular PyTorch version first.
-  - if [ -n "$PYTORCH_REQUIREMENTS" ]; then pip install --progress-bar off -r travis/${PYTORCH_REQUIREMENTS}; fi
-  - pip install --progress-bar off .[test]
+  - pip install --progress-bar off torch; # TODO: Remove when github.com/jpuigcerver/nnutils/pull/3 published
+  - if [ -n "$REQUIREMENTS" ]; then pip install --progress-bar off ${REQUIREMENTS}; fi
 
-install: python setup.py install
+install: pip install --progress-bar off -e ".[test]"
 
 script: pytest
