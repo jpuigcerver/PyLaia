@@ -1,77 +1,10 @@
 import os
-import subprocess
-
 import setuptools
-import setuptools.command.build_py
-
-CWD = os.path.dirname(os.path.abspath(__file__))
-
-
-def _git_output(args):
-    stderr = open(os.devnull, "w", encoding="utf-8")
-    output = None
-    try:
-        output = subprocess.check_output(args, cwd=CWD).decode("ascii").strip()
-    finally:
-        stderr.close()
-        return output
-
-
-def git_commit(short=False):
-    """Returns the hash of the current Git commit, or None
-    if the package is not under Git."""
-    args = ["git", "rev-parse", "HEAD"]
-    if short:
-        args = args[0:2] + ["--short"] + args[2:]
-    return _git_output(args)
-
-
-def git_branch():
-    """Returns the name of the current Git branch, or None
-    if the package is not under Git."""
-    return _git_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-
-
-def git_is_dirty():
-    """Returns whether the repository contains local changes or not"""
-    return bool(_git_output(["git", "status", "--short"]))
-
-
-MAJOR = 0
-MINOR = 1
-MICRO = 0
-VERSION = "{}.{}.{}".format(MAJOR, MINOR, MICRO)
-
-
-class VersionFileCommand(setuptools.Command):
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        print("creating version file")
-        version_path = os.path.join(CWD, "laia", "version.py")
-        with open(version_path, "w") as f:
-            full_version = "{}+{}{}".format(
-                VERSION, git_commit(short=True), "-dirty" if git_is_dirty() else ""
-            )
-            f.write("__full_version__ = '{}'\n".format(full_version))
-            f.write("__version__ = '{}'\n".format(VERSION))
-            f.write("__commit__ = '{}'\n".format(git_commit()))
-            f.write("__branch__ = '{}'\n".format(git_branch()))
-
-
-class BuildCommand(setuptools.command.build_py.build_py):
-    def run(self):
-        self.run_command("create_version_file")
-        setuptools.command.build_py.build_py.run(self)
 
 
 def get_scripts():
     return [
-        os.path.join(CWD, script)
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), script)
         for script in (
             "pylaia-htr-create-model",
             "pylaia-htr-decode-ctc",
@@ -89,16 +22,26 @@ def get_requirements():
 
 setuptools.setup(
     name="laia",
-    version=VERSION,
+    use_scm_version={
+        "write_to": "laia/version.py",
+        "write_to_template": '__version__ = "{version}"\n',
+        "local_scheme": lambda v: "+{}.{}{}".format(
+            v.node, v.branch, ".dirty" if v.dirty else ""
+        ),
+    },
     author="Joan Puigcerver",
     author_email="joapuipe@gmail.com",
     license="MIT",
     url="https://github.com/jpuigcerver/PyLaia",
     # Requirements
+    setup_requires=["setuptools_scm"],
     install_requires=get_requirements(),
+    extras_require={
+        "dev": ["pre-commit", "black"],
+        "test": ["pytest", "parameterized"],
+    },
     python_requires=">=3.6",
     # Package contents
     packages=setuptools.find_packages(),
     scripts=get_scripts(),
-    cmdclass={"create_version_file": VersionFileCommand, "build_py": BuildCommand},
 )
