@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import sys
-from tqdm import tqdm
-from typing import Any
 
 import torch
 import torch.nn.functional as functional
+from tqdm import tqdm
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
@@ -17,7 +15,6 @@ from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments import Experiment
 from laia.losses.ctc_loss import transform_output
 from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
-
 
 if __name__ == "__main__":
     add_defaults(

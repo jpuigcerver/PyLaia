@@ -12,6 +12,7 @@ __all__ = [
     "models",
     "nn",
     "utils",
+    "__version__",
 ]
 
 import laia.common
