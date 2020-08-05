@@ -17,8 +17,8 @@ In order to install PyLaia, follow this recipe:
 ```bash
 git clone https://github.com/jpuigcerver/PyLaia
 cd PyLaia
-pip install -r requirements.txt
-python setup.py install
+pip install torch
+pip install -e .
 ```
 
 The following Python scripts will be installed in your system:
@@ -34,9 +34,3 @@ The following Python scripts will be installed in your system:
   text-line images and their transcripts.
 - **pylaia-htr-netout**: Dump the output of the model for a set of text-line images
   in order to decode using an external language model.
-
-Some examples need additional tools and packages, which are not installed
-with `pip install -r requirements.txt`.
-For instance, typically ImageMagick is used to process images, or Kaldi
-is employed to perform Viterbi decoding (and lattice generation) combining
-the output of the neural network with a n-gram language model.
