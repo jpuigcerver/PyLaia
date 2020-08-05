@@ -27,10 +27,14 @@ import laia.models
 import laia.nn
 
 try:
-    from laia.version import __full_version__, __version__, __branch__, __commit__
+    from laia.version import __version__
 except ImportError:
-    # TODO: Get values from functions used in setup.py
-    __full_version__ = None
-    __version__ = None
-    __branch__ = None
-    __commit__ = None
+    from setuptools_scm import get_version
+
+    __version__ = get_version(
+        root="..",
+        relative_to=__file__,
+        local_scheme=lambda v: "+{}.{}{}".format(
+            v.node, v.branch, ".dirty" if v.dirty else ""
+        ),
+    )

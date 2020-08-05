@@ -2,9 +2,9 @@ language: python
 dist: xenial
 sudo: true
 python:
-  - 3.5
   - 3.6
   - 3.7
+  - 3.8
 
 notifications:
   email:
@@ -20,14 +20,12 @@ env:
     - PYTORCH_REQUIREMENTS=""
 
 before_install:
-  # Upgrade PIP to latest version, in order to support --progres-bar
-  - python -m pip install -U pip
+  # Upgrade PIP to latest version, in order to support --progress-bar
+  - pip install -U pip
   # Install dependencies for a particular PyTorch version first.
-  - if [ -n "$PYTORCH_REQUIREMENTS" ]; then python -m pip install --progress-bar off -r travis/${PYTORCH_REQUIREMENTS}; fi
-  - python -m pip install --progress-bar off -r requirements.txt
+  - if [ -n "$PYTORCH_REQUIREMENTS" ]; then pip install --progress-bar off -r travis/${PYTORCH_REQUIREMENTS}; fi
+  - pip install --progress-bar off .[test]
 
-install:
-  - python setup.py install
+install: python setup.py install
 
-script:
-  - ./travis/run_tests.sh
+script: pytest
