@@ -10,6 +10,7 @@ from torch.optim import RMSprop, Adam, AdamW, SGD
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
+from laia import __version__
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.arguments_types import NumberInClosedRange
 from laia.common.loader import ModelLoader, StateCheckpointLoader
@@ -113,6 +114,8 @@ if __name__ == "__main__":
         help=argparse.SUPPRESS,
     )
     args = args()
+
+    log.info("PyLaia version: {}".format(__version__))
 
     manual_seed(args.seed)
     syms = SymbolsTable(args.syms)

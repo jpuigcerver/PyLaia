@@ -4,13 +4,13 @@ import argparse
 import torch.nn as nn
 
 import laia.common.logging as log
+from laia import __version__
 from laia.common import ModelSaver
 from laia.common.arguments import add_argument, args, add_defaults
 from laia.common.arguments_types import NumberInClosedRange, TupleList, str2bool
 from laia.common.random import manual_seed
 from laia.models.htr import LaiaCRNN
 from laia.utils import SymbolsTable
-
 
 """
 Create a model for HTR composed of a set of convolutional
@@ -168,6 +168,8 @@ if __name__ == "__main__":
     )
     args = args()
     manual_seed(args.seed)
+
+    log.info("PyLaia version: {}".format(__version__))
 
     dimensions = map(
         len,
