@@ -19,7 +19,6 @@ env:
 
 before_install:
   - pip config set global.progress_bar off
-  - pip install "torch${torch_v}";
   - python -c "f = 'requirements.txt';
       r = open(f).read();
       r = r.replace('nnutils-pytorch\n', 'nnutils-pytorch${nnutils_v}\n');
@@ -27,6 +26,8 @@ before_install:
       r = r.replace('torchvision\n', 'torchvision${torchvision_v}\n');
       open(f, 'w').write(r);"
 
-install: pip install -e ".[test]"
+install:
+  - pip install "torch${torch_v}"
+  - pip install -e ".[test]"
 
 script: pytest
