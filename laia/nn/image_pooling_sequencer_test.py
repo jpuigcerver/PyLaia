@@ -7,13 +7,6 @@ from torch.nn.functional import adaptive_max_pool2d
 from laia.data import PaddedTensor
 from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 
-try:
-    import nnutils_pytorch
-
-    nnutils_installed = True
-except ImportError:
-    nnutils_installed = False
-
 
 class ImagePoolingSequencerTest(unittest.TestCase):
     def test_bad_sequencer(self):
@@ -68,27 +61,26 @@ def _generate_gradcheck_test(sequencer, fn, poolsize, columnwise, x, xs):
 
 devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
 dtypes = [torch.float, torch.double]
-if nnutils_installed:
-    for sequencer, fn in (
-        ("avgpool", adaptive_avg_pool2d),
-        ("maxpool", adaptive_max_pool2d),
-    ):
-        for dtype in dtypes:
-            for device in devices:
-                setattr(
-                    ImagePoolingSequencerTest,
-                    "test_grad_{}_{}_{}".format(sequencer, str(dtype)[6:], device),
-                    _generate_gradcheck_test(
-                        sequencer=sequencer,
-                        fn=fn,
-                        poolsize=10,
-                        columnwise=True,
-                        x=torch.randn(3, 4, 17, 19, dtype=dtype, device=device),
-                        xs=torch.tensor([[17, 19], [11, 13], [13, 11]], device=device),
-                    ),
-                )
+for sequencer, fn in (
+    ("avgpool", adaptive_avg_pool2d),
+    ("maxpool", adaptive_max_pool2d),
+):
+    for dtype in dtypes:
+        for device in devices:
+            setattr(
+                ImagePoolingSequencerTest,
+                "test_grad_{}_{}_{}".format(sequencer, str(dtype)[6:], device),
+                _generate_gradcheck_test(
+                    sequencer=sequencer,
+                    fn=fn,
+                    poolsize=10,
+                    columnwise=True,
+                    x=torch.randn(3, 4, 17, 19, dtype=dtype, device=device),
+                    xs=torch.tensor([[17, 19], [11, 13], [13, 11]], device=device),
+                ),
+            )
 
-for sequencer in ["none", "maxpool", "avgpool"] if nnutils_installed else ["none"]:
+for sequencer in ["none", "maxpool", "avgpool"]:
     setattr(
         ImagePoolingSequencerTest,
         "test_tensor_{}_col".format(sequencer),

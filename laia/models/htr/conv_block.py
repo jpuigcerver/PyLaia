@@ -8,13 +8,7 @@ from torch import Tensor
 
 from laia.common.types import Param2d
 from laia.data import PaddedTensor
-
-try:
-    from laia.nn.mask_image_from_size import mask_image_from_size
-except ImportError:
-    import warnings
-
-    mask_image_from_size = None
+from laia.nn.mask_image_from_size import mask_image_from_size
 
 
 class ConvBlock(nn.Module):
@@ -39,12 +33,6 @@ class ConvBlock(nn.Module):
 
         if ps[0] * ps[1] < 2:
             ps = None
-
-        if use_masks and mask_image_from_size is None:
-            warnings.warn(
-                "nnutils does not seem to be installed, masking cannot be used"
-            )
-            use_masks = False
 
         self.dropout = dropout
         self.in_channels = in_channels

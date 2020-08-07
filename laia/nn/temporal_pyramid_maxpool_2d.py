@@ -1,29 +1,17 @@
-import warnings
 from typing import Union, Sequence
 
 import torch
+from nnutils_pytorch import adaptive_maxpool_2d
 
 from laia.data import PaddedTensor
 
-try:
-    from nnutils_pytorch import adaptive_maxpool_2d
-except ImportError:
-    adaptive_maxpool_2d = None
-
 
 def _adaptive_maxpool_2d(batch_input, output_sizes, batch_sizes, use_nnutils):
-    if adaptive_maxpool_2d and use_nnutils:
+    if use_nnutils:
         return adaptive_maxpool_2d(
             batch_input=batch_input, output_sizes=output_sizes, batch_sizes=batch_sizes
         )
     else:
-        if use_nnutils:
-            warnings.warn(
-                "You are trying to use nnutils_pytorch.adaptive_maxpool_2d "
-                "but nnutils_pytorch is not installed. Install the package "
-                "to avoid this warning."
-            )
-
         if batch_sizes is None:
             return torch.nn.functional.adaptive_max_pool2d(
                 input=batch_input, output_size=output_sizes
