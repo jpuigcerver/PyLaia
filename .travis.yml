@@ -1,6 +1,6 @@
 language: python
+os: linux
 dist: bionic
-sudo: true
 python:
   - 3.6
   - 3.7
@@ -12,17 +12,22 @@ notifications:
     on_failure: always
 
 env:
-  matrix:
-    - REQUIREMENTS="torch>=1.4.0,<1.5.0 torchvision>=0.5.0,<0.6.0 nnutils-pytorch>=0.6.0,<0.7.0"
-    - REQUIREMENTS=""
+  jobs:
+    - torch_v=">=1.4.0,<1.5.0" torchvision_v=">=0.5.0,<0.6.0" nnutils_v=">=0.6.0,<0.7.0"
+    - torch_v="" torchvision_v="" nnutils_v=""
 
 before_install:
   # Upgrade PIP to latest version, in order to support --progress-bar
   - pip install -U pip
-  # Install dependencies for a particular PyTorch version first.
-  - pip install --progress-bar off torch; # TODO: Remove when github.com/jpuigcerver/nnutils/pull/3 published
-  - if [ -n "$REQUIREMENTS" ]; then pip install --progress-bar off ${REQUIREMENTS}; fi
+  - pip config set global.progress_bar off
+  - pip install torch; # TODO: Remove when github.com/jpuigcerver/nnutils/pull/3 published
+  - python -c "f = 'requirements.txt';
+      r = open(f).read();
+      r = r.replace('nnutils-pytorch\n', 'nnutils-pytorch${nnutils_v}\n');
+      r = r.replace('torch\n', 'torch${torch_v}\n');
+      r = r.replace('torchvision\n', 'torchvision${torchvision_v}\n');
+      open(f, 'w').write(r);"
 
-install: pip install --progress-bar off -e ".[test]"
+install: pip install -e ".[test]"
 
 script: pytest
