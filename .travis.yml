@@ -14,11 +14,12 @@ notifications:
 env:
   jobs:
     - torch_v=">=1.4.0,<1.5.0" torchvision_v=">=0.5.0,<0.6.0" nnutils_v=">=0.6.0,<0.7.0"
+    - torch_v=">=1.5.0,<1.6.0" torchvision_v=">=0.6.0,<0.7.0" nnutils_v=""
     - torch_v="" torchvision_v="" nnutils_v=""
 
 before_install:
   - pip config set global.progress_bar off
-  - pip install torch; # TODO: Remove when github.com/jpuigcerver/nnutils/pull/3 published
+  - pip install "torch${torch_v}";
   - python -c "f = 'requirements.txt';
       r = open(f).read();
       r = r.replace('nnutils-pytorch\n', 'nnutils-pytorch${nnutils_v}\n');
