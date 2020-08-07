@@ -19,12 +19,9 @@ env:
 
 before_install:
   - pip config set global.progress_bar off
-  - python -c "f = 'requirements.txt';
-      r = open(f).read();
-      r = r.replace('nnutils-pytorch\n', 'nnutils-pytorch${nnutils_v}\n');
-      r = r.replace('torch\n', 'torch${torch_v}\n');
-      r = r.replace('torchvision\n', 'torchvision${torchvision_v}\n');
-      open(f, 'w').write(r);"
+  - sed -i s/^torch$/torch${torch_v}/ requirements.txt
+  - sed -i s/^torchvision$/torchvision${torchvision_v}/ requirements.txt
+  - sed -i s/^nnutils-pytorch$/nnutils-pytorch${nnutils_v}/ requirements.txt
 
 install:
   - pip install "torch${torch_v}"
