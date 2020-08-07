@@ -17,8 +17,6 @@ env:
     - torch_v="" torchvision_v="" nnutils_v=""
 
 before_install:
-  # Upgrade PIP to latest version, in order to support --progress-bar
-  - pip install -U pip
   - pip config set global.progress_bar off
   - pip install torch; # TODO: Remove when github.com/jpuigcerver/nnutils/pull/3 published
   - python -c "f = 'requirements.txt';
