@@ -13,6 +13,29 @@ from laia.decoders import CTCGreedyDecoder
 from laia.feeders import ImageFeeder, ItemFeeder
 from laia.utils import SymbolsTable
 
+
+def compute_char_segmentation(batch_segmentation, img_sizes, input):
+    return [
+        [v, batch_segmentation[i], 0, [i + 1], img_sizes[0] - 1]
+        for i, v in enumerate(input)
+    ]
+
+
+def compute_word_segmentation(input, space):
+    out2, cad, ci = [], [], (0, 0)
+    for l in input:
+        if l[0] != space:
+            cad += [l[0]]
+        else:
+            if cad:
+                out2.append(["".join(cad), ci[0], ci[1], l[1], l[4]])
+            cad = []
+            ci = (l[3], l[2])
+    if cad:
+        out2.append(["".join(cad), ci[0], ci[1], l[3], l[4]])
+    return out2
+
+
 if __name__ == "__main__":
     add_defaults(
         "batch_size",
@@ -56,7 +79,23 @@ if __name__ == "__main__":
         "--use_letters", action="store_true", help="Print the output with letters"
     )
     add_argument(
-        "--space", type=str, help="Replace <space> with this. Used with --use_letters"
+        "--convert_spaces", action="store_true", help="Whether or not to convert spaces"
+    )
+    add_argument(
+        "--input_space",
+        type=str,
+        default="<space>",
+        help="Input space symbol to replace",
+    )
+    add_argument(
+        "--output_space", type=str, default="", help="Output space symbol",
+    )
+    add_argument(
+        "--print_segmentation",
+        type=str,
+        default=None,
+        choices=["char", "word"],
+        help="Print output with the corresponding segmentation",
     )
     args = args()
 
@@ -88,14 +127,30 @@ if __name__ == "__main__":
     for batch in dataset_loader:
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
-        batch_decode = decoder(batch_output)
-        for img_id, out in zip(batch["id"], batch_decode):
-            if args.use_letters:
+        batch_decode = decoder(batch_output, segmentation=bool(args.print_segmentation))
+        if args.print_segmentation == "char":
+            img_sizes = batch_input.sizes.tolist()
+            batch_segmentation = [
+                [int(i * (y[1] - 1) / x[-1]) for i in x]
+                for x, y in zip(decoder.segmentation, img_sizes)
+            ]
+        for i, (img_id, out) in enumerate(zip(batch["id"], batch_decode)):
+            if args.use_letters or bool(args.print_segmentation):
                 out = [str(syms[val]) for val in out]
-                if args.space:
-                    out = [args.space if sym == "<space>" else sym for sym in out]
-            if args.join_str is not None:
-                out = args.join_str.join(str(x) for x in out)
+            if args.print_segmentation == "char":
+                out = compute_char_segmentation(
+                    batch_segmentation[i], img_sizes[i], out
+                )
+            elif args.print_segmentation == "word":
+                out = compute_word_segmentation(out, args.input_space)
+            if not bool(args.print_segmentation):
+                if args.convert_spaces:
+                    out = [
+                        args.output_space if sym == args.input_space else sym
+                        for sym in out
+                    ]
+                if args.join_str is not None:
+                    out = args.join_str.join(str(x) for x in out)
             print(
                 "{}{}{}".format(img_id, args.separator, out)
                 if args.print_img_ids
