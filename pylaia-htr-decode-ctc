@@ -14,14 +14,11 @@ from laia.feeders import ImageFeeder, ItemFeeder
 from laia.utils import SymbolsTable
 
 
-def compute_char_segmentation(batch_segmentation, img_sizes, input):
-    return [
-        [v, batch_segmentation[i], 0, [i + 1], img_sizes[0] - 1]
-        for i, v in enumerate(input)
-    ]
+def char_segmentation(input, segmentation, sizes):
+    return [[v, segmentation[i], 0, [i + 1], sizes[0] - 1] for i, v in enumerate(input)]
 
 
-def compute_word_segmentation(input, space):
+def word_segmentation(input, space):
     out2, cad, ci = [], [], (0, 0)
     for l in input:
         if l[0] != space:
@@ -77,20 +74,18 @@ def main(args):
         batch_output = model(batch_input)
         batch_decode = decoder(batch_output, segmentation=bool(args.print_segmentation))
         if args.print_segmentation == "char":
-            img_sizes = batch_input.sizes.tolist()
+            batch_sizes = batch_input.sizes.tolist()
             batch_segmentation = [
                 [int(i * (y[1] - 1) / x[-1]) for i in x]
-                for x, y in zip(decoder.segmentation, img_sizes)
+                for x, y in zip(decoder.segmentation, batch_sizes)
             ]
         for i, (img_id, out) in enumerate(zip(batch["id"], batch_decode)):
             if args.use_letters or bool(args.print_segmentation):
                 out = [str(syms[val]) for val in out]
             if args.print_segmentation == "char":
-                out = compute_char_segmentation(
-                    batch_segmentation[i], img_sizes[i], out
-                )
+                out = char_segmentation(out, batch_segmentation[i], batch_sizes[i])
             elif args.print_segmentation == "word":
-                out = compute_word_segmentation(out, args.input_space)
+                out = word_segmentation(out, args.input_space)
             if not bool(args.print_segmentation):
                 if args.convert_spaces:
                     out = [
