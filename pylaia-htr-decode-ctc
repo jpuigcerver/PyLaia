@@ -36,6 +36,76 @@ def compute_word_segmentation(input, space):
     return out2
 
 
+def main(args):
+    syms = SymbolsTable(args.syms)
+
+    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
+
+    model = ModelLoader(
+        args.train_path, filename=args.model_filename, device=device
+    ).load()
+    if model is None:
+        log.error("Could not find the model")
+        exit(1)
+    state = CheckpointLoader(device=device).load_by(
+        os.path.join(args.train_path, args.checkpoint)
+    )
+    model.load_state_dict(
+        state if args.source == "model" else Experiment.get_model_state_dict(state)
+    )
+    model = model.to(device)
+    model.eval()
+
+    dataset = ImageFromListDataset(
+        args.img_list,
+        img_dirs=args.img_dirs,
+        img_transform=transforms.vision.ToImageTensor(
+            mode=args.color_mode, invert=True
+        ),
+    )
+    dataset_loader = ImageDataLoader(
+        dataset=dataset,
+        image_channels=len(args.color_mode),
+        batch_size=args.batch_size,
+        num_workers=8,
+    )
+    batch_input_fn = ImageFeeder(device=device, parent_feeder=ItemFeeder("img"))
+
+    decoder = CTCGreedyDecoder()
+    for batch in dataset_loader:
+        batch_input = batch_input_fn(batch)
+        batch_output = model(batch_input)
+        batch_decode = decoder(batch_output, segmentation=bool(args.print_segmentation))
+        if args.print_segmentation == "char":
+            img_sizes = batch_input.sizes.tolist()
+            batch_segmentation = [
+                [int(i * (y[1] - 1) / x[-1]) for i in x]
+                for x, y in zip(decoder.segmentation, img_sizes)
+            ]
+        for i, (img_id, out) in enumerate(zip(batch["id"], batch_decode)):
+            if args.use_letters or bool(args.print_segmentation):
+                out = [str(syms[val]) for val in out]
+            if args.print_segmentation == "char":
+                out = compute_char_segmentation(
+                    batch_segmentation[i], img_sizes[i], out
+                )
+            elif args.print_segmentation == "word":
+                out = compute_word_segmentation(out, args.input_space)
+            if not bool(args.print_segmentation):
+                if args.convert_spaces:
+                    out = [
+                        args.output_space if sym == args.input_space else sym
+                        for sym in out
+                    ]
+                if args.join_str is not None:
+                    out = args.join_str.join(str(x) for x in out)
+            print(
+                "{}{}{}".format(img_id, args.separator, out)
+                if args.print_img_ids
+                else out
+            )
+
+
 if __name__ == "__main__":
     add_defaults(
         "batch_size",
@@ -97,62 +167,4 @@ if __name__ == "__main__":
         choices=["char", "word"],
         help="Print output with the corresponding segmentation",
     )
-    args = args()
-
-    syms = SymbolsTable(args.syms)
-    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
-
-    checkpoint = choose_by(os.path.join(args.train_path, args.checkpoint))
-    # TODO
-    model = PLModel.load_from_checkpoint(checkpoint)
-
-    model.eval()
-
-    dataset = ImageFromListDataset(
-        args.img_list,
-        img_dirs=args.img_dirs,
-        img_transform=transforms.vision.ToImageTensor(
-            mode=args.color_mode, invert=True
-        ),
-    )
-    dataset_loader = ImageDataLoader(
-        dataset=dataset,
-        image_channels=len(args.color_mode),
-        batch_size=args.batch_size,
-        num_workers=8,
-    )
-    batch_input_fn = ImageFeeder(device=device, parent_feeder=ItemFeeder("img"))
-
-    decoder = CTCGreedyDecoder()
-    for batch in dataset_loader:
-        batch_input = batch_input_fn(batch)
-        batch_output = model(batch_input)
-        batch_decode = decoder(batch_output, segmentation=bool(args.print_segmentation))
-        if args.print_segmentation == "char":
-            img_sizes = batch_input.sizes.tolist()
-            batch_segmentation = [
-                [int(i * (y[1] - 1) / x[-1]) for i in x]
-                for x, y in zip(decoder.segmentation, img_sizes)
-            ]
-        for i, (img_id, out) in enumerate(zip(batch["id"], batch_decode)):
-            if args.use_letters or bool(args.print_segmentation):
-                out = [str(syms[val]) for val in out]
-            if args.print_segmentation == "char":
-                out = compute_char_segmentation(
-                    batch_segmentation[i], img_sizes[i], out
-                )
-            elif args.print_segmentation == "word":
-                out = compute_word_segmentation(out, args.input_space)
-            if not bool(args.print_segmentation):
-                if args.convert_spaces:
-                    out = [
-                        args.output_space if sym == args.input_space else sym
-                        for sym in out
-                    ]
-                if args.join_str is not None:
-                    out = args.join_str.join(str(x) for x in out)
-            print(
-                "{}{}{}".format(img_id, args.separator, out)
-                if args.print_img_ids
-                else out
-            )
+    main(args())
