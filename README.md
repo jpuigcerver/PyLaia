@@ -6,9 +6,7 @@
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat)](https://timothycrosley.github.io/isort/)
 
-PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized
-for handwritten document analysis. It is also a successor to
-[Laia](https://github.com/jpuigcerver/Laia).
+PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized for handwritten document analysis. It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).
 
 Several examples of its use are provided at [PyLaia-examples](https://github.com/carmocca/PyLaia-examples).
 
@@ -25,14 +23,7 @@ pip install --editable .
 
 The following Python scripts will be installed in your system:
 
-- **pylaia-htr-create-model**: Create a VGG-like model with BLSTMs on top for
-  handwriting text recognition. The script has different options to costumize
-  the model. The architecture is based on the paper ["Are Multidimensional
-  Recurrent Layers Really Necessary for Handwritten Text Recognition?"](https://ieeexplore.ieee.org/document/8269951)
-  (2017) by J. Puigcerver.
-- **pylaia-htr-decode-ctc**: Decode text line images using a trained model and
-  the CTC algorithm.
-- **pylaia-htr-train-ctc**: Train a model using the CTC algorithm and a set of
-  text-line images and their transcripts.
-- **pylaia-htr-netout**: Dump the output of the model for a set of text-line images
-  in order to decode using an external language model.
+- **pylaia-htr-create-model**: Create a VGG-like model with BLSTMs on top for handwriting text recognition. The script has different options to costumize the model. The architecture is based on the paper ["Are Multidimensional Recurrent Layers Really Necessary for Handwritten Text Recognition?"](https://ieeexplore.ieee.org/document/8269951) (2017) by J. Puigcerver.
+- **pylaia-htr-decode-ctc**: Decode text line images using a trained model and the CTC algorithm. It can also output the char/word segmentation boundaries of the symbols recognized.
+- **pylaia-htr-train-ctc**: Train a model using the CTC algorithm and a set of text-line images and their transcripts.
+- **pylaia-htr-netout**: Dump the output of the model for a set of text-line images in order to decode using an external language model.
