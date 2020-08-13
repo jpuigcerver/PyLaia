@@ -12,25 +12,7 @@ from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.decoders import CTCGreedyDecoder
 from laia.feeders import ImageFeeder, ItemFeeder
 from laia.utils import SymbolsTable
-
-
-def char_segmentation(input, segmentation, sizes):
-    return [[v, segmentation[i], 0, [i + 1], sizes[0] - 1] for i, v in enumerate(input)]
-
-
-def word_segmentation(input, space):
-    out2, cad, ci = [], [], (0, 0)
-    for l in input:
-        if l[0] != space:
-            cad += [l[0]]
-        else:
-            if cad:
-                out2.append(["".join(cad), ci[0], ci[1], l[1], l[4]])
-            cad = []
-            ci = (l[3], l[2])
-    if cad:
-        out2.append(["".join(cad), ci[0], ci[1], l[3], l[4]])
-    return out2
+from laia.utils.segmentation import word_segmentation
 
 
 def main(args):
@@ -72,21 +54,18 @@ def main(args):
     for batch in dataset_loader:
         batch_input = batch_input_fn(batch)
         batch_output = model(batch_input)
-        batch_decode = decoder(batch_output, segmentation=bool(args.print_segmentation))
-        if args.print_segmentation == "char":
-            batch_sizes = batch_input.sizes.tolist()
-            batch_segmentation = [
-                [int(i * (y[1] - 1) / x[-1]) for i in x]
-                for x, y in zip(decoder.segmentation, batch_sizes)
-            ]
-        for i, (img_id, out) in enumerate(zip(batch["id"], batch_decode)):
+        decoder(batch_output, segmentation=bool(args.print_segmentation))
+        for i, (img_id, out) in enumerate(zip(batch["id"], decoder.output)):
             if args.use_letters or bool(args.print_segmentation):
                 out = [str(syms[val]) for val in out]
-            if args.print_segmentation == "char":
-                out = char_segmentation(out, batch_segmentation[i], batch_sizes[i])
-            elif args.print_segmentation == "word":
-                out = word_segmentation(out, args.input_space)
-            if not bool(args.print_segmentation):
+            if bool(args.print_segmentation):
+                w = batch_input.sizes[i, 1]
+                max_pos = decoder.segmentation[i][-1]
+                scaled = [(x * w // max_pos).item() for x in decoder.segmentation[i]]
+                out = [(out[i], scaled[i], scaled[i + 1]) for i in range(len(out))]
+                if args.print_segmentation == "word":
+                    out = word_segmentation(out, args.input_space)
+            else:
                 if args.convert_spaces:
                     out = [
                         args.output_space if sym == args.input_space else sym
