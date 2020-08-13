@@ -1,4 +1,6 @@
-from itertools import groupby
+from typing import List
+
+import torch
 
 from laia.losses.ctc_loss import transform_output
 
@@ -10,20 +12,17 @@ class CTCGreedyDecoder:
 
     def __call__(self, x, segmentation=False):
         x, xs = transform_output(x)
-        idx = x.argmax(dim=2).t().tolist()
-        x = [idx_n[: xs[n].item()] for n, idx_n in enumerate(idx)]
+        idx = x.argmax(dim=2).t()
+        x = [idx[i, :v] for i, v in enumerate(xs)]
         if segmentation:
             self._segmentation = [
-                [n for n, v in enumerate(x_n) if n == 0 or v != x_n[n - 1] != 0]
-                + [len(x_n) - 1]
-                for x_n in x
+                CTCGreedyDecoder.compute_segmentation(x_n) for x_n in x
             ]
         # Remove repeated symbols
-        x = [[k for k, _ in groupby(x_n)] for x_n in x]
+        x = [torch.unique_consecutive(x_n) for x_n in x]
         # Remove CTC blank symbol
-        self._output = [[x for x in x_n if x != 0] for x_n in x]
-        if segmentation:
-            assert any(len(self._segmentation) == len(self._output) + n for n in (1, 2))
+        x = [x_n[torch.nonzero(x_n, as_tuple=True)] for x_n in x]
+        self._output = [x_n.tolist() for x_n in x]
         return self._output
 
     @property
@@ -33,3 +32,9 @@ class CTCGreedyDecoder:
     @property
     def segmentation(self):
         return self._segmentation
+
+    @staticmethod
+    def compute_segmentation(x: List[int]) -> List[int]:
+        if not x:
+            return []
+        return [0] + [i for i in range(1, len(x)) if x[i] != x[i - 1] != 0] + [len(x)]
