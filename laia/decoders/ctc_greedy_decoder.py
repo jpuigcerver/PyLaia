@@ -16,7 +16,7 @@ class CTCGreedyDecoder:
         x = [idx[i, :v] for i, v in enumerate(xs)]
         if segmentation:
             self._segmentation = [
-                CTCGreedyDecoder.compute_segmentation(x_n) for x_n in x
+                CTCGreedyDecoder.compute_segmentation(x_n.tolist()) for x_n in x
             ]
         # Remove repeated symbols
         x = [torch.unique_consecutive(x_n) for x_n in x]
