@@ -14,6 +14,7 @@ class CTCGreedyDecoder:
         x, xs = transform_output(x)
         idx = x.argmax(dim=2).t()
         x = [idx[i, :v] for i, v in enumerate(xs)]
+        # alternatively: [CTCNBestDecoder.get_nbest(1, x_n)[1] for x_n in x.permute(1, 0, 2)]
         if segmentation:
             self._segmentation = [
                 CTCGreedyDecoder.compute_segmentation(x_n.tolist()) for x_n in x

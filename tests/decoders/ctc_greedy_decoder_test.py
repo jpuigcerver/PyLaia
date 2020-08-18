@@ -1,9 +1,25 @@
 import unittest
 
+import torch
+
 from laia.decoders import CTCGreedyDecoder
 
 
 class CTCGreedyDecoderTest(unittest.TestCase):
+    def test(self):
+        x = torch.tensor(
+            [
+                [[1.0, 3.0, -1.0, 0.0]],
+                [[-1.0, 2.0, -2.0, 3.0]],
+                [[1.0, 5.0, 9.0, 2.0]],
+                [[-1.0, -2.0, -3.0, -4.0]],
+            ]
+        )
+        decoder = CTCGreedyDecoder()
+        r = decoder(x)
+        e = [[1, 3, 2]]
+        self.assertEqual(e, r)
+
     def test_segmentation_empty(self):
         s = CTCGreedyDecoder.compute_segmentation([])
         e = []

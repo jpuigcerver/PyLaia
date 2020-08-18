@@ -6,7 +6,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 try:
     import pywrapfst as fst
 
-    from laia.decoders.ctc_lattice_generator import CTCLatticeGenerator
+    from laia.decoders import CTCLatticeGenerator
 
     skip = False
 except ImportError:
