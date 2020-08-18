@@ -8,6 +8,7 @@ def char_segmentation(
     if width:
         # Scale the width
         max_pos = seg[-1]
+        assert max_pos <= width
         seg = [(x * width // max_pos) for x in seg]
     # Convert (0-based start, non-inclusive end)
     # to (1-based start, inclusive end)
