@@ -12,17 +12,19 @@ class CTCNBestDecoder:
         self._output = None
 
     def __call__(self, x):
-        x, _ = transform_output(x)
+        x, xs = transform_output(x)
         x = x.permute(1, 0, 2)  # batch first
-        best = [CTCNBestDecoder.get_nbest(self._nbest, x_n) for x_n in x]
+        best = [
+            CTCNBestDecoder.get_nbest(self._nbest, x[i], xs[i]) for i in range(len(x))
+        ]
         best = [tuple(zip(v, p)) for v, p in best]
         self._output = [[(v.item(), p.tolist()) for v, p in b] for b in best]
         return self._output
 
     @staticmethod
-    def get_nbest(n, x):
-        x = x.detach()
+    def get_nbest(n, x, xs):
         k = min(n, x.size(1))
+        x = x.detach()[:xs, :]
         val, idx = x.topk(k, dim=1, sorted=True)
         # v: current bests, p: current paths
         v, p = val[0, :], idx[0, :].unsqueeze(1)

@@ -22,6 +22,10 @@ class CharSegmentationTest(unittest.TestCase):
         e = [("a", 1, 1, 29, 1), ("b", 30, 1, 49, 1), ("c", 50, 1, 69, 1)]
         self.assertEqual(e, x)
 
+    def test_scaling_error(self):
+        with self.assertRaises(AssertionError):
+            char_segmentation("a", [0, 1, 100], 1, width=50)
+
 
 class WordSegmentationTest(unittest.TestCase):
     def test_empty(self):
