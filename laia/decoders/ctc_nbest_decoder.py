@@ -21,6 +21,7 @@ class CTCNBestDecoder:
 
     @staticmethod
     def get_nbest(n, x):
+        x = x.detach()
         k = min(n, x.size(1))
         val, idx = x.topk(k, dim=1, sorted=True)
         # v: current bests, p: current paths
