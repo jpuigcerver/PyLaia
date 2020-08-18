@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 
 def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
@@ -19,16 +18,10 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         Tuple[float, List[int]]: Log-likelihood and best alignment for the
         input sequence.
     """
-    # Convert PyTorch tensors to Numpy arrays
-    if isinstance(logpost_matrix, torch.Tensor):
-        logpost_matrix = logpost_matrix.numpy()
-    if isinstance(seq, torch.Tensor):
-        seq = seq.numpy()
-    assert isinstance(logpost_matrix, np.ndarray)
     assert logpost_matrix.ndim == 2
-
-    NT, NS = logpost_matrix.shape
+    T, S = logpost_matrix.shape
     L = len(seq)
+
     # Add CTC symbols to the reference to form a canonical sequence:
     # <ctc> s_1 <ctc> s_2 <ctc> ... <ctc> s_n <ctc>
     # len(canonical) = 2 * len(reference) + 1
@@ -36,17 +29,17 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
     for i, sym in enumerate(seq):
         canonical.append(sym)
         canonical.append(ctc_sym)
-        assert sym < NS, (
+        assert sym < S, (
             "Reference symbol ({}) at position {} is too large "
-            "for the given matrix {}x{}".format(sym, i, NT, NS)
+            "for the given matrix {}x{}".format(sym, i, T, S)
         )
         assert (
             sym != ctc_sym
-        ), "Reference includes the CTC symbol ({}) at " "position {}".format(ctc_sym, i)
+        ), "Reference includes the CTC symbol ({}) at position {}".format(ctc_sym, i)
 
-    best_logp = np.ndarray((NT, len(canonical)))
+    best_logp = np.ndarray((T, len(canonical)))
     best_logp.fill(np.NINF)
-    best_alig = np.zeros((NT, len(canonical)), dtype=np.int64)
+    best_alig = np.zeros((T, len(canonical)), dtype=np.int64)
 
     # t = 0
     best_logp[0, 0] = logpost_matrix[0, ctc_sym]  # emit CTC symbol
@@ -55,8 +48,7 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         best_logp[0, 1] = logpost_matrix[0, seq[0]]  # emit first ref sym
         best_alig[0, 1] = 0
 
-    # t = 1..T
-    for t in range(1, NT):
+    for t in range(1, T):
         # k = 0 (no symbol emitted yet)
         best_logp[t, 0] = logpost_matrix[t, ctc_sym] + best_logp[t - 1, 0]
         best_alig[t, 0] = 0
@@ -84,8 +76,8 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         k = len(canonical) - 1
         best_logp = best_logp[-1, -1]
 
-    best_alignment = [0] * NT
-    for t in range(NT - 1, -1, -1):
+    best_alignment = [0] * T
+    for t in range(T - 1, -1, -1):
         best_alignment[t] = canonical[k]
         k = best_alig[t, k]
 
