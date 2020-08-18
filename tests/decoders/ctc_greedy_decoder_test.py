@@ -16,9 +16,50 @@ class CTCGreedyDecoderTest(unittest.TestCase):
             ]
         )
         decoder = CTCGreedyDecoder()
-        r = decoder(x)
+        r = decoder(x, segmentation=True)
         e = [[1, 3, 2]]
         self.assertEqual(e, r)
+
+    def test_prob(self):
+        x = torch.tensor([[[0.3, 0.6, 0.1]], [[0.6, 0.3, 0.2]]]).log()
+        decoder = CTCGreedyDecoder()
+        r = decoder(x, segmentation=True)
+        e = [[1]]
+        self.assertEqual(e, r)
+        # Check actual loss prob
+        paths = torch.tensor(
+            [x[0, 0, a] + x[1, 0, b] for a, b in ((0, 1), (1, 0), (1, 1))]
+        )
+        loss = torch.nn.functional.ctc_loss(
+            x, torch.tensor(e), torch.tensor([2]), torch.tensor([1]), reduction="none"
+        )
+        loss_prob = loss.neg().exp()
+        path_prob = paths.exp().sum()
+        torch.testing.assert_allclose(loss_prob, path_prob)
+        # Check 1best prob against loss with input_length = 1
+        loss = torch.nn.functional.ctc_loss(
+            x, torch.tensor(e), torch.tensor([1]), torch.tensor([1]), reduction="none"
+        )
+        loss_prob = loss.neg().exp()
+        torch.testing.assert_allclose(loss_prob, [p.mean() for p in decoder.prob][0])
+
+    def test_batch(self):
+        x = torch.tensor([[[0.3, 0.6], [0.5, 0.9]], [[0.6, 0.3], [0.6, 0.9]]]).log()
+        decoder = CTCGreedyDecoder()
+        r = decoder(x, segmentation=True)
+        e = [[1], [1]]
+        self.assertEqual(e, r)
+        # note: checking with ctc_loss does not work for every x
+        loss = torch.nn.functional.ctc_loss(
+            x,
+            torch.tensor(e),
+            torch.tensor([1, 1]),
+            torch.tensor([1, 1]),
+            reduction="none",
+        )
+        e = loss.neg().exp()
+        r = torch.tensor([p.mean() for p in decoder.prob])
+        torch.testing.assert_allclose(r, e)
 
     def test_segmentation_empty(self):
         s = CTCGreedyDecoder.compute_segmentation([])
