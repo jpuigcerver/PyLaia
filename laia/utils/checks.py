@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 
 import laia.common.logging as log
@@ -5,7 +7,13 @@ import laia.common.logging as log
 _TENSOR_REAL = (torch.float, torch.double, torch.half)
 
 
-def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
+def check_inf(
+    tensor: torch.Tensor,
+    msg: Optional[str] = None,
+    name: Optional[str] = None,
+    raise_exception: True = False,
+    **kwargs,
+) -> bool:
     """Check whether a tensor contains a +/- infinite value.
 
     Arguments:
@@ -28,7 +36,7 @@ def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
         if num_inf > 0:
             per_inf = num_inf / tensor.numel()
             msg = (
-                "{:d} ({:.2%}) INF values found".format(num_inf, per_inf)
+                f"{num_inf:d} ({per_inf:.2%}) INF values found"
                 if msg is None
                 else msg.format(abs_num=num_inf, rel_num=per_inf, **kwargs)
             )
@@ -40,7 +48,13 @@ def check_inf(tensor, msg=None, name=None, raise_exception=False, **kwargs):
     return False
 
 
-def check_nan(tensor, msg=None, name=None, raise_exception=False, **kwargs):
+def check_nan(
+    tensor: torch.Tensor,
+    msg: Optional[str] = None,
+    name: Optional[str] = None,
+    raise_exception: bool = False,
+    **kwargs,
+) -> bool:
     """Check whether a tensor contains a NaN value.
 
     Arguments:
@@ -62,7 +76,7 @@ def check_nan(tensor, msg=None, name=None, raise_exception=False, **kwargs):
         if num_nan > 0:
             per_nan = num_nan / tensor.numel()
             msg = (
-                "{:d} ({:.2%}) NaN values found".format(num_nan, per_nan)
+                f"{num_nan:d} ({per_nan:.2%}) NaN values found"
                 if msg is None
                 else msg.format(abs_num=num_nan, rel_num=per_nan, **kwargs)
             )

@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, Type
 
 import torch
 import torch.nn as nn
@@ -120,7 +120,7 @@ class Bottleneck(nn.Module):
 class ResnetOptions:
     def __init__(
         self,
-        block: Union[BasicBlock, Bottleneck],
+        block: Type[Union[BasicBlock, Bottleneck]],
         input_channels: int = 1,
         root_kernel: int = 5,
         layers: Sequence[int] = (2, 2, 2, 2),
@@ -128,7 +128,7 @@ class ResnetOptions:
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
-        norm_layer: Optional[nn.Module] = None,
+        norm_layer: Optional[Type[nn.Module]] = None,
     ):
 
         if len(layers) != 4:
