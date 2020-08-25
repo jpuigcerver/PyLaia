@@ -91,8 +91,6 @@ def get_logger(name=None):
 
 # Laia root logger
 root = get_logger()
-# Avoid "No handler found" warnings for py2.7
-root.addHandler(logging.NullHandler())
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
