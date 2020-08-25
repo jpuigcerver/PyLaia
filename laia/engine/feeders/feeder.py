@@ -1,25 +1,15 @@
+import torchvision
+
+from laia.data import PaddedTensor
+
+
 class Feeder:
-    """This class is used to feed data to a model or loss.
-
-    During training or evaluation, a :class:`laia.engine.Engine` object
-    will use feeders like this to feed data from a DataLoader into
-    the model.
-
-    Args:
-      parent_feeder (callable, optional): parent feeder that should feed this.
-          (default: None)
-    """
-
-    def __init__(self, parent_feeder=None):
-        assert parent_feeder is None or callable(parent_feeder)
-        self._parent_feeder = parent_feeder
+    """This class is used to feed data to a model or loss."""
 
     def __call__(self, x):
-        if self._parent_feeder:
-            x = self._parent_feeder(x)
-        return self._feed(x)
+        return self.feed(x)
 
-    def _feed(self, x):
+    def feed(self, x):
         raise NotImplementedError("Abstract class.")
 
 
@@ -28,14 +18,60 @@ class ItemFeeder(Feeder):
 
     Args:
       key: the key to use.
-      parent_feeder (callable, optional): parent feeder that should feed this.
-          (default: None)
     """
 
-    def __init__(self, key, parent_feeder=None):
-        super().__init__(parent_feeder)
+    def __init__(self, key):
+        super().__init__()
         self._key = key
 
-    def _feed(self, x):
-        assert self._key in x, "Could not find key {} in {}".format(self._key, x)
+    def feed(self, x):
+        assert self._key in x, f"Could not find key {self._key} in {x}"
         return x[self._key]
+
+
+class ImageFeeder(Feeder):
+    """Feed an image as a PyTorch tensor.
+
+    Args:
+      keep_padded_tensors: Whether or not keep the size
+          information of the padding. If False, the batch tensor will be
+          returned without any size information. (default: True)
+      keep_channels_in_size: Whether or not the number of channels of the
+          images is kept as part of the size in the `PaddedTensor` objects.
+    """
+
+    def __init__(
+        self, keep_padded_tensors: bool = True, keep_channels_in_size: bool = False,
+    ) -> None:
+        super().__init__()
+        self._keep_padded_tensors = keep_padded_tensors
+        self._keep_channels_in_size = keep_channels_in_size
+
+    @classmethod
+    def view_as_4d(cls, x):
+        if x.dim() > 4:
+            raise ValueError(
+                f"Tensor with {x.dim()} dimensions is not supported as an Image"
+            )
+        while x.dim() <= 3:
+            x = x.unsqueeze(0)
+        return x
+
+    def feed(self, x):
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
+        x = self.view_as_4d(x)  # N x C x H x W
+        if xs is not None and self._keep_padded_tensors:
+            # Ensure that the size tensor is the expected
+            if xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3):
+                raise ValueError(
+                    "Size tensor in PaddedTensor has not an "
+                    f"expected shape: {repr(xs.size())}"
+                )
+            if xs.size(1) == 3 and not self._keep_channels_in_size:
+                xs = xs[:, 1:]
+            return PaddedTensor(x, xs)
+        else:
+            return x
+
+
+Compose = torchvision.transforms.Compose
