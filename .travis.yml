@@ -25,6 +25,8 @@ before_install:
 
 install:
   - pip install "torch${torch_v}"
-  - pip install -e ".[test]"
+  - pip install -e ".[dev,test]"
 
-script: pytest
+script:
+  - pre-commit run --all-files
+  - pytest
