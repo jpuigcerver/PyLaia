@@ -1,11 +1,11 @@
-from typing import Callable, Optional, Sequence, List, Union, Any, Dict
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import torch
 
 import laia
 from laia.common.logging import get_logger
 from laia.decoders import CTCGreedyDecoder
-from laia.engine import Trainer, Evaluator
+from laia.engine import Evaluator, Trainer
 from laia.engine.engine import EPOCH_END, ITER_END
 from laia.experiments import Experiment
 from laia.hooks import action

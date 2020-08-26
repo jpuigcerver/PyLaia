@@ -6,28 +6,28 @@ import random
 
 import numpy
 import torch
-from torch.optim import RMSprop, Adam, AdamW, SGD
+from torch.optim import SGD, Adam, AdamW, RMSprop
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
 from laia import __version__
-from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments import add_argument, add_defaults, args
 from laia.common.arguments_types import NumberInClosedRange
 from laia.common.loader import ModelLoader, StateCheckpointLoader
 from laia.common.random import manual_seed
 from laia.common.saver import (
     CheckpointSaver,
-    RollingSaver,
     ModelCheckpointSaver,
+    RollingSaver,
     StateCheckpointSaver,
 )
-from laia.conditions import Lowest, MultipleOf, GEqThan, ConsecutiveNonDecreasing
-from laia.data import ImageDataLoader, TextImageFromTextTableDataset, FixedSizeSampler
-from laia.engine import Trainer, Evaluator
+from laia.conditions import ConsecutiveNonDecreasing, GEqThan, Lowest, MultipleOf
+from laia.data import FixedSizeSampler, ImageDataLoader, TextImageFromTextTableDataset
+from laia.engine import Evaluator, Trainer
 from laia.engine.engine import EPOCH_END, EPOCH_START
 from laia.engine.feeders import ImageFeeder, ItemFeeder
 from laia.experiments.htr_experiment import HTRExperiment
-from laia.hooks import Hook, HookList, action, Action
+from laia.hooks import Action, Hook, HookList, action
 from laia.utils import SymbolsTable
 
 

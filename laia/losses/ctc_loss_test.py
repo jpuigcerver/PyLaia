@@ -6,10 +6,7 @@ from torch.autograd import gradcheck
 from torch.nn.functional import log_softmax
 
 import laia.common.logging as log
-from laia.losses.ctc_loss import (
-    get_valids_and_errors,
-    CTCLoss,
-)
+from laia.losses.ctc_loss import CTCLoss, get_valids_and_errors
 
 log.basic_config()
 

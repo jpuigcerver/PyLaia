@@ -1,4 +1,5 @@
 import os
+
 import setuptools
 
 
@@ -37,7 +38,7 @@ setuptools.setup(
     setup_requires=["setuptools_scm"],
     install_requires=get_requirements(),
     extras_require={
-        "dev": ["pre-commit", "black"],
+        "dev": ["pre-commit", "isort", "black"],
         "test": ["pytest", "parameterized"],
     },
     python_requires=">=3.6",

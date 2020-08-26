@@ -1,10 +1,10 @@
-from typing import Callable, Union, Iterable, Optional, Any, Dict
+from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 import torch
 
 import laia.common.logging as log
 from laia.common.types import Loss as LossT
-from laia.engine.engine import Engine, EPOCH_END, ITER_START, ITER_END
+from laia.engine.engine import EPOCH_END, ITER_END, ITER_START, Engine
 from laia.hooks import Hook, action
 from laia.losses.loss import Loss
 from laia.utils import check_inf, check_nan

@@ -1,4 +1,4 @@
-from typing import Union, Dict, List
+from typing import Dict, List, Union
 
 from laia.utils.symbols_table import SymbolsTable
 

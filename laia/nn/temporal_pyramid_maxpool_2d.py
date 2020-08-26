@@ -1,4 +1,4 @@
-from typing import Union, Sequence
+from typing import Sequence, Union
 
 import torch
 from nnutils_pytorch import adaptive_maxpool_2d

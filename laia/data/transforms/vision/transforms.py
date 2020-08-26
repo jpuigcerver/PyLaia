@@ -1,8 +1,8 @@
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import torch
 import torchvision
-from PIL import ImageOps, Image
+from PIL import Image, ImageOps
 
 
 class Invert:

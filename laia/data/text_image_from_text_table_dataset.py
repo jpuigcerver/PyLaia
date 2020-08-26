@@ -1,6 +1,6 @@
 from os import listdir
 from os.path import isfile, join, splitext
-from typing import TextIO, Union, List, Sequence, Generator, Tuple, Callable
+from typing import Callable, Generator, List, Sequence, TextIO, Tuple, Union
 
 import laia.common.logging as log
 from laia.data.text_image_dataset import TextImageDataset

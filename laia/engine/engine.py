@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Iterable, Callable, Union, Optional, Any, Tuple, Dict, List
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 from tqdm import tqdm
@@ -7,7 +7,7 @@ from tqdm import tqdm
 import laia.common.logging as log
 from laia.engine.engine_exception import EngineException
 from laia.hooks import action
-from laia.hooks.hook import HookList, Hook
+from laia.hooks.hook import Hook, HookList
 
 _logger = log.get_logger(__name__)
 

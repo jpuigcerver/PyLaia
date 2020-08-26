@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union, Type
+from typing import Optional, Sequence, Type, Union
 
 import torch
 import torch.nn as nn

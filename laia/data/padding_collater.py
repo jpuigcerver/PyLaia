@@ -1,5 +1,5 @@
 import collections
-from typing import Tuple, List, Union, Callable, Any, Dict, Optional, Sequence, Mapping
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
