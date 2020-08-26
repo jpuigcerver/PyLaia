@@ -1,9 +1,11 @@
 import argparse
+from typing import Optional
+
+import pytorch_lightning as pl
 
 from laia.common.arguments_types import (
     NumberInClosedRange,
     NumberInOpenRange,
-    str2bool,
     str2loglevel,
 )
 
@@ -44,16 +46,12 @@ _default_args = {
     "nesterov": (
         ("--nesterov",),
         {
-            "type": str2bool,
+            "type": pl.utilities.parsing.str_to_bool,
             "nargs": "?",
             "const": True,
             "default": False,
             "help": "Whether or not to use Nesterov momentum",
         },
-    ),
-    "gpu": (
-        ("--gpu",),
-        {"type": int, "default": 1, "help": "Use this GPU (starting from 1)"},
     ),
     "seed": (
         ("--seed",),
@@ -61,61 +59,6 @@ _default_args = {
             "type": lambda x: int(x, 0),
             "default": 0x12345,
             "help": "Seed for random number generators",
-        },
-    ),
-    "max_epochs": (
-        ("--max_epochs",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "help": "Maximum number of training epochs",
-        },
-    ),
-    "max_updates": (
-        ("--max_updates",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "help": "Maximum number of parameter updates during training",
-        },
-    ),
-    "min_epochs": (
-        ("--min_epochs",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "help": "Minimum number of training epochs",
-        },
-    ),
-    "valid_cer_std_window_size": (
-        ("--valid_cer_std_window_size",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=2),
-            "help": "Use this number of epochs to compute the standard "
-            "deviation of the validation CER (must be >= 2)",
-        },
-    ),
-    "valid_cer_std_threshold": (
-        ("--valid_cer_std_threshold",),
-        {
-            "type": NumberInOpenRange(type=float, vmin=0),
-            "help": "Stop training if the standard deviation of the validation "
-            "CER is below this threshold (must be > 0)",
-        },
-    ),
-    "valid_map_std_window_size": (
-        ("--valid_map_std_window_size",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=2),
-            "help": "Use this number of epochs to compute the standard "
-            "deviation of the validation Mean Average Precision (mAP) "
-            "(must be >= 2)",
-        },
-    ),
-    "valid_map_std_threshold": (
-        ("--valid_map_std_threshold",),
-        {
-            "type": NumberInOpenRange(type=float, vmin=0),
-            "help": "Stop training if the standard deviation of the validation "
-            "Mean Average Precision (mAP) is below this threshold "
-            "(must be > 0)",
         },
     ),
     "color_mode": (
@@ -127,20 +70,10 @@ _default_args = {
             "help": "L (grayscale): 1 channel, RGB: 3 channels, RGBA: 4 channels",
         },
     ),
-    "show_progress_bar": (
-        ("--show_progress_bar",),
-        {
-            "type": str2bool,
-            "nargs": "?",
-            "const": True,
-            "default": False,
-            "help": "Whether or not to show a progress bar for each epoch",
-        },
-    ),
     "use_distortions": (
         ("--use_distortions",),
         {
-            "type": str2bool,
+            "type": pl.utilities.parsing.str_to_bool,
             "nargs": "?",
             "const": True,
             "default": False,
@@ -148,50 +81,35 @@ _default_args = {
             "training data",
         },
     ),
-    "train_loss_std_threshold": (
-        ("--train_loss_std_threshold",),
-        {
-            "type": NumberInOpenRange(type=float, vmin=0),
-            "help": "Stop training if the standard deviation of the training "
-            "loss is below this threshold (must be > 0)",
-        },
-    ),
-    "train_loss_std_window_size": (
-        ("--train_loss_std_window_size",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=2),
-            "help": "Use this number of epochs to compute the standard "
-            "deviation of the training loss (must be >= 2)",
-        },
-    ),
-    "train_samples_per_epoch": (
-        ("--train_samples_per_epoch",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "help": "Use this number of training examples randomly sampled "
-            "from the dataset in each epoch",
-        },
-    ),
-    "valid_samples_per_epoch": (
-        ("--valid_samples_per_epoch",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "help": "Use this number of validation examples randomly sampled "
-            "from the dataset in each epoch",
-        },
-    ),
-    "iterations_per_update": (
-        ("--iterations_per_update",),
-        {
-            "default": 1,
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "metavar": "N",
-            "help": "Update parameters every N iterations",
-        },
-    ),
     "train_path": (
         ("--train_path",),
         {"type": str, "default": "", "help": "Save any files in this location"},
+    ),
+    "checkpoint": (
+        ("--checkpoint",),
+        {
+            "type": str,
+            "default": None,
+            "help": "Name of the model checkpoint to use, can be a glob pattern",
+        },
+    ),
+    "checkpoint_k": (
+        ("--checkpoint_k",),
+        {
+            "type": int,
+            "default": 3,
+            "help": "checkpoint_k == k, the best k models will be saved. "
+            "checkpoint_k == 0, no models are saved. "
+            "checkpoint_k == -1, all models are saved",
+        },
+    ),
+    "model_filename": (
+        ("--model_filename",),
+        {"type": str, "default": "model", "help": "File name of the model"},
+    ),
+    "experiment_filename": (
+        ("--experiment_filename",),
+        {"type": str, "default": "experiment", "help": "File name of the experiment"},
     ),
     "logging_also_to_stderr": (
         ("--logging_also_to_stderr",),
@@ -223,7 +141,7 @@ _default_args = {
     "logging_overwrite": (
         ("--logging_overwrite",),
         {
-            "type": str2bool,
+            "type": pl.utilities.parsing.str_to_bool,
             "nargs": "?",
             "const": True,
             "default": False,
@@ -233,29 +151,11 @@ _default_args = {
     "print_args": (
         ("--print_args",),
         {
-            "type": str2bool,
+            "type": pl.utilities.parsing.str_to_bool,
             "nargs": "?",
             "const": True,
             "default": True,
             "help": "If true, log to INFO the arguments passed to the program",
-        },
-    ),
-    "save_checkpoint_interval": (
-        ("--save_checkpoint_interval",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "default": None,
-            "metavar": "N",
-            "help": "Make checkpoints of the training process every N epochs",
-        },
-    ),
-    "num_rolling_checkpoints": (
-        ("--num_rolling_checkpoints",),
-        {
-            "type": NumberInClosedRange(type=int, vmin=1),
-            "default": 2,
-            "metavar": "N",
-            "help": "Keep this number of last checkpoints during training",
         },
     ),
 }
@@ -295,13 +195,91 @@ def add_argument(*args, **kwargs):
     return _parser
 
 
-def args() -> argparse.Namespace:
-    a = _get_parser().parse_args()
+def args(parser: Optional[argparse.ArgumentParser] = None) -> argparse.Namespace:
+    a = parser.parse_args() if parser else _get_parser().parse_args()
     import laia.common.logging as log
 
     log.config_from_args(a)
     if a.print_args:
-        import pprint
-
-        log.get_logger(__name__).info("\n{}", pprint.pformat(vars(a)))
+        log.get_logger(__name__).info(f"\n{vars(a)}")
     return a
+
+
+def group_to_namespace(
+    args: argparse.Namespace, group: argparse._ArgumentGroup, dest: str
+):
+    """Moves arguments in a group to their own namespace"""
+    ns = argparse.Namespace()
+    for a in group._group_actions:
+        setattr(ns, a.dest, getattr(args, a.dest, None))
+        delattr(args, a.dest)
+    setattr(args, dest, ns)
+    return args
+
+
+# TODO: https://github.com/PyTorchLightning/pytorch-lightning/pull/3235
+def str_to_bool_or_str(val):
+    lower = val.lower()
+    if lower in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    elif lower in ("n", "no", "f", "false", "off", "0"):
+        return False
+    else:
+        return val
+
+
+# TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3076
+def add_lightning_args(parser):
+    blacklist = ["kwargs"]
+    depr_arg_names = pl.Trainer.get_deprecated_arg_names() + blacklist
+
+    allowed_types = (str, int, float, bool)
+
+    for arg, arg_types, arg_default in (
+        at
+        for at in pl.Trainer.get_init_arguments_and_types()
+        if at[0] not in depr_arg_names
+    ):
+        arg_types = [at for at in allowed_types if at in arg_types]
+        if not arg_types:
+            # skip argument with not supported type
+            continue
+        arg_kwargs = {}
+        if bool in arg_types:
+            arg_kwargs.update(nargs="?", const=True)
+            # if the only arg type is bool
+            if len(arg_types) == 1:
+                # redefine the type for ArgParser needed
+                def use_type(x):
+                    return bool(pl.utilities.parsing.str_to_bool(x))
+
+            elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
+                use_type = str_to_bool_or_str
+            else:
+                # filter out the bool as we need to use more general
+                use_type = [at for at in arg_types if at is not bool][0]
+        else:
+            use_type = arg_types[0]
+
+        if arg == "gpus" or arg == "tpu_cores":
+            use_type = pl.Trainer._gpus_allowed_type
+            arg_default = pl.Trainer._gpus_arg_default
+
+        # hack for types in (int, float)
+        if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
+            use_type = pl.Trainer._int_or_float_type
+
+        # hack for track_grad_norm
+        if arg == "track_grad_norm":
+            use_type = float
+
+        parser.add_argument(
+            f"--{arg}",
+            dest=arg,
+            default=arg_default,
+            type=use_type,
+            help="autogenerated by pl.Trainer",
+            **arg_kwargs,
+        )
+
+    return parser

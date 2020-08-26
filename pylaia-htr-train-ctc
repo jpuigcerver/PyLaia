@@ -1,301 +1,202 @@
 #!/usr/bin/env python3
 import argparse
-import multiprocessing
 import os
-import random
 
-import numpy
-import torch
-from torch.optim import SGD, Adam, AdamW, RMSprop
+import pytorch_lightning as pl
 
 import laia.common.logging as log
-import laia.data.transforms as transforms
-from laia import __version__
-from laia.common.arguments import add_argument, add_defaults, args
-from laia.common.arguments_types import NumberInClosedRange
-from laia.common.loader import ModelLoader, StateCheckpointLoader
-from laia.common.random import manual_seed
-from laia.common.saver import (
-    CheckpointSaver,
-    ModelCheckpointSaver,
-    RollingSaver,
-    StateCheckpointSaver,
+from laia import get_installed_versions
+from laia.callbacks import ProgressBar, TrainingTimer
+from laia.common.arguments import (
+    add_argument,
+    add_defaults,
+    add_lightning_args,
+    args,
+    group_to_namespace,
 )
-from laia.conditions import ConsecutiveNonDecreasing, GEqThan, Lowest, MultipleOf
-from laia.data import FixedSizeSampler, ImageDataLoader, TextImageFromTextTableDataset
-from laia.engine import Evaluator, Trainer
-from laia.engine.engine import EPOCH_END, EPOCH_START
-from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.experiments.htr_experiment import HTRExperiment
-from laia.hooks import Action, Hook, HookList, action
+from laia.common.arguments_types import NumberInClosedRange
+from laia.common.loader import ModelLoader, choose_by
+from laia.engine.data_module import DataModule
+from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
+from laia.engine.htr_module import HTRModule
 from laia.utils import SymbolsTable
 
 
-def worker_init_fn(_):
-    # We need to reset the Numpy and Python PRNG, or we will get the
-    # same numbers in each epoch (when the workers are re-generated)
-    random.seed(torch.initial_seed() % 2 ** 31)
-    numpy.random.seed(torch.initial_seed() % 2 ** 31)
+def main(args):
+    log.info(f"Installed: {get_installed_versions()}")
+
+    pl.seed_everything(args.seed)
+
+    checkpoint = None
+    filepath = os.path.join(args.train_path, args.experiment_filename)
+    if args.checkpoint:
+        checkpoint_path = os.path.join(filepath, args.checkpoint)
+        checkpoint = choose_by(checkpoint_path)
+        if not checkpoint:
+            log.error(f'Could not find the checkpoint="{checkpoint_path}"')
+            exit(1)
+        log.info(f'Loaded checkpoint="{checkpoint_path}')
+
+    early_stopping_callback = pl.callbacks.EarlyStopping(
+        patience=args.early_stopping_patience, verbose=True, mode="min",
+    )
+    # TODO: save on best va_wer and every x epochs (https://github.com/PyTorchLightning/pytorch-lightning/issues/2908)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        filepath=filepath + "/{epoch}-lowest_" + args.monitor,
+        verbose=True,
+        save_top_k=args.checkpoint_k,
+        mode="min",
+    )
+    # TODO: https://pytorch-lightning.readthedocs.io/en/latest/callbacks.html#gpu-stats-monitor
+    callbacks = [
+        ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
+        TrainingTimer(),
+    ]
+    if args.scheduler:
+        callbacks.append(pl.callbacks.LearningRateLogger(logging_interval="epoch"))
+
+    trainer = pl.Trainer(
+        default_root_dir=args.train_path,
+        early_stop_callback=early_stopping_callback,
+        checkpoint_callback=checkpoint_callback,
+        resume_from_checkpoint=checkpoint,
+        callbacks=callbacks,
+        **vars(args.lightning),
+    )
+
+    # Load the non-pytorch_lightning model
+    model = ModelLoader(args.train_path, filename=args.model_filename).load()
+    if model is None:
+        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
+        exit(1)
+
+    syms = SymbolsTable(args.syms)
+    htr_module = HTRModule(
+        model,
+        args,
+        [syms[d] for d in args.delimiters],
+        monitor=args.monitor,
+        batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
+        batch_target_fn=ItemFeeder("txt"),
+        batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
+    )
+    data_module = DataModule(args, syms)
+
+    trainer.fit(htr_module, datamodule=data_module)
+
+    log.info(
+        f'Best {args.monitor}="{checkpoint_callback.best_model_score}" '
+        f'obtained with model="{checkpoint_callback.best_model_path}"'
+    )
+    exit(0)
 
 
 if __name__ == "__main__":
-    add_defaults(
+    parser = add_defaults(
         "batch_size",
         "learning_rate",
         "momentum",
         "weight_l2_penalty",
         "nesterov",
-        "gpu",
-        "max_epochs",
         "seed",
-        "show_progress_bar",
         "train_path",
-        "train_samples_per_epoch",
-        "valid_samples_per_epoch",
-        "iterations_per_update",
+        "checkpoint",
+        "checkpoint_k",
+        "model_filename",
+        "experiment_filename",
         "color_mode",
-        "save_checkpoint_interval",
-        "num_rolling_checkpoints",
         "use_distortions",
-        "print_args",
     )
     add_argument(
         "syms",
         type=argparse.FileType("r"),
-        help="Symbols table mapping from strings to integers.",
+        help="Symbols table mapping from strings to integers",
     )
     add_argument(
-        "img_dirs", type=str, nargs="+", help="Directory containing word images."
+        "img_dirs", type=str, nargs="+", help="Directory containing word images"
     )
     add_argument(
         "tr_txt_table",
         type=argparse.FileType("r"),
-        help="Character transcriptions of each training image.",
+        help="Character transcriptions of each training image",
     )
     add_argument(
         "va_txt_table",
         type=argparse.FileType("r"),
-        help="Character transcriptions of each validation image.",
+        help="Character transcriptions of each validation image",
     )
     add_argument(
         "--delimiters",
         type=str,
         nargs="+",
         default=["<space>"],
-        help="Sequence of characters representing the word delimiters.",
+        help="Sequence of characters representing the word delimiters",
     )
     add_argument(
-        "--max_nondecreasing_epochs",
+        "--early_stopping_patience",
         type=NumberInClosedRange(int, vmin=0),
-        help="Stop the training once there has been this number "
-        "consecutive epochs without a new lowest validation CER.",
-    )
-    add_argument(
-        "--model_filename", type=str, default="model", help="File name of the model."
-    )
-    add_argument(
-        "--checkpoint",
-        type=str,
-        default="ckpt.lowest-valid-cer*",
-        help="Suffix of the checkpoint to use, can be a glob pattern.",
+        default=20,
+        help="Number of validation epochs with no CER improvement after which training will be stopped",
     )
     add_argument(
         "--optimizer",
         type=str,
         default="RMSProp",
         choices=["SGD", "RMSProp", "Adam", "AdamW"],
-        help="Optimization algorithm.",
+        help="Optimization algorithm",
     )
-    # Deprecated arguments:
     add_argument(
-        "--use_baidu_ctc",
-        "--add_logsoftmax_to_loss",
-        action="store_true",
-        help=argparse.SUPPRESS,
+        "--monitor",
+        type=str,
+        default="va_cer",
+        choices=["va_loss", "va_cer", "va_wer"],
+        help="Metric to monitor",
     )
-    args = args()
-
-    log.info("PyLaia version: {}".format(__version__))
-
-    manual_seed(args.seed)
-    syms = SymbolsTable(args.syms)
-    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
-
-    model = ModelLoader(
-        args.train_path, filename=args.model_filename, device=device
-    ).load()
-    if model is None:
-        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
-        exit(1)
-    model = model.to(device)
-
-    default_img_transform = transforms.vision.ToImageTensor(
-        mode=args.color_mode, invert=True
+    add_argument(
+        "--scheduler",
+        type=pl.utilities.parsing.str_to_bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Whether or not to use an on-plateau learning rate scheduler",
     )
-    if args.use_distortions:
-        tr_img_transform = transforms.Compose(
-            [
-                transforms.vision.Convert(args.color_mode),
-                transforms.vision.Invert(),
-                transforms.vision.RandomBetaAffine(),
-                transforms.vision.ToTensor(),
-            ]
-        )
-    else:
-        tr_img_transform = default_img_transform
-    log.info("Training data transforms:\n{}", str(tr_img_transform))
-
-    tr_dataset = TextImageFromTextTableDataset(
-        args.tr_txt_table,
-        args.img_dirs,
-        img_transform=tr_img_transform,
-        txt_transform=transforms.text.ToTensor(syms),
+    add_argument(
+        "--scheduler_patience",
+        type=NumberInClosedRange(type=int, vmin=0),
+        default=5,
+        help="Number of epochs with no improvement after which learning rate will be reduced",
     )
-    tr_dataset_loader = ImageDataLoader(
-        dataset=tr_dataset,
-        image_channels=len(args.color_mode),
-        batch_size=args.batch_size,
-        num_workers=multiprocessing.cpu_count(),
-        shuffle=not bool(args.train_samples_per_epoch),
-        sampler=FixedSizeSampler(tr_dataset, args.train_samples_per_epoch)
-        if args.train_samples_per_epoch
-        else None,
-        worker_init_fn=worker_init_fn,
+    add_argument(
+        "--scheduler_monitor",
+        type=str,
+        default="va_loss",
+        choices=["va_loss", "va_cer", "va_wer"],
+        help="Metric for the scheduler to monitor",
+    )
+    add_argument(
+        "--scheduler_factor",
+        type=float,
+        default=0.1,
+        help="Factor by which the learning rate will be reduced",
     )
 
-    if args.optimizer == "SGD":
-        optimizer = SGD(
-            model.parameters(),
-            lr=args.learning_rate,
-            momentum=args.momentum,
-            weight_decay=args.weight_l2_penalty,
-            nesterov=args.nesterov,
-        )
-    elif args.optimizer == "RMSProp":
-        optimizer = RMSprop(
-            model.parameters(),
-            lr=args.learning_rate,
-            weight_decay=args.weight_l2_penalty,
-            momentum=args.momentum,
-        )
-    elif args.optimizer == "Adam":
-        optimizer = Adam(
-            model.parameters(),
-            lr=args.learning_rate,
-            weight_decay=args.weight_l2_penalty,
-        )
-    elif args.optimizer == "AdamW":
-        if args.weight_l2_penalty == 0.0:
-            log.warning("Using 0.0 weight decay with AdamW")
-        optimizer = AdamW(
-            model.parameters(),
-            lr=args.learning_rate,
-            weight_decay=args.weight_l2_penalty,
-        )
+    # Add lightning default arguments to a group
+    pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
+    pl_group = add_lightning_args(pl_group)
 
-    trainer = Trainer(
-        model=model,
-        criterion=None,  # Set automatically by HTRExperiment
-        optimizer=optimizer,
-        data_loader=tr_dataset_loader,
-        batch_input_fn=ImageFeeder(device=device, parent_feeder=ItemFeeder("img")),
-        batch_target_fn=ItemFeeder("txt"),
-        batch_id_fn=ItemFeeder("id"),  # Print image ids on exception
-        progress_bar="Train" if args.show_progress_bar else None,
-        iterations_per_update=args.iterations_per_update,
-    )
+    args = args(parser=parser)
 
-    va_dataset = TextImageFromTextTableDataset(
-        args.va_txt_table,
-        args.img_dirs,
-        img_transform=default_img_transform,
-        txt_transform=transforms.text.ToTensor(syms),
-    )
-    va_dataset_loader = ImageDataLoader(
-        dataset=va_dataset,
-        image_channels=len(args.color_mode),
-        batch_size=args.batch_size,
-        num_workers=multiprocessing.cpu_count(),
-        sampler=FixedSizeSampler(va_dataset, args.valid_samples_per_epoch)
-        if args.valid_samples_per_epoch
-        else None,
-    )
-    evaluator = Evaluator(
-        model=model,
-        data_loader=va_dataset_loader,
-        batch_input_fn=ImageFeeder(device=device, parent_feeder=ItemFeeder("img")),
-        batch_target_fn=ItemFeeder("txt"),
-        batch_id_fn=ItemFeeder("id"),
-        progress_bar="Valid" if args.show_progress_bar else None,
-    )
+    # Move lightning default arguments to their own namespace
+    args = group_to_namespace(args, pl_group, "lightning")
+    # Hard-code some args
+    args.lightning.weights_summary = "full"
+    # Delete some which will be set manually
+    for a in (
+        "checkpoint_callback",
+        "early_stop_callback",
+        "default_root_dir",
+        "resume_from_checkpoint",
+    ):
+        delattr(args.lightning, a)
 
-    experiment = HTRExperiment(
-        trainer, evaluator, word_delimiters=[syms[sym] for sym in args.delimiters]
-    )
-
-    def ckpt_saver(filename, obj):
-        return RollingSaver(
-            StateCheckpointSaver(
-                CheckpointSaver(os.path.join(args.train_path, filename)),
-                obj,
-                device=device,
-            ),
-            keep=args.num_rolling_checkpoints,
-        )
-
-    saver_best_cer = ckpt_saver("experiment.ckpt.lowest-valid-cer", experiment)
-    saver_best_wer = ckpt_saver("experiment.ckpt.lowest-valid-wer", experiment)
-
-    @action
-    def save(saver, epoch):
-        saver.save(suffix=epoch)
-
-    # Set hooks
-    trainer.add_hook(
-        EPOCH_END,
-        HookList(
-            # Save on best CER
-            Hook(Lowest(experiment.valid_cer()), Action(save, saver=saver_best_cer)),
-            # Save on best WER
-            Hook(Lowest(experiment.valid_wer()), Action(save, saver=saver_best_wer)),
-        ),
-    )
-    if args.save_checkpoint_interval:
-        # Save every `save_checkpoint_interval` epochs
-        log.get_logger("laia.hooks.conditions.multiple_of").setLevel(log.WARNING)
-        trainer.add_hook(
-            EPOCH_END,
-            Hook(
-                MultipleOf(trainer.epochs, args.save_checkpoint_interval),
-                Action(save, saver=ckpt_saver("experiment.ckpt", experiment)),
-            ),
-        )
-    if args.max_nondecreasing_epochs:
-        # Stop when the validation CER hasn't improved in
-        # `max_nondecreasing_epochs` consecutive epochs
-        trainer.add_hook(
-            EPOCH_END,
-            Hook(
-                ConsecutiveNonDecreasing(
-                    experiment.valid_cer(), args.max_nondecreasing_epochs
-                ),
-                trainer.stop,
-            ),
-        )
-    if args.max_epochs:
-        # Stop when `max_epochs` has been reached
-        trainer.add_hook(
-            EPOCH_START, Hook(GEqThan(trainer.epochs, args.max_epochs), trainer.stop)
-        )
-
-    # Continue from the given checkpoint, if possible
-    StateCheckpointLoader(experiment, device=device).load_by(
-        os.path.join(args.train_path, "experiment.{}".format(args.checkpoint))
-    )
-
-    experiment.run()
-
-    # Experiment finished. Save the model separately
-    ModelCheckpointSaver(
-        CheckpointSaver(os.path.join(args.train_path, "model.ckpt")), model
-    ).save(suffix="last")
+    main(args)

@@ -4,15 +4,6 @@ from ast import literal_eval
 from collections import OrderedDict
 
 
-def str2bool(v):
-    if v.lower() in ("yes", "true", "t", "y", "1"):
-        return True
-    elif v.lower() in ("no", "false", "f", "n", "0"):
-        return False
-    else:
-        raise ArgumentTypeError("Boolean value expected")
-
-
 def str2num_accept_closed_range(v, t, vmin=None, vmax=None):
     v = t(v)
     if vmin is not None and v < vmin:

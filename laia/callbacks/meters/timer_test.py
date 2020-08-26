@@ -1,12 +1,12 @@
 import time
 import unittest
 
-from laia.meters import TimeMeter
+from laia.callbacks.meters.timer import Timer
 
 
-class TimeMeterTest(unittest.TestCase):
-    def testMeter(self):
-        m = TimeMeter()
+class TimerTest(unittest.TestCase):
+    def test(self):
+        m = Timer()
         time.sleep(1)
         t = m.value
         # Check that the timer has measured ~1 second.

@@ -3,21 +3,23 @@ import argparse
 import os
 
 import torch
+from pytorch_lightning.utilities.parsing import str_to_bool
 
-import laia.common.logging as log
 import laia.data.transforms as transforms
 from laia.common.arguments import add_argument, add_defaults, args
-from laia.common.arguments_types import str2bool
-from laia.common.loader import CheckpointLoader, ModelLoader
+from laia.common.loader import choose_by
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.decoders import CTCGreedyDecoder
-from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.experiments import Experiment
+from laia.feeders import ImageFeeder, ItemFeeder
 from laia.utils import SymbolsTable
 
 if __name__ == "__main__":
     add_defaults(
-        "batch_size", "gpu", "train_path", "color_mode", logging_level="WARNING"
+        "batch_size",
+        "train_path",
+        "model_filename",
+        "color_mode",
+        logging_level="WARNING",
     )
     add_argument(
         "syms",
@@ -36,24 +38,8 @@ if __name__ == "__main__":
         help="File containing images to decode. Doesn't require the extension",
     )
     add_argument(
-        "--model_filename", type=str, default="model", help="File name of the model"
-    )
-    add_argument(
-        "--checkpoint",
-        type=str,
-        default="experiment.ckpt.lowest-valid-cer*",
-        help="Name of the model checkpoint to use, can be a glob pattern",
-    )
-    add_argument(
-        "--source",
-        type=str,
-        default="experiment",
-        choices=["experiment", "model"],
-        help="Type of class which generated the checkpoint",
-    )
-    add_argument(
         "--print_img_ids",
-        type=str2bool,
+        type=str_to_bool,
         nargs="?",
         const=True,
         default=True,
@@ -77,19 +63,10 @@ if __name__ == "__main__":
     syms = SymbolsTable(args.syms)
     device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
 
-    model = ModelLoader(
-        args.train_path, filename=args.model_filename, device=device
-    ).load()
-    if model is None:
-        log.error("Could not find the model")
-        exit(1)
-    state = CheckpointLoader(device=device).load_by(
-        os.path.join(args.train_path, args.checkpoint)
-    )
-    model.load_state_dict(
-        state if args.source == "model" else Experiment.get_model_state_dict(state)
-    )
-    model = model.to(device)
+    checkpoint = choose_by(os.path.join(args.train_path, args.checkpoint))
+    # TODO
+    model = PLModel.load_from_checkpoint(checkpoint)
+
     model.eval()
 
     dataset = ImageFromListDataset(

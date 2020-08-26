@@ -21,6 +21,7 @@ if __name__ == "__main__":
         "batch_size",
         "gpu",
         "train_path",
+        "model_filename",
         "color_mode",
         "show_progress_bar",
         logging_level="WARNING",
@@ -35,9 +36,6 @@ if __name__ == "__main__":
         "img_list",
         type=argparse.FileType("r"),
         help="File containing images to decode. Doesn't require the extension",
-    )
-    add_argument(
-        "--model_filename", type=str, default="model", help="File name of the model"
     )
     add_argument(
         "--checkpoint",

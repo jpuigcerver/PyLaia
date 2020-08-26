@@ -2,13 +2,14 @@
 import argparse
 
 import torch.nn as nn
+from pytorch_lightning import seed_everything
+from pytorch_lightning.utilities.parsing import str_to_bool
 
 import laia.common.logging as log
-from laia import __version__
-from laia.common import ModelSaver
+from laia import get_installed_versions
 from laia.common.arguments import add_argument, add_defaults, args
-from laia.common.arguments_types import NumberInClosedRange, TupleList, str2bool
-from laia.common.random import manual_seed
+from laia.common.arguments_types import NumberInClosedRange, TupleList
+from laia.common.saver import ModelSaver
 from laia.models.htr import LaiaCRNN
 from laia.utils import SymbolsTable
 
@@ -23,7 +24,7 @@ by a dropout layer.
 """
 
 if __name__ == "__main__":
-    add_defaults("train_path", "seed")
+    add_defaults("train_path", "seed", "model_filename")
     add_argument(
         "num_input_channels",
         type=NumberInClosedRange(int, vmin=1),
@@ -41,12 +42,6 @@ if __name__ == "__main__":
         "If 0, a variable height model will be used (see --adaptive_pooling)",
     )
     add_argument("--adaptive_pooling", type=str, default="avgpool-16", help="")
-    add_argument(
-        "--model_filename",
-        type=str,
-        default="model",
-        help="Name of the saved model file",
-    )
     add_argument(
         "--cnn_num_features",
         type=NumberInClosedRange(int, vmin=1),
@@ -114,7 +109,7 @@ if __name__ == "__main__":
     )
     add_argument(
         "--cnn_batchnorm",
-        type=str2bool,
+        type=str_to_bool,
         nargs="+",
         default=[False] * 4,
         help="Batch normalization before the activation in each conv layer",
@@ -151,7 +146,7 @@ if __name__ == "__main__":
     )
     add_argument(
         "--vertical_text",
-        type=str2bool,
+        type=str_to_bool,
         nargs="?",
         default=False,
         const=True,
@@ -159,7 +154,7 @@ if __name__ == "__main__":
     )
     add_argument(
         "--use_masked_conv",
-        type=str2bool,
+        type=str_to_bool,
         nargs="?",
         default=False,
         const=True,
@@ -167,9 +162,10 @@ if __name__ == "__main__":
         "activation.",
     )
     args = args()
-    manual_seed(args.seed)
 
-    log.info("PyLaia version: {}".format(__version__))
+    log.info(f"Installed: {get_installed_versions()}")
+
+    seed_everything(args.seed)
 
     dimensions = map(
         len,
