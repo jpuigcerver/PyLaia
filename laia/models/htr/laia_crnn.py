@@ -1,5 +1,5 @@
 from itertools import count
-from typing import Sequence, Union, List, Tuple
+from typing import List, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn

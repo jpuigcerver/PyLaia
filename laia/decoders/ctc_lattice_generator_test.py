@@ -4,8 +4,9 @@ import torch
 from torch.nn.utils.rnn import pack_padded_sequence
 
 try:
-    from laia.decoders.ctc_lattice_generator import CTCLatticeGenerator
     import pywrapfst as fst
+
+    from laia.decoders.ctc_lattice_generator import CTCLatticeGenerator
 
     skip = False
 except ImportError:

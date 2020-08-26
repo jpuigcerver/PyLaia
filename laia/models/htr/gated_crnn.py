@@ -1,10 +1,10 @@
-from typing import Union, Sequence, Optional, List
+from typing import List, Optional, Sequence, Union
 
 import torch
 from torch.nn.functional import dropout
 from torch.nn.utils.rnn import PackedSequence
 
-from laia.common.types import Param2d, Module
+from laia.common.types import Module, Param2d
 from laia.data.padding_collater import PaddedTensor
 from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
 

@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
 import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence

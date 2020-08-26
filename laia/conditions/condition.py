@@ -1,6 +1,7 @@
-from typing import Callable, Any as AnyT, Optional, Dict
+from typing import Any as AnyT
+from typing import Callable, Dict, Optional
 
-from laia.common.logging import get_logger, DEBUG, INFO, ERROR, Logger
+from laia.common.logging import DEBUG, ERROR, INFO, Logger, get_logger
 
 _logger = get_logger(__name__)
 

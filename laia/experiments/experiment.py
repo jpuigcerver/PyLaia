@@ -1,10 +1,10 @@
-from typing import Callable, Optional, List, Dict
+from typing import Callable, Dict, List, Optional
 
 import laia
 from laia.common.logging import get_logger
-from laia.engine.engine import Evaluator, EPOCH_START, EPOCH_END, Engine
+from laia.engine.engine import EPOCH_END, EPOCH_START, Engine, Evaluator
 from laia.hooks import action
-from laia.meters import RunningAverageMeter, TimeMeter, MemoryMeter
+from laia.meters import MemoryMeter, RunningAverageMeter, TimeMeter
 from laia.meters.meter import Meter
 
 _logger = get_logger(__name__)

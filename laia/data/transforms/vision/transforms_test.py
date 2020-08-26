@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from laia.data.transforms.vision import Invert, Convert
+from laia.data.transforms.vision import Convert, Invert
 
 
 class TransformerTest(unittest.TestCase):

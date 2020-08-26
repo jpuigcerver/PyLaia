@@ -2,8 +2,9 @@
 
 [![Build Status](https://travis-ci.com/jpuigcerver/PyLaia.svg?token=HF64eTvPxEUcjjUPXpgm&branch=master)](https://travis-ci.com/jpuigcerver/PyLaia)
 [![Python Version](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/)
-[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat)](https://timothycrosley.github.io/isort/)
 
 PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized
 for handwritten document analysis. It is also a successor to
@@ -19,7 +20,7 @@ In order to install PyLaia, follow this recipe:
 git clone https://github.com/jpuigcerver/PyLaia
 cd PyLaia
 pip install torch
-pip install -e .
+pip install --editable .
 ```
 
 The following Python scripts will be installed in your system:

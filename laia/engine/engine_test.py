@@ -1,6 +1,6 @@
 import unittest
 
-from laia.engine.engine import Engine, EPOCH_START, EPOCH_END, ITER_START, ITER_END
+from laia.engine.engine import EPOCH_END, EPOCH_START, ITER_END, ITER_START, Engine
 from laia.hooks import action
 
 

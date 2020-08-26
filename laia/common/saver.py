@@ -1,7 +1,7 @@
 import inspect
 import os
 from collections import deque
-from typing import Any, Optional, Callable
+from typing import Any, Callable, Optional
 
 import torch
 

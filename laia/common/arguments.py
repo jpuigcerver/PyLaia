@@ -1,9 +1,9 @@
 import argparse
 
 from laia.common.arguments_types import (
-    str2bool,
     NumberInClosedRange,
     NumberInOpenRange,
+    str2bool,
     str2loglevel,
 )
 

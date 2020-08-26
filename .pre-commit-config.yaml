@@ -6,6 +6,11 @@ repos:
     - id: check-yaml
     - id: trailing-whitespace
     - id: end-of-file-fixer
+-   repo: https://github.com/timothycrosley/isort
+    rev: 5.3.0
+    hooks:
+    - id: isort
+      args: [--profile, black]
 -   repo: https://github.com/psf/black
     rev: 19.10b0
     hooks:

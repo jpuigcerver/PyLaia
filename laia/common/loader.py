@@ -2,7 +2,7 @@ import os
 from glob import glob
 from importlib import import_module
 from io import BytesIO
-from typing import Optional, Callable, Any, Union
+from typing import Any, Callable, Optional, Union
 
 import natsort as ns
 import torch

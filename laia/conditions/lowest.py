@@ -1,4 +1,4 @@
-from typing import Callable, Any, Optional, Dict
+from typing import Any, Callable, Dict, Optional
 
 from torch._six import inf
 

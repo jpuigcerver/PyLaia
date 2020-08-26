@@ -6,9 +6,9 @@ import torch
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
-from laia.common.arguments import add_argument, args, add_defaults
+from laia.common.arguments import add_argument, add_defaults, args
 from laia.common.arguments_types import str2bool
-from laia.common.loader import ModelLoader, CheckpointLoader
+from laia.common.loader import CheckpointLoader, ModelLoader
 from laia.data import ImageDataLoader, ImageFromListDataset
 from laia.decoders import CTCGreedyDecoder
 from laia.engine.feeders import ImageFeeder, ItemFeeder
