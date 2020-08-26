@@ -1,3 +1,3 @@
 import laia.engine.feeders
-from laia.engine.engine import Engine, Evaluator
-from laia.engine.trainer import Trainer
+from laia.engine.data_module import DataModule
+from laia.engine.engine_module import EngineModule

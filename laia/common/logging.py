@@ -2,7 +2,7 @@ import json
 import logging
 import sys
 
-import tqdm
+from tqdm import tqdm
 
 # Inherit loglevels from Python's logging
 DEBUG = logging.DEBUG
@@ -22,12 +22,15 @@ class TqdmStreamHandler(logging.StreamHandler):
         messages don't break the tqdm bar."""
 
     def __init__(self, level=logging.NOTSET):
-        super().__init__(level)
+        super().__init__()
+        self.setLevel(level)
 
     def emit(self, record):
+        if record.levelno < self.level:
+            return
         try:
             msg = self.format(record)
-            tqdm.tqdm.write(msg, file=sys.stderr)
+            tqdm.write(msg, file=sys.stderr)
             self.flush()
         except Exception:
             self.handleError(record)
@@ -91,24 +94,21 @@ def get_logger(name=None):
 
 # Laia root logger
 root = get_logger()
+lightning = logging.getLogger("lightning")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
-    import __main__ as main
-
+    # https://stackoverflow.com/a/16993115
     if not len(root.handlers) or all(
         isinstance(h, logging.NullHandler) for h in root.handlers
     ):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    if issubclass(exc_type, KeyboardInterrupt) or hasattr(main, "__file__"):
-        root.info("Laia stopped")
-        return
-    root.error("Uncaught exception:", exc_info=(exc_type, exc_value, exc_traceback))
+    root.critical("Uncaught exception:", exc_info=(exc_type, exc_value, exc_traceback))
 
 
 def set_exception_handler(func=sys.__excepthook__):
-    sys.exepthook = func
+    sys.excepthook = func
 
 
 def basic_config(
@@ -122,20 +122,19 @@ def basic_config(
     set_exception_handler(func=exception_handling_fn)
     fmt = logging.Formatter(fmt)
 
-    for h in root.handlers:
-        if isinstance(h, logging.NullHandler):
-            root.removeHandler(h)
-
-    handler = TqdmStreamHandler()
+    handler = TqdmStreamHandler(level=level)
     handler.setFormatter(fmt)
     if filename:
         handler.setLevel(logging_also_to_stderr)
     root.addHandler(handler)
+    lightning.handlers = []
+    lightning.addHandler(TqdmStreamHandler(level=INFO))
 
     if filename:
         handler = logging.FileHandler(filename, filemode)
         handler.setFormatter(fmt)
         root.addHandler(handler)
+        lightning.addHandler(handler)
 
     root.setLevel(level)
 

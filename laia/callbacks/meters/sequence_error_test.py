@@ -1,6 +1,6 @@
 import unittest
 
-from laia.utils.char_to_word_seq import char_to_word_seq
+from laia.callbacks.meters.sequence_error import SequenceError, char_to_word_seq
 
 
 class CharToWordSeqTest(unittest.TestCase):
@@ -80,6 +80,51 @@ class CharToWordSeqTest(unittest.TestCase):
         actual = char_to_word_seq(seq, delimiters)
         expected = [[1, 2, 3], [1, 2], [3]]
         self.assertEqual(actual, expected)
+
+
+class SequenceErrorTest(unittest.TestCase):
+    def test_single_string(self):
+        err = SequenceError()
+        ref = ["home"]
+        hyp = ["house"]
+        err.add(ref, hyp)
+        self.assertEqual(err.value, 0.5)
+
+    def test_single_list(self):
+        err = SequenceError()
+        ref = [[1, 2, 3, 4]]
+        hyp = [[1, 2, 5, 6, 4]]
+        err.add(ref, hyp)
+        self.assertEqual(err.value, 0.5)
+
+    def test_empty_hyp_list(self):
+        err = SequenceError()
+        ref = [[[1, 2, 3, 4], [4, 3, 2, 1]]]
+        hyp = [[]]
+        err.add(ref, hyp)
+        self.assertEqual(err.value, 1)
+
+    def test_empty_hyp_string(self):
+        err = SequenceError()
+        ref = [["test", "thing"]]
+        hyp = [[]]
+        err.add(ref, hyp)
+        self.assertEqual(err.value, 1)
+
+    def test_multiple(self):
+        err = SequenceError()
+        ref = [["the", "house", "is", "blue"], ["my", "dog", "is", "black"]]
+        hyp = [["the", "home", "is", "white"], ["my", "dog", "is", "not", "black"]]
+        err.add(ref, hyp)
+        self.assertEqual(err.value, (2 + 1) / (4 + 4))
+
+    def test_multiple_calls(self):
+        err = SequenceError()
+        ref = [["the", "house", "is", "blue"], ["my", "dog", "is", "black"]]
+        hyp = [["the", "home", "is", "white"], ["my", "dog", "is", "not", "black"]]
+        err.add(ref, hyp)
+        err.add(["home"], ["house"])
+        self.assertEqual(err.value, (2 + 1 + 2) / (4 + 4 + 4))
 
 
 if __name__ == "__main__":

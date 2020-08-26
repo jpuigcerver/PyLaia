@@ -121,7 +121,6 @@ class CTCLoss(Loss):
             )
         if not valid_indices:
             _logger.warning("All samples in the batch were ignored!")
-            return None
 
         # Prepare tensors of the correct type
         acts = torch.nn.functional.log_softmax(acts, dim=-1)
@@ -159,4 +158,4 @@ class CTCLoss(Loss):
         elif self._reduction == "sum":
             return losses.sum()
         else:
-            raise ValueError("Reduction {!r} not supported!".format(self._reduction))
+            raise ValueError(f"Reduction {repr(self._reduction)} not supported!")

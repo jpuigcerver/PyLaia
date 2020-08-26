@@ -8,9 +8,18 @@ import natsort as ns
 import torch
 
 from laia.common.logging import get_logger
-from laia.common.random import set_rng_state
 
 _logger = get_logger(__name__)
+
+
+# TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/1395
+def choose_by(
+    pattern: str, key: Optional[Callable] = None, reverse: bool = True
+) -> Any:
+    matches = glob(pattern)
+    if not len(matches):
+        return None
+    return ns.natsorted(matches, key=key, reverse=reverse, alg=ns.ns.PATH)[0]
 
 
 class Loader:
@@ -66,66 +75,3 @@ class ModelLoader(ObjectLoader):
         if model is not None:
             _logger.info("Loaded model {}", self._path)
         return model
-
-
-class CheckpointLoader(Loader):
-    def __init__(self, device: Optional[Union[str, torch.device]] = None) -> None:
-        self._device = device
-        self._loader = BasicLoader()
-
-    def load(self, filepath: str) -> Any:
-        state = self._loader.load(filepath, device=self._device)
-        if state is not None:
-            _logger.info("Loaded checkpoint {}", filepath)
-        return state
-
-    def load_by(
-        self, pattern: str, key: Optional[Callable] = None, reverse: bool = True
-    ) -> Any:
-        matches = glob(pattern)
-        if not len(matches):
-            return None
-        filepath = ns.natsorted(matches, key=key, reverse=reverse, alg=ns.ns.PATH)[0]
-        return self.load(filepath)
-
-
-class ModelCheckpointLoader(CheckpointLoader):
-    def __init__(
-        self, model: torch.nn.Module, device: Optional[Union[str, torch.device]] = None
-    ) -> None:
-        super().__init__(device=device)
-        self._model = model
-
-    def load(self, filepath: str) -> Any:
-        state = super().load(filepath)
-        if state is not None:
-            self._model.load_state_dict(state)
-
-    def load_by(
-        self, pattern: str, key: Optional[Callable] = None, reverse: bool = True
-    ) -> Any:
-        state = super().load_by(pattern, key=key, reverse=reverse)
-        if state is not None:
-            self._model.load_state_dict(state)
-
-
-class StateCheckpointLoader(CheckpointLoader):
-    def __init__(
-        self, obj: Any, device: Optional[Union[str, torch.device]] = None
-    ) -> None:
-        super().__init__(device=device)
-        self._obj = obj
-
-    def load(self, filepath: str) -> Any:
-        state = super().load(filepath)
-        if state is not None:
-            set_rng_state(state.pop("rng"), self._device)
-            self._obj.load_state_dict(state)
-
-    def load_by(
-        self, pattern: str, key: Optional[Callable] = None, reverse: bool = True
-    ) -> Any:
-        state = super().load_by(pattern, key=key, reverse=reverse)
-        if state is not None:
-            set_rng_state(state.pop("rng"))
-            self._obj.load_state_dict(state)

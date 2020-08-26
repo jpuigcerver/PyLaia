@@ -8,7 +8,7 @@ class EngineExceptionTest(unittest.TestCase):
         def f():
             raise EngineException(
                 epoch=15,
-                iteration=20,
+                global_step=20,
                 batch={"ids": [1, 2], "data": [[1, 2, 3], [4, 5, 6]]},
             )
 
@@ -23,7 +23,7 @@ class EngineExceptionTest(unittest.TestCase):
                 f1()
             except TypeError as exc:
                 raise EngineException(
-                    epoch=1, iteration=2, batch="Batch", cause=exc
+                    epoch=1, global_step=2, batch="Batch", cause=exc
                 ) from exc
 
         self.assertRaisesRegex(EngineException, r'^Exception "TypeError\(.*$', f2)
