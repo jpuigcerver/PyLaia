@@ -4,7 +4,7 @@ import torch
 
 from laia.data import PaddedTensor
 from laia.models.htr import ConvBlock
-from laia.models.htr.testing_utils import generate_backprop_floating_point_tests
+from tests.models.htr.testing_utils import generate_backprop_floating_point_tests
 
 
 class ConvBlockTest(unittest.TestCase):
