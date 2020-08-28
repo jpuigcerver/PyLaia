@@ -38,7 +38,7 @@ setuptools.setup(
     setup_requires=["setuptools_scm"],
     install_requires=get_requirements(),
     extras_require={
-        "dev": ["pre-commit", "isort", "black"],
+        "dev": ["pre-commit", "isort", "black", "setuptools_scm"],
         "test": ["pytest", "parameterized"],
     },
     python_requires=">=3.6",
