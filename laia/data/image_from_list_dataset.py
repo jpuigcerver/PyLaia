@@ -1,5 +1,5 @@
 import laia.common.logging as log
-from laia.data.image_dataset import ImageDataset
+from laia.data import ImageDataset
 from laia.data.text_image_from_text_table_dataset import (
     IMAGE_EXTENSIONS,
     find_image_filename_from_id,

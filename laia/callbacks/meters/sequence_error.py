@@ -3,7 +3,7 @@ from typing import Iterable, List
 
 import textdistance
 
-from laia.callbacks.meters import Meter
+from laia.callbacks.meters.meter import Meter
 
 
 def char_to_word_seq(

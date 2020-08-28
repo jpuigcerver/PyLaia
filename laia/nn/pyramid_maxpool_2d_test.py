@@ -4,7 +4,7 @@ import torch
 from torch.autograd import gradcheck
 
 from laia.data import PaddedTensor
-from laia.nn.pyramid_maxpool_2d import PyramidMaxPool2d
+from laia.nn import PyramidMaxPool2d
 
 
 class PyramidMaxPool2dTest(unittest.TestCase):

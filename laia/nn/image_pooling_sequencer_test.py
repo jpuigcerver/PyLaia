@@ -4,7 +4,7 @@ import torch
 from torch.nn.functional import adaptive_avg_pool2d, adaptive_max_pool2d
 
 from laia.data import PaddedTensor
-from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
+from laia.nn import ImagePoolingSequencer
 
 
 class ImagePoolingSequencerTest(unittest.TestCase):

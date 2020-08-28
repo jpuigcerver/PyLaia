@@ -4,7 +4,7 @@ import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 
 from laia.data import PaddedTensor
-from laia.models.htr.laia_crnn import LaiaCRNN
+from laia.models.htr import LaiaCRNN
 from laia.models.htr.testing_utils import generate_backprop_floating_point_tests
 
 

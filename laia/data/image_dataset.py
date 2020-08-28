@@ -1,8 +1,8 @@
+import torch
 from PIL import Image
-from torch.utils import data
 
 
-class ImageDataset(data.Dataset):
+class ImageDataset(torch.utils.data.Dataset):
     def __init__(self, imgs, transform=None):
         assert isinstance(imgs, (list, tuple))
         super().__init__()

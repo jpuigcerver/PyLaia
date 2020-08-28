@@ -5,7 +5,7 @@ from torch.autograd import gradcheck
 from torch.nn.functional import adaptive_max_pool2d
 
 from laia.data import PaddedTensor
-from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
+from laia.nn import AdaptiveMaxPool2d
 
 
 class AdaptiveMaxPool2dTest(unittest.TestCase):

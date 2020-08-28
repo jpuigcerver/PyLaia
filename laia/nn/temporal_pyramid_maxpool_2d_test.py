@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from laia.data import PaddedTensor
-from laia.nn.temporal_pyramid_maxpool_2d import TemporalPyramidMaxPool2d
+from laia.nn import TemporalPyramidMaxPool2d
 
 
 class TemporalPyramidMaxPool2dTest(unittest.TestCase):

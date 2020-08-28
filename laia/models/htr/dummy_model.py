@@ -2,7 +2,7 @@ import torch
 from torch.nn.functional import adaptive_avg_pool2d
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from laia.data.padding_collater import PaddedTensor
+from laia.data import PaddedTensor
 from laia.nn.image_to_sequence import image_to_sequence
 
 
