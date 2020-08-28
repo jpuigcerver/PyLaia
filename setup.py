@@ -43,6 +43,6 @@ setuptools.setup(
     },
     python_requires=">=3.6",
     # Package contents
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=["tests"]),
     scripts=get_scripts(),
 )
