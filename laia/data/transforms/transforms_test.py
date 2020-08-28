@@ -1,6 +1,6 @@
 import unittest
 
-from laia.data.transforms.transforms import RandomProbChoice
+from laia.data.transforms import RandomProbChoice
 
 
 def fa(x):

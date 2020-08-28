@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from laia.data import PaddedTensor
-from laia.models.htr.conv_block import ConvBlock
+from laia.models.htr import ConvBlock
 from laia.models.htr.testing_utils import generate_backprop_floating_point_tests
 
 

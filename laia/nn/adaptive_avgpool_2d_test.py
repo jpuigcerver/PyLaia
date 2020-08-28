@@ -5,7 +5,7 @@ from torch.autograd import gradcheck
 from torch.nn.functional import adaptive_avg_pool2d
 
 from laia.data import PaddedTensor
-from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
+from laia.nn import AdaptiveAvgPool2d
 
 
 class AdaptiveAvgPool2dTest(unittest.TestCase):

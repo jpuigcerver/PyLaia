@@ -3,7 +3,7 @@ from typing import Optional, Sequence, Type, Union
 import torch
 import torch.nn as nn
 
-from laia.data.padding_collater import PaddedTensor
+from laia.data import PaddedTensor
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1):

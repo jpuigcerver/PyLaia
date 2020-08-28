@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from laia.data import PaddedTensor
-from laia.nn.image_to_sequence import ImageToSequence
+from laia.nn import ImageToSequence
 
 
 class ImageToSequenceTest(unittest.TestCase):

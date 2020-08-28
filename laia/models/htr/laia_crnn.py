@@ -8,8 +8,8 @@ from torch.nn.utils.rnn import PackedSequence
 
 from laia.common.types import Param2d, ParamNd
 from laia.data import PaddedTensor
-from laia.models.htr.conv_block import ConvBlock
-from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
+from laia.models.htr import ConvBlock
+from laia.nn import ImagePoolingSequencer
 
 
 class LaiaCRNN(nn.Module):

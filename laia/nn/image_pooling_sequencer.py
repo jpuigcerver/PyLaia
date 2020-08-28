@@ -3,8 +3,7 @@ import re
 import torch
 
 from laia.data import PaddedTensor
-from laia.nn.adaptive_avgpool_2d import AdaptiveAvgPool2d
-from laia.nn.adaptive_maxpool_2d import AdaptiveMaxPool2d
+from laia.nn import AdaptiveAvgPool2d, AdaptiveMaxPool2d
 from laia.nn.image_to_sequence import image_to_sequence
 
 

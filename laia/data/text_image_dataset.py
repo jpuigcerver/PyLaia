@@ -1,6 +1,6 @@
 from typing import Callable, List
 
-from laia.data.image_dataset import ImageDataset
+from laia.data import ImageDataset
 
 
 class TextImageDataset(ImageDataset):
