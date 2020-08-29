@@ -99,7 +99,7 @@ def _generate_test(test_name, method, dtype, device, reduction, average_frames):
     avg_str = "avg_frames" if average_frames else "no_avg_frames"
     setattr(
         CTCLossTest,
-        test_name + "_{}_{}_{}_{}".format(avg_str, reduction, device, str(dtype)[6:]),
+        f"{test_name}_{avg_str}_{reduction}_{device}_{str(dtype)[6:]}",
         lambda self: getattr(self, method)(dtype, device, reduction, average_frames),
     )
 
@@ -112,12 +112,12 @@ for dtype, device, avg_frames, reduction in itertools.product(
     dtypes, devices, average_frames, reductions
 ):
     _generate_test(
-        "test_forward", "_run_test_forward", dtype, device, reduction, avg_frames,
+        "test_forward", "_run_test_forward", dtype, device, reduction, avg_frames
     )
     # Check gradients only for double
     if dtype == torch.double:
         _generate_test(
-            "test_backward", "_run_test_backward", dtype, device, reduction, avg_frames,
+            "test_backward", "_run_test_backward", dtype, device, reduction, avg_frames
         )
 
 

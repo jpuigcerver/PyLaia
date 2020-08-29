@@ -22,7 +22,7 @@ def write_binary_matrix(f: io.IOBase, mat: Union[torch.Tensor, np.ndarray]) -> N
     elif mat.dtype == np.float64:
         dtype = "DM ".encode("ascii")
     else:
-        raise ValueError("Matrix dtype is not supported %r" % repr(mat.dtype))
+        raise ValueError(f"Matrix dtype is not supported {mat.dtype}")
 
     rows, cols = mat.shape
     rows = rows.to_bytes(length=4, byteorder=sys.byteorder)
@@ -46,14 +46,12 @@ def write_text_lattice(
     rows, cols = mat.shape
     f.write(
         "\n".join(
-            "{:d}\t{:d}\t{:d}\t{:d}\t0,{:.{digits}}".format(
-                row, row + 1, col + 1, col + 1, mat[row, col], digits=digits
-            )
+            f"{row:d}\t{row + 1:d}\t{col + 1:d}\t{col + 1:d}\t0,{mat[row, col]:.{digits}}"
             for row in range(rows)
             for col in range(cols)
         )
         + "\n"
-        + "{:d}\t0,0\n\n".format(rows)
+        + f"{rows:d}\t0,0\n\n"
     )
 
 
@@ -80,8 +78,8 @@ class ArchiveMatrixWriter:
           matrix: the matrix to write.
         """
         if not isinstance(key, str):
-            raise ValueError("Key %r is not a string" % repr(key))
-        self._file.write(("%s " % key).encode("utf-8"))
+            raise ValueError(f"Key {key} is not a string")
+        self._file.write(f"{key} ".encode("utf-8"))
         self._file.write(b"\x00B")
         write_binary_matrix(self._file, matrix)
 
@@ -125,8 +123,8 @@ class ArchiveLatticeWriter:
           matrix: the matrix to write.
         """
         if not isinstance(key, str):
-            raise ValueError("Key %r is not a string" % repr(key))
-        self._file.write("{}\n".format(key))
+            raise ValueError(f"Key {key} is not a string")
+        self._file.write(f"{key}\n")
         if self._negate:
             matrix = -matrix
         write_text_lattice(self._file, matrix, digits=self._digits)

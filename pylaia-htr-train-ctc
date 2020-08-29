@@ -136,7 +136,10 @@ if __name__ == "__main__":
         "--early_stopping_patience",
         type=NumberInClosedRange(int, vmin=0),
         default=20,
-        help="Number of validation epochs with no CER improvement after which training will be stopped",
+        help=(
+            "Number of validation epochs with no improvement "
+            "after which training will be stopped"
+        ),
     )
     add_argument(
         "--optimizer",
@@ -150,7 +153,7 @@ if __name__ == "__main__":
         type=str,
         default="va_cer",
         choices=["va_loss", "va_cer", "va_wer"],
-        help="Metric to monitor",
+        help="Metric to monitor for early stopping and checkpointing",
     )
     add_argument(
         "--scheduler",
@@ -164,7 +167,10 @@ if __name__ == "__main__":
         "--scheduler_patience",
         type=NumberInClosedRange(type=int, vmin=0),
         default=5,
-        help="Number of epochs with no improvement after which learning rate will be reduced",
+        help=(
+            "Number of epochs with no improvement "
+            "after which learning rate will be reduced"
+        ),
     )
     add_argument(
         "--scheduler_monitor",

@@ -17,7 +17,7 @@ def transform_output(output):
     elif isinstance(output, torch.Tensor):
         acts, act_lens = output, [output.size(0)] * output.size(1)
     else:
-        raise NotImplementedError("Not implemented for type {}".format(type(output)))
+        raise NotImplementedError(f"Not implemented for type {type(output)}")
     return acts, act_lens
 
 

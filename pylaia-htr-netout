@@ -30,7 +30,10 @@ if __name__ == "__main__":
         "img_dirs",
         type=str,
         nargs="*",
-        help="Directory containing word images. Optional if img_list contains whole paths",
+        help=(
+            "Directory containing word images. "
+            "Optional if img_list contains whole paths"
+        ),
     )
     add_argument(
         "img_list",
@@ -55,24 +58,30 @@ if __name__ == "__main__":
         type=str,
         default=None,
         choices=["softmax", "log_softmax"],
-        help="Apply this transformation at the end of the model. "
-        'For instance, use "softmax" to get posterior probabilities as the '
-        "output of the model",
+        help=(
+            "Apply this transformation at the end of the model. "
+            'For instance, use "softmax" to get posterior probabilities '
+            "as the output of the model"
+        ),
     )
     add_argument(
         "--output_matrix",
         type=argparse.FileType("wb"),
         default=None,
-        help="Path of the Kaldi's archive containing the output matrices "
-        "(one for each sample), where each row represents a timestep and "
-        "each column represents a CTC label",
+        help=(
+            "Path of the Kaldi's archive containing the output matrices "
+            "(one for each sample), where each row represents a timestep and "
+            "each column represents a CTC label"
+        ),
     )
     add_argument(
         "--output_lattice",
         type=argparse.FileType("w"),
         default=None,
-        help="Path of the Kaldi's archive containing the output lattices"
-        "(one for each sample), representing the CTC output",
+        help=(
+            "Path of the Kaldi's archive containing the output lattices"
+            "(one for each sample), representing the CTC output"
+        ),
     )
     add_argument(
         "--digits",
@@ -82,7 +91,7 @@ if __name__ == "__main__":
     )
     args = args()
 
-    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
+    device = torch.device(f"cuda:{args.gpu - 1}" if args.gpu else "cpu")
 
     model = ModelLoader(
         args.train_path, filename=args.model_filename, device=device

@@ -12,7 +12,7 @@ class Invert:
         return ImageOps.invert(img)
 
     def __repr__(self) -> str:
-        return "vision.{}()".format(self.__class__.__name__)
+        return f"vision.{self.__class__.__name__}()"
 
 
 class Convert:
@@ -26,11 +26,7 @@ class Convert:
         return img.convert(self.mode)
 
     def __repr__(self) -> str:
-        format_string = "vision." + self.__class__.__name__ + "("
-        if self.mode is not None:
-            format_string += "mode={}".format(self.mode)
-        format_string += ")"
-        return format_string
+        return f"vision.{self.__class__.__name__}({f'mode={self.mode}' if self.mode is not None else ''})"
 
 
 class ToImageTensor:
@@ -102,9 +98,10 @@ class ToImageTensor:
         )
 
     def __repr__(self) -> str:
-        return self.__class__.__name__ + (
-            f"(\n  {self._convert_transform},\n  "
-            + (f"{self._invert_transform},\n  " if self._should_invert else "")
+        return (
+            f"{self.__class__.__name__}(\n  "
+            f"{self._convert_transform},\n  "
+            f"{self._invert_transform if self._should_invert else ''},\n  "
             + ("vision.resize_transform(),\n  " if self._should_resize else "")
             + ("vision.pad_transform(),\n  " if self._should_pad else "")
             + f"{self._tensor_transform}\n)"

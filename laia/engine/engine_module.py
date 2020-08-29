@@ -119,8 +119,10 @@ class EngineModule(pl.core.LightningModule):
         check_inf(
             tensor=batch_y_hat.data,
             logger=__name__,
-            msg="Found {abs_num} ({rel_num:.2%}) INF values in the "
-            "model output at epoch={epoch}, batch={batch}, global_step={global_step}",
+            msg=(
+                "Found {abs_num} ({rel_num:.2%}) INF values in the model output "
+                "at epoch={epoch}, batch={batch}, global_step={global_step}"
+            ),
             epoch=self.current_epoch,
             batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
             global_step=self.global_step,
@@ -128,8 +130,10 @@ class EngineModule(pl.core.LightningModule):
         check_nan(
             tensor=batch_y_hat.data,
             logger=__name__,
-            msg="Found {abs_num} ({rel_num:.2%}) NAN values in the "
-            "model output at epoch={epoch}, batch={batch}, global_step={global_step}",
+            msg=(
+                "Found {abs_num} ({rel_num:.2%}) NAN values in the model output "
+                "at epoch={epoch}, batch={batch}, global_step={global_step}"
+            ),
             epoch=self.current_epoch,
             batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
             global_step=self.global_step,

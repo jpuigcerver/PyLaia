@@ -47,11 +47,12 @@ class RandomBetaMorphology:
         return NotImplementedError
 
     def __repr__(self) -> str:
-        s = (
-            "vision.{name}(filter_size_min={filter_size_min}, "
-            "filter_size_max={filter_size_max}, alpha={alpha}, beta={beta}) "
+        return (
+            f"vision.{self.__class__.__name__}("
+            f"filter_size_min={self.filter_size_min}, "
+            f"filter_size_max={self.filter_size_max}, "
+            f"alpha={self.alpha}, beta={self.beta})"
         )
-        return s.format(name=self.__class__.__name__, **self.__dict__)
 
 
 class Dilate(RandomBetaMorphology):

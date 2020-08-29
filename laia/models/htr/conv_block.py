@@ -8,6 +8,7 @@ from torch import Tensor
 
 from laia.common.types import Param2d
 from laia.data import PaddedTensor
+from laia.data.padding_collater import transform_output
 from laia.nn.mask_image_from_size import mask_image_from_size
 
 
@@ -69,22 +70,10 @@ class ConvBlock(nn.Module):
         ]
 
     def forward(self, x: Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]:
-        if isinstance(x, PaddedTensor):
-            x, xs = x.data, x.sizes
-            assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
-            assert xs.size(1) == 2, (
-                "PaddedTensor.sizes must have 2 columns: Height and Width, "
-                "{} columns given instead.".format(xs.size(1))
-            )
-            assert x.size(0) == xs.size(0), (
-                "Number of batch sizes ({}) does not match the number of "
-                "samples in the batch {}".format(xs.size(0), x.size(0))
-            )
-        else:
-            xs = None
+        x, xs = transform_output(x)
         assert x.size(1) == self.in_channels, (
-            "Input image depth ({}) does not match the "
-            "expected ({})".format(x.size(1), self.in_channels)
+            f"Input image depth ({x.size(1)}) does not match the "
+            f"expected ({self.in_channels})"
         )
 
         if self.dropout and 0.0 < self.dropout < 1.0:

@@ -105,7 +105,7 @@ for name, kwargs in (
         "out_channels": 5,
         **kwargs,  # type: ignore
     }
-    tests.append(("backprop_{{}}_{{}}_{}".format(name), test_dict))
+    tests.append((f"backprop_{{}}_{{}}_{name}", test_dict))
 generate_backprop_floating_point_tests(ConvBlockTest, tests=tests)
 
 if __name__ == "__main__":

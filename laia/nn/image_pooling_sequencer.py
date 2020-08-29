@@ -51,27 +51,27 @@ class ImagePoolingSequencer(torch.nn.Module):
                     and torch.sum(xs[:, 0] == self._fix_size).item() != ns
                 ):
                     raise ValueError(
-                        "Input images must have a fixed height "
-                        "of {} pixels".format(self._fix_size)
+                        "Input images must have a fixed "
+                        f"height of {self._fix_size} pixels"
                     )
                 elif (
                     not self._columnwise
                     and torch.sum(xs[:, 1] == self._fix_size).item() != ns
                 ):
                     raise ValueError(
-                        "Input images must have a fixed width "
-                        "of {} pixels".format(self._fix_size)
+                        "Input images must have a fixed "
+                        f"width of {self._fix_size} pixels"
                     )
             else:
                 if self._columnwise and x.size(-2) != self._fix_size:
                     raise ValueError(
-                        "Input images must have a fixed height of {} pixels, "
-                        "size is {}".format(self._fix_size, str(x.size()))
+                        "Input images must have a fixed height of "
+                        f"{self._fix_size} pixels, size is {x.size()}"
                     )
                 elif not self._columnwise and x.size(-1) != self._fix_size:
                     raise ValueError(
-                        "Input images must have a fixed width of {} pixels, "
-                        "size is {}".format(self._fix_size, str(x.size()))
+                        "Input images must have a fixed width of "
+                        f"{self._fix_size} pixels, size is {x.size()}"
                     )
 
         x = image_to_sequence(x, columnwise=self._columnwise, return_packed=True)

@@ -30,12 +30,12 @@ def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
         canonical.append(sym)
         canonical.append(ctc_sym)
         assert sym < S, (
-            "Reference symbol ({}) at position {} is too large "
-            "for the given matrix {}x{}".format(sym, i, T, S)
+            f"Reference symbol ({sym}) at position {i} "
+            f"is too large for the given matrix {T}x{S}"
         )
-        assert (
-            sym != ctc_sym
-        ), "Reference includes the CTC symbol ({}) at position {}".format(ctc_sym, i)
+        assert sym != ctc_sym, (
+            "Reference includes the CTC symbol " f"({ctc_sym}) at position {i}"
+        )
 
     best_logp = np.ndarray((T, len(canonical)))
     best_logp.fill(np.NINF)

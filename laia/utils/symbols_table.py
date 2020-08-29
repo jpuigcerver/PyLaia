@@ -25,7 +25,7 @@ class SymbolsTable:
             f = open(f, "w", encoding=encoding)
         max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
-            f.write("{:>{w}} {}\n".format(s, v, w=max_len).encode(encoding))
+            f.write(f"{s:>{max_len}} {v}\n".encode(encoding))
         f.close()
 
     def __len__(self):
@@ -54,11 +54,11 @@ class SymbolsTable:
     def add(self, symbol, value):
         if not isinstance(symbol, str):
             raise KeyError(
-                "Symbol must be a string, but type {} was given".format(type(symbol))
+                f"Symbol must be a string, but type {type(symbol)} was given"
             )
         if not isinstance(value, int):
             raise KeyError(
-                "Value must be an integer, but type {} was given".format(type(value))
+                f"Value must be an integer, but type {type(value)} was given"
             )
 
         old_val = self._sym2val.get(symbol, None)
@@ -71,11 +71,11 @@ class SymbolsTable:
             pass
         elif old_val is not None:
             raise KeyError(
-                'Symbol "{}" was already present in the table '
-                "(assigned to value {})".format(symbol, old_val)
+                f'Symbol "{value}" was already present '
+                f'in the table (assigned to value "{old_val}")'
             )
         elif old_sym is not None:
             raise KeyError(
-                'Value "{}" was already present in the table '
-                '(assigned to symbol "{}")'.format(value, old_sym)
+                f'Value "{value}" was already present '
+                f'in the table (assigned to symbol "{old_sym}")'
             )

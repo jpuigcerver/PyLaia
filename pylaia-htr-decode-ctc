@@ -18,7 +18,7 @@ from laia.utils.segmentation import char_segmentation, word_segmentation
 def main(args):
     syms = SymbolsTable(args.syms)
 
-    device = torch.device("cuda:{}".format(args.gpu - 1) if args.gpu else "cpu")
+    device = torch.device(f"cuda:{args.gpu - 1}" if args.gpu else "cpu")
 
     model = ModelLoader(
         args.train_path, filename=args.model_filename, device=device
@@ -71,11 +71,7 @@ def main(args):
                     ]
                 if args.join_str is not None:
                     out = args.join_str.join(str(x) for x in out)
-            print(
-                "{}{}{}".format(img_id, args.separator, out)
-                if args.print_img_ids
-                else out
-            )
+            print(f"{img_id}{args.separator}{out}" if args.print_img_ids else out)
 
 
 if __name__ == "__main__":
@@ -95,7 +91,10 @@ if __name__ == "__main__":
         "img_dirs",
         type=str,
         nargs="*",
-        help="Directory containing word images. Optional if img_list contains whole paths",
+        help=(
+            "Directory containing word images. "
+            "Optional if img_list contains whole paths"
+        ),
     )
     add_argument(
         "img_list",
