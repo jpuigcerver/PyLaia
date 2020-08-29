@@ -38,7 +38,7 @@ def main(args):
         log.info(f'Loaded checkpoint="{checkpoint_path}')
 
     early_stopping_callback = pl.callbacks.EarlyStopping(
-        patience=args.early_stopping_patience, verbose=True, mode="min",
+        patience=args.early_stopping_patience, verbose=True, mode="min"
     )
     # TODO: save on best va_wer and every x epochs (https://github.com/PyTorchLightning/pytorch-lightning/issues/2908)
     checkpoint_callback = pl.callbacks.ModelCheckpoint(

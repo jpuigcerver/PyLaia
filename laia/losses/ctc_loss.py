@@ -59,9 +59,7 @@ class CTCLoss(Loss):
       blank (integer, optional): Index of the blank label. Default: 0.
     """
 
-    def __init__(
-        self, reduction="mean", average_frames=False, blank=0,
-    ):
+    def __init__(self, reduction="mean", average_frames=False, blank=0):
         super().__init__()
         self._reduction = reduction
         self._average_frames = average_frames

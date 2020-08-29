@@ -18,8 +18,10 @@ DETAILED_FORMAT = (
 
 
 class TqdmStreamHandler(logging.StreamHandler):
-    """This handler uses tqdm.write to log so logging
-        messages don't break the tqdm bar."""
+    """
+    This handler uses tqdm.write to log so
+    logging messages don't break the tqdm bar.
+    """
 
     def __init__(self, level=logging.NOTSET):
         super().__init__()
