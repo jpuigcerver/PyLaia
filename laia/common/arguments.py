@@ -77,8 +77,10 @@ _default_args = {
             "nargs": "?",
             "const": True,
             "default": False,
-            "help": "Whether or not to use dynamic distortions to augment the "
-            "training data",
+            "help": (
+                "Whether or not to use dynamic distortions "
+                "to augment the training data"
+            ),
         },
     ),
     "train_path": (
@@ -98,9 +100,11 @@ _default_args = {
         {
             "type": int,
             "default": 3,
-            "help": "checkpoint_k == k, the best k models will be saved. "
-            "checkpoint_k == 0, no models are saved. "
-            "checkpoint_k == -1, all models are saved",
+            "help": (
+                "checkpoint_k == k, the best k models will be saved. "
+                "checkpoint_k == 0, no models are saved. "
+                "checkpoint_k == -1, all models are saved"
+            ),
         },
     ),
     "model_filename": (
@@ -116,9 +120,11 @@ _default_args = {
         {
             "default": "ERROR",
             "type": str2loglevel,
-            "help": "If you are logging to a file, use this level for logging "
-            "also to stderr (use any of: debug, info, warning, error, "
-            "critical)",
+            "help": (
+                "If you are logging to a file, use this level for logging "
+                "also to stderr (use any of: debug, info, warning, error, "
+                "critical)"
+            ),
         },
     ),
     "logging_level": (
@@ -126,8 +132,10 @@ _default_args = {
         {
             "default": "INFO",
             "type": str2loglevel,
-            "help": "Use this level for logging (use any of: debug, info, "
-            "warning, error, critical)",
+            "help": (
+                "Use this level for logging (use any of: debug, info, "
+                "warning, error, critical)"
+            ),
         },
     ),
     "logging_config": (

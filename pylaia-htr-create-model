@@ -38,8 +38,10 @@ if __name__ == "__main__":
     add_argument(
         "--fixed_input_height",
         type=NumberInClosedRange(int, vmin=0),
-        help="Height of the input images. "
-        "If 0, a variable height model will be used (see --adaptive_pooling)",
+        help=(
+            "Height of the input images. "
+            "If 0, a variable height model will be used (see --adaptive_pooling)"
+        ),
     )
     add_argument("--adaptive_pooling", type=str, default="avgpool-16", help="")
     add_argument(
@@ -54,33 +56,36 @@ if __name__ == "__main__":
         type=TupleList(int, dimensions=2),
         nargs="+",
         default=[(3, 3), (3, 3), (3, 3), (3, 3)],
-        help="Kernel size of each conv layer. "
-        "It can be a list of numbers if all the "
-        "dimensions are equal or a list of strings "
-        "formatted as tuples "
-        'e.g. "(h1, w1) (h2, w2)"',
+        help=(
+            "Kernel size of each conv layer. "
+            "It can be a list of numbers if all the dimensions "
+            "are equal or a list of strings formatted as tuples "
+            'e.g. "(h1, w1) (h2, w2)"'
+        ),
     )
     add_argument(
         "--cnn_stride",
         type=TupleList(int, dimensions=2),
         nargs="+",
         default=[(1, 1), (1, 1), (1, 1), (1, 1)],
-        help="Stride of each conv layer. "
-        "It can be a list of numbers if all the "
-        "dimensions are equal or a list of strings "
-        "formatted as tuples "
-        'e.g. "(h1, w1) (h2, w2)"',
+        help=(
+            "Stride of each conv layer. "
+            "It can be a list of numbers if all the dimensions "
+            "are equal or a list of strings formatted as tuples "
+            'e.g. "(h1, w1) (h2, w2)"'
+        ),
     )
     add_argument(
         "--cnn_dilation",
         type=TupleList(int, dimensions=2),
         nargs="+",
         default=[(1, 1), (1, 1), (1, 1), (1, 1)],
-        help="Spacing between each conv layer kernel elements. "
-        "It can be a list of numbers if all the "
-        "dimensions are equal or a list of strings "
-        "formatted as tuples "
-        'e.g. "(h1, w1) (h2, w2)"',
+        help=(
+            "Spacing between each conv layer kernel elements. "
+            "It can be a list of numbers if all the dimensions "
+            "are equal or a list of strings formatted as tuples "
+            'e.g. "(h1, w1) (h2, w2)"'
+        ),
     )
     add_argument(
         "--cnn_activations",
@@ -94,11 +99,12 @@ if __name__ == "__main__":
         type=TupleList(int, dimensions=2),
         nargs="+",
         default=[(2, 2), (2, 2), (2, 2), (0, 0)],
-        help="MaxPooling size after each conv layer. "
-        "It can be a list of numbers if all the "
-        "dimensions are equal or a list of strings "
-        "formatted as tuples "
-        'e.g. "(h1, w1) (h2, w2)"',
+        help=(
+            "MaxPooling size after each conv layer. "
+            "It can be a list of numbers if all the dimensions "
+            "are equal or a list of strings formatted as tuples "
+            'e.g. "(h1, w1) (h2, w2)"'
+        ),
     )
     add_argument(
         "--cnn_dropout",
@@ -158,8 +164,10 @@ if __name__ == "__main__":
         nargs="?",
         default=False,
         const=True,
-        help="If true, apply a zero mask after each convolution and non-linear "
-        "activation.",
+        help=(
+            "If true, apply a zero mask after each "
+            "convolution and non-linear activation."
+        ),
     )
     args = args()
 
@@ -192,7 +200,7 @@ if __name__ == "__main__":
         )
         fixed_size_after_conv = conv_output_size[1 if args.vertical_text else 0]
         assert fixed_size_after_conv > 0, "The image size after the convolution is zero"
-        image_sequencer = "none-{}".format(fixed_size_after_conv)
+        image_sequencer = f"none-{fixed_size_after_conv}"
     else:
         image_sequencer = args.adaptive_pooling
 

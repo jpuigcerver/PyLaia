@@ -24,14 +24,10 @@ def generate_backprop_test(
         cost = cost_function(m(x))
         cost.backward()
         for n, p in m.named_parameters():
-            self.assertIsNotNone(
-                p.grad, msg="Parameter {!r} does not have a gradient".format(n)
-            )
+            self.assertIsNotNone(p.grad, msg=f"Parameter {n} does not have a gradient")
             sp = torch.abs(p.grad).sum().item()
             self.assertNotAlmostEqual(
-                sp,
-                0.0,
-                msg="Gradients for parameter {!r} are close to 0 (:g)".format(n, sp),
+                sp, 0.0, msg=f"Gradients for parameter {n} are close to 0 ({sp:g})"
             )
 
         # Check model for padded tensor inputs
@@ -39,14 +35,10 @@ def generate_backprop_test(
         cost = padded_cost_function(m(PaddedTensor(x, xs)))
         cost.backward()
         for n, p in m.named_parameters():
-            self.assertIsNotNone(
-                p.grad, msg="Parameter {!r} does not have a gradient".format(n)
-            )
+            self.assertIsNotNone(p.grad, msg=f"Parameter {n} does not have a gradient")
             sp = torch.abs(p.grad).sum().item()
             self.assertNotAlmostEqual(
-                sp,
-                0.0,
-                msg="Gradients for parameter {!r} are close to 0 (:g)".format(n, sp),
+                sp, 0.0, msg=f"Gradients for parameter {n} are close to 0 ({sp:g})"
             )
 
     return run

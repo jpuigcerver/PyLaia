@@ -26,9 +26,7 @@ setuptools.setup(
     use_scm_version={
         "write_to": "laia/version.py",
         "write_to_template": '__version__ = "{version}"\n',
-        "local_scheme": lambda v: "+{}.{}{}".format(
-            v.node, v.branch, ".dirty" if v.dirty else ""
-        ),
+        "local_scheme": lambda v: f"+{v.node}.{v.branch}{'.dirty' if v.dirty else ''}",
     },
     author="Joan Puigcerver",
     author_email="joapuipe@gmail.com",

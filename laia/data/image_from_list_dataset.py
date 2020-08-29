@@ -58,7 +58,7 @@ def _get_ids_and_images_from_img_list(img_list, img_dirs, img_extensions):
                     break
         if fname is None:
             _logger.warning(
-                "No image file was found " 'for image ID "{}", ignoring example...',
+                'No image file was found for image ID "{}", ignoring example...',
                 imgid,
             )
             continue

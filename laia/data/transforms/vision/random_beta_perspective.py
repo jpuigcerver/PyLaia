@@ -37,11 +37,12 @@ class RandomBetaPerspective:
         )
 
     def __repr__(self) -> str:
-        s = "vision.{name}(max_offset_ratio={max_offset_ratio}, alpha={alpha}, beta={beta}"
-        if self.fillcolor:
-            s += ", fillcolor={fillcolor}"
-        s += ")"
-        return s.format(name=self.__class__.__name__, **self.__dict__)
+        return (
+            f"vision.{self.__class__.__name__}("
+            f"max_offset_ratio={self.max_offset_ratio}, "
+            f"alpha={self.alpha}, beta={self.beta}"
+            f"{f', fillcolor={self.fillcolor}' if self.fillcolor else ''})"
+        )
 
     @staticmethod
     def warp_perspective(pa, pb):

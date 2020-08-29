@@ -111,12 +111,9 @@ class LaiaCRNN(nn.Module):
             err_indices = [i for i, x in enumerate((xs < 1).any(1)) if x]
             if err_indices:
                 raise ValueError(
-                    "The images at batch indices {} with sizes {} "
-                    "would produce invalid output sizes {}".format(
-                        err_indices,
-                        x.sizes[err_indices].tolist(),
-                        xs[err_indices].tolist(),
-                    )
+                    f"The images at batch indices {err_indices} "
+                    f"with sizes {x.sizes[err_indices].tolist()} "
+                    f"would produce invalid output sizes {xs[err_indices].tolist()}"
                 )
         x = self.conv(x)
         x = self.sequencer(x)

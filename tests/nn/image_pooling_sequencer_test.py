@@ -19,7 +19,7 @@ class ImagePoolingSequencerTest(unittest.TestCase):
 def _generate_test(sequencer, poolsize, columnwise, x, output_size):
     def _test(self):
         m = ImagePoolingSequencer(
-            sequencer="{}-{}".format(sequencer, poolsize), columnwise=columnwise
+            sequencer=f"{sequencer}-{poolsize}", columnwise=columnwise
         )
         y = m(x)
         self.assertEqual(output_size, list(y.size()))
@@ -30,7 +30,7 @@ def _generate_test(sequencer, poolsize, columnwise, x, output_size):
 def _generate_failing_test(sequencer, poolsize, columnwise, x):
     def _test(self):
         m = ImagePoolingSequencer(
-            sequencer="{}-{}".format(sequencer, poolsize), columnwise=columnwise
+            sequencer=f"{sequencer}-{poolsize}", columnwise=columnwise
         )
         self.assertRaises(ValueError, lambda: m(x))
 
@@ -40,7 +40,7 @@ def _generate_failing_test(sequencer, poolsize, columnwise, x):
 def _generate_gradcheck_test(sequencer, fn, poolsize, columnwise, x, xs):
     def _test(self):
         m = ImagePoolingSequencer(
-            sequencer="{}-{}".format(sequencer, poolsize), columnwise=columnwise
+            sequencer=f"{sequencer}-{poolsize}", columnwise=columnwise
         ).to(x.device)
         x.requires_grad_()
         y = m(PaddedTensor(x, xs))
@@ -68,7 +68,7 @@ for sequencer, fn in (
         for device in devices:
             setattr(
                 ImagePoolingSequencerTest,
-                "test_grad_{}_{}_{}".format(sequencer, str(dtype)[6:], device),
+                f"test_grad_{sequencer}_{str(dtype)[6:]}_{device}",
                 _generate_gradcheck_test(
                     sequencer=sequencer,
                     fn=fn,
@@ -82,7 +82,7 @@ for sequencer, fn in (
 for sequencer in ["none", "maxpool", "avgpool"]:
     setattr(
         ImagePoolingSequencerTest,
-        "test_tensor_{}_col".format(sequencer),
+        f"test_tensor_{sequencer}_col",
         _generate_test(
             sequencer=sequencer,
             poolsize=10,
@@ -93,7 +93,7 @@ for sequencer in ["none", "maxpool", "avgpool"]:
     )
     setattr(
         ImagePoolingSequencerTest,
-        "test_tensor_{}_row".format(sequencer),
+        f"test_tensor_{sequencer}_row",
         _generate_test(
             sequencer=sequencer,
             poolsize=11,
@@ -106,7 +106,7 @@ for sequencer in ["none", "maxpool", "avgpool"]:
 for columnwise in True, False:
     setattr(
         ImagePoolingSequencerTest,
-        "test_tensor_bad_input_{}".format("col" if columnwise else "row"),
+        f"test_tensor_bad_input_{'col' if columnwise else 'row'}",
         _generate_failing_test(
             sequencer="none",
             poolsize=9,

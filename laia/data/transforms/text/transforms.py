@@ -15,4 +15,4 @@ class ToTensor:
         ]
 
     def __repr__(self) -> str:
-        return "text.{}()".format(self.__class__.__name__)
+        return f"text.{self.__class__.__name__}()"

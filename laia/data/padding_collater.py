@@ -12,6 +12,23 @@ def by_descending_width(x):
     return -x["img"].size(2)
 
 
+def transform_output(x):
+    if isinstance(x, PaddedTensor):
+        x, xs = x.data, x.sizes
+        assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
+        assert xs.size(1) == 2, (
+            "PaddedTensor.sizes must have 2 columns: "
+            f"Height and Width, {xs.size(1)} columns given instead."
+        )
+        assert x.size(0) == xs.size(0), (
+            f"Batch size {xs.size(0)} does not match "
+            f"the number of samples in the batch {x.size(0)}"
+        )
+    else:
+        xs = None
+    return x, xs
+
+
 class PaddingCollater:
     def __init__(self, sizes: Any, sort_key: Callable = None):
         self._sizes = sizes
@@ -51,7 +68,6 @@ class PaddingCollater:
         return out
 
     def collate(self, batch: Any, sizes: Any) -> Any:
-        error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
         elem, elem_type = batch[0], type(batch[0])
         if isinstance(elem, torch.Tensor):
             if any(s is None for s in sizes):
@@ -72,4 +88,6 @@ class PaddingCollater:
             }
         elif isinstance(elem, Sequence):
             return [self.collate(b, s) for b, s in zip(batch, sizes)]
-        raise TypeError(error_msg.format(elem_type))
+        raise TypeError(
+            f"Batch must contain tensors, numbers, dicts or lists. Found {elem_type}"
+        )

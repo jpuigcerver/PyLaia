@@ -18,9 +18,7 @@ except ImportError:
     __version__ = get_version(
         root="..",
         relative_to=__file__,
-        local_scheme=lambda v: "+{}.{}{}".format(
-            v.node, v.branch, ".dirty" if v.dirty else ""
-        ),
+        local_scheme=lambda v: f"+{v.node}.{v.branch}{'.dirty' if v.dirty else ''}",
     )
 
 

@@ -4,25 +4,12 @@ from ast import literal_eval
 from collections import OrderedDict
 
 
-def str2num_accept_closed_range(v, t, vmin=None, vmax=None):
+def str2num(v, t, vmin=None, vmax=None, open=False):
     v = t(v)
-    if vmin is not None and v < vmin:
-        raise ArgumentTypeError(
-            "Value {} must be greater " "or equal than {}".format(v, vmin)
-        )
-    if vmax is not None and v > vmax:
-        raise ArgumentTypeError(
-            "Value {} must be lower " "or equal than {}".format(v, vmax)
-        )
-    return v
-
-
-def str2num_accept_open_range(v, t, vmin=None, vmax=None):
-    v = t(v)
-    if vmin is not None and v <= vmin:
-        raise ArgumentTypeError("Value {} must be greater than {}".format(v, vmin))
-    if vmax is not None and v >= vmax:
-        raise ArgumentTypeError("Value {} must be lower than {}".format(v, vmax))
+    if vmin is not None and (v <= vmin if open else v < vmin):
+        raise ArgumentTypeError(f"Value {v} must be greater or equal than {vmin}")
+    if vmax is not None and (v >= vmax if open else v > vmax):
+        raise ArgumentTypeError(f"Value {v} must be lower or equal than {vmax}")
     return v
 
 
@@ -39,7 +26,7 @@ def str2loglevel(v):
     try:
         return levels[v.lower()]
     except KeyError:
-        raise ArgumentTypeError("Valid logging levels are: {!r}", levels.values())
+        raise ArgumentTypeError(f"Valid logging levels are: {levels.values()}")
 
 
 class NumberInClosedRange:
@@ -49,7 +36,7 @@ class NumberInClosedRange:
         self._vmax = vmax
 
     def __call__(self, v):
-        return str2num_accept_closed_range(v, self._type, self._vmin, self._vmax)
+        return str2num(v, self._type, self._vmin, self._vmax, open=False)
 
 
 class NumberInOpenRange:
@@ -59,7 +46,7 @@ class NumberInOpenRange:
         self._vmax = vmax
 
     def __call__(self, v):
-        return str2num_accept_open_range(v, self._type, self._vmin, self._vmax)
+        return str2num(v, self._type, self._vmin, self._vmax, open=True)
 
 
 class TupleList:
@@ -74,9 +61,9 @@ class TupleList:
             return (x,) * self._dimensions
         elif isinstance(x, (tuple, list)):
             if not all(type(v) == self._type for v in x):
-                raise ArgumentTypeError("An element of {} is not a {}", x, self._type)
+                raise ArgumentTypeError(f"An element of {x} is not a {self._type}")
             if len(x) != self._dimensions:
                 raise ArgumentTypeError("The given tuple does not match the dimensions")
             return tuple(x)
         else:
-            raise ArgumentTypeError("{!r} is neither a tuple nor {}", v, self._type)
+            raise ArgumentTypeError(f"{v} is neither a tuple nor {self._type}")
