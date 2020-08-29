@@ -3,7 +3,7 @@ import datetime
 import pytorch_lightning as pl
 
 import laia.common.logging as log
-from laia.callbacks.meters.timer import Timer
+from laia.callbacks.meters import Timer
 
 
 class TrainingTimer(pl.callbacks.Callback):

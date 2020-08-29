@@ -98,7 +98,7 @@ def _get_images_and_texts_from_text_table(
                 break
         if fname is None:
             _logger.warning(
-                "No image file was found for image ID '{}', ignoring example...", imgid,
+                "No image file was found for image ID '{}', ignoring example...", imgid
             )
             continue
         else:

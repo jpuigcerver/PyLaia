@@ -41,7 +41,7 @@ class ImageFeeder(Feeder):
     """
 
     def __init__(
-        self, keep_padded_tensors: bool = True, keep_channels_in_size: bool = False,
+        self, keep_padded_tensors: bool = True, keep_channels_in_size: bool = False
     ) -> None:
         super().__init__()
         self._keep_padded_tensors = keep_padded_tensors

@@ -4,7 +4,7 @@ from typing import Any, Callable, Iterable, Optional
 import pytorch_lightning as pl
 import torch
 
-from laia.callbacks.meters.sequence_error import SequenceError, char_to_word_seq
+from laia.callbacks.meters import SequenceError, char_to_word_seq
 from laia.decoders import CTCGreedyDecoder
 from laia.engine import EngineModule
 from laia.losses import CTCLoss

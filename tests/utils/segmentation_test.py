@@ -1,6 +1,6 @@
 import unittest
 
-from laia.utils.segmentation import word_segmentation, char_segmentation
+from laia.utils import char_segmentation, word_segmentation
 
 
 class CharSegmentationTest(unittest.TestCase):
