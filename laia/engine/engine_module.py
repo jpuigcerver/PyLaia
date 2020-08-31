@@ -24,7 +24,6 @@ class EngineModule(pl.core.LightningModule):
         batch_id_fn: Optional[Callable] = None,
     ):
         super().__init__()
-        # forward()
         self.model = model
         # configure_optimizers()
         self.optimizer = args.optimizer
