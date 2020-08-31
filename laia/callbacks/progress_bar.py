@@ -5,6 +5,8 @@ from tqdm.auto import tqdm
 
 import laia.common.logging as log
 
+_logger = log.get_logger(__name__)
+
 
 class ProgressBar(pl.callbacks.ProgressBar):
     def __init__(self, refresh_rate: int = 1):
@@ -99,7 +101,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
                 if k.startswith("tr_")
             }
             self.main_progress_bar.set_postfix(postfix, refresh=True)
-            log.log(self.level, str(self.main_progress_bar))
+            _logger.log(self.level, str(self.main_progress_bar))
 
             # log validation bar. this is here instead of in `on_validation_epoch_end`
             # because `val_loop` gets called before `on_train_epoch_end` so the VA
@@ -111,14 +113,14 @@ class ProgressBar(pl.callbacks.ProgressBar):
                 if k.startswith("va_")
             }
             self.val_progress_bar.set_postfix(postfix, refresh=True)
-            log.log(self.level, str(self.val_progress_bar))
+            _logger.log(self.level, str(self.val_progress_bar))
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
         if self.is_enabled and trainer.running_sanity_check:
             # only when running sanity
             self.val_progress_bar.refresh()
-            log.log(self.level, str(self.val_progress_bar))
+            _logger.log(self.level, str(self.val_progress_bar))
 
     def on_validation_end(self, trainer, pl_module):
         # skip parent to avoid postfix call
