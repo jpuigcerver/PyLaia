@@ -22,7 +22,5 @@ class LearningRate(pl.callbacks.LearningRateLogger):
             prev_value = self.last_values.get(k, None)
             new_value = v[-1]
             if prev_value is not None and prev_value != new_value:
-                _logger.info(
-                    "{} learning rate modified: {} ⟶ {}", k, prev_value, new_value
-                )
+                _logger.info("{} modified: {} ⟶ {}", k, prev_value, new_value)
             self.last_values[k] = new_value

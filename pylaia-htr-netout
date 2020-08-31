@@ -53,7 +53,13 @@ def main(args):
         batch_id_fn=ItemFeeder("id"),
     )
 
-    data_module = DataModule(args, stage="test")
+    data_module = DataModule(
+        img_dirs=args.img_dirs,
+        color_mode=args.color_mode,
+        batch_size=args.batch_size,
+        te_img_list=args.img_list,
+        stage="test",
+    )
 
     writers = []
     if args.matrix is not None:

@@ -1,4 +1,3 @@
-import argparse
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Optional, Tuple
 
@@ -16,7 +15,8 @@ class EngineModule(pl.core.LightningModule):
     def __init__(
         self,
         model: torch.nn.Module,
-        args: argparse.Namespace,
+        optimizer: str,
+        optimizer_kwargs: Dict,
         criterion: Callable,
         monitor: str = "va_loss",
         batch_input_fn: Optional[Callable] = None,
@@ -26,16 +26,9 @@ class EngineModule(pl.core.LightningModule):
         super().__init__()
         self.model = model
         # configure_optimizers()
-        self.optimizer = args.optimizer
-        self.learning_rate = args.learning_rate
-        self.momentum = args.momentum
-        self.weight_l2_penalty = args.weight_l2_penalty
-        self.nesterov = args.nesterov
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs
         self.monitor = monitor
-        self.scheduler = args.scheduler
-        self.scheduler_patience = args.scheduler_patience
-        self.scheduler_factor = args.scheduler_factor
-        # self.scheduler_monitor = args.scheduler_monitor
         # compute_loss()
         self.criterion = criterion
         # prepare_batch()
@@ -49,49 +42,51 @@ class EngineModule(pl.core.LightningModule):
         self.current_batch = None
 
     def configure_optimizers(self) -> Dict:
+        lr = self.optimizer_kwargs["learning_rate"]
+        weight_decay = self.optimizer_kwargs["weight_l2_penalty"]
         if self.optimizer == "SGD":
             optimizer = torch.optim.SGD(
                 self.parameters(),
-                lr=self.learning_rate,
-                momentum=self.momentum,
-                weight_decay=self.weight_l2_penalty,
-                nesterov=self.nesterov,
+                lr=lr,
+                momentum=self.optimizer_kwargs["momentum"],
+                weight_decay=weight_decay,
+                nesterov=self.optimizer_kwargs["nesterov"],
             )
         elif self.optimizer == "RMSProp":
             optimizer = torch.optim.RMSprop(
                 self.parameters(),
-                lr=self.learning_rate,
-                weight_decay=self.weight_l2_penalty,
-                momentum=self.momentum,
+                lr=lr,
+                weight_decay=weight_decay,
+                momentum=self.optimizer_kwargs["momentum"],
             )
         elif self.optimizer == "Adam":
             optimizer = torch.optim.Adam(
                 self.parameters(),
-                lr=self.learning_rate,
-                weight_decay=self.weight_l2_penalty,
+                lr=lr,
+                weight_decay=weight_decay,
             )
         elif self.optimizer == "AdamW":
-            if self.weight_l2_penalty == 0.0:
+            if weight_decay == 0.0:
                 log.warning("Using 0.0 weight decay with AdamW")
             optimizer = torch.optim.AdamW(
                 self.parameters(),
-                lr=self.learning_rate,
-                weight_decay=self.weight_l2_penalty,
+                lr=lr,
+                weight_decay=weight_decay,
             )
         scheduler = (
             {
                 "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer,
                     mode="min",
-                    factor=self.scheduler_factor,
-                    patience=self.scheduler_patience,
+                    factor=self.optimizer_kwargs["scheduler_factor"],
+                    patience=self.optimizer_kwargs["scheduler_patience"],
                 ),
                 # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3286
-                "monitor": "checkpoint_on",  # self.scheduler_monitor,
+                "monitor": "checkpoint_on",  # scheduler_monitor
                 "interval": "epoch",
                 "frequency": 1,
             }
-            if self.scheduler
+            if self.optimizer_kwargs["scheduler"]
             else None
         )
         return [optimizer], [scheduler]
