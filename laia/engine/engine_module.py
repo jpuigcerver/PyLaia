@@ -156,14 +156,6 @@ class EngineModule(pl.core.LightningModule):
         with self.exception_catcher(self.current_batch):
             loss.backward()
 
-    def result_kwargs(self, *args: Tuple[str, torch.Tensor]) -> Dict:
-        kwargs = {"early_stop_on": None, "checkpoint_on": None}
-        for name, value in args:
-            if self.monitor == name:
-                for k in kwargs:
-                    kwargs[k] = value
-        return kwargs
-
     def training_step(self, batch: Any, batch_idx: int) -> pl.TrainResult:
         self.current_batch = batch
         batch_x, batch_y = self.prepare_batch(batch)
@@ -188,7 +180,7 @@ class EngineModule(pl.core.LightningModule):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
-        result = pl.EvalResult(**self.result_kwargs(("va_loss", batch_loss)))
+        result = pl.EvalResult(early_stop_on=batch_loss, checkpoint_on=batch_loss)
         result.log(
             "va_loss",
             batch_loss,

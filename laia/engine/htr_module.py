@@ -93,6 +93,9 @@ class HTRModule(EngineModule):
             prog_bar=True,
             sync_dist=True,
         )
+        if self.monitor == "va_cer":
+            result.early_stop_on = cer_value
+            result.checkpoint_on = cer_value
         # wer
         batch_decode_words = [
             char_to_word_seq(b, self.delimiters) for b in batch_decode
@@ -108,8 +111,7 @@ class HTRModule(EngineModule):
             prog_bar=True,
             sync_dist=True,
         )
-        if self.monitor in ("va_cer", "va_wer"):
-            result = pl.EvalResult(
-                **self.result_kwargs(("va_cer", cer_value), ("va_wer", wer_value))
-            )
+        if self.monitor == "va_wer":
+            result.early_stop_on = wer_value
+            result.checkpoint_on = wer_value
         return result
