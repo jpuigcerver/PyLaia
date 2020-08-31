@@ -8,7 +8,7 @@ import laia.losses
 import laia.nn
 import laia.utils
 
-__all__ = ["__version__"]
+__all__ = ["__version__", "get_installed_versions"]
 
 try:
     from laia.version import __version__
