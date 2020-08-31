@@ -45,9 +45,20 @@ def main(args):
 
     syms = SymbolsTable(args.syms)
 
+    optimizer_kwargs = {
+        "learning_rate": args.learning_rate,
+        "momentum": args.momentum,
+        "weight_l2_penalty": args.weight_l2_penalty,
+        "nesterov": args.nesterov,
+        "scheduler": args.scheduler,
+        "scheduler_patience": args.scheduler_patience,
+        "scheduler_factor": args.scheduler_factor,
+        # "scheduler_monitor": args.scheduler_monitor
+    }
     engine_module = HTREngineModule(
         model,
-        args,
+        args.optimizer,
+        optimizer_kwargs,
         [syms[d] for d in args.delimiters],
         monitor=args.monitor,
         batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
@@ -55,7 +66,17 @@ def main(args):
         batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
     )
 
-    data_module = DataModule(args, syms=syms, stage="fit")
+    data_module = DataModule(
+        img_dirs=args.img_dirs,
+        color_mode=args.color_mode,
+        batch_size=args.batch_size,
+        tr_txt_table=args.tr_txt_table,
+        va_txt_table=args.va_txt_table,
+        tr_shuffle=not bool(args.lightning.limit_train_batches),
+        tr_distortions=args.use_distortions,
+        syms=syms,
+        stage="fit",
+    )
 
     early_stopping_callback = pl.callbacks.EarlyStopping(
         patience=args.early_stopping_patience, verbose=True, mode="min"

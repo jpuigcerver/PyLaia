@@ -1,7 +1,6 @@
-import argparse
 import multiprocessing
 import random
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pytorch_lightning as pl
@@ -23,32 +22,38 @@ _logger = log.get_logger(__name__)
 class DataModule(pl.core.LightningDataModule):
     def __init__(
         self,
-        args: argparse.Namespace,
+        img_dirs: List[str],
+        color_mode: str,
+        batch_size: int,
+        tr_txt_table: Optional[str] = None,
+        va_txt_table: Optional[str] = None,
+        tr_shuffle: bool = True,
+        tr_distortions: bool = False,
+        te_img_list: Optional[List[str]] = None,
         syms: Optional[Union[Dict, SymbolsTable]] = None,
         stage: str = "fit",
     ) -> None:
         assert stage in ("fit", "test")
         base_img_transform = transforms.vision.ToImageTensor(
-            mode=args.color_mode, invert=True
+            mode=color_mode, invert=True
         )
-        self.img_dirs = args.img_dirs
-        self.img_channels = len(args.color_mode)
-        self.batch_size = args.batch_size
+        self.img_dirs = img_dirs
+        self.img_channels = len(color_mode)
+        self.batch_size = batch_size
         # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/2196
         self.num_workers = multiprocessing.cpu_count()
-        # TODO: if GPU
         self.pin_memory = True
         if stage == "fit":
             self.tr_ds = None
             self.va_ds = None
-            self.tr_txt_table = args.tr_txt_table
-            self.va_txt_table = args.va_txt_table
-            self.tr_shuffle = not bool(args.lightning.limit_train_batches)
+            self.tr_txt_table = tr_txt_table
+            self.va_txt_table = va_txt_table
+            self.tr_shuffle = tr_shuffle
             tr_img_transform = transforms.vision.ToImageTensor(
-                mode=args.color_mode,
+                mode=color_mode,
                 invert=True,
                 random_transform=transforms.vision.RandomBetaAffine()
-                if args.use_distortions
+                if tr_distortions
                 else None,
             )
             txt_transform = transforms.text.ToTensor(syms)
@@ -59,7 +64,7 @@ class DataModule(pl.core.LightningDataModule):
             )
         elif stage == "test":
             self.te_ds = None
-            self.te_img_list = args.img_list
+            self.te_img_list = te_img_list
             super().__init__(test_transforms=base_img_transform)
 
     def setup(self, stage):

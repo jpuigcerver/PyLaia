@@ -55,7 +55,14 @@ def main(args):
 
     syms = SymbolsTable(args.syms)
 
-    data_module = DataModule(args, syms=syms, stage="test")
+    data_module = DataModule(
+        img_dirs=args.img_dirs,
+        color_mode=args.color_mode,
+        batch_size=args.batch_size,
+        te_img_list=args.img_list,
+        syms=syms,
+        stage="test",
+    )
 
     callbacks = [
         Decode(

@@ -1,5 +1,4 @@
-import argparse
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 import pytorch_lightning as pl
 import torch
@@ -14,7 +13,8 @@ class HTREngineModule(EngineModule):
     def __init__(
         self,
         model: torch.nn.Module,
-        args: argparse.Namespace,
+        optimizer: str,
+        optimizer_kwargs: Dict,
         delimiters: Iterable,
         criterion: Optional[Callable] = CTCLoss(),
         monitor: str = "va_cer",
@@ -24,7 +24,8 @@ class HTREngineModule(EngineModule):
     ):
         super().__init__(
             model,
-            args,
+            optimizer,
+            optimizer_kwargs,
             criterion,
             monitor=monitor,
             batch_input_fn=batch_input_fn,
