@@ -55,7 +55,7 @@ def main(args):
         batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
     )
 
-    data_module = DataModule(args, syms, stage="fit")
+    data_module = DataModule(args, syms=syms, stage="fit")
 
     early_stopping_callback = pl.callbacks.EarlyStopping(
         patience=args.early_stopping_patience, verbose=True, mode="min"
