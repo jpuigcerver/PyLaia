@@ -1,10 +1,10 @@
 import unittest
 
+import pytest
 import torch
 
 from laia.data import PaddedTensor
 from laia.models.htr import ConvBlock
-from tests.models.htr.testing_utils import generate_backprop_floating_point_tests
 
 
 class ConvBlockTest(unittest.TestCase):
@@ -82,31 +82,54 @@ def padded_cost_function(padded_y):
     return cost
 
 
-# Add some tests to make sure that the backprop is working correctly.
-# Note: this only checks that the gradient w.r.t. all layers is different from zero.
-test_dict = {
-    "module": ConvBlock,
-    "batch_data": torch.randn(2, 3, 17, 19),
-    "batch_sizes": [[13, 19], [17, 13]],
-    "cost_function": lambda y: y.sum(),
-    "padded_cost_function": padded_cost_function,
-}
-tests = []
-for name, kwargs in (
-    ("default", {}),
-    ("batchnorm", {"batchnorm": True}),
-    ("dropout", {"dropout": 0.3}),
-    ("maxpool", {"poolsize": 2}),
-    ("use_masks", {"use_masks": True}),
-    ("inplace", {"inplace": True}),
+@pytest.mark.parametrize("dtype", [torch.float, torch.double])
+@pytest.mark.parametrize(
+    "device", ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
+)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"in_channels": 3, "out_channels": 5},
+        {"in_channels": 3, "out_channels": 5, "batchnorm": True},
+        {"in_channels": 3, "out_channels": 5, "dropout": 0.3},
+        {"in_channels": 3, "out_channels": 5, "poolsize": 2},
+        {"in_channels": 3, "out_channels": 5, "use_masks": True},
+        {"in_channels": 3, "out_channels": 5, "inplace": True},
+    ],
+)
+def test_backprop(
+    dtype,
+    device,
+    kwargs,
 ):
-    test_dict["module_kwargs"] = {
-        "in_channels": 3,
-        "out_channels": 5,
-        **kwargs,  # type: ignore
-    }
-    tests.append((f"backprop_{{}}_{{}}_{name}", test_dict))
-generate_backprop_floating_point_tests(ConvBlockTest, tests=tests)
+    # Note: this only checks that the gradient w.r.t. all layers is different from zero.
+    m = ConvBlock(**kwargs).to(device, dtype=dtype).train()
+    # Convert batch input and batch sizes to appropriate type
+    x = torch.randn(2, kwargs["in_channels"], 17, 19, device=device, dtype=dtype)
+    xs = torch.tensor([[13, 19], [17, 13]], device=device)
+
+    # Check model for normal tensor inputs
+    m.zero_grad()
+    cost = m(x).sum()
+    cost.backward()
+    for n, p in m.named_parameters():
+        assert p.grad is not None, f"Parameter {n} does not have a gradient"
+        sp = torch.abs(p.grad).sum()
+        assert not torch.allclose(
+            sp, torch.tensor(0, dtype=dtype)
+        ), f"Gradients for parameter {n} are close to 0 ({sp:g})"
+
+    # Check model for padded tensor inputs
+    m.zero_grad()
+    cost = padded_cost_function(m(PaddedTensor(x, xs)))
+    cost.backward()
+    for n, p in m.named_parameters():
+        assert p.grad is not None, f"Parameter {n} does not have a gradient"
+        sp = torch.abs(p.grad).sum()
+        assert not torch.allclose(
+            sp, torch.tensor(0, dtype=dtype)
+        ), f"Gradients for parameter {n} are close to 0 ({sp:g})"
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,11 +1,11 @@
 import unittest
 
+import pytest
 import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 
 from laia.data import PaddedTensor
 from laia.models.htr import LaiaCRNN
-from tests.models.htr.testing_utils import generate_backprop_floating_point_tests
 
 
 class LaiaCRNNTest(unittest.TestCase):
@@ -117,124 +117,138 @@ def cost_function(y):
     return y.sum()
 
 
-# Add some tests to make sure that the backprop is working correctly.
-# Note: this only checks that the gradient w.r.t. all layers is different from zero.
-tests = [
-    (
-        "backprop_{}_{}_fixed_size",
-        dict(
-            module=LaiaCRNN,
-            module_kwargs=dict(
-                num_input_channels=1,
-                num_output_labels=12,
-                cnn_num_features=[16, 32, 48, 64],
-                cnn_kernel_size=[3, 3, 3, 3],
-                cnn_stride=[1, 1, 1, 1],
-                cnn_dilation=[1, 1, 1, 1],
-                cnn_activation=[torch.nn.ReLU] * 4,
-                cnn_poolsize=[2, 2, 2, 0],
-                cnn_dropout=[0, 0, 0.2, 0.1],
-                cnn_batchnorm=[False, False, True, True],
-                image_sequencer="none-4",
-                rnn_units=128,
-                rnn_layers=4,
-                rnn_dropout=0.5,
-                lin_dropout=0.5,
-                rnn_type=torch.nn.LSTM,
-            ),
-            batch_data=torch.randn(2, 1, 32, 19),
-            batch_sizes=[[32, 19], [32, 13]],
-            cost_function=cost_function,
-            padded_cost_function=cost_function,
+@pytest.mark.parametrize("dtype", [torch.float, torch.double])
+@pytest.mark.parametrize(
+    "device", ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
+)
+@pytest.mark.parametrize(
+    "batch_data,batch_sizes,kwargs",
+    [
+        (
+            torch.randn(2, 1, 32, 19),
+            [[32, 19], [32, 13]],
+            {
+                "num_input_channels": 1,
+                "num_output_labels": 12,
+                "cnn_num_features": [16, 32, 48, 64],
+                "cnn_kernel_size": [3, 3, 3, 3],
+                "cnn_stride": [1, 1, 1, 1],
+                "cnn_dilation": [1, 1, 1, 1],
+                "cnn_activation": [torch.nn.ReLU] * 4,
+                "cnn_poolsize": [2, 2, 2, 0],
+                "cnn_dropout": [0, 0, 0.2, 0.1],
+                "cnn_batchnorm": [False, False, True, True],
+                "image_sequencer": "none-4",
+                "rnn_units": 128,
+                "rnn_layers": 4,
+                "rnn_dropout": 0.5,
+                "lin_dropout": 0.5,
+                "rnn_type": torch.nn.LSTM,
+            },
         ),
-    ),
-    (
-        "backprop_{}_{}_avgpool",
-        dict(
-            module=LaiaCRNN,
-            module_kwargs=dict(
-                num_input_channels=1,
-                num_output_labels=12,
-                cnn_num_features=[16, 32, 48, 64],
-                cnn_kernel_size=[3, 3, 3, 3],
-                cnn_stride=[1, 1, 1, 1],
-                cnn_dilation=[1, 1, 1, 1],
-                cnn_activation=[torch.nn.ReLU] * 4,
-                cnn_poolsize=[2, 2, 2, 0],
-                cnn_dropout=[0, 0, 0.2, 0.1],
-                cnn_batchnorm=[False, False, True, True],
-                image_sequencer="avgpool-16",
-                rnn_units=128,
-                rnn_layers=4,
-                rnn_dropout=0.5,
-                lin_dropout=0.5,
-                rnn_type=torch.nn.LSTM,
-            ),
-            batch_data=torch.randn(2, 1, 17, 19),
-            batch_sizes=[[13, 19], [17, 13]],
-            cost_function=cost_function,
-            padded_cost_function=cost_function,
+        (
+            torch.randn(2, 1, 17, 19),
+            [[13, 19], [17, 13]],
+            {
+                "num_input_channels": 1,
+                "num_output_labels": 12,
+                "cnn_num_features": [16, 32, 48, 64],
+                "cnn_kernel_size": [3, 3, 3, 3],
+                "cnn_stride": [1, 1, 1, 1],
+                "cnn_dilation": [1, 1, 1, 1],
+                "cnn_activation": [torch.nn.ReLU] * 4,
+                "cnn_poolsize": [2, 2, 2, 0],
+                "cnn_dropout": [0, 0, 0.2, 0.1],
+                "cnn_batchnorm": [False, False, True, True],
+                "image_sequencer": "avgpool-16",
+                "rnn_units": 128,
+                "rnn_layers": 4,
+                "rnn_dropout": 0.5,
+                "lin_dropout": 0.5,
+                "rnn_type": torch.nn.LSTM,
+            },
         ),
-    ),
-    (
-        "backprop_{}_{}_maxpool",
-        dict(
-            module=LaiaCRNN,
-            module_kwargs=dict(
-                num_input_channels=1,
-                num_output_labels=12,
-                cnn_num_features=[16, 32, 48, 64],
-                cnn_kernel_size=[3, 3, 3, 3],
-                cnn_stride=[1, 1, 1, 1],
-                cnn_dilation=[1, 1, 1, 1],
-                cnn_activation=[torch.nn.ReLU] * 4,
-                cnn_poolsize=[2, 2, 2, 0],
-                cnn_dropout=[0, 0, 0.2, 0.1],
-                cnn_batchnorm=[False, False, True, True],
-                image_sequencer="maxpool-8",
-                rnn_units=128,
-                rnn_layers=4,
-                rnn_dropout=0.5,
-                lin_dropout=0.5,
-                rnn_type=torch.nn.LSTM,
-            ),
-            batch_data=torch.randn(2, 1, 17, 19),
-            batch_sizes=[[13, 19], [17, 13]],
-            cost_function=cost_function,
-            padded_cost_function=cost_function,
+        (
+            torch.randn(2, 1, 17, 19),
+            [[13, 19], [17, 13]],
+            {
+                "num_input_channels": 1,
+                "num_output_labels": 12,
+                "cnn_num_features": [16, 32, 48, 64],
+                "cnn_kernel_size": [3, 3, 3, 3],
+                "cnn_stride": [1, 1, 1, 1],
+                "cnn_dilation": [1, 1, 1, 1],
+                "cnn_activation": [torch.nn.ReLU] * 4,
+                "cnn_poolsize": [2, 2, 2, 0],
+                "cnn_dropout": [0, 0, 0.2, 0.1],
+                "cnn_batchnorm": [False, False, True, True],
+                "image_sequencer": "maxpool-8",
+                "rnn_units": 128,
+                "rnn_layers": 4,
+                "rnn_dropout": 0.5,
+                "lin_dropout": 0.5,
+                "rnn_type": torch.nn.LSTM,
+            },
         ),
-    ),
-    (
-        "backprop_{}_{}_no_dropout",
-        dict(
-            module=LaiaCRNN,
-            module_kwargs=dict(
-                num_input_channels=1,
-                num_output_labels=12,
-                cnn_num_features=[16, 32, 48, 64],
-                cnn_kernel_size=[3, 3, 3, 3],
-                cnn_stride=[1, 1, 1, 1],
-                cnn_dilation=[1, 1, 1, 1],
-                cnn_activation=[torch.nn.ReLU] * 4,
-                cnn_poolsize=[2, 2, 2, 0],
-                cnn_dropout=[0, 0, 0, 0],
-                cnn_batchnorm=[False, False, True, True],
-                image_sequencer="avgpool-8",
-                rnn_units=128,
-                rnn_layers=4,
-                rnn_dropout=0,
-                lin_dropout=0,
-                rnn_type=torch.nn.LSTM,
-            ),
-            batch_data=torch.randn(2, 1, 17, 19),
-            batch_sizes=[[13, 19], [17, 13]],
-            cost_function=cost_function,
-            padded_cost_function=cost_function,
+        (
+            torch.randn(2, 1, 17, 19),
+            [[13, 19], [17, 13]],
+            {
+                "num_input_channels": 1,
+                "num_output_labels": 12,
+                "cnn_num_features": [16, 32, 48, 64],
+                "cnn_kernel_size": [3, 3, 3, 3],
+                "cnn_stride": [1, 1, 1, 1],
+                "cnn_dilation": [1, 1, 1, 1],
+                "cnn_activation": [torch.nn.ReLU] * 4,
+                "cnn_poolsize": [2, 2, 2, 0],
+                "cnn_dropout": [0, 0, 0, 0],
+                "cnn_batchnorm": [False, False, True, True],
+                "image_sequencer": "avgpool-8",
+                "rnn_units": 128,
+                "rnn_layers": 4,
+                "rnn_dropout": 0,
+                "lin_dropout": 0,
+                "rnn_type": torch.nn.LSTM,
+            },
         ),
-    ),
-]
+    ],
+)
+def test_backprop(
+    dtype,
+    device,
+    batch_data,
+    batch_sizes,
+    kwargs,
+):
+    # Note: this only checks that the gradient w.r.t. all layers is different from zero.
+    m = LaiaCRNN(**kwargs).to(device, dtype=dtype).train()
+    # Convert batch input and batch sizes to appropriate type
+    x = batch_data.to(device=device, dtype=dtype)
+    xs = torch.tensor(batch_sizes, device=device)
 
-generate_backprop_floating_point_tests(LaiaCRNNTest, tests=tests)
+    # Check model for normal tensor inputs
+    m.zero_grad()
+    cost = m(x).sum()
+    cost.backward()
+    for n, p in m.named_parameters():
+        assert p.grad is not None, f"Parameter {n} does not have a gradient"
+        sp = torch.abs(p.grad).sum()
+        assert not torch.allclose(
+            sp, torch.tensor(0, dtype=dtype)
+        ), f"Gradients for parameter {n} are close to 0 ({sp:g})"
+
+    # Check model for padded tensor inputs
+    m.zero_grad()
+    cost = cost_function(m(PaddedTensor(x, xs)))
+    cost.backward()
+    for n, p in m.named_parameters():
+        assert p.grad is not None, f"Parameter {n} does not have a gradient"
+        sp = torch.abs(p.grad).sum()
+        assert not torch.allclose(
+            sp, torch.tensor(0, dtype=dtype)
+        ), f"Gradients for parameter {n} are close to 0 ({sp:g})"
+
 
 if __name__ == "__main__":
     unittest.main()
