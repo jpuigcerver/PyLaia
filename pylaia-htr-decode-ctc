@@ -55,7 +55,7 @@ def main(args):
 
     syms = SymbolsTable(args.syms)
 
-    data_module = DataModule(args, syms, stage="test")
+    data_module = DataModule(args, syms=syms, stage="test")
 
     callbacks = [
         Decode(
@@ -87,7 +87,6 @@ if __name__ == "__main__":
         "model_filename",
         "experiment_dirname",
         "color_mode",
-        logging_level="WARNING",
     )
     add_argument(
         "syms",

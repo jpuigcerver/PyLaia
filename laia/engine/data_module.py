@@ -1,7 +1,7 @@
 import argparse
 import multiprocessing
 import random
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pytorch_lightning as pl
@@ -24,7 +24,7 @@ class DataModule(pl.core.LightningDataModule):
     def __init__(
         self,
         args: argparse.Namespace,
-        syms: Union[Dict, SymbolsTable],
+        syms: Optional[Union[Dict, SymbolsTable]] = None,
         stage: str = "fit",
     ) -> None:
         assert stage in ("fit", "test")

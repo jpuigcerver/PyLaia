@@ -1,30 +1,102 @@
 #!/usr/bin/env python3
+
 import argparse
 import os
+from collections import OrderedDict
 
+import pytorch_lightning as pl
 import torch
-import torch.nn.functional as functional
-from tqdm import tqdm
 
 import laia.common.logging as log
-import laia.data.transforms as transforms
-from laia.common.arguments import add_argument, add_defaults, args
-from laia.common.loader import CheckpointLoader, ModelLoader
-from laia.data import ImageDataLoader, ImageFromListDataset
-from laia.engine.feeders import ImageFeeder, ItemFeeder
-from laia.experiments import Experiment
+from laia import get_installed_versions
+from laia.callbacks import Netout, ProgressBar
+from laia.common.arguments import (
+    add_argument,
+    add_defaults,
+    add_lightning_args,
+    args,
+    group_to_namespace,
+)
+from laia.common.loader import ModelLoader, choose_by
+from laia.engine import DataModule, EvaluatorModule
+from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
 from laia.losses.ctc_loss import transform_output
 from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 
+
+def main(args):
+    log.info(f"Installed: {get_installed_versions()}")
+
+    checkpoint_path = os.path.join(
+        args.train_path, args.experiment_dirname, args.checkpoint
+    )
+    checkpoint = choose_by(checkpoint_path)
+    if not checkpoint:
+        log.error(f'Could not find the checkpoint="{checkpoint_path}"')
+        exit(1)
+    log.info(f'Using checkpoint="{checkpoint}')
+
+    model = ModelLoader(args.train_path, filename=args.model_filename).load()
+    if model is None:
+        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
+        exit(1)
+    state_dict = torch.load(checkpoint)["state_dict"]
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        name = k[len("model.") :]
+        new_state_dict[name] = v
+    model.load_state_dict(new_state_dict)
+
+    evaluator_module = EvaluatorModule(
+        model,
+        batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
+        batch_id_fn=ItemFeeder("id"),
+    )
+
+    data_module = DataModule(args, stage="test")
+
+    writers = []
+    if args.matrix is not None:
+        writers.append(ArchiveMatrixWriter(args.matrix))
+    if args.lattice is not None:
+        writers.append(
+            ArchiveLatticeWriter(args.lattice, digits=args.digits, negate=True)
+        )
+    if not writers:
+        log.error("You did not specify any output file! Use --matrix and/or --lattice")
+        exit(1)
+
+    callbacks = [
+        Netout(args.output_transform, writers, model_output_fn=transform_output),
+        ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
+    ]
+
+    trainer = pl.Trainer(
+        default_root_dir=args.train_path,
+        callbacks=callbacks,
+        **vars(args.lightning),
+    )
+    trainer.test(evaluator_module, datamodule=data_module, verbose=False)
+
+
 if __name__ == "__main__":
-    add_defaults(
+    parser = add_defaults(
         "batch_size",
-        "gpu",
         "train_path",
         "model_filename",
+        "experiment_dirname",
         "color_mode",
-        "show_progress_bar",
         logging_level="WARNING",
+    )
+    add_argument(
+        "img_list",
+        type=argparse.FileType("r"),
+        help="File containing images to decode. Doesn't require the extension",
+    )
+    add_argument(
+        "checkpoint",
+        type=str,
+        help="Name of the model checkpoint to use, can be a glob pattern",
     )
     add_argument(
         "img_dirs",
@@ -34,24 +106,6 @@ if __name__ == "__main__":
             "Directory containing word images. "
             "Optional if img_list contains whole paths"
         ),
-    )
-    add_argument(
-        "img_list",
-        type=argparse.FileType("r"),
-        help="File containing images to decode. Doesn't require the extension",
-    )
-    add_argument(
-        "--checkpoint",
-        type=str,
-        default="experiment.ckpt.lowest-valid-cer*",
-        help="Name of the model checkpoint to use, can be a glob pattern",
-    )
-    add_argument(
-        "--source",
-        type=str,
-        default="experiment",
-        choices=["experiment", "model"],
-        help="Type of class which generated the checkpoint",
     )
     add_argument(
         "--output_transform",
@@ -65,7 +119,7 @@ if __name__ == "__main__":
         ),
     )
     add_argument(
-        "--output_matrix",
+        "--matrix",
         type=argparse.FileType("wb"),
         default=None,
         help=(
@@ -75,7 +129,7 @@ if __name__ == "__main__":
         ),
     )
     add_argument(
-        "--output_lattice",
+        "--lattice",
         type=argparse.FileType("w"),
         default=None,
         help=(
@@ -89,72 +143,17 @@ if __name__ == "__main__":
         default=10,
         help="Number of digits to be used for formatting",
     )
-    args = args()
 
-    device = torch.device(f"cuda:{args.gpu - 1}" if args.gpu else "cpu")
+    # Add lightning default arguments to a group
+    pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
+    pl_group = add_lightning_args(pl_group)
 
-    model = ModelLoader(
-        args.train_path, filename=args.model_filename, device=device
-    ).load()
-    if model is None:
-        log.error("Could not find the model")
-        exit(1)
+    args = args(parser=parser)
 
-    state = CheckpointLoader(device=device).load_by(
-        os.path.join(args.train_path, args.checkpoint)
-    )
-    model.load_state_dict(
-        state if args.source == "model" else Experiment.get_model_state_dict(state)
-    )
-    model = model.to(device)
-    model.eval()
+    # Move lightning default arguments to their own namespace
+    args = group_to_namespace(args, pl_group, "lightning")
+    # Delete some which will be set manually
+    for a in ("default_root_dir",):
+        delattr(args.lightning, a)
 
-    dataset = ImageFromListDataset(
-        args.img_list,
-        img_dirs=args.img_dirs,
-        img_transform=transforms.vision.ToImageTensor(
-            mode=args.color_mode, invert=True
-        ),
-    )
-    dataset_loader = ImageDataLoader(
-        dataset=dataset,
-        image_channels=len(args.color_mode),
-        batch_size=args.batch_size,
-        num_workers=8,
-    )
-    batch_input_fn = ImageFeeder(device=device, parent_feeder=ItemFeeder("img"))
-
-    archive_writers = []
-    if args.output_matrix is not None:
-        archive_writers.append(ArchiveMatrixWriter(args.output_matrix))
-
-    if args.output_lattice is not None:
-        archive_writers.append(
-            ArchiveLatticeWriter(args.output_lattice, digits=args.digits, negate=True)
-        )
-
-    if not archive_writers:
-        log.error(
-            "You did not specify any output file! "
-            "Use --output_matrix and/or --output_lattice"
-        )
-        exit(1)
-
-    if args.show_progress_bar:
-        dataset_loader = tqdm(dataset_loader)
-
-    for batch in dataset_loader:
-        batch_input = batch_input_fn(batch)
-        batch_output = model(batch_input)
-        batch_output, batch_sizes = transform_output(batch_output)
-        batch_output = batch_output.permute(1, 0, 2)
-        if args.output_transform:
-            batch_output = getattr(functional, args.output_transform)(
-                batch_output, dim=-1
-            )
-
-        batch_output = batch_output.detach().cpu().numpy()
-        for key, out, out_size in zip(batch["id"], batch_output, batch_sizes):
-            out = out[:out_size, :]
-            for writer in archive_writers:
-                writer.write(key, out)
+    main(args)
