@@ -97,11 +97,7 @@ def padded_cost_function(padded_y):
         {"in_channels": 3, "out_channels": 5, "inplace": True},
     ],
 )
-def test_backprop(
-    dtype,
-    device,
-    kwargs,
-):
+def test_backprop(dtype, device, kwargs):
     # Note: this only checks that the gradient w.r.t. all layers is different from zero.
     m = ConvBlock(**kwargs).to(device, dtype=dtype).train()
     # Convert batch input and batch sizes to appropriate type

@@ -214,13 +214,7 @@ def cost_function(y):
         ),
     ],
 )
-def test_backprop(
-    dtype,
-    device,
-    batch_data,
-    batch_sizes,
-    kwargs,
-):
+def test_backprop(dtype, device, batch_data, batch_sizes, kwargs):
     # Note: this only checks that the gradient w.r.t. all layers is different from zero.
     m = LaiaCRNN(**kwargs).to(device, dtype=dtype).train()
     # Convert batch input and batch sizes to appropriate type
