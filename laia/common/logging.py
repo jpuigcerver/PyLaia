@@ -1,8 +1,9 @@
 import json
 import logging
+import os
 import sys
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 # Inherit loglevels from Python's logging
 DEBUG = logging.DEBUG
@@ -133,6 +134,7 @@ def basic_config(
     lightning.addHandler(TqdmStreamHandler(level=INFO))
 
     if filename:
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         handler = logging.FileHandler(filename, filemode)
         handler.setFormatter(fmt)
         root.addHandler(handler)

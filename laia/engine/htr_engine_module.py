@@ -10,7 +10,7 @@ from laia.engine import EngineModule
 from laia.losses import CTCLoss
 
 
-class HTRModule(EngineModule):
+class HTREngineModule(EngineModule):
     def __init__(
         self,
         model: torch.nn.Module,

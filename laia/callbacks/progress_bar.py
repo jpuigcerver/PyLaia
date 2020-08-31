@@ -54,6 +54,17 @@ class ProgressBar(pl.callbacks.ProgressBar):
             file=sys.stderr,
         )
 
+    def init_test_tqdm(self) -> tqdm:
+        return tqdm(
+            desc="Decoding",
+            position=(2 * self.process_position + 1),
+            disable=self.is_disabled,
+            leave=True,
+            ncols=self.ncols,
+            dynamic_ncols=self.dynamic_ncols,
+            file=sys.stderr,
+        )
+
     def on_epoch_start(self, trainer, pl_module):
         super().on_epoch_start(trainer, pl_module)
         self.main_progress_bar.set_description(f"TR - Epoch {trainer.current_epoch}")
@@ -113,3 +124,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         # skip parent to avoid postfix call
         super(pl.callbacks.ProgressBar, self).on_validation_end(trainer, pl_module)
         self.val_progress_bar.close()
+
+    def on_test_end(self, trainer, pl_module):
+        self.test_progress_bar.clear()
+        super().on_test_end(trainer, pl_module)

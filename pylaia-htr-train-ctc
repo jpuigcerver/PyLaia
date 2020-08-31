@@ -18,7 +18,7 @@ from laia.common.arguments_types import NumberInClosedRange
 from laia.common.loader import ModelLoader, choose_by
 from laia.engine.data_module import DataModule
 from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
-from laia.engine.htr_module import HTRModule
+from laia.engine.htr_engine_module import HTREngineModule
 from laia.utils import SymbolsTable
 
 
@@ -28,14 +28,34 @@ def main(args):
     pl.seed_everything(args.seed)
 
     checkpoint = None
-    filepath = os.path.join(args.train_path, args.experiment_filename)
+    filepath = os.path.join(args.train_path, args.experiment_dirname)
     if args.checkpoint:
         checkpoint_path = os.path.join(filepath, args.checkpoint)
         checkpoint = choose_by(checkpoint_path)
         if not checkpoint:
             log.error(f'Could not find the checkpoint="{checkpoint_path}"')
             exit(1)
-        log.info(f'Loaded checkpoint="{checkpoint_path}')
+        log.info(f'Using checkpoint="{checkpoint}')
+
+    # Load the non-pytorch_lightning model
+    model = ModelLoader(args.train_path, filename=args.model_filename).load()
+    if model is None:
+        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
+        exit(1)
+
+    syms = SymbolsTable(args.syms)
+
+    engine_module = HTREngineModule(
+        model,
+        args,
+        [syms[d] for d in args.delimiters],
+        monitor=args.monitor,
+        batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
+        batch_target_fn=ItemFeeder("txt"),
+        batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
+    )
+
+    data_module = DataModule(args, syms, stage="fit")
 
     early_stopping_callback = pl.callbacks.EarlyStopping(
         patience=args.early_stopping_patience, verbose=True, mode="min"
@@ -63,26 +83,7 @@ def main(args):
         callbacks=callbacks,
         **vars(args.lightning),
     )
-
-    # Load the non-pytorch_lightning model
-    model = ModelLoader(args.train_path, filename=args.model_filename).load()
-    if model is None:
-        log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
-        exit(1)
-
-    syms = SymbolsTable(args.syms)
-    htr_module = HTRModule(
-        model,
-        args,
-        [syms[d] for d in args.delimiters],
-        monitor=args.monitor,
-        batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
-        batch_target_fn=ItemFeeder("txt"),
-        batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
-    )
-    data_module = DataModule(args, syms)
-
-    trainer.fit(htr_module, datamodule=data_module)
+    trainer.fit(engine_module, datamodule=data_module)
 
     log.info(
         f'Best {args.monitor}="{checkpoint_callback.best_model_score}" '
@@ -103,7 +104,7 @@ if __name__ == "__main__":
         "checkpoint",
         "checkpoint_k",
         "model_filename",
-        "experiment_filename",
+        "experiment_dirname",
         "color_mode",
         "use_distortions",
     )

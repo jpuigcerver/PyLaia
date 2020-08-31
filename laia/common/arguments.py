@@ -111,9 +111,13 @@ _default_args = {
         ("--model_filename",),
         {"type": str, "default": "model", "help": "File name of the model"},
     ),
-    "experiment_filename": (
-        ("--experiment_filename",),
-        {"type": str, "default": "experiment", "help": "File name of the experiment"},
+    "experiment_dirname": (
+        ("--experiment_dirname",),
+        {
+            "type": str,
+            "default": "experiment",
+            "help": "Directory name of the experiment",
+        },
     ),
     "logging_also_to_stderr": (
         ("--logging_also_to_stderr",),
@@ -209,7 +213,7 @@ def args(parser: Optional[argparse.ArgumentParser] = None) -> argparse.Namespace
 
     log.config_from_args(a)
     if a.print_args:
-        log.get_logger(__name__).info(f"\n{vars(a)}")
+        log.get_logger(__name__).info(str(vars(a)))
     return a
 
 
