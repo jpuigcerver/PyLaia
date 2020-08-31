@@ -31,10 +31,11 @@ class EngineModule(pl.core.LightningModule):
         self.momentum = args.momentum
         self.weight_l2_penalty = args.weight_l2_penalty
         self.nesterov = args.nesterov
+        self.monitor = monitor
         self.scheduler = args.scheduler
         self.scheduler_patience = args.scheduler_patience
         self.scheduler_factor = args.scheduler_factor
-        self.scheduler_monitor = args.scheduler_monitor
+        # self.scheduler_monitor = args.scheduler_monitor
         # compute_loss()
         self.criterion = criterion
         # prepare_batch()
@@ -46,13 +47,10 @@ class EngineModule(pl.core.LightningModule):
         self.batch_y_hat = None
         # backward()
         self.current_batch = None
-        # result_kwargs()
-        self.monitor = monitor
 
     def configure_optimizers(self) -> Dict:
-        x = {}
         if self.optimizer == "SGD":
-            x["optimizer"] = torch.optim.SGD(
+            optimizer = torch.optim.SGD(
                 self.parameters(),
                 lr=self.learning_rate,
                 momentum=self.momentum,
@@ -60,14 +58,14 @@ class EngineModule(pl.core.LightningModule):
                 nesterov=self.nesterov,
             )
         elif self.optimizer == "RMSProp":
-            x["optimizer"] = torch.optim.RMSprop(
+            optimizer = torch.optim.RMSprop(
                 self.parameters(),
                 lr=self.learning_rate,
                 weight_decay=self.weight_l2_penalty,
                 momentum=self.momentum,
             )
         elif self.optimizer == "Adam":
-            x["optimizer"] = torch.optim.Adam(
+            optimizer = torch.optim.Adam(
                 self.parameters(),
                 lr=self.learning_rate,
                 weight_decay=self.weight_l2_penalty,
@@ -75,26 +73,28 @@ class EngineModule(pl.core.LightningModule):
         elif self.optimizer == "AdamW":
             if self.weight_l2_penalty == 0.0:
                 log.warning("Using 0.0 weight decay with AdamW")
-            x["optimizer"] = torch.optim.AdamW(
+            optimizer = torch.optim.AdamW(
                 self.parameters(),
                 lr=self.learning_rate,
                 weight_decay=self.weight_l2_penalty,
             )
-        if self.scheduler:
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                x["optimizer"],
-                mode="min",
-                factor=self.scheduler_factor,
-                patience=self.scheduler_patience,
-            )
-            x["lr_dict"] = {
-                "scheduler": scheduler,
-                "reduce_on_plateau": True,
-                "monitor": self.scheduler_monitor,
+        scheduler = (
+            {
+                "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    optimizer,
+                    mode="min",
+                    factor=self.scheduler_factor,
+                    patience=self.scheduler_patience,
+                ),
+                # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3286
+                "monitor": "checkpoint_on",  # self.scheduler_monitor,
                 "interval": "epoch",
                 "frequency": 1,
             }
-        return x
+            if self.scheduler
+            else None
+        )
+        return [optimizer], [scheduler]
 
     def prepare_batch(self, batch: Any) -> Tuple[Any, Any]:
         batch_x = self.batch_input_fn(batch) if self.batch_input_fn else batch

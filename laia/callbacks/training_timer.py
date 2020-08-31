@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 import laia.common.logging as log
 from laia.callbacks.meters import Timer
 
+_logger = log.get_logger(__name__)
+
 
 class TrainingTimer(pl.callbacks.Callback):
     def __init__(self):
@@ -26,7 +28,7 @@ class TrainingTimer(pl.callbacks.Callback):
 
     def on_train_epoch_end(self, trainer, pl_module):
         super().on_train_epoch_end(trainer, pl_module)
-        log.info(
+        _logger.info(
             f"Epoch {trainer.current_epoch}: "
             f"tr_time={self.time_to_str(self.tr_timer.value)}, "
             f"va_time={self.time_to_str(self.va_timer.value)}"

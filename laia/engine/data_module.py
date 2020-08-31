@@ -17,6 +17,8 @@ from laia.data import (
 from laia.data.padding_collater import by_descending_width
 from laia.utils import SymbolsTable
 
+_logger = log.get_logger(__name__)
+
 
 class DataModule(pl.core.LightningDataModule):
     def __init__(
@@ -50,7 +52,7 @@ class DataModule(pl.core.LightningDataModule):
                 else None,
             )
             txt_transform = transforms.text.ToTensor(syms)
-            log.info(f"Training data transforms:\n{tr_img_transform}")
+            _logger.info(f"Training data transforms:\n{tr_img_transform}")
             super().__init__(
                 train_transforms=(tr_img_transform, txt_transform),
                 val_transforms=base_img_transform,
