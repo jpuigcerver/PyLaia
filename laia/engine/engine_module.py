@@ -40,14 +40,15 @@ class EngineModule(pl.core.LightningModule):
         self.batch_y_hat = None
         # backward()
         self.current_batch = None
+        # required by auto_lr_find
+        self.lr = self.optimizer_kwargs["learning_rate"]
 
     def configure_optimizers(self) -> Dict:
-        lr = self.optimizer_kwargs["learning_rate"]
         weight_decay = self.optimizer_kwargs["weight_l2_penalty"]
         if self.optimizer == "SGD":
             optimizer = torch.optim.SGD(
                 self.parameters(),
-                lr=lr,
+                lr=self.lr,
                 momentum=self.optimizer_kwargs["momentum"],
                 weight_decay=weight_decay,
                 nesterov=self.optimizer_kwargs["nesterov"],
@@ -55,14 +56,14 @@ class EngineModule(pl.core.LightningModule):
         elif self.optimizer == "RMSProp":
             optimizer = torch.optim.RMSprop(
                 self.parameters(),
-                lr=lr,
+                lr=self.lr,
                 weight_decay=weight_decay,
                 momentum=self.optimizer_kwargs["momentum"],
             )
         elif self.optimizer == "Adam":
             optimizer = torch.optim.Adam(
                 self.parameters(),
-                lr=lr,
+                lr=self.lr,
                 weight_decay=weight_decay,
             )
         elif self.optimizer == "AdamW":
@@ -70,11 +71,13 @@ class EngineModule(pl.core.LightningModule):
                 log.warning("Using 0.0 weight decay with AdamW")
             optimizer = torch.optim.AdamW(
                 self.parameters(),
-                lr=lr,
+                lr=self.lr,
                 weight_decay=weight_decay,
             )
-        scheduler = (
-            {
+        else:
+            raise NotImplementedError(f"Optimizer: {self.optimizer}")
+        if self.optimizer_kwargs["scheduler"]:
+            scheduler = {
                 "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer,
                     mode="min",
@@ -86,10 +89,8 @@ class EngineModule(pl.core.LightningModule):
                 "interval": "epoch",
                 "frequency": 1,
             }
-            if self.optimizer_kwargs["scheduler"]
-            else None
-        )
-        return [optimizer], [scheduler]
+            return [optimizer], [scheduler]
+        return optimizer
 
     def prepare_batch(self, batch: Any) -> Tuple[Any, Any]:
         batch_x = self.batch_input_fn(batch) if self.batch_input_fn else batch

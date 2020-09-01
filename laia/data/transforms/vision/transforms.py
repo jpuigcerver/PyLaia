@@ -46,34 +46,34 @@ class ToImageTensor:
         assert fixed_width is None or fixed_width > 0
         assert min_height is None or min_height > 0
         assert min_width is None or min_width > 0
-        self._convert_transform = Convert(mode)
-        self._should_invert = invert
-        self._invert_transform = Invert() if self._should_invert else lambda x: x
-        self._random_transform = (
-            lambda x: random_transform(x) if random_transform else x
+        self.convert_transform = Convert(mode)
+        self.invert_transform = Invert() if invert else None
+        self.random_transform = random_transform if random_transform else None
+        self.resize_transform = (
+            self.resize_transform if fixed_height or fixed_width else None
         )
-        self._should_resize = fixed_height or fixed_width
-        self._resize_transform = (
-            lambda x: self.resize_transform(x, fixed_height, fixed_width)
-            if self._should_resize
-            else x
-        )
-        self._should_pad = min_height or min_width
-        self._pad_transform = (
-            lambda x: self.pad_transform(x, min_height, min_width, pad_color=pad_color)
-            if self._should_pad
-            else x
-        )
-        self._tensor_transform = ToTensor()
+        self.fixed_height = fixed_height
+        self.fixed_width = fixed_width
+        self.pad_transform = self.pad_transform if min_height or min_width else None
+        self.min_height = min_width
+        self.min_width = min_width
+        self.pad_color = pad_color
+        self.tensor_transform = ToTensor()
 
     def __call__(self, img: Image.Image) -> torch.Tensor:
         assert isinstance(img, Image.Image)
-        img = self._convert_transform(img)
-        img = self._invert_transform(img)
-        img = self._random_transform(img)
-        img = self._resize_transform(img)
-        img = self._pad_transform(img)
-        img = self._tensor_transform(img)
+        img = self.convert_transform(img)
+        if self.invert_transform:
+            img = self.invert_transform(img)
+        if self.random_transform:
+            img = self.random_transform(img)
+        if self.resize_transform:
+            img = self.resize_transform(img, self.fixed_height, self.fixed_width)
+        if self.pad_transform:
+            img = self.pad_transform(
+                img, self.min_height, self.min_width, pad_color=self.pad_color
+            )
+        img = self.tensor_transform(img)
         # C x H x W
         return img
 
@@ -100,11 +100,11 @@ class ToImageTensor:
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}(\n  "
-            f"{self._convert_transform},\n  "
-            f"{self._invert_transform if self._should_invert else ''},\n  "
-            + ("vision.resize_transform(),\n  " if self._should_resize else "")
-            + ("vision.pad_transform(),\n  " if self._should_pad else "")
-            + f"{self._tensor_transform}\n)"
+            f"{self.convert_transform},\n  "
+            f"{self.invert_transform if self.invert_transform else ''},\n  "
+            + ("vision.resize_transform(),\n  " if self.resize_transform else "")
+            + ("vision.pad_transform(),\n  " if self.pad_transform else "")
+            + f"{self.tensor_transform}\n)"
         )
 
 

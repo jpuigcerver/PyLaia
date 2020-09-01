@@ -24,13 +24,17 @@ except ImportError:
 
 def get_installed_versions() -> List[str]:
     import subprocess
+    from pathlib import Path
 
-    with open("requirements.txt") as f:
+    requirements_path = Path(__file__).parent.parent / "requirements.txt"
+    with open(requirements_path) as f:
         requirements = [r.strip() for r in f.readlines()]
     freeze = subprocess.check_output(["pip", "freeze", "--exclude-editable"])
     freeze = freeze.decode("ascii").strip().split()
     versions = [
-        r for r in freeze if r in requirements or r[: r.index("==")] in requirements
+        r
+        for r in freeze
+        if r in requirements or ("==" in r and r[: r.index("==")] in requirements)
     ]
     versions.append(f"laia=={__version__}")
     return versions
