@@ -1,5 +1,5 @@
 import itertools
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 import textdistance
 
@@ -47,16 +47,34 @@ class SequenceError(Meter):
         return self
 
     def add(self, refs, hyps):
-        assert hasattr(refs, "__iter__") or hasattr(refs, "__getitem__")
-        assert hasattr(hyps, "__iter__") or hasattr(hyps, "__getitem__")
-        assert hasattr(refs, "__len__") and hasattr(hyps, "__len__")
-        assert len(refs) == len(hyps)
-        for ref, hyp in zip(refs, hyps):
-            self.num_errors += textdistance.levenshtein.distance(ref, hyp)
-            self.ref_length += len(ref)
+        num_errors, ref_length = SequenceError.distance(refs, hyps)
+        self.num_errors += num_errors
+        self.ref_length += ref_length
         return self
 
     @property
     def value(self) -> float:
-        if self.ref_length > 0:
-            return float(self.num_errors) / float(self.ref_length)
+        return SequenceError.error(self.num_errors, self.ref_length)
+
+    @staticmethod
+    def distance(refs, hyps) -> Tuple[int, int]:
+        assert hasattr(refs, "__iter__") or hasattr(refs, "__getitem__")
+        assert hasattr(hyps, "__iter__") or hasattr(hyps, "__getitem__")
+        assert hasattr(refs, "__len__") and hasattr(hyps, "__len__")
+        assert len(refs) == len(hyps)
+        num_errors = sum(
+            textdistance.levenshtein.distance(r, h) for r, h in zip(refs, hyps)
+        )
+        ref_length = sum(len(r) for r in refs)
+        return num_errors, ref_length
+
+    @staticmethod
+    def compute(refs, hyps) -> float:
+        num_errors, ref_length = SequenceError.distance(refs, hyps)
+        return SequenceError.error(num_errors, ref_length)
+
+    @staticmethod
+    def error(num_errors, ref_length) -> float:
+        if ref_length > 0:
+            return float(num_errors) / float(ref_length)
+        return float("nan")
