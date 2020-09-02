@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 
+from pytorch_lightning.utilities import rank_zero_only
 from tqdm.auto import tqdm
 
 # Inherit loglevels from Python's logging
@@ -98,6 +99,7 @@ def get_logger(name=None):
 # Laia root logger
 root = get_logger()
 lightning = logging.getLogger("lightning")
+lightning.handlers = []
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -125,15 +127,18 @@ def basic_config(
     set_exception_handler(func=exception_handling_fn)
     fmt = logging.Formatter(fmt)
 
-    handler = TqdmStreamHandler(level=level)
-    handler.setFormatter(fmt)
-    if filename:
-        handler.setLevel(logging_also_to_stderr)
-    root.addHandler(handler)
-    lightning.handlers = []
-    lightning.addHandler(TqdmStreamHandler(level=INFO))
+    # log to stderr on master only
+    if rank_zero_only.rank == 0:
+        handler = TqdmStreamHandler(level=level)
+        handler.setFormatter(fmt)
+        if filename:
+            handler.setLevel(logging_also_to_stderr)
+        root.addHandler(handler)
+        lightning.addHandler(handler)
 
     if filename:
+        if rank_zero_only.rank > 0:
+            filename += f".rank{rank_zero_only.rank}"
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         handler = logging.FileHandler(filename, filemode)
         handler.setFormatter(fmt)
