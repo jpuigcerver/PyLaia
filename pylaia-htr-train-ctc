@@ -22,7 +22,7 @@ from laia.engine.htr_engine_module import HTREngineModule
 from laia.utils import SymbolsTable
 
 
-def main(args):
+def main(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
     pl.seed_everything(args.seed)
@@ -81,17 +81,17 @@ def main(args):
     early_stopping_callback = pl.callbacks.EarlyStopping(
         patience=args.early_stopping_patience, verbose=True, mode="min"
     )
-    # TODO: save on best va_wer and every x epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
+    # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filepath=filepath + "/{epoch}-lowest_" + args.monitor,
         verbose=True,
         save_top_k=args.checkpoint_k,
         mode="min",
     )
-    # TODO: add https://pytorch-lightning.readthedocs.io/en/latest/callbacks.html#gpu-stats-monitor
-    callbacks = [
-        ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
-    ]
+    callbacks = [ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate)]
+    # TODO: Add with pytorch.lightning>0.9.0
+    # if args.log_gpu_stats and args.lightning.gpus != 0:
+    #   callbacks.append(pl.callbacks.GpuStatsMonitor())
     if args.scheduler:
         callbacks.append(LearningRate(logging_interval="epoch"))
 
@@ -206,6 +206,14 @@ if __name__ == "__main__":
         default=0.1,
         help="Factor by which the learning rate will be reduced",
     )
+    # add_argument(
+    #    "--log_gpu_stats",
+    #    type=pl.utilities.parsing.str_to_bool,
+    #    nargs="?",
+    #    const=True,
+    #    default=False,
+    #    help="Whether or not to log GPU stats every epoch",
+    # )
 
     # Add lightning default arguments to a group
     pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
@@ -223,6 +231,7 @@ if __name__ == "__main__":
         "early_stop_callback",
         "default_root_dir",
         "resume_from_checkpoint",
+        "log_gpu_memory",
     ):
         delattr(args.lightning, a)
 

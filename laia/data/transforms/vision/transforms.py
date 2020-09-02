@@ -102,6 +102,7 @@ class ToImageTensor:
             f"{self.__class__.__name__}(\n  "
             f"{self.convert_transform},\n  "
             f"{self.invert_transform if self.invert_transform else ''},\n  "
+            f"{self.random_transform if self.random_transform else ''},\n  "
             + ("vision.resize_transform(),\n  " if self.resize_transform else "")
             + ("vision.pad_transform(),\n  " if self.pad_transform else "")
             + f"{self.tensor_transform}\n)"

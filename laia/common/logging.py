@@ -36,7 +36,7 @@ class TqdmStreamHandler(logging.StreamHandler):
             msg = self.format(record)
             tqdm.write(msg, file=sys.stderr)
             self.flush()
-        except Exception:
+        except Exception:  # noqa
             self.handleError(record)
 
 
@@ -86,13 +86,13 @@ def get_logger(name=None):
     Returns:
         A :obj:`~.Logger` object.
     """
-    logging._acquireLock()
+    logging._acquireLock()  # noqa
     backup_class = logging.getLoggerClass()
     logging.setLoggerClass(Logger)
     # Use 'laia' as the root logger
     logger = logging.getLogger(name if name else "laia")
     logging.setLoggerClass(backup_class)
-    logging._releaseLock()
+    logging._releaseLock()  # noqa
     return logger
 
 
