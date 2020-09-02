@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 
 from laia.data import PaddedTensor
-from laia.data.padding_collater import transform_output
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1):
@@ -266,7 +265,7 @@ class ResnetConv(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x, xs = transform_output(x)
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         assert x.size(1) == self._options.input_channels, (
             f"Input image depth ({x.size(1)}) does not match "
             f"the expected ({self._options.input_channels})"
@@ -286,7 +285,7 @@ class ResnetConv(nn.Module):
         if xs is None:
             return x
         else:
-            return PaddedTensor(x, self.get_output_batch_size(xs))
+            return PaddedTensor.build(x, self.get_output_batch_size(xs))
 
     def get_output_batch_size(self, xs):
         return self.get_output_size(xs, self._options)

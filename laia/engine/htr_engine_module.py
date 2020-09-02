@@ -37,9 +37,11 @@ class HTREngineModule(EngineModule):
 
     def training_step(self, batch: Any, batch_idx: int) -> pl.TrainResult:
         result = super().training_step(batch, batch_idx)
-        _, batch_y = self.prepare_batch(batch)
+        batch_x, batch_y = self.prepare_batch(batch)
         batch_decode = self.decoder(self.batch_y_hat)
-        cer = torch.tensor(SequenceError.compute(batch_y, batch_decode))
+        cer = torch.tensor(
+            SequenceError.compute(batch_y, batch_decode), device=batch_x.device
+        )
         result.log(
             "tr_cer",
             cer,
@@ -52,7 +54,10 @@ class HTREngineModule(EngineModule):
             char_to_word_seq(b, self.delimiters) for b in batch_decode
         ]
         batch_y_words = [char_to_word_seq(b, self.delimiters) for b in batch_y]
-        wer = torch.tensor(SequenceError.compute(batch_y_words, batch_decode_words))
+        wer = torch.tensor(
+            SequenceError.compute(batch_y_words, batch_decode_words),
+            device=batch_x.device,
+        )
         result.log(
             "tr_wer",
             wer,
@@ -65,9 +70,11 @@ class HTREngineModule(EngineModule):
 
     def validation_step(self, batch: Any, batch_idx: int) -> Optional[pl.EvalResult]:
         result = super().validation_step(batch, batch_idx)
-        _, batch_y = self.prepare_batch(batch)
+        batch_x, batch_y = self.prepare_batch(batch)
         batch_decode = self.decoder(self.batch_y_hat)
-        cer = torch.tensor(SequenceError.compute(batch_y, batch_decode))
+        cer = torch.tensor(
+            SequenceError.compute(batch_y, batch_decode), device=batch_x.device
+        )
         result.log(
             "va_cer",
             cer,
@@ -83,7 +90,10 @@ class HTREngineModule(EngineModule):
             char_to_word_seq(b, self.delimiters) for b in batch_decode
         ]
         batch_y_words = [char_to_word_seq(b, self.delimiters) for b in batch_y]
-        wer = torch.tensor(SequenceError.compute(batch_y_words, batch_decode_words))
+        wer = torch.tensor(
+            SequenceError.compute(batch_y_words, batch_decode_words),
+            device=batch_x.device,
+        )
         result.log(
             "va_wer",
             wer,

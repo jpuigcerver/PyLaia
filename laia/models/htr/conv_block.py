@@ -8,7 +8,6 @@ from torch import Tensor
 
 from laia.common.types import Param2d
 from laia.data import PaddedTensor
-from laia.data.padding_collater import transform_output
 from laia.nn.mask_image_from_size import mask_image_from_size
 
 
@@ -70,7 +69,7 @@ class ConvBlock(nn.Module):
         ]
 
     def forward(self, x: Union[Tensor, PaddedTensor]) -> Union[Tensor, PaddedTensor]:
-        x, xs = transform_output(x)
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         assert x.size(1) == self.in_channels, (
             f"Input image depth ({x.size(1)}) does not match the "
             f"expected ({self.in_channels})"
@@ -95,7 +94,9 @@ class ConvBlock(nn.Module):
         if self.pool:
             x = self.pool(x)
 
-        return x if xs is None else PaddedTensor(x, self.get_batch_output_size(xs))
+        return (
+            x if xs is None else PaddedTensor.build(x, self.get_batch_output_size(xs))
+        )
 
     def get_batch_output_size(self, xs: torch.Tensor) -> torch.Tensor:
         ys = torch.zeros_like(xs)

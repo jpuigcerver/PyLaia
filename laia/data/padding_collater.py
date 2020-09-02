@@ -1,32 +1,53 @@
-import collections
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import torch
 
-PaddedTensor = collections.namedtuple("PaddedTensor", ["data", "sizes"])
+
+class PaddedTensor(NamedTuple):
+    data: torch.Tensor
+    sizes: torch.Tensor
+
+    @classmethod
+    def build(cls, data, sizes):
+        assert sizes.dim() == 2, "PaddedTensor.sizes must have 2 dimensions"
+        assert sizes.size(1) in (2, 3), (
+            "PaddedTensor.sizes is incorrect: "
+            "expected=2 (HxW) or 3 (CxHxW), "
+            f"found={sizes.size(1)}"
+        )
+        assert data.size(0) == sizes.size(0), (
+            f"Batch size {sizes.size(0)} does not match "
+            f"the number of samples in the batch {data.size(0)}"
+        )
+        return cls(data, sizes)
+
+    def __repr__(self) -> str:
+        return (
+            f"PaddedTensor("
+            f"data={list(self.data.size())}, "
+            f"sizes={self.sizes.tolist()}, "
+            f"device={str(self.data.device)})"
+        )
+
+    @property
+    def device(self) -> torch.device:
+        return self.data.device
 
 
 def by_descending_width(x):
     # C x H x W
     return -x["img"].size(2)
-
-
-def transform_output(x):
-    if isinstance(x, PaddedTensor):
-        x, xs = x.data, x.sizes
-        assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
-        assert xs.size(1) == 2, (
-            "PaddedTensor.sizes must have 2 columns: "
-            f"Height and Width, {xs.size(1)} columns given instead."
-        )
-        assert x.size(0) == xs.size(0), (
-            f"Batch size {xs.size(0)} does not match "
-            f"the number of samples in the batch {x.size(0)}"
-        )
-    else:
-        xs = None
-    return x, xs
 
 
 class PaddingCollater:
@@ -74,7 +95,7 @@ class PaddingCollater:
                 max_sizes = PaddingCollater.get_max_sizes(batch, sizes)
                 x = PaddingCollater.collate_tensors(batch, max_sizes)
                 xs = torch.stack([torch.tensor(x.size()) for x in batch])
-                return PaddedTensor(x, xs)
+                return PaddedTensor.build(x, xs)
             else:
                 return torch.stack(batch)
         elif isinstance(elem, np.ndarray):
