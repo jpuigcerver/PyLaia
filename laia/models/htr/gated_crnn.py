@@ -149,7 +149,7 @@ class GatedEncoder(torch.nn.Module):
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         y = self.blocks(x)
-        return y if xs is None else PaddedTensor(y, self._compute_output_size(xs))
+        return y if xs is None else PaddedTensor.build(y, self._compute_output_size(xs))
 
 
 class RNNDecoder(torch.nn.Module):

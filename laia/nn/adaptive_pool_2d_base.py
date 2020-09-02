@@ -25,4 +25,4 @@ class AdaptivePool2dBase(torch.nn.Module):
             ys = xs.clone()
             dim = int(self.output_sizes[0] is None)
             ys[:, dim] = self.output_sizes[dim]
-            return PaddedTensor(y, ys)
+            return PaddedTensor.build(y, ys)

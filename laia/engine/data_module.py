@@ -90,6 +90,7 @@ class DataModule(pl.core.LightningDataModule):
             )
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
+        assert self.tr_ds is not None
         return torch.utils.data.DataLoader(
             dataset=self.tr_ds,
             batch_size=self.batch_size,
@@ -103,6 +104,7 @@ class DataModule(pl.core.LightningDataModule):
         )
 
     def val_dataloader(self) -> torch.utils.data.DataLoader:
+        assert self.va_ds is not None
         return torch.utils.data.DataLoader(
             dataset=self.va_ds,
             batch_size=self.batch_size,
@@ -114,6 +116,7 @@ class DataModule(pl.core.LightningDataModule):
         )
 
     def test_dataloader(self) -> torch.utils.data.DataLoader:
+        assert self.te_ds is not None
         return torch.utils.data.DataLoader(
             dataset=self.te_ds,
             batch_size=self.batch_size,

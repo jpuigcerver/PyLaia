@@ -58,18 +58,18 @@ class ImageFeeder(Feeder):
         return x
 
     def feed(self, x):
-        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
+        if isinstance(x, PaddedTensor):
+            x, xs = x.data, x.sizes
+        elif isinstance(x, tuple) and len(x) == 2:
+            # TODO: https://github.com/pytorch/pytorch/issues/44009
+            x, xs = x
+        else:
+            x, xs = x, None
         x = self.view_as_4d(x)  # N x C x H x W
         if xs is not None and self._keep_padded_tensors:
-            # Ensure that the size tensor is the expected
-            if xs.dim() != 2 or (xs.size(1) != 2 and xs.size(1) != 3):
-                raise ValueError(
-                    "Size tensor in PaddedTensor has not an "
-                    f"expected shape: {repr(xs.size())}"
-                )
             if xs.size(1) == 3 and not self._keep_channels_in_size:
                 xs = xs[:, 1:]
-            return PaddedTensor(x, xs)
+            return PaddedTensor.build(x, xs)
         else:
             return x
 
