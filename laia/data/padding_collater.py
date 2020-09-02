@@ -35,7 +35,7 @@ class PaddedTensor(NamedTuple):
     def __repr__(self) -> str:
         return (
             f"PaddedTensor("
-            f"data={list(self.data.size())}, "
+            f"data.size()={list(self.data.size())}, "
             f"sizes={self.sizes.tolist()}, "
             f"device={str(self.data.device)})"
         )
