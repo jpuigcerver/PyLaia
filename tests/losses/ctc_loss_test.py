@@ -60,7 +60,7 @@ class CTCLossTest(unittest.TestCase):
             device=device,
         )
         # y[1] is too long to produce a valid alignment so its loss is zeroed
-        paths1 = torch.tensor(0, dtype=dtype)
+        paths1 = torch.tensor(0, dtype=dtype, device=device)
         paths2 = x[0, 2, 1] + x[1, 2, 2] + x[2, 2, 0] + x[3, 2, 2]
         ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
