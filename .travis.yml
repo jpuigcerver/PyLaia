@@ -24,7 +24,6 @@ before_install:
   - sed -i s/^nnutils-pytorch$/nnutils-pytorch${torch_v}/ requirements.txt
 
 install:
-  - pip install "torch${torch_v}"
   - pip install -e ".[dev,test]"
 
 script:

@@ -17,7 +17,6 @@ In order to install PyLaia, follow this recipe:
 ```bash
 git clone https://github.com/jpuigcerver/PyLaia
 cd PyLaia
-pip install torch
 pip install --editable .
 ```
 
