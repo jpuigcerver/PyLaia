@@ -28,4 +28,4 @@ install:
 
 script:
   - pre-commit run --all-files
-  - pytest
+  - pytest tests
