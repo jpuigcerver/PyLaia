@@ -98,11 +98,13 @@ class ToImageTensor:
         )
 
     def __repr__(self) -> str:
+        invert_txt = f"{self.invert_transform},\n  " if self.invert_transform else ""
+        random_txt = f"{self.random_transform},\n  " if self.random_transform else ""
         return (
             f"{self.__class__.__name__}(\n  "
             f"{self.convert_transform},\n  "
-            f"{self.invert_transform if self.invert_transform else ''},\n  "
-            f"{self.random_transform if self.random_transform else ''},\n  "
+            f"{invert_txt}"
+            f"{random_txt}"
             + ("vision.resize_transform(),\n  " if self.resize_transform else "")
             + ("vision.pad_transform(),\n  " if self.pad_transform else "")
             + f"{self.tensor_transform}\n)"
