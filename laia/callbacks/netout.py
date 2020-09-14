@@ -1,31 +1,30 @@
-from typing import Callable, List, Union
+from typing import Callable, List, Optional, Union
 
 import pytorch_lightning as pl
-import torch.nn.functional as functional
 
-from laia.losses.ctc_loss import transform_output
+from laia.losses.ctc_loss import transform_batch
 from laia.utils import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
 class Netout(pl.callbacks.Callback):
     def __init__(
         self,
-        output_transform: str,
         writers: List[Union[ArchiveMatrixWriter, ArchiveLatticeWriter]],
-        model_output_fn: Callable = transform_output,
+        output_transform: Optional[Callable] = None,
+        batch_transform: Callable = transform_batch,
     ):
         super().__init__()
-        self.output_transform = output_transform
         self.writers = writers
-        self.model_output_fn = model_output_fn
+        self.output_transform = output_transform
+        self.batch_transform = batch_transform
 
     def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
-        x, xs = self.model_output_fn(pl_module.batch_y_hat)
+        x, xs = self.batch_transform(pl_module.batch_y_hat)
         x = x.detach()
         x = x.permute(1, 0, 2)
         if self.output_transform:
-            x = getattr(functional, self.output_transform)(x, dim=-1)
+            x = self.output_transform(x)
         x = [x[i, : xs[i], :] for i in range(len(xs))]
         ids = pl_module.batch_id_fn(batch)
         for writer in self.writers:

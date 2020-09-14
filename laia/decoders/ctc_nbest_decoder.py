@@ -1,6 +1,6 @@
 import torch
 
-from laia.losses.ctc_loss import transform_output
+from laia.losses.ctc_loss import transform_batch
 
 
 class CTCNBestDecoder:
@@ -12,7 +12,7 @@ class CTCNBestDecoder:
         self._output = None
 
     def __call__(self, x):
-        x, xs = transform_output(x)
+        x, xs = transform_batch(x)
         x = x.permute(1, 0, 2)  # batch first
         best = [
             CTCNBestDecoder.get_nbest(self._nbest, x[i], xs[i]) for i in range(len(x))
