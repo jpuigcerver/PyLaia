@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
@@ -10,32 +10,30 @@ from laia.losses.loss import Loss
 _logger = log.get_logger(__name__)
 
 
-def transform_output(output):
-    # Size: T x N x D
-    if isinstance(output, PackedSequence):
-        acts, act_lens = pad_packed_sequence(output)
-    elif isinstance(output, torch.Tensor):
-        acts, act_lens = output, [output.size(0)] * output.size(1)
+def transform_batch(batch):
+    # size: T x N x C
+    if isinstance(batch, PackedSequence):
+        x, xs = pad_packed_sequence(batch)
+    elif isinstance(batch, torch.Tensor):
+        x, xs = batch, [batch.size(0)] * batch.size(1)
     else:
-        raise NotImplementedError(f"Not implemented for type {type(output)}")
-    return acts, act_lens
+        raise NotImplementedError(f"Not implemented for type {type(batch)}")
+    return x, xs
 
 
 def get_valids_and_errors(
-    act_lens: List[int], labels: List[List[int]]
+    xs: List[int], y: List[List[int]]
 ) -> Tuple[List[int], List[int]]:
     """Check for sequences which are too short to produce the given
     target, according to CTC model. These could produce infinite
     losses or potential buffer overflows in CTC.
     """
-    assert len(act_lens) == len(labels)
+    assert len(xs) == len(y)
 
     def count_minimum_frames(y: List[int]) -> int:
         return len(y) + sum(y[i] == y[i - 1] for i in range(1, len(y)))
 
-    check = [
-        act_lens[i] >= count_minimum_frames(labels[i]) for i in range(len(act_lens))
-    ]
+    check = [xs[i] >= count_minimum_frames(y[i]) for i in range(len(y))]
     return (
         # Indices of OK samples
         [i for i, valid in enumerate(check) if valid],
@@ -47,113 +45,86 @@ def get_valids_and_errors(
 class CTCLoss(Loss):
     """
     Attributes:
-      reduction (string, optional): Specifies the type of reduction to
+      reduction (string): Specifies the type of reduction to
         perform on the minibatch costs: 'none' | 'mean' | 'sum'.
         With 'none': no reduction is done and a tensor with the cost of each
         example in the minibatch is returned,
         'mean': the mean of the per-example losses is returned,
         'sum': the sum of all per-example losses is returned.
         Default: 'mean'.
-      average_frames (bool, optional): Specifies whether the loss of each
+      average_frames (bool): Specifies whether the loss of each
         sample should be divided by its number of frames. Default: ``False''.
-      blank (integer, optional): Index of the blank label. Default: 0.
+      blank (int): Index of the blank label. Default: 0.
     """
 
-    def __init__(self, reduction="mean", average_frames=False, blank=0):
+    def __init__(
+        self, reduction: str = "mean", average_frames: bool = False, blank: int = 0
+    ):
         super().__init__()
-        self._reduction = reduction
-        self._average_frames = average_frames
-        self._blank = blank
-
-    @property
-    def average_frames(self):
-        return self._average_frames
-
-    @average_frames.setter
-    def average_frames(self, value):
-        assert value in (True, False)
-        self._average_frames = value
-
-    @property
-    def blank(self):
-        return self._blank
-
-    @blank.setter
-    def blank(self, value):
-        assert isinstance(value, int) and value >= 0
-        self._blank = value
-
-    @property
-    def reduction(self):
-        return self._reduction
-
-    @reduction.setter
-    def reduction(self, value):
-        self._reduction = value
+        self.reduction = reduction
+        self.average_frames = average_frames
+        assert blank >= 0
+        self.blank = blank
 
     def forward(
-        self, output: torch.Tensor, target: List[List[int]], **kwargs: Dict
-    ) -> torch.Tensor:
-        """
-        Args:
-            output: Size seqLength x outputDim, contains
-                the output from the network as well as a list of size
-                seqLength containing batch sizes of the sequence
-            target: Contains the size of each output
-                sequence from the network. Size batchSize
-        """
-        acts, act_lens = transform_output(output)
+        self, x: torch.Tensor, y: List[List[int]], **kwargs: Dict
+    ) -> Optional[torch.Tensor]:
+        x, xs = transform_batch(x)
+        assert xs[0] == x.size(0), "Maximum length does not match"
+        assert len(y) == x.size(1), "Batch size does not match"
 
-        assert act_lens[0] == acts.size(0), "Maximum length does not match"
-        assert len(target) == acts.size(1), "Batch size does not match"
-
-        valid_indices, err_indices = get_valids_and_errors(act_lens, target)
+        valid_indices, err_indices = get_valids_and_errors(xs, y)
         if err_indices:
             if kwargs.get("batch_ids", None) is not None:
                 assert isinstance(kwargs["batch_ids"], (list, tuple))
                 err_indices = [kwargs["batch_ids"][i] for i in err_indices]
             _logger.warning(
-                "The following samples in the batch were presumably ignored "
+                "The following samples in the batch were ignored "
                 "for the loss computation: {}",
                 err_indices,
             )
         if not valid_indices:
             _logger.warning("All samples in the batch were ignored!")
+            return None
 
-        # Prepare tensors of the correct type
-        acts = torch.nn.functional.log_softmax(acts, dim=-1)
-        if isinstance(act_lens, torch.Tensor):
-            act_lens = act_lens.detach().to(torch.int32).cpu()
-        else:
-            act_lens = torch.tensor(act_lens, dtype=torch.int32, device="cpu")
-        labels = torch.tensor(
-            list(itertools.chain.from_iterable(target)),
-            dtype=torch.int32,
-            device=torch.device("cpu"),
+        # prepare tensors of the correct type
+        x = torch.nn.functional.log_softmax(x, dim=-1)
+        cpu = torch.device("cpu")
+        xs = (
+            xs.detach().to(dtype=torch.int, device=cpu)
+            if isinstance(xs, torch.Tensor)
+            else torch.tensor(xs, dtype=torch.int, device=cpu)
         )
-        label_lens = torch.tensor(
-            [len(x) for x in target], dtype=torch.int32, device=torch.device("cpu")
+        ys = torch.tensor([len(y_n) for y_n in y], dtype=torch.int, device=cpu)
+        y = torch.tensor(
+            list(itertools.chain.from_iterable(y)),
+            dtype=torch.int,
+            device=x.device,
         )
 
-        with torch.backends.cudnn.flags(enabled=False):
-            losses = torch.nn.functional.ctc_loss(
-                log_probs=acts,
-                targets=labels.to(acts.device),
-                input_lengths=act_lens,
-                target_lengths=label_lens,
-                blank=self._blank,
-                reduction="none",
-                zero_infinity=True,
-            )
+        losses = torch.nn.functional.ctc_loss(
+            log_probs=x,
+            targets=y,
+            input_lengths=xs,
+            target_lengths=ys,
+            blank=self.blank,
+            reduction="none",
+            zero_infinity=True,
+        )
 
-        if self._average_frames:
-            losses = losses / act_lens.to(losses)
+        # keep valid indices
+        valid_indices = torch.tensor(valid_indices, device=losses.device)
+        losses = losses.index_select(0, valid_indices)
+        xs = xs.index_select(0, valid_indices)
 
-        if self._reduction == "none":
+        if self.average_frames:
+            losses = losses / xs.to(losses)
+
+        if self.reduction == "none":
             return losses
-        elif self._reduction == "mean":
+        elif self.reduction == "mean":
             return losses.mean()
-        elif self._reduction == "sum":
+        elif self.reduction == "sum":
             return losses.sum()
         else:
-            raise ValueError(f"Reduction {repr(self._reduction)} not supported!")
+            raise ValueError(f"Reduction {self.reduction} not supported!")

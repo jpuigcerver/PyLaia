@@ -147,6 +147,8 @@ class EngineModule(pl.LightningModule):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
+        if batch_loss is None:
+            return
         self.log(
             "tr_loss",
             batch_loss,
@@ -167,6 +169,8 @@ class EngineModule(pl.LightningModule):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
+        if batch_loss is None:
+            return
         self.log(
             "va_loss",
             batch_loss,

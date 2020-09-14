@@ -1,7 +1,7 @@
 import pywrapfst as fst
 from torch.nn.functional import log_softmax
 
-from laia.losses.ctc_loss import transform_output
+from laia.losses.ctc_loss import transform_batch
 
 
 class CTCLatticeGenerator:
@@ -9,7 +9,7 @@ class CTCLatticeGenerator:
         self._normalize = normalize
 
     def __call__(self, x):
-        x, xs = transform_output(x)
+        x, xs = transform_batch(x)
         # Normalize log-posterior matrices, if necessary
         if self._normalize:
             x = log_softmax(x, dim=2)

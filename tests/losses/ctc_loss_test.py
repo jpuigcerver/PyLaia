@@ -13,16 +13,16 @@ log.config()
 
 class CTCLossTest(unittest.TestCase):
     def test_get_valids_and_errors(self):
-        act_lens = [4, 4, 4, 5]
-        labels = [[1, 2, 3, 4], [1, 2, 3, 4, 5], [1, 2, 2, 3], [1, 2, 2, 3]]
-        output = get_valids_and_errors(act_lens, labels)
+        xs = [4, 4, 4, 5]
+        y = [[1, 2, 3, 4], [1, 2, 3, 4, 5], [1, 2, 2, 3], [1, 2, 2, 3]]
+        output = get_valids_and_errors(xs, y)
         expected = [0, 3], [1, 2]
         self.assertEqual(expected, output)
 
     def test_get_valids_and_errors_when_wrong_size(self):
-        act_lens = [1, 2]
-        labels = [[1], [2], [3]]
-        self.assertRaises(AssertionError, get_valids_and_errors, act_lens, labels)
+        xs = [1, 2]
+        y = [[1], [2], [3]]
+        self.assertRaises(AssertionError, get_valids_and_errors, xs, y)
 
     def _run_test_forward(self, dtype, device, reduction, average_frames):
         # Size: T=4 x B=3 x C=3
@@ -59,12 +59,10 @@ class CTCLossTest(unittest.TestCase):
             dtype=dtype,
             device=device,
         )
-        # y[1] is too long to produce a valid alignment so its loss is zeroed
-        paths1 = torch.tensor(0, dtype=dtype, device=device)
         paths2 = x[0, 2, 1] + x[1, 2, 2] + x[2, 2, 0] + x[3, 2, 2]
         ctc = CTCLoss(reduction=reduction, average_frames=average_frames)
         loss = ctc(x, y, batch_ids=["ID1", "ID2", "ID3"]).to(device)
-        expected = torch.stack([-torch.logsumexp(paths0, dim=0), paths1, -paths2])
+        expected = torch.stack([-torch.logsumexp(paths0, dim=0), -paths2])
         if average_frames:
             expected = expected / 4.0
         if reduction == "sum":

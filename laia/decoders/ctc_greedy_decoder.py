@@ -2,7 +2,7 @@ from typing import List
 
 import torch
 
-from laia.losses.ctc_loss import transform_output
+from laia.losses.ctc_loss import transform_batch
 
 
 class CTCGreedyDecoder:
@@ -12,7 +12,7 @@ class CTCGreedyDecoder:
         self._segmentation = None
 
     def __call__(self, x, segmentation=False):
-        x, xs = transform_output(x)
+        x, xs = transform_batch(x)
         x = x.detach()
         x = [x[: xs[i], i, :] for i in range(len(xs))]
         x = [x_n.max(dim=1) for x_n in x]
