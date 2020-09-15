@@ -8,7 +8,7 @@ import torch
 
 import laia.common.logging as log
 from laia import get_installed_versions
-from laia.callbacks import Decode, ProgressBar
+from laia.callbacks import Decode, ProgressBar, Segmentation
 from laia.common.arguments import (
     add_argument,
     add_defaults,
@@ -65,19 +65,32 @@ def main(args):
     )
 
     callbacks = [
-        Decode(
-            syms,
-            use_letters=args.use_letters,
-            segmentation=args.print_segmentation,
-            input_space=args.input_space,
-            output_space=args.output_space,
-            convert_spaces=args.convert_spaces,
-            join_str=args.join_str,
-            separator=args.separator,
-            print_img_ids=args.print_img_ids,
-        ),
         ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
     ]
+    if bool(args.print_segmentation):
+        callbacks.append(
+            Segmentation(
+                syms,
+                segmentation=args.print_segmentation,
+                input_space=args.input_space,
+                join_str=args.join_str,
+                separator=args.separator,
+                print_img_ids=args.print_img_ids,
+            )
+        )
+    else:
+        callbacks.append(
+            Decode(
+                syms,
+                use_symbols=args.use_symbols,
+                input_space=args.input_space,
+                output_space=args.output_space,
+                convert_spaces=args.convert_spaces,
+                join_str=args.join_str,
+                separator=args.separator,
+                print_img_ids=args.print_img_ids,
+            )
+        )
 
     trainer = pl.Trainer(
         default_root_dir=args.train_path,
@@ -137,7 +150,9 @@ if __name__ == "__main__":
         "--join_str", type=str, default=None, help="Join the output using this"
     )
     add_argument(
-        "--use_letters", action="store_true", help="Print the output with letters"
+        "--use_symbols",
+        action="store_true",
+        help="Print the output with symbols instead of numbers",
     )
     add_argument(
         "--convert_spaces", action="store_true", help="Whether or not to convert spaces"
