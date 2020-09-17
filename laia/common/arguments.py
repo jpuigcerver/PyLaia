@@ -142,10 +142,6 @@ _default_args = {
             ),
         },
     ),
-    "logging_config": (
-        ("--logging_config",),
-        {"type": str, "help": "Use this JSON file to configure the logging"},
-    ),
     "logging_file": (
         ("--logging_file",),
         {"type": str, "help": "Write the logs to this file"},
@@ -182,7 +178,6 @@ def _get_parser():
         )
         add_defaults(
             "logging_also_to_stderr",
-            "logging_config",
             "logging_file",
             "logging_level",
             "logging_overwrite",
