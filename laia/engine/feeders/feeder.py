@@ -61,7 +61,8 @@ class ImageFeeder(Feeder):
         if isinstance(x, PaddedTensor):
             x, xs = x.data, x.sizes
         elif isinstance(x, tuple) and len(x) == 2:
-            # TODO: https://github.com/pytorch/pytorch/issues/44009
+            # required because of: https://github.com/pytorch/pytorch/issues/44009
+            # can be deleted when we no longer support torch<=1.6.0
             x, xs = x
         else:
             x, xs = x, None
