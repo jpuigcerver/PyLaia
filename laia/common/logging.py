@@ -97,8 +97,11 @@ def get_logger(name=None):
 
 # Laia root logger
 root = get_logger()
+# pytorch-lightning logger
 lightning = logging.getLogger("lightning")
 lightning.handlers = []
+# warnings logger
+warnings = logging.getLogger("py.warnings")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -115,6 +118,16 @@ def set_exception_handler(func=sys.__excepthook__):
     sys.excepthook = func
 
 
+def capture_warnings():
+    import warnings
+
+    def format_warning(msg, category, filename, lineno, *_):
+        return f"{filename}:{lineno}: {category.__name__}: {msg}"
+
+    warnings.formatwarning = format_warning
+    logging.captureWarnings(True)
+
+
 def config(
     fmt=BASIC_FORMAT,
     level=INFO,
@@ -123,6 +136,8 @@ def config(
     logging_also_to_stderr=ERROR,
     exception_handling_fn=handle_exception,
 ):
+    capture_warnings()
+
     set_exception_handler(func=exception_handling_fn)
     fmt = logging.Formatter(fmt)
 
@@ -134,6 +149,7 @@ def config(
             handler.setLevel(logging_also_to_stderr)
         root.addHandler(handler)
         lightning.addHandler(handler)
+        warnings.addHandler(handler)
 
     if filename:
         if rank_zero_only.rank > 0:
@@ -143,6 +159,7 @@ def config(
         handler.setFormatter(fmt)
         root.addHandler(handler)
         lightning.addHandler(handler)
+        warnings.addHandler(handler)
 
     root.setLevel(level)
 
