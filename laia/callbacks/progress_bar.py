@@ -93,7 +93,6 @@ class ProgressBar(pl.callbacks.ProgressBar):
     def on_train_epoch_end(self, trainer, pl_module):
         super().on_train_epoch_end(trainer, pl_module)
         if self.is_enabled:
-            # TODO: remove if https://github.com/PyTorchLightning/pytorch-lightning/issues/3231
             # log training bar
             postfix = {
                 k[3:]: self.format[k[3:]].format(v)

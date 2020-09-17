@@ -89,9 +89,8 @@ def main(args: argparse.Namespace):
         mode="min",
     )
     callbacks = [ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate)]
-    # TODO: Add with pytorch.lightning>0.9.0
-    # if args.log_gpu_stats and args.lightning.gpus != 0:
-    #   callbacks.append(pl.callbacks.GpuStatsMonitor())
+    if args.gpu_stats_callback and args.lightning.gpus != 0:
+        callbacks.append(pl.callbacks.GPUStatsMonitor())
     if args.scheduler:
         callbacks.append(LearningRate(logging_interval="epoch"))
 
@@ -206,14 +205,14 @@ if __name__ == "__main__":
         default=0.1,
         help="Factor by which the learning rate will be reduced",
     )
-    # add_argument(
-    #    "--log_gpu_stats",
-    #    type=pl.utilities.parsing.str_to_bool,
-    #    nargs="?",
-    #    const=True,
-    #    default=False,
-    #    help="Whether or not to log GPU stats every epoch",
-    # )
+    add_argument(
+        "--gpu_stats_callback",
+        type=pl.utilities.parsing.str_to_bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Whether or not to log GPU stats every epoch",
+    )
 
     # Add lightning default arguments to a group
     pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
