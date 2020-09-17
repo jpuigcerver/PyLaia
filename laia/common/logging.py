@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import sys
@@ -116,7 +115,7 @@ def set_exception_handler(func=sys.__excepthook__):
     sys.excepthook = func
 
 
-def basic_config(
+def config(
     fmt=BASIC_FORMAT,
     level=INFO,
     filename=None,
@@ -148,35 +147,8 @@ def basic_config(
     root.setLevel(level)
 
 
-def config(
-    fmt=BASIC_FORMAT,
-    level=INFO,
-    filename=None,
-    filemode="a",
-    logging_also_to_stderr=ERROR,
-    config_dict=None,
-):
-    if config_dict:
-        try:
-            with open(config_dict) as f:
-                config_dict = json.load(f)
-            logging.config.dictConfig(config_dict)
-        except Exception:
-            basic_config()
-            root.exception("Logging configuration could not be parsed, using default")
-    else:
-        basic_config(
-            fmt=fmt,
-            level=level,
-            filename=filename,
-            filemode=filemode,
-            logging_also_to_stderr=logging_also_to_stderr,
-        )
-
-
 def config_from_args(args, fmt=BASIC_FORMAT):
     config(
-        config_dict=args.logging_config,
         filemode="w" if args.logging_overwrite else "a",
         filename=args.logging_file,
         fmt=fmt,
