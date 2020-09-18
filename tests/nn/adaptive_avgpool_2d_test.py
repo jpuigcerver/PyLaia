@@ -1,8 +1,6 @@
 import unittest
 
 import torch
-from torch.autograd import gradcheck
-from torch.nn.functional import adaptive_avg_pool2d
 
 from laia.data import PaddedTensor
 from laia.nn import AdaptiveAvgPool2d
@@ -55,7 +53,7 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
                     ],
                 ],
             ],
-            dtype=torch.float,
+            dtype=torch.double,
             requires_grad=True,
         )
 
@@ -88,12 +86,13 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
                     # c = 1
                     [[20 / 6, 12 / 6]],
                 ],
-            ]
+            ],
+            dtype=self.x.dtype,
         )
         self.assertEqual(expected_y.size(), y.size())
         torch.testing.assert_allclose(y, expected_y)
         # Check against PyTorch's adaptive pooling
-        y2 = adaptive_avg_pool2d(self.x, output_size=(1, 2))
+        y2 = torch.nn.functional.adaptive_avg_pool2d(self.x, output_size=(1, 2))
         torch.testing.assert_allclose(y, y2)
 
     def test_forward_padded_tensor(self):
@@ -116,17 +115,16 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
                     # c = 1
                     [[2 / 2, 6 / 2]],
                 ],
-            ]
+            ],
+            dtype=self.x.dtype,
         )
         torch.testing.assert_allclose(y, expected_y)
 
-    @unittest.skip("TODO(jpuigcerver): Fix gradcheck")
     def test_backward_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
-        gradcheck(lambda x_: torch.sum(m(x_)), (self.x,))
+        torch.autograd.gradcheck(lambda x: m(x).sum(), self.x)
 
-    @unittest.skip("TODO(jpuigcerver): Fix gradcheck")
     def test_backward_padded_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
         xs = torch.tensor([[2, 2], [1, 3]])
-        gradcheck(lambda x_: torch.sum(m(PaddedTensor(x_, xs))), (self.x,))
+        torch.autograd.gradcheck(lambda x: m(PaddedTensor(x, xs)).sum(), self.x)
