@@ -43,7 +43,7 @@ class EngineModule(pl.core.LightningModule):
         # required by auto_lr_find
         self.lr = self.optimizer_kwargs["learning_rate"]
 
-    def configure_optimizers(self) -> Dict:
+    def configure_optimizers(self):
         weight_decay = self.optimizer_kwargs["weight_l2_penalty"]
         if self.optimizer == "SGD":
             optimizer = torch.optim.SGD(
