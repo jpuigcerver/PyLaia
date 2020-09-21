@@ -11,8 +11,6 @@ import laia.utils
 __all__ = ["__version__", "get_installed_versions"]
 
 try:
-    from laia.version import __version__
-except ImportError:
     from setuptools_scm import get_version
 
     __version__ = get_version(
@@ -20,6 +18,8 @@ except ImportError:
         relative_to=__file__,
         local_scheme=lambda v: f"+{v.node}.{v.branch}{'.dirty' if v.dirty else ''}",
     )
+except ImportError:
+    from laia.version import __version__
 
 
 def get_installed_versions() -> List[str]:
