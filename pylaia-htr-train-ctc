@@ -82,11 +82,13 @@ def main(args: argparse.Namespace):
         patience=args.early_stopping_patience, verbose=True, mode="min"
     )
     # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
+    pl.callbacks.ModelCheckpoint.CHECKPOINT_NAME_LAST = "{epoch}-last"
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filepath=filepath + "/{epoch}-lowest_" + args.monitor,
         verbose=True,
         save_top_k=args.checkpoint_k,
         mode="min",
+        save_last=True,
     )
     callbacks = [ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate)]
     if args.gpu_stats_callback and args.lightning.gpus != 0:
