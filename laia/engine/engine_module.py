@@ -18,7 +18,6 @@ class EngineModule(pl.core.LightningModule):
         optimizer: str,
         optimizer_kwargs: Dict,
         criterion: Callable,
-        monitor: str = "va_loss",
         batch_input_fn: Optional[Callable] = None,
         batch_target_fn: Optional[Callable] = None,
         batch_id_fn: Optional[Callable] = None,
@@ -28,7 +27,6 @@ class EngineModule(pl.core.LightningModule):
         # configure_optimizers()
         self.optimizer = optimizer
         self.optimizer_kwargs = optimizer_kwargs
-        self.monitor = monitor
         # compute_loss()
         self.criterion = criterion
         # prepare_batch()
@@ -82,10 +80,9 @@ class EngineModule(pl.core.LightningModule):
                     optimizer,
                     mode="min",
                     factor=self.optimizer_kwargs["scheduler_factor"],
-                    patience=self.optimizer_kwargs["scheduler_patience"],
+                    patience=self.optimizer_kwargs["scheduler_patience"] - 1,
                 ),
-                # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3286
-                "monitor": "checkpoint_on",  # scheduler_monitor
+                "monitor": self.optimizer_kwargs["scheduler_monitor"],
                 "interval": "epoch",
                 "frequency": 1,
             }
@@ -175,7 +172,7 @@ class EngineModule(pl.core.LightningModule):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
-        result = pl.EvalResult(early_stop_on=batch_loss, checkpoint_on=batch_loss)
+        result = pl.EvalResult()
         result.log(
             "va_loss",
             batch_loss,
