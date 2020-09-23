@@ -17,7 +17,6 @@ class HTREngineModule(EngineModule):
         optimizer_kwargs: Dict,
         delimiters: Iterable,
         criterion: Optional[Callable] = CTCLoss(),
-        monitor: str = "va_cer",
         batch_input_fn: Optional[Callable] = None,
         batch_target_fn: Optional[Callable] = None,
         batch_id_fn: Optional[Callable] = None,
@@ -27,7 +26,6 @@ class HTREngineModule(EngineModule):
             optimizer,
             optimizer_kwargs,
             criterion,
-            monitor=monitor,
             batch_input_fn=batch_input_fn,
             batch_target_fn=batch_target_fn,
             batch_id_fn=batch_id_fn,
@@ -83,9 +81,6 @@ class HTREngineModule(EngineModule):
             prog_bar=True,
             sync_dist=True,
         )
-        if self.monitor == "va_cer":
-            result.early_stop_on = cer
-            result.checkpoint_on = cer
         batch_decode_words = [
             char_to_word_seq(b, self.delimiters) for b in batch_decode
         ]
@@ -102,7 +97,4 @@ class HTREngineModule(EngineModule):
             prog_bar=True,
             sync_dist=True,
         )
-        if self.monitor == "va_wer":
-            result.early_stop_on = wer
-            result.checkpoint_on = wer
         return result

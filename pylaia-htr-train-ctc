@@ -53,14 +53,13 @@ def main(args: argparse.Namespace):
         "scheduler": args.scheduler,
         "scheduler_patience": args.scheduler_patience,
         "scheduler_factor": args.scheduler_factor,
-        # "scheduler_monitor": args.scheduler_monitor
+        "scheduler_monitor": args.scheduler_monitor,
     }
     engine_module = HTREngineModule(
         model,
         args.optimizer,
         optimizer_kwargs,
         [syms[d] for d in args.delimiters],
-        monitor=args.monitor,
         batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
@@ -79,12 +78,16 @@ def main(args: argparse.Namespace):
     )
 
     early_stopping_callback = pl.callbacks.EarlyStopping(
-        patience=args.early_stopping_patience, verbose=True, mode="min"
+        monitor=args.monitor,
+        patience=args.early_stopping_patience,
+        verbose=True,
+        mode="min",
     )
     # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
     pl.callbacks.ModelCheckpoint.CHECKPOINT_NAME_LAST = "{epoch}-last"
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filepath=filepath + "/{epoch}-lowest_" + args.monitor,
+        monitor=args.monitor,
         verbose=True,
         save_top_k=args.checkpoint_k,
         mode="min",
@@ -114,6 +117,7 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
+    metrics = [f"va_{x}" for x in ("loss", "cer", "wer")]
     parser = add_defaults(
         "batch_size",
         "learning_rate",
@@ -174,7 +178,7 @@ if __name__ == "__main__":
         "--monitor",
         type=str,
         default="va_cer",
-        choices=["va_loss", "va_cer", "va_wer"],
+        choices=metrics,
         help="Metric to monitor for early stopping and checkpointing",
     )
     add_argument(
@@ -194,13 +198,13 @@ if __name__ == "__main__":
             "after which learning rate will be reduced"
         ),
     )
-    # add_argument(
-    #    "--scheduler_monitor",
-    #    type=str,
-    #    default="va_loss",
-    #    choices=["va_loss", "va_cer", "va_wer"],
-    #    help="Metric for the scheduler to monitor",
-    # )
+    add_argument(
+        "--scheduler_monitor",
+        type=str,
+        default="va_loss",
+        choices=metrics,
+        help="Metric for the scheduler to monitor",
+    )
     add_argument(
         "--scheduler_factor",
         type=float,
