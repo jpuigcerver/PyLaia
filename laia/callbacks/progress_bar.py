@@ -100,7 +100,9 @@ class ProgressBar(pl.callbacks.ProgressBar):
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.set_postfix(
-                running_loss=trainer.progress_bar_dict["loss"], refresh=True
+                refresh=True,
+                running_loss=trainer.progress_bar_dict["loss"],
+                **trainer.progress_bar_metrics.get("gpu_stats", {}),
             )
 
     def on_train_epoch_end(self, trainer, pl_module):

@@ -1,15 +1,14 @@
-from typing import Optional
-
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_only
 
 import laia.common.logging as log
 
 _logger = log.get_logger(__name__)
 
 
-class LearningRate(pl.callbacks.LearningRateLogger):
-    def __init__(self, logging_interval: Optional[str] = None):
-        super().__init__(logging_interval=logging_interval)
+class LearningRate(pl.callbacks.LearningRateMonitor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.last_values = None
 
     def on_train_start(self, trainer, pl_module):

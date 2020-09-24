@@ -50,7 +50,7 @@ _default_args = {
             "nargs": "?",
             "const": True,
             "default": False,
-            "help": "Whether or not to use Nesterov momentum",
+            "help": "Whether to use Nesterov momentum",
         },
     ),
     "seed": (
@@ -77,10 +77,7 @@ _default_args = {
             "nargs": "?",
             "const": True,
             "default": False,
-            "help": (
-                "Whether or not to use dynamic distortions "
-                "to augment the training data"
-            ),
+            "help": "Whether to use dynamic distortions to augment the training data",
         },
     ),
     "train_path": (

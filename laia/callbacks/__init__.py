@@ -1,4 +1,5 @@
 from laia.callbacks.decode import Decode
+from laia.callbacks.gpu_stats import GPUStats
 from laia.callbacks.learning_rate import LearningRate
 from laia.callbacks.netout import Netout
 from laia.callbacks.progress_bar import ProgressBar
