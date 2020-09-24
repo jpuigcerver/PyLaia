@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 
 import laia.common.logging as log
 from laia import get_installed_versions
-from laia.callbacks import LearningRate, ProgressBar
+from laia.callbacks import GPUStats, LearningRate, ProgressBar
 from laia.common.arguments import (
     add_argument,
     add_defaults,
@@ -94,8 +94,8 @@ def main(args: argparse.Namespace):
         save_last=True,
     )
     callbacks = [ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate)]
-    if args.gpu_stats_callback and args.lightning.gpus != 0:
-        callbacks.append(pl.callbacks.GPUStatsMonitor())
+    if args.gpu_stats:
+        callbacks.append(GPUStats())
     if args.scheduler:
         callbacks.append(LearningRate(logging_interval="epoch"))
 
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         nargs="?",
         const=True,
         default=False,
-        help="Whether or not to use an on-plateau learning rate scheduler",
+        help="Whether to use an on-plateau learning rate scheduler",
     )
     add_argument(
         "--scheduler_patience",
@@ -212,12 +212,12 @@ if __name__ == "__main__":
         help="Factor by which the learning rate will be reduced",
     )
     add_argument(
-        "--gpu_stats_callback",
+        "--gpu_stats",
         type=pl.utilities.parsing.str_to_bool,
         nargs="?",
         const=True,
         default=False,
-        help="Whether or not to log GPU stats every epoch",
+        help="Whether to include GPU stats in the training progress bar",
     )
 
     # Add lightning default arguments to a group
