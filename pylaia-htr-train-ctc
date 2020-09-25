@@ -19,6 +19,7 @@ from laia.common.loader import ModelLoader, choose_by
 from laia.engine.data_module import DataModule
 from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
 from laia.engine.htr_engine_module import HTREngineModule
+from laia.loggers import EpochCSVLogger
 from laia.utils import SymbolsTable
 
 
@@ -105,6 +106,7 @@ def main(args: argparse.Namespace):
         checkpoint_callback=checkpoint_callback,
         resume_from_checkpoint=checkpoint,
         callbacks=callbacks,
+        logger=EpochCSVLogger(filepath),
         **vars(args.lightning),
     )
     trainer.fit(engine_module, datamodule=data_module)
@@ -237,6 +239,7 @@ if __name__ == "__main__":
         "default_root_dir",
         "resume_from_checkpoint",
         "log_gpu_memory",
+        "logger",
     ):
         delattr(args.lightning, a)
 

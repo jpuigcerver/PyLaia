@@ -4,6 +4,7 @@ import laia.callbacks
 import laia.data
 import laia.decoders
 import laia.engine
+import laia.loggers
 import laia.losses
 import laia.nn
 import laia.utils
