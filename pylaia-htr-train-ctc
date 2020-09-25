@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 
 import laia.common.logging as log
 from laia import get_installed_versions
-from laia.callbacks import GPUStats, LearningRate, ProgressBar
+from laia.callbacks import LearningRate, ProgressBar, ProgressBarGPUStats
 from laia.common.arguments import (
     add_argument,
     add_defaults,
@@ -96,7 +96,7 @@ def main(args: argparse.Namespace):
     )
     callbacks = [ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate)]
     if args.gpu_stats:
-        callbacks.append(GPUStats())
+        callbacks.append(ProgressBarGPUStats())
     if args.scheduler:
         callbacks.append(LearningRate(logging_interval="epoch"))
 
