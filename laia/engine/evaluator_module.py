@@ -1,10 +1,9 @@
-from contextlib import contextmanager
 from typing import Any, Callable, Optional
 
 import pytorch_lightning as pl
 import torch
 
-from laia.engine.engine_exception import EngineException
+from laia.engine.engine_exception import exception_catcher
 
 
 class EvaluatorModule(pl.core.LightningModule):
@@ -20,22 +19,14 @@ class EvaluatorModule(pl.core.LightningModule):
         self.batch_id_fn = batch_id_fn
         self.batch_y_hat = None
 
-    @contextmanager
-    def exception_catcher(self, batch: Any) -> Any:
-        try:
-            yield
-        except Exception as e:
-            raise EngineException(
-                epoch=self.current_epoch,
-                global_step=self.global_step,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            ) from e
-
     def test_step(self, batch: Any, batch_idx: int):
         super().test_step(batch, batch_idx)
         batch_x = self.batch_input_fn(batch)
-        with self.exception_catcher(batch):
+        with exception_catcher(
+            self.batch_id_fn(batch) if self.batch_id_fn else batch,
+            self.current_epoch,
+            self.global_step,
+        ):
             self.batch_y_hat = self.model(batch_x)
 
     def get_progress_bar_dict(self):
