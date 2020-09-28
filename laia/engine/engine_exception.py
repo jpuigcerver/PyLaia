@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Any
 
 
@@ -16,3 +17,16 @@ class EngineException(Exception):
             f"Exception {exception_text}raised during epoch={self._epoch}, "
             f"global_step={self._global_step} with batch={self._batch}"
         )
+
+
+@contextmanager
+def exception_catcher(batch: Any, current_epoch: int, global_step: int) -> Any:
+    try:
+        yield
+    except Exception as e:
+        raise EngineException(
+            epoch=current_epoch,
+            global_step=global_step,
+            batch=batch,
+            cause=e,
+        ) from e

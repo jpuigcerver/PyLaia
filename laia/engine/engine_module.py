@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from typing import Any, Callable, Dict, Optional, Tuple
 
 import pytorch_lightning as pl
@@ -6,7 +5,7 @@ import torch
 
 import laia.common.logging as log
 from laia.common.types import Loss as LossT
-from laia.engine.engine_exception import EngineException
+from laia.engine.engine_exception import exception_catcher
 from laia.losses.loss import Loss
 from laia.utils import check_inf, check_nan
 
@@ -94,18 +93,6 @@ class EngineModule(pl.core.LightningModule):
         batch_y = self.batch_target_fn(batch) if self.batch_target_fn else None
         return batch_x, batch_y
 
-    @contextmanager
-    def exception_catcher(self, batch: Any) -> Any:
-        try:
-            yield
-        except Exception as e:
-            raise EngineException(
-                epoch=self.current_epoch,
-                global_step=self.global_step,
-                batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-                cause=e,
-            ) from e
-
     def run_checks(self, batch: Any, batch_y_hat: Any) -> None:
         # Note: only active when logging level <= DEBUG
         check_inf(
@@ -151,7 +138,11 @@ class EngineModule(pl.core.LightningModule):
     def training_step(self, batch: Any, batch_idx: int) -> pl.TrainResult:
         self.current_batch = batch
         batch_x, batch_y = self.prepare_batch(batch)
-        with self.exception_catcher(batch):
+        with exception_catcher(
+            self.batch_id_fn(batch) if self.batch_id_fn else batch,
+            self.current_epoch,
+            self.global_step,
+        ):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
