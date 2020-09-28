@@ -2,10 +2,8 @@
 
 import argparse
 import os
-from collections import OrderedDict
 
 import pytorch_lightning as pl
-import torch
 
 import laia.common.logging as log
 from laia import get_installed_versions
@@ -17,7 +15,7 @@ from laia.common.arguments import (
     args,
     group_to_namespace,
 )
-from laia.common.loader import ModelLoader, choose_by
+from laia.common.loader import ModelLoader
 from laia.engine import DataModule, EvaluatorModule
 from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
 from laia.losses.ctc_loss import transform_output
@@ -27,25 +25,12 @@ from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 def main(args):
     log.info(f"Installed: {get_installed_versions()}")
 
-    checkpoint_path = os.path.join(
-        args.train_path, args.experiment_dirname, args.checkpoint
+    model = ModelLoader(args.train_path, filename=args.model_filename).load_by(
+        os.path.join(args.train_path, args.experiment_dirname, args.checkpoint)
     )
-    checkpoint = choose_by(checkpoint_path)
-    if not checkpoint:
-        log.error(f'Could not find the checkpoint="{checkpoint_path}"')
-        exit(1)
-    log.info(f'Using checkpoint="{checkpoint}')
-
-    model = ModelLoader(args.train_path, filename=args.model_filename).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
-    state_dict = torch.load(checkpoint)["state_dict"]
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        name = k[len("model.") :]
-        new_state_dict[name] = v
-    model.load_state_dict(new_state_dict)
 
     evaluator_module = EvaluatorModule(
         model,
