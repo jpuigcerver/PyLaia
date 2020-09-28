@@ -27,9 +27,6 @@ class Netout(pl.callbacks.Callback):
         if self.output_transform:
             x = getattr(functional, self.output_transform)(x, dim=-1)
         x = [x[i, : xs[i], :] for i in range(len(xs))]
-        # TODO: does this play well with ddp?
-        x = [x_n.cpu().numpy() for x_n in x]
         ids = pl_module.batch_id_fn(batch)
-        for id_n, x_n in zip(ids, x):
-            for writer in self.writers:
-                writer.write(id_n, x_n)
+        for writer in self.writers:
+            writer.write_iterable(zip(ids, x))
