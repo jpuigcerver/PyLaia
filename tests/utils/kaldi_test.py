@@ -20,7 +20,7 @@ def test_write_binary_matrix(dtype, device):
     header = header + b"\x04" + b"\x02\x00\x00\x00"
     # Expected columns
     header = header + b"\x04" + b"\x04\x00\x00\x00"
-    assert f.getvalue() == header + x.numpy().tobytes()
+    assert f.getvalue() == header + x.cpu().numpy().tobytes()
 
 
 @pytest.mark.parametrize("dtype", [torch.float, torch.double])
