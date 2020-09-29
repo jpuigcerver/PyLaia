@@ -61,16 +61,20 @@ class CTCLoss(Loss):
         self, reduction: str = "mean", average_frames: bool = False, blank: int = 0
     ):
         super().__init__()
+        assert reduction in (
+            "none",
+            "mean",
+            "sum",
+        ), f"Reduction {reduction} is not supported"
         self.reduction = reduction
         self.average_frames = average_frames
-        assert blank >= 0
+        assert blank >= 0, "Blank index must be >= 0"
         self.blank = blank
 
     def forward(
         self, x: torch.Tensor, y: List[List[int]], **kwargs: Dict
     ) -> Optional[torch.Tensor]:
         x, xs = transform_batch(x)
-        assert xs[0] == x.size(0), "Maximum length does not match"
         assert len(y) == x.size(1), "Batch size does not match"
 
         valid_indices, err_indices = get_valids_and_errors(xs, y)
@@ -126,5 +130,3 @@ class CTCLoss(Loss):
             return losses.mean()
         elif self.reduction == "sum":
             return losses.sum()
-        else:
-            raise ValueError(f"Reduction {self.reduction} not supported!")
