@@ -109,4 +109,5 @@ class ModelLoader(ObjectLoader):
         model = self.load()
         if model is not None:
             state_dict = self.get_model_state_dict(checkpoint)
-            return model.load_state_dict(state_dict)
+            model.load_state_dict(state_dict)
+        return model
