@@ -6,7 +6,7 @@ import torch
 from laia.engine.engine_exception import exception_catcher
 
 
-class EvaluatorModule(pl.core.LightningModule):
+class EvaluatorModule(pl.LightningModule):
     def __init__(
         self,
         model: torch.nn.Module,

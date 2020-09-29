@@ -10,7 +10,7 @@ from laia.losses.loss import Loss
 from laia.utils import check_inf, check_nan
 
 
-class EngineModule(pl.core.LightningModule):
+class EngineModule(pl.LightningModule):
     def __init__(
         self,
         model: torch.nn.Module,

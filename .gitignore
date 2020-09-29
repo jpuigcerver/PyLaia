@@ -81,3 +81,6 @@ kk/
 
 # Project specific files
 laia/version.py
+
+# data
+datasets/
