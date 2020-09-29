@@ -5,7 +5,17 @@ import laia.common.logging as log
 from laia.utils import check_inf, check_nan
 
 
-@pytest.mark.parametrize("dtype", [torch.half, torch.float, torch.double])
+def is_1_6_or_higher() -> bool:
+    major, minor, _ = [int(x) for x in torch.__version__.split(".")]
+    return major > 1 or (major == 1 and minor >= 6)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [torch.half, torch.float, torch.double]
+    if is_1_6_or_higher()
+    else [torch.float, torch.double],
+)
 @pytest.mark.parametrize("raise_exception", [True, False])
 def test_check_inf(caplog, dtype, raise_exception):
     tensor = torch.tensor([1, float("inf"), 3], dtype=dtype)
@@ -33,7 +43,12 @@ def test_check_inf_no_action(caplog, has_inf, dtype, log_level):
     assert caplog.messages.count("test message") == 0
 
 
-@pytest.mark.parametrize("dtype", [torch.half, torch.float, torch.double])
+@pytest.mark.parametrize(
+    "dtype",
+    [torch.half, torch.float, torch.double]
+    if is_1_6_or_higher()
+    else [torch.float, torch.double],
+)
 @pytest.mark.parametrize("raise_exception", [True, False])
 def test_check_nan(caplog, dtype, raise_exception):
     tensor = torch.tensor([1, float("nan"), 3], dtype=dtype)
