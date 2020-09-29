@@ -34,6 +34,3 @@ class EvaluatorModule(pl.LightningModule):
         # remove version number
         items.pop("v_num", None)
         return items
-
-    def configure_optimizers(self):
-        return None
