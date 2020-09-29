@@ -24,9 +24,9 @@ from laia.utils import SymbolsTable
 def main(args):
     log.info(f"Installed: {get_installed_versions()}")
 
-    model = ModelLoader(args.train_path, filename=args.model_filename).load_by(
-        os.path.join(args.train_path, args.experiment_dirname, args.checkpoint)
-    )
+    model = ModelLoader(
+        args.train_path, filename=args.model_filename, device="cpu"
+    ).load_by(os.path.join(args.train_path, args.experiment_dirname, args.checkpoint))
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
