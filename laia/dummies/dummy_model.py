@@ -1,6 +1,4 @@
 import torch
-from torch.nn.functional import adaptive_avg_pool2d
-from torch.nn.utils.rnn import pack_padded_sequence
 
 from laia.data import PaddedTensor
 from laia.nn.image_to_sequence import image_to_sequence
@@ -33,10 +31,14 @@ class DummyModel(torch.nn.Module):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         batch_size = x.size(0)
 
-        x = adaptive_avg_pool2d(x, output_size=self._adaptive_size)
+        x = torch.nn.functional.adaptive_avg_pool2d(x, output_size=self._adaptive_size)
         x = image_to_sequence(x, columnwise=self._horizontal)
         x = self._linear(x)
-        xs = torch.tensor(batch_size, dtype=torch.int).fill_(
-            self._adaptive_size[1 if self._horizontal else 0]
+        xs = torch.full(
+            [batch_size],
+            self._adaptive_size[1 if self._horizontal else 0],
+            dtype=torch.int,
         )
-        return pack_padded_sequence(input=x, lengths=xs.tolist(), batch_first=False)
+        return torch.nn.utils.rnn.pack_padded_sequence(
+            input=x, lengths=xs, batch_first=False
+        )
