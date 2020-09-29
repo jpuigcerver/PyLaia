@@ -11,7 +11,7 @@ def check_inf(
     tensor: torch.Tensor,
     msg: Optional[str] = None,
     name: Optional[str] = None,
-    raise_exception: True = False,
+    raise_exception: bool = False,
     **kwargs,
 ) -> bool:
     """Check whether a tensor contains a +/- infinite value.
