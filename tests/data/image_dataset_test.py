@@ -1,25 +1,23 @@
-import unittest
-import unittest.mock as mock
-
 import numpy as np
+import PIL
+import pytest
 
 from laia.data import ImageDataset
 
 
-class TestImageDataset(unittest.TestCase):
-    def test_empty(self):
-        dataset = ImageDataset([])
-        self.assertEqual(0, len(dataset))
-
-    @mock.patch("laia.data.image_dataset.Image.open")
-    def test_simple(self, mock_Image_open):
-        expected_image = np.array([[1, 2], [3, 4]])
-        mock_Image_open.return_value = expected_image
-        dataset = ImageDataset(["filename.jpg"])
-        self.assertEqual(1, len(dataset))
-        self.assertEqual(1, len(dataset[0]))
-        np.testing.assert_almost_equal(expected_image, dataset[0]["img"])
+def test_image_dataset_empty():
+    dataset = ImageDataset([])
+    assert len(dataset) == 0
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("transform", [None, lambda x: 1])
+def test_image_dataset(monkeypatch, transform):
+    expected_image = np.array([[1, 2], [3, 4]])
+    monkeypatch.setattr(PIL.Image, "open", lambda _: expected_image)
+    dataset = ImageDataset(["foo.jpg"], transform=transform)
+    assert len(dataset) == 1
+    assert list(dataset[0].keys()) == ["img"]
+    if transform is None:
+        np.testing.assert_allclose(expected_image, dataset[0]["img"])
+    else:
+        assert dataset[0]["img"] == 1

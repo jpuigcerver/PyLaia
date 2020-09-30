@@ -9,10 +9,10 @@ from laia.data.image_from_list_dataset import (
 @pytest.mark.parametrize("separator", ["\n", " \n "])
 def test_load_image_list_from_file(tmpdir, separator):
     img_list = tmpdir / "test.lst"
-    expected = [" # foo", "bar", "baz", "this is a test"]
+    expected = [" # foo", " ", "bar", "baz", "this is a test"]
     img_list.write_text(separator.join(expected), "utf-8")
     imgs = _load_image_list_from_file(str(img_list))
-    assert imgs == expected[1:]
+    assert imgs == expected[2:]
 
 
 @pytest.mark.parametrize("img_list", [[], ["foo", "bar"]])
