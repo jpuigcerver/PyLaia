@@ -19,7 +19,9 @@ class PaddedTensor(NamedTuple):
     sizes: torch.Tensor
 
     @classmethod
-    def build(cls, data, sizes):
+    def build(cls, data: torch.Tensor, sizes: torch.Tensor):
+        assert isinstance(data, torch.Tensor)
+        assert isinstance(sizes, torch.Tensor)
         assert sizes.dim() == 2, "PaddedTensor.sizes must have 2 dimensions"
         assert sizes.size(1) in (2, 3), (
             "PaddedTensor.sizes is incorrect: "
