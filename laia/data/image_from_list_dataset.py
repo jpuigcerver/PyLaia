@@ -42,7 +42,8 @@ def _load_image_list_from_file(img_list: Union[str, List[str]]) -> List[str]:
     if isinstance(img_list, str):
         with open(img_list) as f:
             img_list = [l.strip() for l in f]
-            img_list = [l for l in img_list if not l.startswith("#")]
+            # skip empty lines and lines starting with '#'
+            img_list = [l for l in img_list if l and not l.startswith("#")]
     return img_list
 
 
@@ -62,9 +63,8 @@ def _get_img_ids_and_filepaths(
             if filepath is not None:
                 break
         else:
-            # If no img directory is specified, then img_list
-            # must contain whole paths to the images
             if isfile(img_id):
+                # img_list must contain whole paths to the images
                 filepath = img_id
             else:
                 _logger.warning(

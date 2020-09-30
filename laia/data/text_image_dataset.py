@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Any, Callable, Dict, List
 
 from laia.data import ImageDataset
 
@@ -12,18 +12,12 @@ class TextImageDataset(ImageDataset):
         txt_transform: Callable = None,
     ):
         super().__init__(imgs, img_transform)
-        assert isinstance(txts, (list, tuple))
         assert len(imgs) == len(txts)
         self._txts = txts
         self._txt_transform = txt_transform
 
-    def __getitem__(self, index: int):
-        """
-        Returns an image and its transcript from the dataset.
-        :param index: Index of the item to return.
-        :return: Dictionary containing the image ('img') and the transcript
-            ('txt') of the image.
-        """
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        """Returns an image and its transcript from the dataset."""
         # Get image
         out = super().__getitem__(index)
         # Get transcript
