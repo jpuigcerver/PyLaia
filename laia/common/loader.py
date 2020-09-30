@@ -104,8 +104,9 @@ class ModelLoader(ObjectLoader):
     def load_by(self, pattern: str) -> Any:
         checkpoint = self.choose_by(pattern)
         if not checkpoint:
-            raise ValueError(f'Could not find the checkpoint="{pattern}"')
-        _logger.info(f'Using checkpoint="{checkpoint}')
+            _logger.error('Could not find the checkpoint "{}"', pattern)
+            exit(1)
+        _logger.info('Using checkpoint "{}"', checkpoint)
         model = self.load()
         if model is not None:
             state_dict = self.get_model_state_dict(checkpoint)

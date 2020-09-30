@@ -119,7 +119,11 @@ class EngineModule(pl.LightningModule):
         )
 
     def compute_loss(self, batch: Any, batch_y_hat: Any, batch_y: Any) -> LossT:
-        with self.exception_catcher(batch):
+        with exception_catcher(
+            self.batch_id_fn(batch) if self.batch_id_fn else batch,
+            self.current_epoch,
+            self.global_step,
+        ):
             kwargs = {}
             if isinstance(self.criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
@@ -132,7 +136,13 @@ class EngineModule(pl.LightningModule):
             return batch_loss
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
-        with self.exception_catcher(self.current_batch):
+        with exception_catcher(
+            self.batch_id_fn(self.current_batch)
+            if self.batch_id_fn
+            else self.current_batch,
+            self.current_epoch,
+            self.global_step,
+        ):
             loss.backward()
 
     def training_step(self, batch: Any, batch_idx: int) -> pl.TrainResult:
@@ -159,7 +169,11 @@ class EngineModule(pl.LightningModule):
 
     def validation_step(self, batch: Any, batch_idx: int) -> pl.EvalResult:
         batch_x, batch_y = self.prepare_batch(batch)
-        with self.exception_catcher(batch):
+        with exception_catcher(
+            self.batch_id_fn(batch) if self.batch_id_fn else batch,
+            self.current_epoch,
+            self.global_step,
+        ):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
