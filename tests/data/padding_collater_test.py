@@ -1,9 +1,43 @@
 import unittest
 
 import numpy as np
+import pytest
 import torch
 
-from laia.data import PaddingCollater
+from laia.data import PaddedTensor, PaddingCollater
+
+
+@pytest.mark.parametrize(
+    ["data", "sizes", "match"],
+    [
+        (None, None, None),
+        (torch.empty(1), None, None),
+        (torch.empty(1), torch.tensor(1), r"PaddedTensor.sizes must have 2 dimensions"),
+        (
+            torch.empty(1),
+            torch.empty(1, 1),
+            r"PaddedTensor.sizes is incorrect: .* found=1",
+        ),
+        (
+            torch.empty(1),
+            torch.empty(1, 4),
+            r"PaddedTensor.sizes is incorrect: .* found=4",
+        ),
+        (torch.empty(1), torch.empty(2, 2), r"Batch size 2 .* batch 1"),
+    ],
+)
+def test_padded_tensor_assertions(data, sizes, match):
+    with pytest.raises(AssertionError, match=match):
+        PaddedTensor.build(data, sizes)
+
+
+def test_padded_tensor_repr():
+    sizes = torch.randint(3, size=(2, 3))
+    t = PaddedTensor.build(torch.empty(2, 1, 5, 5), sizes)
+    assert (
+        repr(t)
+        == f"PaddedTensor(data.size()=[2, 1, 5, 5], sizes={sizes.tolist()}, device=cpu)"
+    )
 
 
 class TestPaddingCollater(unittest.TestCase):
