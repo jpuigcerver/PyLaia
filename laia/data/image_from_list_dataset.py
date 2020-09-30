@@ -68,7 +68,7 @@ def _get_img_ids_and_filepaths(
                 filepath = img_id
             else:
                 _logger.warning(
-                    'No image file was found for image ID "{}", ignoring example...',
+                    "No image file found for image ID '{}', ignoring example...",
                     img_id,
                 )
                 continue
