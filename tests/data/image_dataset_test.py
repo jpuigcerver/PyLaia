@@ -3,7 +3,7 @@ import unittest.mock as mock
 
 import numpy as np
 
-from laia.data.image_dataset import ImageDataset
+from laia.data import ImageDataset
 
 
 class TestImageDataset(unittest.TestCase):

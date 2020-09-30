@@ -57,7 +57,7 @@ def _get_valid_image_filenames_from_dir(img_dir: str, img_extensions: Sequence[s
     return valid_image_filenames
 
 
-def find_image_filename_from_id(
+def find_image_filepath_from_id(
     imgid: str, img_dir: str, img_extensions: Sequence[str]
 ):
     extensions = set(ext.lower() for ext in img_extensions)
@@ -93,7 +93,7 @@ def _get_images_and_texts_from_text_table(
     for _, imgid, txt in _load_text_table_from_file(table_file, encoding=encoding):
         imgid = imgid.rstrip()
         for dir in img_dirs:
-            fname = find_image_filename_from_id(imgid, dir, img_extensions)
+            fname = find_image_filepath_from_id(imgid, dir, img_extensions)
             if fname is not None:
                 break
         if fname is None:
