@@ -15,7 +15,7 @@ from laia.common.arguments import (
     group_to_namespace,
 )
 from laia.common.arguments_types import NumberInClosedRange
-from laia.common.loader import ModelLoader, choose_by
+from laia.common.loader import ModelLoader
 from laia.engine.data_module import DataModule
 from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
 from laia.engine.htr_engine_module import HTREngineModule
@@ -32,11 +32,11 @@ def main(args: argparse.Namespace):
     filepath = os.path.join(args.train_path, args.experiment_dirname)
     if args.checkpoint:
         checkpoint_path = os.path.join(filepath, args.checkpoint)
-        checkpoint = choose_by(checkpoint_path)
+        checkpoint = ModelLoader.choose_by(checkpoint_path)
         if not checkpoint:
-            log.error(f'Could not find the checkpoint="{checkpoint_path}"')
+            log.error('Could not find the checkpoint "{}"', checkpoint_path)
             exit(1)
-        log.info(f'Using checkpoint="{checkpoint}')
+        log.info('Using checkpoint "{}"', checkpoint)
 
     # Load the non-pytorch_lightning model
     model = ModelLoader(args.train_path, filename=args.model_filename).load()
@@ -45,6 +45,10 @@ def main(args: argparse.Namespace):
         exit(1)
 
     syms = SymbolsTable(args.syms)
+    for d in args.delimiters:
+        if d not in syms:
+            log.error('The delimiter "{}" is not available in the symbols file', d)
+            exit(1)
 
     optimizer_kwargs = {
         "learning_rate": args.learning_rate,
