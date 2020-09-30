@@ -8,7 +8,7 @@ def test_text_image_dataset_empty():
     assert len(dataset) == 0
 
 
-def test_text_image_dataset_assertion():
+def test_text_image_dataset_different_length():
     with pytest.raises(AssertionError):
         TextImageDataset([], ["foo"])
 

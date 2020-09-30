@@ -19,7 +19,7 @@ def test_load_image_list_from_file(tmpdir, separator):
 def test_get_ids_and_images_from_img_list_not_found(tmpdir, caplog, img_list):
     ids, filepaths = _get_img_ids_and_filepaths(img_list, img_dirs=[tmpdir])
     assert ids == [] == filepaths
-    assert sum(m.startswith("No image file was found") for m in caplog.messages) == len(
+    assert sum(m.startswith("No image file found") for m in caplog.messages) == len(
         img_list
     )
 
@@ -29,17 +29,17 @@ def test_get_img_ids_and_filepaths_with_dirs(tmpdir, caplog):
     # create test directories
     img_dirs = [tmpdir.mkdir(d) for d in ("dir1", "dir2")]
     expected = []
-    for img, dir in zip(img_list[:-1], img_dirs):
+    for img, dir in zip(["foo", "bar"], img_dirs):
         filename = f"{img}.jpg"
         # create test images
         dir.join(filename).write(None)
         expected.append(str(dir / filename))
-    ids, imgs = _get_img_ids_and_filepaths(img_list, img_dirs=img_dirs)
-    assert ids == img_list[:-1]
-    assert imgs == expected
+    ids, filepaths = _get_img_ids_and_filepaths(img_list, img_dirs=img_dirs)
+    assert ids == ["foo", "bar"]
+    assert filepaths == expected
     assert (
         caplog.messages.count(
-            f'No image file was found for image ID "{img_list[-1]}", ignoring example...'
+            f"No image file found for image ID '{img_list[-1]}', ignoring example..."
         )
         == 1
     )
@@ -47,13 +47,15 @@ def test_get_img_ids_and_filepaths_with_dirs(tmpdir, caplog):
 
 def test_get_img_ids_and_filepaths_without_dirs(tmpdir, caplog):
     img_names = ["foo", "bar", "baz"]
-    img_list = [tmpdir / f"{name}" for name in img_names]
+    img_list = [tmpdir / name for name in img_names]
     [img.write(None) for img in img_list[:-1]]
-    ids, imgs = _get_img_ids_and_filepaths(map(str, img_list), img_dirs=None)
-    assert ids == img_list[:-1] == imgs
+    ids, filepaths = _get_img_ids_and_filepaths(
+        [str(x) for x in img_list], img_dirs=None
+    )
+    assert ids == filepaths == img_list[:-1]
     assert (
         caplog.messages.count(
-            f'No image file was found for image ID "{img_list[-1]}", ignoring example...'
+            f"No image file found for image ID '{img_list[-1]}', ignoring example..."
         )
         == 1
     )
