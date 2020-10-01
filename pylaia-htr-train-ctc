@@ -177,7 +177,7 @@ if __name__ == "__main__":
         "--optimizer",
         type=str,
         default="RMSProp",
-        choices=["SGD", "RMSProp", "Adam", "AdamW"],
+        choices=["SGD", "RMSProp", "Adam"],
         help="Optimization algorithm",
     )
     add_argument(

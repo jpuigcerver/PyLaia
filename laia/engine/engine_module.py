@@ -63,14 +63,6 @@ class EngineModule(pl.LightningModule):
                 lr=self.lr,
                 weight_decay=weight_decay,
             )
-        elif self.optimizer == "AdamW":
-            if weight_decay == 0.0:
-                log.warning("Using 0.0 weight decay with AdamW")
-            optimizer = torch.optim.AdamW(
-                self.parameters(),
-                lr=self.lr,
-                weight_decay=weight_decay,
-            )
         else:
             raise NotImplementedError(f"Optimizer: {self.optimizer}")
         if self.optimizer_kwargs["scheduler"]:
