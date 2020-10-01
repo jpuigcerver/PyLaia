@@ -30,23 +30,45 @@ class DummyModule(pl.LightningModule):
             self.root, train=True, download=True, transform=ToImageTensor()
         )
         return torch.utils.data.DataLoader(
-            mnist, batch_size=self.batch_size, num_workers=0, collate_fn=self.collate_fn
+            mnist,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=self.collate_fn,
+        )
+
+    def val_dataloader(self):
+        mnist = torchvision.datasets.MNIST(
+            self.root, train=False, download=True, transform=ToImageTensor()
+        )
+        return torch.utils.data.DataLoader(
+            mnist,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=self.collate_fn,
         )
 
     def training_step(self, batch, batch_idx):
         batch_x, batch_y = batch
         batch_y_hat = self.model(batch_x)
         loss = self.criterion(batch_y_hat, batch_y)
-        result = pl.TrainResult(minimize=loss)
-        result.log("tr_loss", loss, on_step=False, on_epoch=True, sync_dist=True)
-        result.log(
-            "foo", torch.tensor(self.current_epoch, dtype=torch.float), reduce_fx=max
+        self.log("tr_loss", loss, on_step=False, on_epoch=True, sync_dist=True)
+        self.log(
+            "foo",
+            torch.tensor(self.current_epoch),
+            on_step=False,
+            on_epoch=True,
+            reduce_fx=max,
+            tbptt_reduce_fx=max,  # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3778
         )
-        result.log(
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        self.log(
             "bar",
-            torch.tensor(self.global_step, dtype=torch.float),
+            torch.tensor(self.global_step),
             on_step=False,
             on_epoch=True,
             reduce_fx=max,
         )
-        return result

@@ -7,19 +7,36 @@ from laia.loggers.epoch_csv_logger import EpochCSVLogger, EpochCSVWriter
 
 
 @pytest.mark.parametrize(
+    ["dicts", "key", "expected"],
+    [
+        ([], None, []),
+        ([{}], None, []),
+        ([{"foo": 1}], None, []),
+        ([{"foo": 1}], "foo", [{"foo": 1}]),
+        ([{"foo": 1, "bar": 2}], "foo", [{"foo": 1, "bar": 2}]),
+        ([{"foo": 1}, {"foo": 2}], "foo", [{"foo": 1}, {"foo": 2}]),
+        ([{"foo": 1}, {"foo": 1}], "foo", [{"foo": 1}]),
+        ([{"foo": 1, "bar": 2}, {"foo": 1, "bar": 3}], "foo", [{"foo": 1, "bar": 3}]),
+    ],
+)
+def test_merge_by(dicts, key, expected):
+    assert EpochCSVWriter.merge_by(dicts, key) == expected
+
+
+@pytest.mark.parametrize(
     ["metrics", "expected"],
     [
         ([], []),
         ([{}], []),
         ([{"step": 0}], [{"epoch": 0}]),
-        ([{"foo": 1, "epoch": 2}], [{"foo": 1, "epoch": 2}]),
-        ([{"foo": 1, "epoch": 2}, {"foo": 1, "epoch": 2}], [{"foo": 1, "epoch": 2}]),
+        ([{"step": 1, "epoch": 2}], [{"epoch": 2}]),
+        ([{"step": 1, "epoch": 2}, {"step": 1, "epoch": 2}], [{"epoch": 2}]),
         (
-            [{"foo": 1, "epoch": 2, "step": 0}, {"bar": 1, "epoch": 2}],
+            [{"foo": 1, "epoch": 2, "step": 0}, {"bar": 1, "epoch": 2, "step": 1}],
             [{"foo": 1, "bar": 1, "epoch": 2}],
         ),
         (
-            [{"foo": 1, "epoch": 1}, {"bar": 1, "epoch": 2}],
+            [{"foo": 1, "epoch": 1, "step": 0}, {"bar": 1, "epoch": 2, "step": 1}],
             [{"foo": 1, "epoch": 1}, {"bar": 1, "epoch": 2}],
         ),
         ([{"foo": 1, "epoch": 1}, {"foo": 2, "epoch": 1}], [{"foo": 2, "epoch": 1}]),
@@ -73,17 +90,18 @@ def test_epoch_csv_logger(tmpdir, num_processes):
 
         csv = pd.read_csv(tmpdir / csv_filename)
         # check epoch values
-        assert list(csv["epoch"].values) == [
-            float(i) for i in range(trainer.max_epochs)
-        ]
+        assert (
+            list(csv["epoch"].values)
+            == list(csv["foo"].values)
+            == list(range(trainer.max_epochs))
+        )
         # check test variable "bar" values
-        assert list(csv["bar"].values) == [
-            float(i)
-            for i in range(
+        assert list(csv["bar"].values) == list(
+            range(
                 trainer.limit_train_batches - 1,
                 (trainer.limit_train_batches * trainer.max_epochs),
                 trainer.limit_train_batches,
             )
-        ]
+        )
         # check losses are floats
         assert all(isinstance(v, float) for v in csv["tr_loss"].values)
