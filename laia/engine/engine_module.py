@@ -3,7 +3,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 import pytorch_lightning as pl
 import torch
 
-import laia.common.logging as log
 from laia.common.types import Loss as LossT
 from laia.engine.engine_exception import exception_catcher
 from laia.losses.loss import Loss
@@ -137,7 +136,7 @@ class EngineModule(pl.LightningModule):
         ):
             loss.backward()
 
-    def training_step(self, batch: Any, batch_idx: int) -> pl.TrainResult:
+    def training_step(self, batch: Any, batch_idx: int):
         self.current_batch = batch
         batch_x, batch_y = self.prepare_batch(batch)
         with exception_catcher(
@@ -148,8 +147,7 @@ class EngineModule(pl.LightningModule):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
-        result = pl.TrainResult(minimize=batch_loss)
-        result.log(
+        self.log(
             "tr_loss",
             batch_loss,
             on_step=False,
@@ -157,9 +155,9 @@ class EngineModule(pl.LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
-        return result
+        return batch_loss
 
-    def validation_step(self, batch: Any, batch_idx: int) -> pl.EvalResult:
+    def validation_step(self, batch: Any, batch_idx: int):
         batch_x, batch_y = self.prepare_batch(batch)
         with exception_catcher(
             self.batch_id_fn(batch) if self.batch_id_fn else batch,
@@ -169,8 +167,7 @@ class EngineModule(pl.LightningModule):
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
-        result = pl.EvalResult()
-        result.log(
+        self.log(
             "va_loss",
             batch_loss,
             on_step=False,
@@ -178,7 +175,7 @@ class EngineModule(pl.LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
-        return result
+        return batch_loss
 
     def get_progress_bar_dict(self):
         items = super().get_progress_bar_dict()

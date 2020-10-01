@@ -40,7 +40,7 @@ class HTREngineModule(EngineModule):
         cer = torch.tensor(
             SequenceError.compute(batch_y, batch_decode), device=batch_x.device
         )
-        result.log(
+        self.log(
             "tr_cer",
             cer,
             on_step=False,
@@ -56,7 +56,7 @@ class HTREngineModule(EngineModule):
             SequenceError.compute(batch_y_words, batch_decode_words),
             device=batch_x.device,
         )
-        result.log(
+        self.log(
             "tr_wer",
             wer,
             on_step=False,
@@ -66,14 +66,14 @@ class HTREngineModule(EngineModule):
         )
         return result
 
-    def validation_step(self, batch: Any, batch_idx: int) -> Optional[pl.EvalResult]:
+    def validation_step(self, batch: Any, batch_idx: int):
         result = super().validation_step(batch, batch_idx)
         batch_x, batch_y = self.prepare_batch(batch)
         batch_decode = self.decoder(self.batch_y_hat)
         cer = torch.tensor(
             SequenceError.compute(batch_y, batch_decode), device=batch_x.device
         )
-        result.log(
+        self.log(
             "va_cer",
             cer,
             on_step=False,
@@ -89,7 +89,7 @@ class HTREngineModule(EngineModule):
             SequenceError.compute(batch_y_words, batch_decode_words),
             device=batch_x.device,
         )
-        result.log(
+        self.log(
             "va_wer",
             wer,
             on_step=False,
