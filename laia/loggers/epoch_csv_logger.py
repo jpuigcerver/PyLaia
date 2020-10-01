@@ -25,7 +25,18 @@ class EpochCSVWriter(ExperimentWriter):
             self.writer.writerows(metrics)
 
     @staticmethod
+    def merge_by(dicts, key):
+        out = defaultdict(dict)
+        for d in dicts:
+            if key in d:
+                out[d[key]].update(d)
+        return [v for _, v in sorted(out.items())]
+
+    @staticmethod
     def group_by_epoch(metrics):
+        if all("step" in d for d in metrics):
+            metrics = EpochCSVWriter.merge_by(metrics, "step")
+
         # filter out 'step'
         filtered = []
         for m in metrics:
@@ -38,11 +49,8 @@ class EpochCSVWriter(ExperimentWriter):
             filtered.append(m)
 
         # merge dicts by epoch
-        out = defaultdict(dict)
-        for d in filtered:
-            if "epoch" in d:
-                out[d["epoch"]].update(d)
-        return [v for _, v in sorted(out.items())]
+        metrics = EpochCSVWriter.merge_by(filtered, "epoch")
+        return metrics
 
 
 class EpochCSVLogger(CSVLogger):
