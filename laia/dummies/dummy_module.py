@@ -60,7 +60,6 @@ class DummyModule(pl.LightningModule):
             on_step=False,
             on_epoch=True,
             reduce_fx=max,
-            tbptt_reduce_fx=max,  # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3778
         )
         return loss
 
