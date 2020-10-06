@@ -33,10 +33,10 @@ class HTREngineModule(EngineModule):
         self.delimiters = delimiters
         self.decoder = CTCGreedyDecoder()
 
-    def training_step(self, batch: Any, batch_idx: int) -> Optional[pl.TrainResult]:
+    def training_step(self, batch: Any, batch_idx: int):
         result = super().training_step(batch, batch_idx)
         if result is None:
-            return None
+            return
         batch_x, batch_y = self.prepare_batch(batch)
         batch_decode = self.decoder(self.batch_y_hat)
         cer = torch.tensor(
@@ -71,7 +71,7 @@ class HTREngineModule(EngineModule):
     def validation_step(self, batch: Any, batch_idx: int):
         result = super().validation_step(batch, batch_idx)
         if result is None:
-            return None
+            return
         batch_x, batch_y = self.prepare_batch(batch)
         batch_decode = self.decoder(self.batch_y_hat)
         cer = torch.tensor(
