@@ -15,7 +15,7 @@ class TrainingTimer(pl.callbacks.Callback):
         self.va_timer = Timer()
 
     @staticmethod
-    def time_to_str(time):
+    def time_to_str(time: float) -> str:
         return str(datetime.timedelta(seconds=time))
 
     def on_train_epoch_start(self, trainer, pl_module):
