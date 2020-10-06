@@ -2,7 +2,6 @@ import itertools
 from typing import Dict, List, Optional, Tuple
 
 import torch
-from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 
 import laia.common.logging as log
 from laia.losses.loss import Loss
@@ -12,8 +11,8 @@ _logger = log.get_logger(__name__)
 
 def transform_batch(batch):
     # size: T x N x C
-    if isinstance(batch, PackedSequence):
-        x, xs = pad_packed_sequence(batch)
+    if isinstance(batch, torch.nn.utils.rnn.PackedSequence):
+        x, xs = torch.nn.utils.rnn.pad_packed_sequence(batch)
     elif isinstance(batch, torch.Tensor):
         x, xs = batch, [batch.size(0)] * batch.size(1)
     else:
@@ -100,25 +99,22 @@ class CTCLoss(Loss):
             else torch.tensor(xs, dtype=torch.int, device=cpu)
         )
         ys = torch.tensor([len(y_n) for y_n in y], dtype=torch.int, device=cpu)
-        y = torch.tensor(
-            list(itertools.chain.from_iterable(y)),
-            dtype=torch.int,
-            device=x.device,
-        )
+        y = torch.tensor(list(itertools.chain.from_iterable(y)), dtype=torch.int)
 
-        losses = torch.nn.functional.ctc_loss(
-            log_probs=x,
-            targets=y,
-            input_lengths=xs,
-            target_lengths=ys,
-            blank=self.blank,
-            reduction="none",
-            zero_infinity=True,
-        )
+        with torch.backends.cudnn.flags(enabled=False):
+            losses = torch.nn.functional.ctc_loss(
+                log_probs=x,
+                targets=y,
+                input_lengths=xs,
+                target_lengths=ys,
+                blank=self.blank,
+                reduction="none",
+                zero_infinity=True,
+            )
 
         # keep valid indices
-        valid_indices = torch.tensor(valid_indices, device=losses.device)
-        losses = losses.index_select(0, valid_indices)
+        valid_indices = torch.tensor(valid_indices, device=cpu)
+        losses = losses.index_select(0, valid_indices.to(device=losses.device))
         xs = xs.index_select(0, valid_indices)
 
         if self.average_frames:
