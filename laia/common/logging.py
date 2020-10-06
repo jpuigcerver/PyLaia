@@ -121,8 +121,8 @@ def set_exception_handler(func=sys.__excepthook__):
 def capture_warnings():
     import warnings
 
-    def format_warning(msg, category, filename, lineno, *_):
-        return f"{filename}:{lineno}: {category.__name__}: {msg}"
+    def format_warning(msg, category, *_):
+        return f"{category.__name__}: {msg}"
 
     warnings.formatwarning = format_warning
     logging.captureWarnings(True)
