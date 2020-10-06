@@ -30,7 +30,7 @@ def char_to_word_seq(
     delimiter_set.add(reserved_char)
     return [
         list(y)
-        for x, y in itertools.groupby(seq, lambda z: z in delimiter_set)
+        for x, y in itertools.groupby(seq, key=lambda z: z in delimiter_set)
         if not x
     ]
 
