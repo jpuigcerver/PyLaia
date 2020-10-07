@@ -18,14 +18,17 @@ class TrainingTimer(pl.callbacks.Callback):
     def time_to_str(time: float) -> str:
         return str(datetime.timedelta(seconds=time))
 
+    @pl.utilities.rank_zero_only
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         self.tr_timer.reset()
 
+    @pl.utilities.rank_zero_only
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
         self.va_timer.reset()
 
+    @pl.utilities.rank_zero_only
     def on_train_epoch_end(self, trainer, pl_module):
         super().on_train_epoch_end(trainer, pl_module)
         _logger.info(
