@@ -35,7 +35,7 @@ setuptools.setup(
     install_requires=get_requirements(),
     extras_require={
         "dev": ["pre-commit", "isort", "black", "setuptools_scm"],
-        "test": ["pytest", "pandas"],
+        "test": ["pytest", "pytest-cov", "pandas"],
     },
     python_requires=">=3.6",
     # Package contents
