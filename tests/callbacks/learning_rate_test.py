@@ -27,8 +27,6 @@ class __TestModule(DummyModule):
         _setup_logging(log_filepath)
 
     def configure_ddp(self, *args, **kwargs):
-        # call _setup_logging again here otherwise processes
-        # spawned by multiprocessing are not correctly configured
         _setup_logging(self.log_filepath)
         return super().configure_ddp(*args, **kwargs)
 
