@@ -1,6 +1,5 @@
 import pytest
 import pytorch_lightning as pl
-import torch
 
 import laia.common.logging as log
 from laia.callbacks import TrainingTimer
@@ -41,17 +40,6 @@ class __TestModule(DummyModule):
         return super().configure_ddp(*args, **kwargs)
 
 
-@pytest.fixture(scope="function", autouse=True)
-def random_port():
-    # these tests should run in separate processes,
-    # otherwise addresses clash, fix by using a random port
-    import os
-    import random
-
-    port = random.randint(12000, 19000)
-    os.environ["MASTER_PORT"] = str(port)
-
-
 @pytest.mark.parametrize("num_processes", (1, 2))
 def test_cpu(tmpdir, num_processes):
     log_filepath = tmpdir / "log"
@@ -70,34 +58,6 @@ def test_cpu(tmpdir, num_processes):
     assert log_filepath.exists()
     if num_processes > 1:
         assert tmpdir.join("log.rank1").exists()
-    lines = [l.strip() for l in log_filepath.readlines()]
-    assert (
-        sum(
-            l.startswith(f"Epoch {e}: tr_time=")
-            for l in lines
-            for e in range(trainer.max_epochs)
-        )
-        == trainer.max_epochs
-    )
-
-
-@pytest.mark.skip("TODO: .fit() hangs")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multi-GPU test")
-def test_gpu(tmpdir):
-    log_filepath = tmpdir / "log"
-    _setup_logging(log_filepath)
-    module = DummyModule(batch_size=1)
-    trainer = DummyTrainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        callbacks=[TrainingTimer(), __TestCallback()],
-        gpus=2,
-        distributed_backend="ddp",
-    )
-    trainer.fit(module)
-
-    assert log_filepath.exists()
-    assert not tmpdir.join("log.rank1").exists()  # TODO: this should exist
     lines = [l.strip() for l in log_filepath.readlines()]
     assert (
         sum(
