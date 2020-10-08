@@ -1,4 +1,7 @@
+import shutil
+
 from laia.callbacks import ProgressBarGPUStats
+from laia.dummies import DummyModule, DummyTrainer
 
 
 def test_parse_gpu_stats():
@@ -15,3 +18,27 @@ def test_parse_gpu_stats():
         ProgressBarGPUStats.parse_gpu_stats(gpu_ids, gpu_stats, gpu_stat_keys)
         == expected
     )
+
+
+def test_progress_bar_gpu_stats(monkeypatch, tmpdir):
+    def _fake_on_train_start(self, *_):
+        self._gpu_ids = "0,1"
+
+    fake_stats = [[1.2, 2.3], [3.4, 4.5]]
+    monkeypatch.setattr(shutil, "which", lambda _: True)
+    monkeypatch.setattr(ProgressBarGPUStats, "on_train_start", _fake_on_train_start)
+    monkeypatch.setattr(ProgressBarGPUStats, "_get_gpu_stats", lambda *_: fake_stats)
+
+    trainer = DummyTrainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        callbacks=[ProgressBarGPUStats()],
+        progress_bar_refresh_rate=1,
+    )
+    trainer.fit(DummyModule())
+
+    expected = {
+        f"GPU-{i}": f"{int(fake_stats[i][0])}/{int(sum(fake_stats[i]))}MB"
+        for i in range(2)
+    }
+    assert trainer.progress_bar_dict["gpu_stats"] == expected

@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 import laia.common.logging as log
 
@@ -17,6 +18,14 @@ class ProgressBarGPUStats(pl.callbacks.GPUStatsMonitor):
             fan_speed=False,
             temperature=False,
         )
+
+    def on_train_start(self, trainer, pl_module):
+        if not trainer.on_gpu:
+            raise MisconfigurationException(
+                "You are using GPUStatsMonitor but are not running on GPU"
+                f" since gpus attribute in Trainer is set to {trainer.gpus}."
+            )
+        self._gpu_ids = ",".join(map(str, trainer.data_parallel_device_ids))
 
     def on_train_batch_start(self, *args, **kwargs):
         pass
