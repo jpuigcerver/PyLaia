@@ -1,7 +1,7 @@
 import shutil
 
 from laia.callbacks import ProgressBarGPUStats
-from laia.dummies import DummyModule, DummyTrainer
+from laia.dummies import DummyMNIST, DummyModule, DummyTrainer
 
 
 def test_parse_gpu_stats():
@@ -35,7 +35,7 @@ def test_progress_bar_gpu_stats(monkeypatch, tmpdir):
         callbacks=[ProgressBarGPUStats()],
         progress_bar_refresh_rate=1,
     )
-    trainer.fit(DummyModule())
+    trainer.fit(DummyModule(), datamodule=DummyMNIST())
 
     expected = {
         f"GPU-{i}": f"{int(fake_stats[i][0])}/{int(sum(fake_stats[i]))}MB"

@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 
 import laia.common.logging as log
 from laia.callbacks import TrainingTimer
-from laia.dummies import DummyModule, DummyTrainer
+from laia.dummies import DummyMNIST, DummyModule, DummyTrainer
 
 
 # classes outside of test because they need to be pickle-able
@@ -28,8 +28,8 @@ def _setup_logging(log_filepath):
 
 
 class __TestModule(DummyModule):
-    def __init__(self, log_filepath, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, log_filepath):
+        super().__init__()
         self.log_filepath = log_filepath
         _setup_logging(log_filepath)
 
@@ -43,7 +43,6 @@ class __TestModule(DummyModule):
 @pytest.mark.parametrize("num_processes", (1, 2))
 def test_cpu(tmpdir, num_processes):
     log_filepath = tmpdir / "log"
-    module = __TestModule(log_filepath, batch_size=1)
     trainer = DummyTrainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -51,7 +50,8 @@ def test_cpu(tmpdir, num_processes):
         distributed_backend="ddp_cpu" if num_processes > 1 else None,
         num_processes=num_processes,
     )
-    trainer.fit(module)
+    module = __TestModule(log_filepath)
+    trainer.fit(module, datamodule=DummyMNIST(batch_size=1))
 
     # caplog does not seem to work with multiprocessing.spawn
     # test logging on saved log file
