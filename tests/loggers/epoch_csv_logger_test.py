@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 import pytorch_lightning as pl
 
-from laia.dummies import DummyModule, DummyTrainer
+from laia.dummies import DummyMNIST, DummyModule, DummyTrainer
 from laia.loggers.epoch_csv_logger import EpochCSVLogger, EpochCSVWriter
 
 
@@ -86,7 +86,7 @@ def test_epoch_csv_logger(tmpdir, num_processes):
             num_processes=num_processes,
             logger=EpochCSVLogger(tmpdir),
         )
-        trainer.fit(DummyModule(batch_size=2))
+        trainer.fit(DummyModule(), datamodule=DummyMNIST(batch_size=2))
 
         csv = pd.read_csv(tmpdir / csv_filename)
         # check epoch values

@@ -3,7 +3,7 @@ import torch
 
 import laia.common.logging as log
 from laia.callbacks import LearningRate
-from laia.dummies import DummyModule, DummyTrainer
+from laia.dummies import DummyMNIST, DummyModule, DummyTrainer
 
 
 def test_learning_rate_warns(tmpdir):
@@ -13,7 +13,7 @@ def test_learning_rate_warns(tmpdir):
         callbacks=[LearningRate()],
     )
     with pytest.warns(RuntimeWarning, match=r"You are using LearningRateMonitor.*"):
-        trainer.fit(DummyModule())
+        trainer.fit(DummyModule(), datamodule=DummyMNIST())
 
 
 def _setup_logging(log_filepath):
@@ -21,8 +21,8 @@ def _setup_logging(log_filepath):
 
 
 class __TestModule(DummyModule):
-    def __init__(self, log_filepath, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, log_filepath):
+        super().__init__()
         self.log_filepath = log_filepath
         _setup_logging(log_filepath)
 
@@ -38,7 +38,6 @@ class __TestModule(DummyModule):
 @pytest.mark.parametrize("num_processes", (1, 2))
 def test_learning_rate(tmpdir, num_processes):
     log_filepath = tmpdir / "log"
-    module = __TestModule(log_filepath)
     trainer = DummyTrainer(
         default_root_dir=tmpdir,
         max_epochs=3,
@@ -46,7 +45,8 @@ def test_learning_rate(tmpdir, num_processes):
         num_processes=num_processes,
         distributed_backend="ddp_cpu" if num_processes > 1 else None,
     )
-    trainer.fit(module)
+    module = __TestModule(log_filepath)
+    trainer.fit(module, datamodule=DummyMNIST())
 
     if num_processes > 1:
         log_filepath_rank1 = tmpdir.join("log.rank1")
