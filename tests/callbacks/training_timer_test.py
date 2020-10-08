@@ -55,9 +55,12 @@ def test_cpu(tmpdir, num_processes):
 
     # caplog does not seem to work with multiprocessing.spawn
     # test logging on saved log file
-    assert log_filepath.exists()
     if num_processes > 1:
-        assert tmpdir.join("log.rank1").exists()
+        log_filepath_rank1 = tmpdir.join("log.rank1")
+        assert log_filepath_rank1.exists()
+        assert not len(log_filepath_rank1.read_text("utf-8"))
+
+    assert log_filepath.exists()
     lines = [l.strip() for l in log_filepath.readlines()]
     assert (
         sum(
