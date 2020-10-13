@@ -1,9 +1,8 @@
 import pytest
 import torch
 
-import laia.common.logging as log
 from laia.callbacks import LearningRate
-from laia.dummies import DummyMNIST, DummyModule, DummyTrainer
+from laia.dummies import DummyEngine, DummyMNIST, DummyTrainer, dummy_accelerator_args
 
 
 def test_learning_rate_warns(tmpdir):
@@ -13,23 +12,10 @@ def test_learning_rate_warns(tmpdir):
         callbacks=[LearningRate()],
     )
     with pytest.warns(RuntimeWarning, match=r"You are using LearningRateMonitor.*"):
-        trainer.fit(DummyModule(), datamodule=DummyMNIST())
+        trainer.fit(DummyEngine(), datamodule=DummyMNIST())
 
 
-def _setup_logging(log_filepath):
-    log.config(fmt="%(message)s", filename=log_filepath, filemode="w")
-
-
-class __TestModule(DummyModule):
-    def __init__(self, log_filepath):
-        super().__init__()
-        self.log_filepath = log_filepath
-        _setup_logging(log_filepath)
-
-    def configure_ddp(self, *args, **kwargs):
-        _setup_logging(self.log_filepath)
-        return super().configure_ddp(*args, **kwargs)
-
+class __TestEngine(DummyEngine):
     def configure_optimizers(self):
         optimizer = super().configure_optimizers()
         return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, 1)]
@@ -38,15 +24,14 @@ class __TestModule(DummyModule):
 @pytest.mark.parametrize("num_processes", (1, 2))
 def test_learning_rate(tmpdir, num_processes):
     log_filepath = tmpdir / "log"
+
     trainer = DummyTrainer(
         default_root_dir=tmpdir,
         max_epochs=3,
         callbacks=[LearningRate()],
-        num_processes=num_processes,
-        distributed_backend="ddp_cpu" if num_processes > 1 else None,
+        **dummy_accelerator_args(log_filepath, num_processes),
     )
-    module = __TestModule(log_filepath)
-    trainer.fit(module, datamodule=DummyMNIST())
+    trainer.fit(__TestEngine(), datamodule=DummyMNIST())
 
     if num_processes > 1:
         log_filepath_rank1 = tmpdir.join("log.rank1")

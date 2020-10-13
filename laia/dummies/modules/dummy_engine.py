@@ -5,7 +5,7 @@ from laia.dummies.dummy_model import DummyModel
 from laia.losses import CTCLoss
 
 
-class DummyModule(pl.LightningModule):
+class DummyEngine(pl.LightningModule):
     def __init__(self):
         super().__init__()
         # 10 output labels: MNIST classes

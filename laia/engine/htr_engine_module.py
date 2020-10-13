@@ -1,6 +1,5 @@
 from typing import Any, Callable, Dict, Iterable, Optional
 
-import pytorch_lightning as pl
 import torch
 
 from laia.callbacks.meters import SequenceError, char_to_word_seq
