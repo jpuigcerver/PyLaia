@@ -1,4 +1,5 @@
 from os.path import isfile, join
+from pathlib import Path
 from typing import Callable, Generator, List, Optional, TextIO, Tuple, Union
 
 import laia.common.logging as log
@@ -13,14 +14,14 @@ class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(
         self,
         txt_table: Union[TextIO, str, List[str]],
-        img_dirs: Optional[Union[List[str], str]] = None,
+        img_dirs: Optional[Union[List[str], str, List[Path], Path]] = None,
         img_transform: Callable = None,
         txt_transform: Callable = None,
         img_extensions: List[str] = IMAGE_EXTENSIONS,
     ):
         if img_dirs is None:
             img_dirs = []
-        elif isinstance(img_dirs, str):
+        elif isinstance(img_dirs, (str, Path)):
             img_dirs = [img_dirs]
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
@@ -47,21 +48,21 @@ class TextImageFromTextTableDataset(TextImageDataset):
 
 
 def find_image_filepath_from_id(
-    img_id: str, img_dir: str, img_extensions: List[str] = IMAGE_EXTENSIONS
-):
+    img_id: str, img_dir: Union[str, Path], img_extensions: List[str] = IMAGE_EXTENSIONS
+) -> Optional[str]:
     extensions = set(ext.lower() for ext in img_extensions)
     extensions.update(ext.upper() for ext in img_extensions)
     for ext in extensions:
         filepath = join(img_dir, img_id if img_id.endswith(ext) else img_id + ext)
         if isfile(filepath):
             return filepath
-    return None
+    return
 
 
 def _load_text_table_from_file(
-    table_file: Union[TextIO, str, List[str]]
+    table_file: Union[TextIO, str, List[str], Path]
 ) -> Generator[Tuple[int, str, str], None, None]:
-    if isinstance(table_file, str):
+    if isinstance(table_file, (str, Path)):
         table_file = open(table_file)
     for line in (l.split(maxsplit=1) for l in table_file):
         # skip empty lines and lines starting with '#'
@@ -82,7 +83,7 @@ def _load_text_table_from_file(
 
 def _get_images_and_texts_from_text_table(
     table_file: Union[TextIO, str, List[str]],
-    img_dirs: Optional[List[str]] = None,
+    img_dirs: Optional[List[Union[str, Path]]] = None,
     img_extensions: List[str] = IMAGE_EXTENSIONS,
 ) -> Tuple[List[str], List[str], List[str]]:
     if img_dirs is None:
