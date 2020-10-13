@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 
@@ -32,7 +33,7 @@ def test_text_image_from_text_table_dataset(tmpdir):
 
 def test_find_image_filepath_from_id_not_found(tmpdir):
     filepath = find_image_filepath_from_id(
-        "bar", str(tmpdir), img_extensions=[".jpg", ".png"]
+        "bar", tmpdir, img_extensions=[".jpg", ".png"]
     )
     assert filepath is None
 
@@ -44,22 +45,22 @@ def test_find_image_filepath_from_id(tmpdir, id_has_ext):
     expected = img_dir / "foo.PNG"
     expected.write(None)
     filepath = find_image_filepath_from_id(
-        img_id, str(img_dir), img_extensions=[".jpg", ".png"]
+        img_id, img_dir, img_extensions=[".jpg", ".png"]
     )
-    assert str(filepath) == expected
+    assert filepath == expected
 
 
 def test_load_text_table_from_file(tmpdir, caplog):
     data = [" 1  2 3 4 ", " ", " # this is a test", "foo bar", "baz  "]
     f = tmpdir / "test.txt"
     f.write_text("\n".join(data), encoding="utf-8")
-    for x in (str(f), open(f), data):
-        out = _load_text_table_from_file(x)
+    test_cases = (str(f), Path(f), open(f), data)
+    for case in test_cases:
+        out = _load_text_table_from_file(case)
         assert list(out) == [("1", "2 3 4"), ("foo", "bar")]
-    assert (
-        caplog.messages.count("No text found for image ID 'baz', ignoring example...")
-        == 3
-    )
+    assert caplog.messages.count(
+        "No text found for image ID 'baz', ignoring example..."
+    ) == len(test_cases)
 
 
 @pytest.mark.parametrize("img_list", [[], ["1 foo", "2 bar"]])
@@ -80,7 +81,7 @@ def test_get_images_and_texts_from_text_table_with_dirs(tmpdir, caplog):
         filename = f"{img}.JPG"
         # create test images
         dir.join(filename).write(None)
-        expected.append(str(dir / filename))
+        expected.append(dir / filename)
     ids, filepaths, txts = _get_images_and_texts_from_text_table(
         table_file, img_dirs=img_dirs
     )
