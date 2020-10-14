@@ -6,7 +6,7 @@ from laia.losses.ctc_loss import transform_batch
 from laia.utils import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
-class Netout(pl.callbacks.Callback):
+class Netout(pl.Callback):
     def __init__(
         self,
         writers: List[Union[ArchiveMatrixWriter, ArchiveLatticeWriter]],
@@ -18,9 +18,9 @@ class Netout(pl.callbacks.Callback):
         self.output_transform = output_transform
         self.batch_transform = batch_transform
 
-    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
-        x, xs = self.batch_transform(pl_module.batch_y_hat)
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args, **kwargs):
+        super().on_test_batch_end(trainer, pl_module, outputs, batch, *args, **kwargs)
+        x, xs = self.batch_transform(outputs)
         x = x.detach()
         x = x.permute(1, 0, 2)
         if self.output_transform:
