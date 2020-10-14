@@ -136,7 +136,7 @@ class EngineModule(pl.LightningModule):
         ):
             loss.backward()
 
-    def training_step(self, batch: Any, batch_idx: int):
+    def training_step(self, batch: Any, *_, **__):
         self.current_batch = batch
         batch_x, batch_y = self.prepare_batch(batch)
         with exception_catcher(
@@ -159,7 +159,7 @@ class EngineModule(pl.LightningModule):
         )
         return batch_loss
 
-    def validation_step(self, batch: Any, batch_idx: int):
+    def validation_step(self, batch: Any, *_, **__):
         batch_x, batch_y = self.prepare_batch(batch)
         with exception_catcher(
             self.batch_id_fn(batch) if self.batch_id_fn else batch,

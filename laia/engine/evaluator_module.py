@@ -18,8 +18,7 @@ class EvaluatorModule(pl.LightningModule):
         self.batch_input_fn = batch_input_fn
         self.batch_id_fn = batch_id_fn
 
-    def test_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
-        super().test_step(batch, batch_idx)
+    def test_step(self, batch: Any, *args, **kwargs) -> torch.Tensor:
         batch_x = self.batch_input_fn(batch)
         with exception_catcher(
             self.batch_id_fn(batch) if self.batch_id_fn else batch,

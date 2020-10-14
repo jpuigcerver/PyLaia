@@ -73,18 +73,19 @@ class ProgressBar(pl.callbacks.ProgressBar):
             file=sys.stderr,
         )
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_epoch_start(self, trainer, *args, **kwargs):
         # skip parent
-        super(pl.callbacks.ProgressBar, self).on_epoch_start(trainer, pl_module)
+        super(pl.callbacks.ProgressBar, self).on_epoch_start(trainer, *args, **kwargs)
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(self.total_train_batches))
         self.main_progress_bar.set_description(f"TR - Epoch {trainer.current_epoch}")
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, *args, **kwargs):
+        super().on_train_epoch_start(*args, **kwargs)
         self.tr_timer.reset()
 
-    def on_validation_epoch_start(self, trainer, pl_module):
-        super().on_validation_start(trainer, pl_module)
+    def on_validation_epoch_start(self, trainer, *args, **kwargs):
+        super().on_validation_start(trainer, *args, **kwargs)
         if trainer.running_sanity_check:
             self.val_progress_bar.set_description("VA sanity check")
         else:
@@ -92,10 +93,10 @@ class ProgressBar(pl.callbacks.ProgressBar):
             self.va_timer.reset()
             self.val_progress_bar.set_description(f"VA - Epoch {trainer.current_epoch}")
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, *args, **kwargs):
         # skip parent to avoid two postfix calls
         super(pl.callbacks.ProgressBar, self).on_train_batch_start(
-            trainer, pl_module, batch, batch_idx, dataloader_idx
+            trainer, *args, **kwargs
         )
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
@@ -105,8 +106,8 @@ class ProgressBar(pl.callbacks.ProgressBar):
                 **trainer.progress_bar_metrics.get("gpu_stats", {}),
             )
 
-    def on_train_epoch_end(self, trainer, pl_module):
-        super().on_train_epoch_end(trainer, pl_module)
+    def on_train_epoch_end(self, *args, **kwargs):
+        super().on_train_epoch_end(*args, **kwargs)
         if self.is_enabled:
             # add metrics to training bar
             postfix = {
@@ -144,18 +145,14 @@ class ProgressBar(pl.callbacks.ProgressBar):
             # log validation bar
             _logger.log(self.level, tqdm.format_meter(**format_dict))
 
-    def on_validation_batch_end(
-        self, trainer, pl_module, batch, batch_idx, dataloader_idx
-    ):
+    def on_validation_batch_end(self, *args, **kwargs):
         # skip parent
-        super(pl.callbacks.ProgressBar, self).on_validation_batch_end(
-            trainer, pl_module, batch, batch_idx, dataloader_idx
-        )
+        super(pl.callbacks.ProgressBar, self).on_validation_batch_end(*args, **kwargs)
         if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
             self.val_progress_bar.update(self.refresh_rate)
 
-    def on_validation_epoch_end(self, trainer, pl_module):
-        super().on_validation_epoch_end(trainer, pl_module)
+    def on_validation_epoch_end(self, trainer, *args, **kwargs):
+        super().on_validation_epoch_end(trainer, *args, **kwargs)
         if self.is_enabled:
             if trainer.running_sanity_check:
                 self.val_progress_bar.refresh()
@@ -163,11 +160,11 @@ class ProgressBar(pl.callbacks.ProgressBar):
             else:
                 self.va_timer.stop()
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, *args, **kwargs):
         # skip parent to avoid postfix call
-        super(pl.callbacks.ProgressBar, self).on_validation_end(trainer, pl_module)
+        super(pl.callbacks.ProgressBar, self).on_validation_end(*args, **kwargs)
         self.val_progress_bar.close()
 
-    def on_test_end(self, trainer, pl_module):
+    def on_test_end(self, *args, **kwargs):
         self.test_progress_bar.clear()
-        super().on_test_end(trainer, pl_module)
+        super().on_test_end(*args, **kwargs)

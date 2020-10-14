@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_only
 
 import laia.common.logging as log
 
@@ -10,7 +11,7 @@ class LearningRate(pl.callbacks.LearningRateMonitor):
         super().__init__(*args, **kwargs)
         self.last_values = None
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer, *args, **kwargs):
         if not trainer.lr_schedulers:
             pl.utilities.rank_zero_warn(
                 "You are using LearningRateMonitor callback with models "
@@ -21,9 +22,9 @@ class LearningRate(pl.callbacks.LearningRateMonitor):
         self.lrs = {name: [] for name in names}
         self.last_values = {}
 
-    @pl.utilities.rank_zero_only
-    def on_epoch_end(self, trainer, pl_module):
-        super().on_epoch_end(trainer, pl_module)
+    @rank_zero_only
+    def on_epoch_end(self, trainer, *args, **kwargs):
+        super().on_epoch_end(trainer, *args, **kwargs)
         for k, v in self.lrs.items():
             prev_value = self.last_values.get(k, None)
             new_value = v[-1]
