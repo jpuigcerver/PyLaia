@@ -17,9 +17,8 @@ class EvaluatorModule(pl.LightningModule):
         self.model = model
         self.batch_input_fn = batch_input_fn
         self.batch_id_fn = batch_id_fn
-        self.batch_y_hat = None
 
-    def test_step(self, batch: Any, batch_idx: int):
+    def test_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
         super().test_step(batch, batch_idx)
         batch_x = self.batch_input_fn(batch)
         with exception_catcher(
@@ -27,7 +26,7 @@ class EvaluatorModule(pl.LightningModule):
             self.current_epoch,
             self.global_step,
         ):
-            self.batch_y_hat = self.model(batch_x)
+            return self.model(batch_x)
 
     def get_progress_bar_dict(self):
         items = super().get_progress_bar_dict()

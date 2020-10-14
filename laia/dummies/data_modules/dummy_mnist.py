@@ -8,7 +8,7 @@ from laia.data.transforms.vision import ToImageTensor
 
 
 class DummyMNIST(pl.LightningDataModule):
-    def __init__(self, batch_size=64):
+    def __init__(self, batch_size: int = 64):
         self.batch_size = batch_size
         self.root = Path(__file__).parents[3] / "datasets"
         super().__init__(

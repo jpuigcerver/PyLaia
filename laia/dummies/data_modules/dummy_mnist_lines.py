@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torchvision
 
+from laia.data import PaddingCollater, TextImageFromTextTableDataset
 from laia.dummies import DummyMNIST
 
 
@@ -16,18 +17,19 @@ class DummyMNISTLines(DummyMNIST):
         va_n: int = 15,
         space_sym: Optional[str] = "<space>",
         samples_per_space: Optional[int] = None,
+        batch_size: int = 8,
     ):
-        super().__init__()
+        super().__init__(batch_size=batch_size)
         self.root = self.root / "MNIST-lines"
         self.max_length = max_length
         self.n = {"tr": tr_n, "va": va_n}
         self.space_sym = space_sym
         self.samples_per_space = samples_per_space
         # prepare symbols table
-        self.syms = {"<ctc>": 0}
-        self.syms.update({str(i): i for i in range(1, 11)})
+        self.syms = {i: str(i) for i in range(10)}
+        self.syms[10] = "<ctc>"
         if space_sym is not None:
-            self.syms.update({space_sym: 11})
+            self.syms[11] = space_sym
 
     @staticmethod
     def get_indices(
@@ -121,3 +123,33 @@ class DummyMNISTLines(DummyMNIST):
 
             gt_file.close()
             indices_file.close()
+
+    def setup(self, stage):
+        self.tr_ds = TextImageFromTextTableDataset(
+            self.root / "tr.gt",
+            self.root / "tr",
+            img_transform=self.train_transforms,
+        )
+        self.va_ds = TextImageFromTextTableDataset(
+            self.root / "va.gt",
+            self.root / "va",
+            img_transform=self.train_transforms,
+        )
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(
+            dataset=self.tr_ds,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=PaddingCollater({"img": (1, None, None)}),
+        )
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(
+            dataset=self.va_ds,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=PaddingCollater({"img": (1, None, None)}),
+        )

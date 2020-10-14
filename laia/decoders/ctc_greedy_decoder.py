@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List
 
 import torch
 
@@ -6,19 +6,15 @@ from laia.losses.ctc_loss import transform_batch
 
 
 class CTCGreedyDecoder:
-    def __init__(self):
-        self._output = None
-        self._prob = None
-        self._segmentation = None
-
-    def __call__(self, x, segmentation=False):
+    def __call__(self, x: Any, segmentation: bool = False) -> Dict[str, List]:
         x, xs = transform_batch(x)
         x = x.detach()
         x = [x[: xs[i], i, :] for i in range(len(xs))]
         x = [x_n.max(dim=1) for x_n in x]
+        out = {}
         if segmentation:
-            self._prob = [x_n.values.exp() for x_n in x]
-            self._segmentation = [
+            out["prob"] = [x_n.values.exp() for x_n in x]
+            out["segmentation"] = [
                 CTCGreedyDecoder.compute_segmentation(x_n.indices.tolist()) for x_n in x
             ]
         x = [x_n.indices for x_n in x]
@@ -26,20 +22,8 @@ class CTCGreedyDecoder:
         x = [torch.unique_consecutive(x_n) for x_n in x]
         # Remove CTC blank symbol
         x = [x_n[torch.nonzero(x_n, as_tuple=True)] for x_n in x]
-        self._output = [x_n.tolist() for x_n in x]
-        return self._output
-
-    @property
-    def output(self):
-        return self._output
-
-    @property
-    def prob(self):
-        return self._prob
-
-    @property
-    def segmentation(self):
-        return self._segmentation
+        out["hyp"] = [x_n.tolist() for x_n in x]
+        return out
 
     @staticmethod
     def compute_segmentation(x: List[int]) -> List[int]:
