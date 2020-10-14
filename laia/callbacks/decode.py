@@ -19,7 +19,7 @@ class Decode(pl.Callback):
         convert_spaces: bool = False,
         join_str: Optional[str] = None,
         separator: str = " ",
-        print_img_ids: bool = True,
+        include_img_ids: bool = True,
     ):
         super().__init__()
         self.decoder = decoder
@@ -34,7 +34,7 @@ class Decode(pl.Callback):
             assert use_symbols
         self.join_str = join_str
         self.separator = separator
-        self.print_img_ids = print_img_ids
+        self.include_img_ids = include_img_ids
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
@@ -51,7 +51,7 @@ class Decode(pl.Callback):
             if self.join_str is not None:
                 hyp = self.join_str.join(str(x) for x in hyp)
             self.write(
-                f"{img_id}{self.separator}{hyp}" if self.print_img_ids else str(hyp)
+                f"{img_id}{self.separator}{hyp}" if self.include_img_ids else str(hyp)
             )
 
     def write(self, value):
