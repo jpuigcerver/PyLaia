@@ -60,7 +60,7 @@ def main(args):
                 input_space=args.input_space,
                 join_str=args.join_str,
                 separator=args.separator,
-                print_img_ids=args.print_img_ids,
+                include_img_ids=args.include_img_ids,
             )
         )
     else:
@@ -73,7 +73,7 @@ def main(args):
                 convert_spaces=args.convert_spaces,
                 join_str=args.join_str,
                 separator=args.separator,
-                print_img_ids=args.print_img_ids,
+                include_img_ids=args.include_img_ids,
             )
         )
 
@@ -118,12 +118,12 @@ if __name__ == "__main__":
         ),
     )
     add_argument(
-        "--print_img_ids",
+        "--include_img_ids",
         type=pl.utilities.parsing.str_to_bool,
         nargs="?",
         const=True,
         default=True,
-        help="Print output with the associated image id",
+        help="Include the associated image ids in the output",
     )
     add_argument(
         "--separator",

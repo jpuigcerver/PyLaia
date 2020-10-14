@@ -15,19 +15,19 @@ class __TestDecoder:
 
 
 class __TestDecode(Decode):
-    def __init__(self, img_id, expected, *args, **kwargs):
+    def __init__(self, img_id, hyp, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.img_id = img_id
-        self.expected = re.escape(expected)
+        self.hyp = re.escape(hyp)
 
     def write(self, value):
-        assert re.match(self.img_id + self.expected, value)
+        assert re.match(self.img_id + self.hyp, value)
 
 
 @pytest.mark.parametrize(
     ["kwargs", "img_id", "hyp"],
     [
-        ({"print_img_ids": False}, "", "[0, 3, 11, 5, 10, 9]"),
+        ({"include_img_ids": False}, "", "[0, 3, 11, 5, 10, 9]"),
         ({"use_symbols": True}, r"va-\d+ ", "['0', '3', '<space>', '5', '<ctc>', '9']"),
         (
             {"use_symbols": True, "convert_spaces": True},
