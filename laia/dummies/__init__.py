@@ -7,3 +7,4 @@ from laia.dummies.dummy_accelerator import (
 from laia.dummies.dummy_model import DummyModel
 from laia.dummies.dummy_trainer import DummyTrainer
 from laia.dummies.modules.dummy_engine import DummyEngine
+from laia.dummies.modules.dummy_evaluator import DummyEvaluator
