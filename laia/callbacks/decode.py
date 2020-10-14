@@ -8,7 +8,7 @@ from laia.decoders import CTCGreedyDecoder
 from laia.utils import SymbolsTable
 
 
-class Decode(pl.callbacks.Callback):
+class Decode(pl.Callback):
     def __init__(
         self,
         decoder: Optional[Callable] = CTCGreedyDecoder(),

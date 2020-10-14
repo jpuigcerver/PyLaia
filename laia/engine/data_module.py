@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from torch.utils.data import DataLoader
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
@@ -19,7 +20,7 @@ from laia.utils import SymbolsTable
 _logger = log.get_logger(__name__)
 
 
-class DataModule(pl.core.LightningDataModule):
+class DataModule(pl.LightningDataModule):
     def __init__(
         self,
         img_dirs: List[str],
@@ -67,7 +68,7 @@ class DataModule(pl.core.LightningDataModule):
             self.te_img_list = te_img_list
             super().__init__(test_transforms=base_img_transform)
 
-    def setup(self, stage):
+    def setup(self, stage: Optional[str] = None):
         if stage == "fit":
             tr_img_transform, txt_transform = self.train_transforms
             self.tr_ds = TextImageFromTextTableDataset(
@@ -82,16 +83,18 @@ class DataModule(pl.core.LightningDataModule):
                 img_transform=self.val_transforms,
                 txt_transform=txt_transform,
             )
-        if stage == "test":
+        elif stage == "test":
             self.te_ds = ImageFromListDataset(
                 self.te_img_list,
                 img_dirs=self.img_dirs,
                 img_transform=self.test_transforms,
             )
+        else:
+            raise ValueError
 
-    def train_dataloader(self) -> torch.utils.data.DataLoader:
+    def train_dataloader(self) -> DataLoader:
         assert self.tr_ds is not None
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             dataset=self.tr_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -103,9 +106,9 @@ class DataModule(pl.core.LightningDataModule):
             ),
         )
 
-    def val_dataloader(self) -> torch.utils.data.DataLoader:
+    def val_dataloader(self) -> DataLoader:
         assert self.va_ds is not None
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             dataset=self.va_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -115,9 +118,9 @@ class DataModule(pl.core.LightningDataModule):
             ),
         )
 
-    def test_dataloader(self) -> torch.utils.data.DataLoader:
+    def test_dataloader(self) -> DataLoader:
         assert self.te_ds is not None
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             dataset=self.te_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,

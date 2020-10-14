@@ -32,8 +32,8 @@ class HTREngineModule(EngineModule):
         self.delimiters = delimiters
         self.decoder = CTCGreedyDecoder()
 
-    def training_step(self, batch: Any, batch_idx: int):
-        result = super().training_step(batch, batch_idx)
+    def training_step(self, batch: Any, *args, **kwargs):
+        result = super().training_step(batch, *args, **kwargs)
         if result is None:
             return
         batch_x, batch_y = self.prepare_batch(batch)
@@ -67,8 +67,8 @@ class HTREngineModule(EngineModule):
         )
         return result
 
-    def validation_step(self, batch: Any, batch_idx: int):
-        result = super().validation_step(batch, batch_idx)
+    def validation_step(self, batch: Any, *args, **kwargs):
+        result = super().validation_step(batch, *args, **kwargs)
         if result is None:
             return
         batch_x, batch_y = self.prepare_batch(batch)
