@@ -3,7 +3,13 @@ from argparse import ArgumentTypeError
 
 import pytest
 
-from laia.common.arguments_types import TupleList, str2loglevel, str2num
+from laia.common.arguments_types import (
+    NumberInClosedRange,
+    NumberInOpenRange,
+    TupleList,
+    str2loglevel,
+    str2num,
+)
 
 
 @pytest.mark.parametrize(
@@ -28,8 +34,12 @@ def test_str2num_raises(v, t, vmin, vmax, open, expected):
     ],
 )
 def test_str2num(v, t, vmin, vmax, open, expected):
-    out = str2num(v, t, vmin=vmin, vmax=vmax, open=open)
-    assert out == expected
+    obj = (
+        NumberInOpenRange(t, vmin=vmin, vmax=vmax)
+        if open
+        else NumberInClosedRange(t, vmin=vmin, vmax=vmax)
+    )
+    assert obj(v) == expected
 
 
 def test_str2loglevel_raises():
