@@ -166,6 +166,11 @@ _default_args = {
 }
 
 
+def get_key(dictionary, key):
+    default = _default_args[key][1]["default"]
+    return dictionary.get(key, default)
+
+
 def _get_parser():
     global _parser
     if not _parser:
