@@ -40,3 +40,6 @@ class DummyLoggingAccelerator(DDPCPUSpawnAccelerator):
         # spawned by multiprocessing are not correctly configured
         _setup_logging(self.log_filepath)
         return super().configure_ddp(*args, **kwargs)
+
+    def __del__(self):
+        log.clear()
