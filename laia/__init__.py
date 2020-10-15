@@ -29,10 +29,12 @@ def get_installed_versions() -> List[str]:
 
     requirements_path = Path(__file__).parent.parent / "requirements.txt"
     with open(requirements_path) as f:
-        requirements = [r.strip() for r in f.readlines()]
-        requirements = [
-            r.split()[0] for r in requirements
-        ]  # support 'pkg @ git+https://...' notation
+        requirements = []
+        for r in f.readlines():
+            r = r.strip()
+            r = r.split(" @ ")[0]  # support 'pkg @ git+https://...' notation
+            r = r.split(">=")[0]
+            requirements.append(r)
     freeze = subprocess.check_output(["pip", "freeze", "--exclude-editable"])
     freeze = freeze.decode("ascii").strip().split("\n")
     versions = [
