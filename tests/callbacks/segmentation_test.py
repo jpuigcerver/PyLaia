@@ -47,7 +47,7 @@ def test_word_segmentation_empty():
         [("a", 1, 1, 3, 10), ("b", 5, 1, 10, 10)],
     ],
 )
-def test_word_segmentation_fails(s):
+def test_word_segmentation_raises(s):
     with pytest.raises(AssertionError):
         Segmentation.word(s, " ")
 
