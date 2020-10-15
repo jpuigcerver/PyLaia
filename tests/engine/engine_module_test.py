@@ -45,24 +45,24 @@ def test_run_checks(caplog):
 def test_exception_catcher():
     model = DummyModel((3, 3), 10)
     module = EngineModule(model, "SGD", lambda x: x)
-    with pytest.raises(
-        EngineException, match=r'Exception "RuntimeError\(\'test\'\)" raised'
-    ):
+    with pytest.raises(EngineException, match=r'Exception "RuntimeError\(\)" raised'):
         with module.exception_catcher():
-            raise RuntimeError("test")
+            raise RuntimeError()
 
 
 def test_compute_loss():
     model = DummyModel((3, 3), 10)
 
     with pytest.raises(
-        EngineException, match=r'Exception "ValueError\(\'The loss is NaN\'\)" raised'
+        EngineException,
+        match=r'Exception "ValueError\(\'The loss is NaN\'[,]?\)" raised',
     ):
         module = EngineModule(model, "SGD", lambda *_: torch.tensor([1, float("nan")]))
         module.compute_loss(None, None, None)
 
     with pytest.raises(
-        EngineException, match=r'Exception "ValueError\(\'The loss is ± inf\'\)" raised'
+        EngineException,
+        match=r'Exception "ValueError\(\'The loss is ± inf\'[,]?\)" raised',
     ):
         module = EngineModule(model, "SGD", lambda *_: torch.tensor(float("inf")))
         module.compute_loss(None, None, None)
