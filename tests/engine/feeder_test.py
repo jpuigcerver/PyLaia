@@ -11,7 +11,7 @@ def test_item_feeder():
     assert feeder(x) == expected
 
 
-def test_item_feeder_fails():
+def test_item_feeder_raises():
     feeder = ItemFeeder("foo")
     with pytest.raises(AssertionError, match="Could not find key"):
         feeder({})
@@ -29,6 +29,6 @@ def test_image_feeder(x, expected):
     assert feeder(x).data.size() == expected
 
 
-def test_view_as_4d_fails():
+def test_view_as_4d_raises():
     with pytest.raises(ValueError, match="Tensor with 5 dimensions"):
         ImageFeeder.view_as_4d(torch.empty(1, 1, 1, 1, 1))

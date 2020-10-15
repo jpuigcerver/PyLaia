@@ -43,7 +43,7 @@ def test_object_loader_no_object(tmpdir):
         ({"module": __name__, "name": "Foo", "kwargs": {"bar": 1}}, TypeError),
     ],
 )
-def test_object_loader_fails(tmpdir, input, exception):
+def test_object_loader_raises(tmpdir, input, exception):
     f = Path(tmpdir) / "test.pth"
     torch.save(input, f)
     loader = ObjectLoader(f)
@@ -105,7 +105,7 @@ def test_object_loader(tmpdir, input, expected):
         ),
     ],
 )
-def test_model_loader_get_model_state_dict_fails(tmpdir, input, exception):
+def test_model_loader_get_model_state_dict_raises(tmpdir, input, exception):
     f = Path(tmpdir) / "checkpoint.ckpt"
     torch.save(input, f)
     loader = ModelLoader(tmpdir)
