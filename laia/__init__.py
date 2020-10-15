@@ -30,12 +30,17 @@ def get_installed_versions() -> List[str]:
     requirements_path = Path(__file__).parent.parent / "requirements.txt"
     with open(requirements_path) as f:
         requirements = [r.strip() for r in f.readlines()]
+        requirements = [
+            r.split()[0] for r in requirements
+        ]  # support 'pkg @ git+https://...' notation
     freeze = subprocess.check_output(["pip", "freeze", "--exclude-editable"])
-    freeze = freeze.decode("ascii").strip().split()
+    freeze = freeze.decode("ascii").strip().split("\n")
     versions = [
         r
         for r in freeze
-        if r in requirements or ("==" in r and r[: r.index("==")] in requirements)
+        if r in requirements
+        or ("==" in r and r[: r.index("==")] in requirements)
+        or (" @ " in r and r[: r.index(" @ ")] in requirements)
     ]
     versions.append(f"laia=={__version__}")
     return versions
