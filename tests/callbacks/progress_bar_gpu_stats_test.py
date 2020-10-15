@@ -33,7 +33,6 @@ def test_progress_bar_gpu_stats(monkeypatch, tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         callbacks=[ProgressBarGPUStats()],
-        progress_bar_refresh_rate=1,
     )
     trainer.fit(DummyEngine(), datamodule=DummyMNIST())
 

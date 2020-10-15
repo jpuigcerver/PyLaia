@@ -10,6 +10,7 @@ class DummyTrainer(pl.Trainer):
             "max_epochs": 1,
             "limit_train_batches": 10,
             "limit_val_batches": 10,
+            "limit_test_batches": 10,
             "progress_bar_refresh_rate": 0,
             "deterministic": True,
         }

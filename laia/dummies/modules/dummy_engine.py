@@ -15,7 +15,7 @@ class DummyEngine(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters())
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, *_, **__):
         batch_x, batch_y = batch
         batch_y_hat = self.model(batch_x)
         loss = self.criterion(batch_y_hat, batch_y)
@@ -29,7 +29,7 @@ class DummyEngine(pl.LightningModule):
         )
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, *_, **__):
         self.log(
             "bar",
             torch.tensor(self.global_step),
@@ -37,3 +37,6 @@ class DummyEngine(pl.LightningModule):
             on_epoch=True,
             reduce_fx=max,
         )
+
+    def test_step(self, *_, **__):
+        pass

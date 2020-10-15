@@ -1,4 +1,6 @@
 import sys
+from collections import defaultdict
+from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import convert_inf
@@ -11,17 +13,25 @@ _logger = log.get_logger(__name__)
 
 
 class ProgressBar(pl.callbacks.ProgressBar):
-    def __init__(self, refresh_rate: int = 1):
+    def __init__(
+        self,
+        refresh_rate: int = 1,
+        ncols: Optional[int] = 120,
+        dynamic_ncols: bool = False,
+    ):
         super().__init__(refresh_rate=refresh_rate)
-        self.ncols = 120
-        self.dynamic_ncols = False
+        self.ncols = ncols
+        self.dynamic_ncols = dynamic_ncols
         self.running_sanity = None
         self.level = log.INFO
-        self.format = {
-            "loss": "{:.4f}",
-            "cer": "{:.1%}",
-            "wer": "{:.1%}",
-        }
+        self.format = defaultdict(
+            lambda: "{}",
+            {
+                "loss": "{:.4f}",
+                "cer": "{:.1%}",
+                "wer": "{:.1%}",
+            },
+        )
         # lightning merges tr + va into a "main bar".
         # we want to keep it separate so we have to time it ourselves
         self.tr_timer = Timer()
@@ -95,7 +105,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
 
     def on_train_batch_end(self, trainer, *args, **kwargs):
         # skip parent to avoid two postfix calls
-        super(pl.callbacks.ProgressBar, self).on_train_batch_start(
+        super(pl.callbacks.ProgressBar, self).on_train_batch_end(
             trainer, *args, **kwargs
         )
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
@@ -106,22 +116,33 @@ class ProgressBar(pl.callbacks.ProgressBar):
                 **trainer.progress_bar_metrics.get("gpu_stats", {}),
             )
 
+    def set_postfix(self, pbar, prefix):
+        l = len(prefix)
+        postfix = {
+            k[l:]: self.format[k[l:]].format(v)
+            for k, v in self.trainer.progress_bar_dict.items()
+            if k.startswith(prefix)
+        }
+        pbar.set_postfix(postfix, refresh=True)
+
+    @staticmethod
+    def fix_format_dict_time(pbar, prefix, timer):
+        format_dict = pbar.format_dict
+        _logger.debug(
+            f"{prefix} - lightning-elapsed={format_dict['elapsed']} elapsed={timer.value}"
+        )
+        format_dict["elapsed"] = timer.value
+        return format_dict
+
     def on_train_epoch_end(self, *args, **kwargs):
         super().on_train_epoch_end(*args, **kwargs)
         if self.is_enabled:
             # add metrics to training bar
-            postfix = {
-                k[3:]: self.format[k[3:]].format(v)
-                for k, v in self.trainer.progress_bar_dict.items()
-                if k.startswith("tr_")
-            }
-            self.main_progress_bar.set_postfix(postfix, refresh=True)
+            self.set_postfix(self.main_progress_bar, "tr_")
             # override training time
-            format_dict = self.main_progress_bar.format_dict
-            _logger.debug(
-                f"TR - lightning: {format_dict['elapsed']} ours: {self.tr_timer.value}"
+            format_dict = self.fix_format_dict_time(
+                self.main_progress_bar, "TR", self.tr_timer
             )
-            format_dict["elapsed"] = self.tr_timer.value
             # log training bar
             _logger.log(self.level, tqdm.format_meter(**format_dict))
 
@@ -130,18 +151,11 @@ class ProgressBar(pl.callbacks.ProgressBar):
             # because `val_loop` gets called before `on_train_epoch_end` so the VA
             # bar would get printed before the TR bar. see:
             # https://pytorch-lightning.readthedocs.io/en/stable/lightning-module.html#hook-lifecycle-pseudocode
-            postfix = {
-                k[3:]: self.format[k[3:]].format(v)
-                for k, v in self.trainer.progress_bar_dict.items()
-                if k.startswith("va_")
-            }
-            self.val_progress_bar.set_postfix(postfix, refresh=True)
+            self.set_postfix(self.val_progress_bar, "va_")
             # override validation time
-            format_dict = self.val_progress_bar.format_dict
-            _logger.debug(
-                f"VA - lightning-elapsed={format_dict['elapsed']} elapsed={self.va_timer.value}"
+            format_dict = self.fix_format_dict_time(
+                self.val_progress_bar, "VA", self.va_timer
             )
-            format_dict["elapsed"] = self.va_timer.value
             # log validation bar
             _logger.log(self.level, tqdm.format_meter(**format_dict))
 
