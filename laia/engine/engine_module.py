@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 import pytorch_lightning as pl
 import torch
 
+from laia.common.arguments import get_key
 from laia.common.types import Loss as LossT
 from laia.engine.engine_exception import exception_catcher
 from laia.losses.loss import Loss
@@ -39,24 +40,24 @@ class EngineModule(pl.LightningModule):
         # backward()
         self.current_batch = None
         # required by auto_lr_find
-        self.lr = self.optimizer_kwargs.get("learning_rate", 5e-4)
+        self.lr = get_key(self.optimizer_kwargs, "learning_rate")
 
     def configure_optimizers(self):
-        weight_decay = self.optimizer_kwargs.get("weight_l2_penalty", 0)
+        weight_decay = get_key(self.optimizer_kwargs, "weight_l2_penalty")
         if self.optimizer == "SGD":
             optimizer = torch.optim.SGD(
                 self.parameters(),
                 lr=self.lr,
-                momentum=self.optimizer_kwargs.get("momentum", 0),
+                momentum=get_key(self.optimizer_kwargs, "momentum"),
                 weight_decay=weight_decay,
-                nesterov=self.optimizer_kwargs.get("nesterov", False),
+                nesterov=get_key(self.optimizer_kwargs, "nesterov"),
             )
         elif self.optimizer == "RMSProp":
             optimizer = torch.optim.RMSprop(
                 self.parameters(),
                 lr=self.lr,
                 weight_decay=weight_decay,
-                momentum=self.optimizer_kwargs.get("momentum", 0),
+                momentum=get_key(self.optimizer_kwargs, "momentum"),
             )
         elif self.optimizer == "Adam":
             optimizer = torch.optim.Adam(
