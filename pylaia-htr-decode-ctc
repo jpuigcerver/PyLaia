@@ -15,9 +15,7 @@ from laia.common.arguments import (
     group_to_namespace,
 )
 from laia.common.loader import ModelLoader
-from laia.engine import DataModule
-from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
-from laia.engine.htr_evaluator_module import HTREvaluatorModule
+from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemFeeder
 from laia.utils import SymbolsTable
 
 

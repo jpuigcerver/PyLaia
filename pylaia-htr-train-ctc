@@ -16,9 +16,7 @@ from laia.common.arguments import (
 )
 from laia.common.arguments_types import NumberInClosedRange
 from laia.common.loader import ModelLoader
-from laia.engine.data_module import DataModule
-from laia.engine.feeders import Compose, ImageFeeder, ItemFeeder
-from laia.engine.htr_engine_module import HTREngineModule
+from laia.engine import Compose, DataModule, HTREngineModule, ImageFeeder, ItemFeeder
 from laia.loggers import EpochCSVLogger
 from laia.utils import SymbolsTable
 
