@@ -1,5 +1,5 @@
 import argparse
-from typing import Optional
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 
@@ -9,8 +9,8 @@ from laia.common.arguments_types import (
     str2loglevel,
 )
 
-_parser = None
-_default_args = {
+parser = None
+default_args = {
     "batch_size": (
         ("--batch_size",),
         {
@@ -31,7 +31,7 @@ _default_args = {
         ("--momentum",),
         {
             "type": NumberInClosedRange(type=float, vmin=0),
-            "default": 0,
+            "default": 0.0,
             "help": "Momentum (must be >= 0)",
         },
     ),
@@ -166,15 +166,15 @@ _default_args = {
 }
 
 
-def get_key(dictionary, key):
-    default = _default_args[key][1]["default"]
+def get_key(dictionary: dict, key: Any):
+    default = default_args[key][1]["default"]
     return dictionary.get(key, default)
 
 
 def _get_parser():
-    global _parser
-    if not _parser:
-        _parser = argparse.ArgumentParser(
+    global parser
+    if not parser:
+        parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             conflict_handler="resolve",
         )
@@ -185,15 +185,15 @@ def _get_parser():
             "logging_overwrite",
             "print_args",
         )
-    return _parser
+    return parser
 
 
 def add_defaults(*args, **kwargs):
     for arg in args:
-        args_, kwargs_ = _default_args[arg]
+        args_, kwargs_ = default_args[arg]
         add_argument(*args_, **kwargs_)
     for arg, default_value in kwargs.items():
-        args_, kwargs_ = _default_args[arg]
+        args_, kwargs_ = default_args[arg]
         kwargs_["default"] = default_value
         add_argument(*args_, **kwargs_)
     return _get_parser()
@@ -201,7 +201,7 @@ def add_defaults(*args, **kwargs):
 
 def add_argument(*args, **kwargs):
     _get_parser().add_argument(*args, **kwargs)
-    return _parser
+    return parser
 
 
 def args(parser: Optional[argparse.ArgumentParser] = None) -> argparse.Namespace:

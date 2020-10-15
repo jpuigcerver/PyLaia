@@ -174,6 +174,15 @@ def config_from_args(args, fmt=BASIC_FORMAT):
     )
 
 
+def clear():
+    root.handlers = []
+    lightning.handlers = []
+    warnings.handlers = []
+    root.setLevel(logging.NOTSET)
+    lightning.setLevel(logging.NOTSET)
+    warnings.setLevel(logging.NOTSET)
+
+
 def log(level, msg, *args, **kwargs):
     root.log(level, msg, *args, **kwargs)
 
