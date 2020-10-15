@@ -14,8 +14,8 @@ class EngineModule(pl.LightningModule):
         self,
         model: torch.nn.Module,
         optimizer: str,
-        optimizer_kwargs: Dict,
         criterion: Callable,
+        optimizer_kwargs: Optional[Dict] = None,
         batch_input_fn: Optional[Callable] = None,
         batch_target_fn: Optional[Callable] = None,
         batch_id_fn: Optional[Callable] = None,
@@ -24,6 +24,8 @@ class EngineModule(pl.LightningModule):
         self.model = model
         # configure_optimizers()
         self.optimizer = optimizer
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
         self.optimizer_kwargs = optimizer_kwargs
         # compute_loss()
         self.criterion = criterion
@@ -37,24 +39,24 @@ class EngineModule(pl.LightningModule):
         # backward()
         self.current_batch = None
         # required by auto_lr_find
-        self.lr = self.optimizer_kwargs["learning_rate"]
+        self.lr = self.optimizer_kwargs.get("learning_rate", 5e-4)
 
     def configure_optimizers(self):
-        weight_decay = self.optimizer_kwargs["weight_l2_penalty"]
+        weight_decay = self.optimizer_kwargs.get("weight_l2_penalty", 0)
         if self.optimizer == "SGD":
             optimizer = torch.optim.SGD(
                 self.parameters(),
                 lr=self.lr,
-                momentum=self.optimizer_kwargs["momentum"],
+                momentum=self.optimizer_kwargs.get("momentum", 0),
                 weight_decay=weight_decay,
-                nesterov=self.optimizer_kwargs["nesterov"],
+                nesterov=self.optimizer_kwargs.get("nesterov", False),
             )
         elif self.optimizer == "RMSProp":
             optimizer = torch.optim.RMSprop(
                 self.parameters(),
                 lr=self.lr,
                 weight_decay=weight_decay,
-                momentum=self.optimizer_kwargs["momentum"],
+                momentum=self.optimizer_kwargs.get("momentum", 0),
             )
         elif self.optimizer == "Adam":
             optimizer = torch.optim.Adam(
@@ -64,15 +66,15 @@ class EngineModule(pl.LightningModule):
             )
         else:
             raise NotImplementedError(f"Optimizer: {self.optimizer}")
-        if self.optimizer_kwargs["scheduler"]:
+        if self.optimizer_kwargs.get("scheduler", False):
             scheduler = {
                 "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer,
                     mode="min",
-                    factor=self.optimizer_kwargs["scheduler_factor"],
-                    patience=self.optimizer_kwargs["scheduler_patience"] - 1,
+                    factor=self.optimizer_kwargs.get("scheduler_factor", 0.1),
+                    patience=self.optimizer_kwargs.get("scheduler_patience", 5) - 1,
                 ),
-                "monitor": self.optimizer_kwargs["scheduler_monitor"],
+                "monitor": self.optimizer_kwargs.get("scheduler_monitor", "va_loss"),
                 "interval": "epoch",
                 "frequency": 1,
             }
@@ -80,9 +82,11 @@ class EngineModule(pl.LightningModule):
         return optimizer
 
     def prepare_batch(self, batch: Any) -> Tuple[Any, Any]:
-        batch_x = self.batch_input_fn(batch) if self.batch_input_fn else batch
-        batch_y = self.batch_target_fn(batch) if self.batch_target_fn else None
-        return batch_x, batch_y
+        if self.batch_input_fn and self.batch_target_fn:
+            return self.batch_input_fn(batch), self.batch_target_fn(batch)
+        if isinstance(batch, tuple) and len(batch) == 2:
+            return batch
+        return batch, None
 
     def run_checks(self, batch: Any, batch_y_hat: Any) -> None:
         # Note: only active when logging level <= DEBUG
@@ -109,12 +113,17 @@ class EngineModule(pl.LightningModule):
             global_step=self.global_step,
         )
 
-    def compute_loss(self, batch: Any, batch_y_hat: Any, batch_y: Any) -> LossT:
-        with exception_catcher(
-            self.batch_id_fn(batch) if self.batch_id_fn else batch,
+    def exception_catcher(self):
+        return exception_catcher(
+            self.batch_id_fn(self.current_batch)
+            if self.batch_id_fn
+            else self.current_batch,
             self.current_epoch,
             self.global_step,
-        ):
+        )
+
+    def compute_loss(self, batch: Any, batch_y_hat: Any, batch_y: Any) -> LossT:
+        with self.exception_catcher():
             kwargs = {}
             if isinstance(self.criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
@@ -123,27 +132,17 @@ class EngineModule(pl.LightningModule):
                 if torch.sum(torch.isnan(batch_loss)).item() > 0:
                     raise ValueError("The loss is NaN")
                 if torch.sum(torch.isinf(batch_loss)).item() > 0:
-                    raise ValueError("The loss is +/- Inf")
+                    raise ValueError("The loss is ± inf")
             return batch_loss
 
-    def backward(self, trainer, loss, optimizer, optimizer_idx):
-        with exception_catcher(
-            self.batch_id_fn(self.current_batch)
-            if self.batch_id_fn
-            else self.current_batch,
-            self.current_epoch,
-            self.global_step,
-        ):
+    def backward(self, loss, *_, **__):
+        with self.exception_catcher():
             loss.backward()
 
     def training_step(self, batch: Any, *_, **__):
         self.current_batch = batch
         batch_x, batch_y = self.prepare_batch(batch)
-        with exception_catcher(
-            self.batch_id_fn(batch) if self.batch_id_fn else batch,
-            self.current_epoch,
-            self.global_step,
-        ):
+        with self.exception_catcher():
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
@@ -161,11 +160,7 @@ class EngineModule(pl.LightningModule):
 
     def validation_step(self, batch: Any, *_, **__):
         batch_x, batch_y = self.prepare_batch(batch)
-        with exception_catcher(
-            self.batch_id_fn(batch) if self.batch_id_fn else batch,
-            self.current_epoch,
-            self.global_step,
-        ):
+        with self.exception_catcher():
             self.batch_y_hat = self.model(batch_x)
         self.run_checks(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
