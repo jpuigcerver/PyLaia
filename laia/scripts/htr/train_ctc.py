@@ -21,7 +21,7 @@ from laia.loggers import EpochCSVLogger
 from laia.utils import SymbolsTable
 
 
-def main(args: argparse.Namespace):
+def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
     pl.seed_everything(args.seed)
@@ -120,7 +120,7 @@ def main(args: argparse.Namespace):
     exit(0)
 
 
-if __name__ == "__main__":
+def get_args():
     metrics = [f"va_{x}" for x in ("loss", "cer", "wer")]
     parser = add_defaults(
         "batch_size",
@@ -245,4 +245,12 @@ if __name__ == "__main__":
     ):
         delattr(args.lightning, a)
 
-    main(args)
+    return args
+
+
+def main():
+    run(get_args())
+
+
+if __name__ == "__main__":
+    main()

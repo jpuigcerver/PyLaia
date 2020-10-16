@@ -41,12 +41,14 @@ setuptools.setup(
     # Package contents
     packages=setuptools.find_packages(exclude=["tests"]),
     include_package_data=True,
-    scripts=[
-        "pylaia-htr-create-model",
-        "pylaia-htr-train-ctc",
-        "pylaia-htr-decode-ctc",
-        "pylaia-htr-netout",
-    ],
+    entry_points={
+        "console_scripts": [
+            "pylaia-htr-create-model=laia.scripts.htr.create_model:main",
+            "pylaia-htr-train-ctc=laia.scripts.htr.train_ctc:main",
+            "pylaia-htr-decode-ctc=laia.scripts.htr.decode_ctc:main",
+            "pylaia-htr-netout=laia.scripts.htr.netout:main",
+        ],
+    },
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
 )
