@@ -19,7 +19,7 @@ class Saver:
 
 class BasicSaver(Saver):
     def save(self, obj: Any, filepath: str) -> str:
-        filepath = os.path.normpath(filepath)
+        filepath = os.path.realpath(filepath)
         dirname = os.path.dirname(filepath)
         os.makedirs(dirname, exist_ok=True)
         torch.save(obj, filepath)
