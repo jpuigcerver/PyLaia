@@ -19,7 +19,7 @@ from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemF
 from laia.utils import SymbolsTable
 
 
-def main(args):
+def run(args):
     log.info(f"Installed: {get_installed_versions()}")
 
     model = ModelLoader(
@@ -83,7 +83,7 @@ def main(args):
     trainer.test(evaluator_module, datamodule=data_module, verbose=False)
 
 
-if __name__ == "__main__":
+def get_args():
     parser = add_defaults(
         "batch_size",
         "train_path",
@@ -167,4 +167,12 @@ if __name__ == "__main__":
     for a in ("default_root_dir",):
         delattr(args.lightning, a)
 
-    main(args)
+    return args
+
+
+def main():
+    run(get_args())
+
+
+if __name__ == "__main__":
+    main()

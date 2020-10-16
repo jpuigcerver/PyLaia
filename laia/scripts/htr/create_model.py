@@ -14,7 +14,7 @@ from laia.models.htr import LaiaCRNN
 from laia.utils import SymbolsTable
 
 
-def main(args):
+def run(args):
     """
     Create a model for HTR composed of a set of convolutional
     blocks, followed by a set of bidirectional LSTM or GRU layers, and a
@@ -86,7 +86,7 @@ def main(args):
     ModelSaver(args.train_path, args.model_filename).save(LaiaCRNN, **parameters)
 
 
-if __name__ == "__main__":
+def get_args():
     add_defaults("train_path", "seed", "model_filename")
     add_argument(
         "num_input_channels",
@@ -232,6 +232,12 @@ if __name__ == "__main__":
             "convolution and non-linear activation."
         ),
     )
-    args = args()
+    return args()
 
-    main(args)
+
+def main():
+    run(get_args())
+
+
+if __name__ == "__main__":
+    main()
