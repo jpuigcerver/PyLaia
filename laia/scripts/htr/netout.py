@@ -1,26 +1,20 @@
 #!/usr/bin/env python3
-
 import argparse
 import os
 
 import pytorch_lightning as pl
+import torch
 
 import laia.common.logging as log
 from laia import get_installed_versions
 from laia.callbacks import Netout, ProgressBar
-from laia.common.arguments import (
-    add_argument,
-    add_defaults,
-    add_lightning_args,
-    args,
-    group_to_namespace,
-)
+from laia.common.arguments import LaiaParser, add_lightning_args, group_to_namespace
 from laia.common.loader import ModelLoader
 from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemFeeder
 from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
-def run(args):
+def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
     model = ModelLoader(
@@ -73,26 +67,23 @@ def run(args):
     trainer.test(evaluator_module, datamodule=data_module, verbose=False)
 
 
-def get_args():
-    parser = add_defaults(
+def get_args() -> argparse.Namespace:
+    parser = LaiaParser().add_defaults(
         "batch_size",
         "train_path",
         "model_filename",
         "experiment_dirname",
         "color_mode",
-        logging_level="WARNING",
     )
-    add_argument(
+    parser.add_argument(
         "img_list",
         type=argparse.FileType("r"),
         help="File containing images to decode. Doesn't require the extension",
-    )
-    add_argument(
+    ).add_argument(
         "checkpoint",
         type=str,
         help="Name of the model checkpoint to use, can be a glob pattern",
-    )
-    add_argument(
+    ).add_argument(
         "img_dirs",
         type=str,
         nargs="*",
@@ -100,8 +91,7 @@ def get_args():
             "Directory containing word images. "
             "Optional if img_list contains whole paths"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--output_transform",
         type=str,
         default=None,
@@ -111,8 +101,7 @@ def get_args():
             'For instance, use "softmax" to get posterior probabilities '
             "as the output of the model"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--matrix",
         type=argparse.FileType("wb"),
         default=None,
@@ -121,8 +110,7 @@ def get_args():
             "(one for each sample), where each row represents a timestep and "
             "each column represents a CTC label"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--lattice",
         type=argparse.FileType("w"),
         default=None,
@@ -130,8 +118,7 @@ def get_args():
             "Path of the Kaldi's archive containing the output lattices"
             "(one for each sample), representing the CTC output"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--digits",
         type=int,
         default=10,
@@ -139,10 +126,10 @@ def get_args():
     )
 
     # Add lightning default arguments to a group
-    pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
+    pl_group = parser.parser.add_argument_group(title="pytorch-lightning arguments")
     pl_group = add_lightning_args(pl_group)
 
-    args = args(parser=parser)
+    args = parser.parse_args()
 
     # Move lightning default arguments to their own namespace
     args = group_to_namespace(args, pl_group, "lightning")
