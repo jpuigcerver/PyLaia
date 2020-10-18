@@ -43,7 +43,6 @@ class DataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/2196
         self.num_workers = multiprocessing.cpu_count()
-        self.pin_memory = True
         if stage == "fit":
             self.tr_ds = None
             self.va_ds = None
@@ -100,7 +99,7 @@ class DataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             shuffle=self.tr_shuffle,
             worker_init_fn=DataModule.worker_init_fn,
-            pin_memory=self.pin_memory,
+            pin_memory=self.trainer.on_gpu,
             collate_fn=PaddingCollater(
                 {"img": (self.img_channels, None, None)}, sort_key=by_descending_width
             ),
@@ -112,7 +111,7 @@ class DataModule(pl.LightningDataModule):
             dataset=self.va_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
+            pin_memory=self.trainer.on_gpu,
             collate_fn=PaddingCollater(
                 {"img": (self.img_channels, None, None)}, sort_key=by_descending_width
             ),
@@ -124,7 +123,7 @@ class DataModule(pl.LightningDataModule):
             dataset=self.te_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
+            pin_memory=self.trainer.on_gpu,
             collate_fn=PaddingCollater(
                 {"img": (self.img_channels, None, None)}, sort_key=by_descending_width
             ),
