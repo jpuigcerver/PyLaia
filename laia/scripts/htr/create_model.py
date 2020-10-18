@@ -106,7 +106,14 @@ def get_args() -> argparse.Namespace:
             "If 0, a variable height model will be used (see --adaptive_pooling)"
         ),
     ).add_argument(
-        "--adaptive_pooling", type=str, default="avgpool-16", help=""
+        "--adaptive_pooling",
+        type=str,
+        default="avgpool-16",
+        help=(
+            "Use our custom adaptive pooling layers. Takes into account the size of "
+            "each individual image within the batch (before padding). "
+            "Allowed: {avg,max}pool-VALUE"
+        ),
     ).add_argument(
         "--cnn_num_features",
         type=NumberInClosedRange(int, vmin=1),
