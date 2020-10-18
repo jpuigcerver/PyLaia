@@ -7,19 +7,13 @@ import pytorch_lightning as pl
 import laia.common.logging as log
 from laia import get_installed_versions
 from laia.callbacks import Decode, ProgressBar, Segmentation
-from laia.common.arguments import (
-    add_argument,
-    add_defaults,
-    add_lightning_args,
-    args,
-    group_to_namespace,
-)
+from laia.common.arguments import LaiaParser, add_lightning_args, group_to_namespace
 from laia.common.loader import ModelLoader
 from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemFeeder
 from laia.utils import SymbolsTable
 
 
-def run(args):
+def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
     model = ModelLoader(
@@ -29,11 +23,10 @@ def run(args):
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
 
-    evaluator_module = HTREvaluatorModule(
+    evaluator_module = EvaluatorModule(
         model,
         batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
         batch_id_fn=ItemFeeder("id"),
-        segmentation=bool(args.print_segmentation),
     )
 
     syms = SymbolsTable(args.syms)
@@ -56,7 +49,6 @@ def run(args):
                 syms,
                 segmentation=args.print_segmentation,
                 input_space=args.input_space,
-                join_str=args.join_str,
                 separator=args.separator,
                 include_img_ids=args.include_img_ids,
             )
@@ -64,7 +56,7 @@ def run(args):
     else:
         callbacks.append(
             Decode(
-                syms,
+                syms=syms,
                 use_symbols=args.use_symbols,
                 input_space=args.input_space,
                 output_space=args.output_space,
@@ -83,30 +75,27 @@ def run(args):
     trainer.test(evaluator_module, datamodule=data_module, verbose=False)
 
 
-def get_args():
-    parser = add_defaults(
+def get_args() -> argparse.Namespace:
+    parser = LaiaParser().add_defaults(
         "batch_size",
         "train_path",
         "model_filename",
         "experiment_dirname",
         "color_mode",
     )
-    add_argument(
+    parser.add_argument(
         "syms",
         type=argparse.FileType("r"),
         help="Symbols table mapping from strings to integers",
-    )
-    add_argument(
+    ).add_argument(
         "img_list",
         type=argparse.FileType("r"),
         help="File containing images to decode. Doesn't require the extension",
-    )
-    add_argument(
+    ).add_argument(
         "checkpoint",
         type=str,
         help="Name of the model checkpoint to use, can be a glob pattern",
-    )
-    add_argument(
+    ).add_argument(
         "img_dirs",
         type=str,
         nargs="*",
@@ -114,40 +103,42 @@ def get_args():
             "Directory containing word images. "
             "Optional if img_list contains whole paths"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--include_img_ids",
         type=pl.utilities.parsing.str_to_bool,
         nargs="?",
         const=True,
         default=True,
         help="Include the associated image ids in the output",
-    )
-    add_argument(
+    ).add_argument(
         "--separator",
         type=str,
         default=" ",
         help="Use this string as the separator between the ids and the output",
-    )
-    add_argument(
+    ).add_argument(
         "--join_str", type=str, default=None, help="Join the output using this"
-    )
-    add_argument(
+    ).add_argument(
         "--use_symbols",
-        action="store_true",
+        type=pl.utilities.parsing.str_to_bool,
+        nargs="?",
+        const=True,
+        default=True,
         help="Print the output with symbols instead of numbers",
-    )
-    add_argument(
-        "--convert_spaces", action="store_true", help="Whether or not to convert spaces"
-    )
-    add_argument(
+    ).add_argument(
+        "--convert_spaces",
+        type=pl.utilities.parsing.str_to_bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Whether or not to convert spaces",
+    ).add_argument(
         "--input_space",
         type=str,
         default="<space>",
         help="Input space symbol to replace",
-    )
-    add_argument("--output_space", type=str, default="", help="Output space symbol")
-    add_argument(
+    ).add_argument(
+        "--output_space", type=str, default="", help="Output space symbol"
+    ).add_argument(
         "--print_segmentation",
         type=str,
         default=None,
@@ -156,10 +147,10 @@ def get_args():
     )
 
     # Add lightning default arguments to a group
-    pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
+    pl_group = parser.parser.add_argument_group(title="pytorch-lightning arguments")
     pl_group = add_lightning_args(pl_group)
 
-    args = args(parser=parser)
+    args = parser.parse_args()
 
     # Move lightning default arguments to their own namespace
     args = group_to_namespace(args, pl_group, "lightning")
