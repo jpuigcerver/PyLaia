@@ -1,3 +1,5 @@
+from distutils.version import StrictVersion
+
 import pytest
 import torch
 
@@ -5,15 +7,10 @@ import laia.common.logging as log
 from laia.utils import check_inf, check_nan
 
 
-def is_1_6_or_higher() -> bool:
-    major, minor, _ = [int(x) for x in torch.__version__.split(".")]
-    return major > 1 or (major == 1 and minor >= 6)
-
-
 @pytest.mark.parametrize(
     "dtype",
     [torch.half, torch.float, torch.double]
-    if is_1_6_or_higher()
+    if StrictVersion(torch.__version__) >= StrictVersion("1.6.0")
     else [torch.float, torch.double],
 )
 @pytest.mark.parametrize("raise_exception", [True, False])
@@ -46,7 +43,7 @@ def test_check_inf_no_action(caplog, has_inf, dtype, log_level):
 @pytest.mark.parametrize(
     "dtype",
     [torch.half, torch.float, torch.double]
-    if is_1_6_or_higher()
+    if StrictVersion(torch.__version__) >= StrictVersion("1.6.0")
     else [torch.float, torch.double],
 )
 @pytest.mark.parametrize("raise_exception", [True, False])
