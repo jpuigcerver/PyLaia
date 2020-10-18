@@ -1,5 +1,5 @@
 from itertools import count
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Type, Union
 
 import torch
 import torch.nn as nn
@@ -21,7 +21,7 @@ class LaiaCRNN(nn.Module):
         cnn_kernel_size: Sequence[Param2d],
         cnn_stride: Sequence[Param2d],
         cnn_dilation: Sequence[Param2d],
-        cnn_activation: Sequence[nn.Module],
+        cnn_activation: Sequence[Type[nn.Module]],
         cnn_poolsize: Sequence[Param2d],
         cnn_dropout: Sequence[float],
         cnn_batchnorm: Sequence[bool],
