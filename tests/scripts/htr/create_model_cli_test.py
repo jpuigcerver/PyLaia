@@ -1,5 +1,4 @@
 import argparse
-import io
 import shutil
 import subprocess
 from unittest import mock
@@ -34,20 +33,16 @@ from laia.scripts.htr.create_model import get_args
     ],
 )
 def test(tmpdir, cmd_args):
-    stderr_patch = mock.patch("sys.stderr", new=io.StringIO())
-
     syms = tmpdir / "syms"
     syms.write(None)
 
     # first argument would be the script name, but it is ignored
-    cmd_args = ["", "1", str(syms), f"--train_path={tmpdir}"] + cmd_args
-    argv_patch = mock.patch("sys.argv", new=cmd_args)
-
-    with stderr_patch, argv_patch:
-        parsed = get_args()
+    cmd_args = ["ignored", "1", str(syms)] + cmd_args
+    with mock.patch("sys.argv", new=cmd_args):
+        args = get_args()
     log.clear()
 
-    assert isinstance(parsed, argparse.Namespace)
+    assert isinstance(args, argparse.Namespace)
 
 
 def test_entry_point():
