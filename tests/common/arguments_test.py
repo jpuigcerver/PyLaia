@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 import laia.common.arguments as args
 import laia.common.logging as log
@@ -19,27 +18,23 @@ def test_valid_arguments():
     parser.parse_args([])
 
 
-def test_get_parser():
-    parser1 = args._get_parser()
-    parser2 = args._get_parser()
-    assert parser1 is parser2
-
-
 def test_add_defaults():
-    parser = args.add_defaults("nesterov", "momentum", momentum=3)
-    parsed = parser.parse_args([])
+    parser = args.LaiaParser().add_defaults("nesterov", "momentum", momentum=3)
+    parsed = parser.parse_args([], should_log=False)
     assert not parsed.nesterov
     assert parsed.momentum == 3.0
-    args.parser = None  # reset global
 
 
 def test_args(caplog, monkeypatch):
-    args.add_defaults()
-    monkeypatch.setattr(
-        "sys.argv", []
-    )  # pytest automatically sets argv which is used later in parse_args()
+    parser = args.LaiaParser().add_defaults(
+        "logging_also_to_stderr",
+        "logging_file",
+        "logging_level",
+        "logging_overwrite",
+        "print_args",
+    )
     assert log.get_logger().level == 0
-    args.args()
+    parser.parse_args([])
     assert log.get_logger().level == log.INFO
     assert len(caplog.messages) == 1
     assert eval(caplog.messages[0]) == {

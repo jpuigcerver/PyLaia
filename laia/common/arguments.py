@@ -1,5 +1,5 @@
 import argparse
-from typing import Any, Optional
+from typing import Any, Union
 
 import pytorch_lightning as pl
 
@@ -9,7 +9,6 @@ from laia.common.arguments_types import (
     str2loglevel,
 )
 
-parser = None
 default_args = {
     "batch_size": (
         ("--batch_size",),
@@ -166,52 +165,55 @@ default_args = {
 }
 
 
-def get_key(dictionary: dict, key: Any):
+def get_key(mapping: Union[dict, argparse.Namespace], key: Any) -> Any:
     default = default_args[key][1]["default"]
-    return dictionary.get(key, default)
+    if isinstance(mapping, argparse.Namespace):
+        return getattr(mapping, key, default)
+    return mapping.get(key, default)
 
 
-def _get_parser():
-    global parser
-    if not parser:
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-            conflict_handler="resolve",
-        )
-        add_defaults(
-            "logging_also_to_stderr",
-            "logging_file",
-            "logging_level",
-            "logging_overwrite",
-            "print_args",
-        )
-    return parser
+class LaiaParser:
+    parser = None
 
+    def get(self) -> "LaiaParser":
+        if self.parser is None:
+            self.parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                conflict_handler="resolve",
+            )
+            self.add_defaults(
+                "logging_also_to_stderr",
+                "logging_file",
+                "logging_level",
+                "logging_overwrite",
+                "print_args",
+            )
+        return self
 
-def add_defaults(*args, **kwargs):
-    for arg in args:
-        args_, kwargs_ = default_args[arg]
-        add_argument(*args_, **kwargs_)
-    for arg, default_value in kwargs.items():
-        args_, kwargs_ = default_args[arg]
-        kwargs_["default"] = default_value
-        add_argument(*args_, **kwargs_)
-    return _get_parser()
+    def add_defaults(self, *args, **kwargs) -> "LaiaParser":
+        for arg in args:
+            args_, kwargs_ = default_args[arg]
+            self.add_argument(*args_, **kwargs_)
+        for arg, default_value in kwargs.items():
+            args_, kwargs_ = default_args[arg]
+            kwargs_["default"] = default_value
+            self.add_argument(*args_, **kwargs_)
+        return self
 
+    def add_argument(self, *args, **kwargs) -> "LaiaParser":
+        self.get().parser.add_argument(*args, **kwargs)
+        return self
 
-def add_argument(*args, **kwargs):
-    _get_parser().add_argument(*args, **kwargs)
-    return parser
+    def parse_args(
+        self, *args, should_log: bool = True, **kwargs
+    ) -> argparse.Namespace:
+        ns = self.get().parser.parse_args(*args, **kwargs)
+        if should_log and ns.print_args:
+            import laia.common.logging as log
 
-
-def args(parser: Optional[argparse.ArgumentParser] = None) -> argparse.Namespace:
-    a = parser.parse_args() if parser else _get_parser().parse_args()
-    import laia.common.logging as log
-
-    log.config_from_args(a)
-    if a.print_args:
-        log.get_logger(__name__).info(str(vars(a)))
-    return a
+            log.config_from_args(ns)
+            log.get_logger(__name__).info(str(vars(ns)))
+        return ns
 
 
 def group_to_namespace(
