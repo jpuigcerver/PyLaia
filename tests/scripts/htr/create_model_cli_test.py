@@ -6,7 +6,6 @@ from unittest import mock
 
 import pytest
 
-import laia.common.arguments as args
 import laia.common.logging as log
 from laia.scripts.htr.create_model import get_args
 
@@ -22,7 +21,7 @@ from laia.scripts.htr.create_model import get_args
             "--cnn_kernel_size", *(["3"] * 5),
             "--cnn_stride", *(["1"] * 5),
             "--cnn_dilation", *(["1"] * 5),
-            "--cnn_activations", *(["LeakyReLU"] * 5),
+            "--cnn_activation", *(["LeakyReLU"] * 5),
             "--cnn_poolsize", *(["2"] * 3), *(["0"] * 2),
             "--cnn_dropout", *(["0"] * 5),
             "--cnn_batchnorm", *(["f"] * 5),
@@ -44,7 +43,6 @@ def test(tmpdir, cmd_args):
     cmd_args = ["", "1", str(syms), f"--train_path={tmpdir}"] + cmd_args
     argv_patch = mock.patch("sys.argv", new=cmd_args)
 
-    args.parser = None
     with stderr_patch, argv_patch:
         parsed = get_args()
     log.clear()

@@ -7,14 +7,14 @@ from pytorch_lightning.utilities.parsing import str_to_bool
 
 import laia.common.logging as log
 from laia import get_installed_versions
-from laia.common.arguments import add_argument, add_defaults, args
+from laia.common.arguments import LaiaParser, get_key
 from laia.common.arguments_types import NumberInClosedRange, TupleList
 from laia.common.saver import ModelSaver
 from laia.models.htr import LaiaCRNN
 from laia.utils import SymbolsTable
 
 
-def run(args):
+def run(args: argparse.Namespace) -> LaiaCRNN:
     """
     Create a model for HTR composed of a set of convolutional
     blocks, followed by a set of bidirectional LSTM or GRU layers, and a
@@ -26,7 +26,7 @@ def run(args):
     """
     log.info(f"Installed: {get_installed_versions()}")
 
-    seed_everything(args.seed)
+    seed_everything(get_key(args, "seed"))
 
     dimensions = map(
         len,
@@ -35,7 +35,7 @@ def run(args):
             args.cnn_kernel_size,
             args.cnn_stride,
             args.cnn_dilation,
-            args.cnn_activations,
+            args.cnn_activation,
             args.cnn_poolsize,
             args.cnn_dropout,
             args.cnn_batchnorm,
@@ -64,7 +64,7 @@ def run(args):
         cnn_kernel_size=args.cnn_kernel_size,
         cnn_stride=args.cnn_stride,
         cnn_dilation=args.cnn_dilation,
-        cnn_activation=[getattr(nn, act) for act in args.cnn_activations],
+        cnn_activation=[getattr(nn, act) for act in args.cnn_activation],
         cnn_poolsize=args.cnn_poolsize,
         cnn_dropout=args.cnn_dropout,
         cnn_batchnorm=args.cnn_batchnorm,
@@ -80,41 +80,40 @@ def run(args):
     model = LaiaCRNN(**parameters)
     log.info(
         "Model has {} parameters",
-        sum(param.data.numel() for param in model.parameters()),
+        sum(param.numel() for param in model.parameters()),
     )
 
-    ModelSaver(args.train_path, args.model_filename).save(LaiaCRNN, **parameters)
+    if hasattr(args, "model_filename"):
+        ModelSaver(args.train_path, args.model_filename).save(LaiaCRNN, **parameters)
+    return model
 
 
-def get_args():
-    add_defaults("train_path", "seed", "model_filename")
-    add_argument(
+def get_args() -> argparse.Namespace:
+    parser = LaiaParser().add_defaults("train_path", "seed", "model_filename")
+    parser.add_argument(
         "num_input_channels",
         type=NumberInClosedRange(int, vmin=1),
         help="Number of channels of the input images",
-    )
-    add_argument(
+    ).add_argument(
         "syms",
         type=argparse.FileType("r"),
         help="Symbols table mapping from strings to integers",
-    )
-    add_argument(
+    ).add_argument(
         "--fixed_input_height",
         type=NumberInClosedRange(int, vmin=0),
         help=(
             "Height of the input images. "
             "If 0, a variable height model will be used (see --adaptive_pooling)"
         ),
-    )
-    add_argument("--adaptive_pooling", type=str, default="avgpool-16", help="")
-    add_argument(
+    ).add_argument(
+        "--adaptive_pooling", type=str, default="avgpool-16", help=""
+    ).add_argument(
         "--cnn_num_features",
         type=NumberInClosedRange(int, vmin=1),
         nargs="+",
         default=[16, 16, 32, 32],
         help="Number of features in each conv layer",
-    )
-    add_argument(
+    ).add_argument(
         "--cnn_kernel_size",
         type=TupleList(int, dimensions=2),
         nargs="+",
@@ -125,8 +124,7 @@ def get_args():
             "are equal or a list of strings formatted as tuples "
             'e.g. "(h1, w1) (h2, w2)"'
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--cnn_stride",
         type=TupleList(int, dimensions=2),
         nargs="+",
@@ -137,8 +135,7 @@ def get_args():
             "are equal or a list of strings formatted as tuples "
             'e.g. "(h1, w1) (h2, w2)"'
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--cnn_dilation",
         type=TupleList(int, dimensions=2),
         nargs="+",
@@ -149,15 +146,13 @@ def get_args():
             "are equal or a list of strings formatted as tuples "
             'e.g. "(h1, w1) (h2, w2)"'
         ),
-    )
-    add_argument(
-        "--cnn_activations",
+    ).add_argument(
+        "--cnn_activation",
         nargs="+",
         choices=["ReLU", "Tanh", "LeakyReLU"],
         default=["ReLU"] * 4,
         help="Type of the activation function in each conv layer",
-    )
-    add_argument(
+    ).add_argument(
         "--cnn_poolsize",
         type=TupleList(int, dimensions=2),
         nargs="+",
@@ -168,60 +163,51 @@ def get_args():
             "are equal or a list of strings formatted as tuples "
             'e.g. "(h1, w1) (h2, w2)"'
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--cnn_dropout",
         type=NumberInClosedRange(float, vmin=0, vmax=1),
         nargs="+",
         default=[0, 0, 0, 0],
         help="Dropout probability at the input of each conv layer",
-    )
-    add_argument(
+    ).add_argument(
         "--cnn_batchnorm",
         type=str_to_bool,
         nargs="+",
         default=[False] * 4,
         help="Batch normalization before the activation in each conv layer",
-    )
-    add_argument(
+    ).add_argument(
         "--rnn_units",
         type=NumberInClosedRange(int, vmin=1),
         default=256,
         help="Number of units the recurrent layers",
-    )
-    add_argument(
+    ).add_argument(
         "--rnn_layers",
         type=NumberInClosedRange(int, vmin=1),
         default=3,
         help="Number of recurrent layers",
-    )
-    add_argument(
+    ).add_argument(
         "--rnn_dropout",
         type=NumberInClosedRange(float, vmin=0, vmax=1),
         default=0.5,
         help="Dropout probability at the input of each recurrent layer",
-    )
-    add_argument(
+    ).add_argument(
         "--lin_dropout",
         type=NumberInClosedRange(float, vmin=0, vmax=1),
         default=0.5,
         help="Dropout probability at the input of the final linear layer",
-    )
-    add_argument(
+    ).add_argument(
         "--rnn_type",
         choices=["LSTM", "GRU"],
         default="LSTM",
         help="Type of the recurrent layers",
-    )
-    add_argument(
+    ).add_argument(
         "--vertical_text",
         type=str_to_bool,
         nargs="?",
         default=False,
         const=True,
         help="If true, assumes that the text is written horizontally.",
-    )
-    add_argument(
+    ).add_argument(
         "--use_masked_conv",
         type=str_to_bool,
         nargs="?",
@@ -232,7 +218,7 @@ def get_args():
             "convolution and non-linear activation."
         ),
     )
-    return args()
+    return parser.parse_args()
 
 
 def main():
