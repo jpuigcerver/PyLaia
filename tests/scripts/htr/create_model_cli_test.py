@@ -55,6 +55,8 @@ def test(tmpdir, cmd_args):
 def test_entry_point():
     # check that the console script entry point works
     proc = subprocess.run(
-        [shutil.which("pylaia-htr-create-model")], stderr=subprocess.PIPE
+        [shutil.which("pylaia-htr-create-model"), "-h"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
-    assert proc.stderr.decode().startswith("usage: pylaia-htr-create-model")
+    assert proc.stdout.decode().startswith("usage: pylaia-htr-create-model")
