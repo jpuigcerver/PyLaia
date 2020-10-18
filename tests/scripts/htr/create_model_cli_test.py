@@ -32,7 +32,7 @@ from laia.scripts.htr.create_model import get_args
         # fmt: on
     ],
 )
-def test(tmpdir, cmd_args):
+def test_get_args(tmpdir, cmd_args):
     syms = tmpdir / "syms"
     syms.write(None)
 

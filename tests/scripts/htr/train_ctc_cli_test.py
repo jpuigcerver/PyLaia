@@ -7,7 +7,7 @@ import laia.common.logging as log
 from laia.scripts.htr.train_ctc import get_args
 
 
-def test(tmpdir):
+def test_get_args(tmpdir):
     syms = tmpdir / "syms"
     syms.write(None)
     img_dirs = [str(tmpdir / p) for p in ("tr", "va", "te")]
@@ -21,6 +21,8 @@ def test(tmpdir):
 
     assert isinstance(args, argparse.Namespace)
     assert isinstance(args.lightning, argparse.Namespace)
+    assert len(args.img_dirs) == 3
+    assert args.tr_txt_table.name == args.va_txt_table.name
 
 
 def test_entry_point():
