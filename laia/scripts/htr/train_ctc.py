@@ -8,10 +8,9 @@ import laia.common.logging as log
 from laia import get_installed_versions
 from laia.callbacks import LearningRate, ProgressBar, ProgressBarGPUStats
 from laia.common.arguments import (
-    add_argument,
-    add_defaults,
+    LaiaParser,
     add_lightning_args,
-    args,
+    get_key,
     group_to_namespace,
 )
 from laia.common.arguments_types import NumberInClosedRange
@@ -24,7 +23,7 @@ from laia.utils import SymbolsTable
 def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
-    pl.seed_everything(args.seed)
+    pl.seed_everything(get_key(args, "seed"))
 
     checkpoint = None
     filepath = os.path.join(args.train_path, args.experiment_dirname)
@@ -61,8 +60,8 @@ def run(args: argparse.Namespace):
     engine_module = HTREngineModule(
         model,
         args.optimizer,
-        optimizer_kwargs,
         [syms[d] for d in args.delimiters],
+        optimizer_kwargs=optimizer_kwargs,
         batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
         batch_target_fn=ItemFeeder("txt"),
         batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
@@ -117,12 +116,11 @@ def run(args: argparse.Namespace):
         f'Best {args.monitor}="{checkpoint_callback.best_model_score}" '
         f'obtained with model="{checkpoint_callback.best_model_path}"'
     )
-    exit(0)
 
 
-def get_args():
+def get_args() -> argparse.Namespace:
     metrics = [f"va_{x}" for x in ("loss", "cer", "wer")]
-    parser = add_defaults(
+    parser = LaiaParser().add_defaults(
         "batch_size",
         "learning_rate",
         "momentum",
@@ -137,32 +135,27 @@ def get_args():
         "color_mode",
         "use_distortions",
     )
-    add_argument(
+    parser.add_argument(
         "syms",
         type=argparse.FileType("r"),
         help="Symbols table mapping from strings to integers",
-    )
-    add_argument(
+    ).add_argument(
         "img_dirs", type=str, nargs="+", help="Directory containing word images"
-    )
-    add_argument(
+    ).add_argument(
         "tr_txt_table",
         type=argparse.FileType("r"),
         help="Character transcriptions of each training image",
-    )
-    add_argument(
+    ).add_argument(
         "va_txt_table",
         type=argparse.FileType("r"),
         help="Character transcriptions of each validation image",
-    )
-    add_argument(
+    ).add_argument(
         "--delimiters",
         type=str,
         nargs="+",
         default=["<space>"],
         help="Sequence of characters representing the word delimiters",
-    )
-    add_argument(
+    ).add_argument(
         "--early_stopping_patience",
         type=NumberInClosedRange(int, vmin=0),
         default=20,
@@ -170,30 +163,26 @@ def get_args():
             "Number of validation epochs with no improvement "
             "after which training will be stopped"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--optimizer",
         type=str,
         default="RMSProp",
         choices=["SGD", "RMSProp", "Adam"],
         help="Optimization algorithm",
-    )
-    add_argument(
+    ).add_argument(
         "--monitor",
         type=str,
         default="va_cer",
         choices=metrics,
         help="Metric to monitor for early stopping and checkpointing",
-    )
-    add_argument(
+    ).add_argument(
         "--scheduler",
         type=pl.utilities.parsing.str_to_bool,
         nargs="?",
         const=True,
         default=False,
         help="Whether to use an on-plateau learning rate scheduler",
-    )
-    add_argument(
+    ).add_argument(
         "--scheduler_patience",
         type=NumberInClosedRange(type=int, vmin=0),
         default=5,
@@ -201,21 +190,18 @@ def get_args():
             "Number of epochs with no improvement "
             "after which learning rate will be reduced"
         ),
-    )
-    add_argument(
+    ).add_argument(
         "--scheduler_monitor",
         type=str,
         default="va_loss",
         choices=metrics,
         help="Metric for the scheduler to monitor",
-    )
-    add_argument(
+    ).add_argument(
         "--scheduler_factor",
         type=float,
         default=0.1,
         help="Factor by which the learning rate will be reduced",
-    )
-    add_argument(
+    ).add_argument(
         "--gpu_stats",
         type=pl.utilities.parsing.str_to_bool,
         nargs="?",
@@ -225,10 +211,10 @@ def get_args():
     )
 
     # Add lightning default arguments to a group
-    pl_group = parser.add_argument_group(title="pytorch-lightning arguments")
+    pl_group = parser.parser.add_argument_group(title="pytorch-lightning arguments")
     pl_group = add_lightning_args(pl_group)
 
-    args = args(parser=parser)
+    args = parser.parse_args()
 
     # Move lightning default arguments to their own namespace
     args = group_to_namespace(args, pl_group, "lightning")
@@ -237,7 +223,6 @@ def get_args():
     # Delete some which will be set manually
     for a in (
         "checkpoint_callback",
-        "early_stop_callback",
         "default_root_dir",
         "resume_from_checkpoint",
         "log_gpu_memory",
