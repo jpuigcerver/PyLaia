@@ -32,7 +32,7 @@ class __TestDecode(Decode):
         (
             {"use_symbols": True, "convert_spaces": True},
             r"va-\d+ ",
-            "['0', '3', '', '5', '<ctc>', '9']",
+            "['0', '3', ' ', '5', '<ctc>', '9']",
         ),
         ({"join_str": "-", "separator": " --- "}, r"va-\d+ --- ", "0-3-11-5-10-9"),
         ({"use_symbols": True, "join_str": ""}, r"va-\d+ ", "03<space>5<ctc>9"),
@@ -41,7 +41,7 @@ class __TestDecode(Decode):
 @pytest.mark.parametrize("num_processes", (1, 2))
 def test_decode(tmpdir, num_processes, kwargs, img_id, hyp):
     module = DummyEvaluator()
-    data_module = DummyMNISTLines(batch_size=2, va_n=12)
+    data_module = DummyMNISTLines(batch_size=2, va_n=12, samples_per_space=10)
     decode_callback = __TestDecode(img_id, hyp, syms=data_module.syms, **kwargs)
     trainer = DummyTrainer(
         default_root_dir=tmpdir,

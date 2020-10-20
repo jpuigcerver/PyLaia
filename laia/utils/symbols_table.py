@@ -7,9 +7,9 @@ class SymbolsTable:
     def clear(self):
         self._sym2val, self._val2sym = dict(), dict()
 
-    def load(self, f, encoding="utf-8"):
+    def load(self, f):
         if isinstance(f, str):
-            f = open(f, encoding=encoding)
+            f = open(f)
         self.clear()
         try:
             lines = [line.split() for line in f if len(line.split())]
@@ -20,12 +20,12 @@ class SymbolsTable:
         finally:
             f.close()
 
-    def save(self, f, encoding="utf-8"):
+    def save(self, f):
         if isinstance(f, str):
-            f = open(f, "w", encoding=encoding)
+            f = open(f, "w")
         max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
-            f.write(f"{s:>{max_len}} {v}\n".encode(encoding))
+            f.write(f"{s:>{max_len}} {v}\n")
         f.close()
 
     def __len__(self):
@@ -71,7 +71,7 @@ class SymbolsTable:
             pass
         elif old_val is not None:
             raise KeyError(
-                f'Symbol "{value}" was already present '
+                f'Symbol "{symbol}" was already present '
                 f'in the table (assigned to value "{old_val}")'
             )
         elif old_sym is not None:

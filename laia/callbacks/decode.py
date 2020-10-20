@@ -15,7 +15,7 @@ class Decode(pl.Callback):
         syms: Optional[Union[dict, SymbolsTable]] = None,
         use_symbols: bool = False,
         input_space: str = "<space>",
-        output_space: str = "",
+        output_space: str = " ",
         convert_spaces: bool = False,
         join_str: Optional[str] = None,
         separator: str = " ",

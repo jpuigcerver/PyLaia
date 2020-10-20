@@ -1,4 +1,4 @@
-import argparse
+from argparse import Namespace
 
 from laia.models.htr import LaiaCRNN
 from laia.scripts.htr.create_model import run
@@ -7,7 +7,7 @@ from laia.utils import SymbolsTable
 
 def test_run_fixed_height(monkeypatch):
     monkeypatch.setattr(SymbolsTable, "__len__", lambda _: 80)
-    args = argparse.Namespace(
+    args = Namespace(
         num_input_channels=1,
         syms=None,
         cnn_num_features=[16, 32, 48, 64, 80],
@@ -34,7 +34,7 @@ def test_run_fixed_height(monkeypatch):
 
 def test_run_variable_height(tmpdir, monkeypatch):
     monkeypatch.setattr(SymbolsTable, "__len__", lambda _: 80)
-    args = argparse.Namespace(
+    args = Namespace(
         num_input_channels=1,
         syms=None,
         cnn_num_features=[16, 32, 48, 64, 80],

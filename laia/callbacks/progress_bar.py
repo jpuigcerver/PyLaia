@@ -25,7 +25,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         self.running_sanity = None
         self.level = log.INFO
         self.format = defaultdict(
-            lambda: "{}",
+            self.format_factory,
             {
                 "loss": "{:.4f}",
                 "cer": "{:.1%}",
@@ -36,6 +36,10 @@ class ProgressBar(pl.callbacks.ProgressBar):
         # we want to keep it separate so we have to time it ourselves
         self.tr_timer = Timer()
         self.va_timer = Timer()
+
+    @staticmethod
+    def format_factory():
+        return "{}"
 
     def init_sanity_tqdm(self) -> tqdm:
         return tqdm(
