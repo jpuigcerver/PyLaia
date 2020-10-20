@@ -54,6 +54,7 @@ def _get_img_ids_and_filepaths(
 ) -> Tuple[List[str], List[str]]:
     if img_dirs is None:
         img_dirs = []
+    assert isinstance(img_dirs, list)
     img_list = _load_image_list_from_file(img_list)
     ids, filepaths = [], []
     for img_id in img_list:

@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 
@@ -8,17 +8,19 @@ from laia.dummies import DummyMNISTLines
 
 def test_get_indices_without_spaces():
     expected = [5, 10, 15, 20, 25, 30, 35, 40]
-    np.random.randint = MagicMock(return_value=len(expected))
-    np.random.choice = MagicMock(return_value=expected)
-    assert DummyMNISTLines.get_indices(10, 0) == expected
+    randint = patch("numpy.random.randint", return_value=len(expected))
+    choice = patch("numpy.random.choice", return_value=expected)
+    with randint, choice:
+        assert DummyMNISTLines.get_indices(10, 0) == expected
 
 
 def test_get_indices_with_spaces():
     choices1 = [5, 10, 15, 20, 25, 30, 35, 40]
     choices2 = [1, 5, 6, 7]
-    np.random.randint = MagicMock(return_value=len(choices1))
-    np.random.choice = MagicMock(side_effect=[choices1, choices2])
-    out = DummyMNISTLines.get_indices(10, 0, samples_per_space=3)
+    randint = patch("numpy.random.randint", return_value=len(choices1))
+    choice = patch("numpy.random.choice", side_effect=[choices1, choices2])
+    with randint, choice:
+        out = DummyMNISTLines.get_indices(10, 0, samples_per_space=3)
     assert out == [5, "sp", 10, 15, 20, 25, "sp", 30, "sp", 35, "sp", 40]
 
 

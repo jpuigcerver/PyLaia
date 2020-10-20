@@ -28,7 +28,7 @@ class DummyMNISTLines(DummyMNIST):
         # prepare symbols table
         self.syms = {i: str(i) for i in range(10)}
         self.syms[10] = "<ctc>"
-        if space_sym is not None:
+        if space_sym is not None and samples_per_space is not None:
             self.syms[11] = space_sym
 
     @staticmethod

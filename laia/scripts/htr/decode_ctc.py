@@ -137,7 +137,7 @@ def get_args() -> argparse.Namespace:
         default="<space>",
         help="Input space symbol to replace",
     ).add_argument(
-        "--output_space", type=str, default="", help="Output space symbol"
+        "--output_space", type=str, default=" ", help="Output space symbol"
     ).add_argument(
         "--print_segmentation",
         type=str,
