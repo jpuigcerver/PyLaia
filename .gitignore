@@ -84,3 +84,4 @@ laia/version.py
 
 # data
 datasets/
+test-resources/
