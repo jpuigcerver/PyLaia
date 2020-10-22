@@ -64,7 +64,9 @@ class DataModule(pl.LightningDataModule):
             )
         elif stage == "test":
             self.te_ds = None
-            self.te_img_list = te_img_list
+            # convert to str to avoid "cannot pickle '_io.TextIOWrapper' object"
+            # when using multiprocessing.spawn
+            self.te_img_list = [str(x) for x in te_img_list]
             super().__init__(test_transforms=base_img_transform)
 
     def setup(self, stage: Optional[str] = None):
