@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 import laia.common.logging as log
 import laia.data.transforms as transforms
@@ -15,6 +15,7 @@ from laia.data import (
     TextImageFromTextTableDataset,
 )
 from laia.data.padding_collater import by_descending_width
+from laia.data.unpadded_distributed_sampler import UnpaddedDistributedSampler
 from laia.utils import SymbolsTable
 
 _logger = log.get_logger(__name__)
@@ -93,6 +94,18 @@ class DataModule(pl.LightningDataModule):
         else:
             raise ValueError
 
+    def get_unpadded_distributed_sampler(
+        self, ds: torch.utils.data.Dataset
+    ) -> Optional[DistributedSampler]:
+        if not self.trainer.use_ddp:
+            return
+        return UnpaddedDistributedSampler(
+            ds,
+            num_replicas=self.trainer.num_nodes * self.trainer.num_processes,
+            rank=self.trainer.global_rank,
+            shuffle=False,
+        )
+
     def train_dataloader(self) -> DataLoader:
         assert self.tr_ds is not None
         return DataLoader(
@@ -112,6 +125,8 @@ class DataModule(pl.LightningDataModule):
         return DataLoader(
             dataset=self.va_ds,
             batch_size=self.batch_size,
+            shuffle=False,
+            sampler=self.get_unpadded_distributed_sampler(self.va_ds),
             num_workers=self.num_workers,
             pin_memory=self.trainer.on_gpu,
             collate_fn=PaddingCollater(
@@ -124,6 +139,7 @@ class DataModule(pl.LightningDataModule):
         return DataLoader(
             dataset=self.te_ds,
             batch_size=self.batch_size,
+            sampler=self.get_unpadded_distributed_sampler(self.te_ds),
             num_workers=self.num_workers,
             pin_memory=self.trainer.on_gpu,
             collate_fn=PaddingCollater(
