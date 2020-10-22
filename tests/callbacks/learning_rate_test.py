@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from laia.callbacks import LearningRate
-from laia.dummies import DummyEngine, DummyMNIST, DummyTrainer, dummy_accelerator_args
+from laia.dummies import DummyEngine, DummyLoggingPlugin, DummyMNIST, DummyTrainer
 
 
 def test_learning_rate_warns(tmpdir):
@@ -29,7 +29,9 @@ def test_learning_rate(tmpdir, num_processes):
         default_root_dir=tmpdir,
         max_epochs=3,
         callbacks=[LearningRate()],
-        **dummy_accelerator_args(log_filepath, num_processes),
+        accelerator="ddp_cpu" if num_processes > 1 else None,
+        num_processes=num_processes,
+        plugins=[DummyLoggingPlugin(log_filepath)],
     )
     trainer.fit(__TestEngine(), datamodule=DummyMNIST())
 

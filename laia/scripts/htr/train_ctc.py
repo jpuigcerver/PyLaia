@@ -84,6 +84,7 @@ def run(args: argparse.Namespace):
         patience=args.early_stopping_patience,
         verbose=True,
         mode="min",
+        strict=False,  # training_step may return None
     )
     # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
     pl.callbacks.ModelCheckpoint.CHECKPOINT_NAME_LAST = "{epoch}-last"
