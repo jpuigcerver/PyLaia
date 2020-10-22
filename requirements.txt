@@ -5,4 +5,4 @@ scipy
 torch
 torchvision
 nnutils-pytorch
-pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@01402e3
+pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@af44931

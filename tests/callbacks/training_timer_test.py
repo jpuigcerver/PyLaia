@@ -2,7 +2,7 @@ import pytest
 import pytorch_lightning as pl
 
 from laia.callbacks import TrainingTimer
-from laia.dummies import DummyEngine, DummyMNIST, DummyTrainer, dummy_accelerator_args
+from laia.dummies import DummyEngine, DummyLoggingPlugin, DummyMNIST, DummyTrainer
 
 
 # classes outside of test because they need to be pickle-able
@@ -29,7 +29,9 @@ def test_cpu(tmpdir, num_processes):
         default_root_dir=tmpdir,
         max_epochs=2,
         callbacks=[TrainingTimer(), __TestCallback()],
-        **dummy_accelerator_args(log_filepath, num_processes),
+        accelerator="ddp_cpu" if num_processes > 1 else None,
+        num_processes=num_processes,
+        plugins=[DummyLoggingPlugin(log_filepath)],
     )
     trainer.fit(DummyEngine(), datamodule=DummyMNIST(batch_size=1))
 
