@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import os
+from os.path import join
 
 import pytorch_lightning as pl
 
@@ -18,7 +18,7 @@ def run(args: argparse.Namespace):
 
     model = ModelLoader(
         args.train_path, filename=args.model_filename, device="cpu"
-    ).load_by(os.path.join(args.train_path, args.experiment_dirname, args.checkpoint))
+    ).load_by(join(args.train_path, args.experiment_dirname, args.checkpoint))
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
