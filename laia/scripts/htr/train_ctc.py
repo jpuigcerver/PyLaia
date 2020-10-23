@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import os
+from os.path import join
 
 import pytorch_lightning as pl
 
@@ -26,9 +26,9 @@ def run(args: argparse.Namespace):
     pl.seed_everything(get_key(args, "seed"))
 
     checkpoint = None
-    filepath = os.path.join(args.train_path, args.experiment_dirname)
+    exp_dirpath = join(args.train_path, args.experiment_dirname)
     if args.checkpoint:
-        checkpoint_path = os.path.join(filepath, args.checkpoint)
+        checkpoint_path = join(exp_dirpath, args.checkpoint)
         checkpoint = ModelLoader.choose_by(checkpoint_path)
         if not checkpoint:
             log.error('Could not find the checkpoint "{}"', checkpoint_path)
@@ -89,7 +89,8 @@ def run(args: argparse.Namespace):
     # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
     pl.callbacks.ModelCheckpoint.CHECKPOINT_NAME_LAST = "{epoch}-last"
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filepath=filepath + "/{epoch}-lowest_" + args.monitor,
+        dirpath=exp_dirpath,
+        filename="{epoch}-lowest_" + args.monitor,
         monitor=args.monitor,
         verbose=True,
         save_top_k=args.checkpoint_k,
@@ -108,7 +109,7 @@ def run(args: argparse.Namespace):
         checkpoint_callback=checkpoint_callback,
         resume_from_checkpoint=checkpoint,
         callbacks=callbacks,
-        logger=EpochCSVLogger(filepath),
+        logger=EpochCSVLogger(exp_dirpath),
         **vars(args.lightning),
     )
     trainer.fit(engine_module, datamodule=data_module)
