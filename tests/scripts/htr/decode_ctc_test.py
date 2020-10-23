@@ -50,7 +50,6 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
         args.append(f"--num_processes={nprocs}")
 
     stdout, stderr = call_script(script.__file__, args)
-    print(stdout, stderr)
 
     img_ids = [l.split(" ", maxsplit=1)[0] for l in stdout.strip().split("\n")]
     assert sorted(img_ids) == [f"va-{i}" for i in range(data_module.n["va"])]
