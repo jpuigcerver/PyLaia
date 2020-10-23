@@ -48,14 +48,9 @@ def run(args: argparse.Namespace):
     if not writers:
         log.error("You did not specify any output file! Use --matrix and/or --lattice")
         exit(1)
-    output_transform = (
-        lambda x: getattr(torch.nn.functional, args.output_transform)(x, dim=-1)
-        if args.output_transform
-        else None
-    )
 
     callbacks = [
-        Netout(writers, output_transform=output_transform),
+        Netout(writers, output_transform=args.output_transform),
         ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
     ]
 

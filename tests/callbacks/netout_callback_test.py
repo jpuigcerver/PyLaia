@@ -8,13 +8,12 @@ from laia.utils import ArchiveMatrixWriter
 
 
 class __TestWriter(ArchiveMatrixWriter):
+    def __init__(self):
+        pass
+
     def write(self, key, matrix):
         assert re.match(r"va-\d+", key)
         assert matrix.size() == (3, 10)
-
-
-def identity(x):
-    return x
 
 
 @pytest.mark.parametrize("num_processes", (1, 2))
@@ -23,7 +22,7 @@ def test_segmentation_callback(tmpdir, num_processes):
     trainer = DummyTrainer(
         default_root_dir=tmpdir,
         limit_test_batches=3,
-        callbacks=[Netout(writers=[__TestWriter(None)], output_transform=identity)],
+        callbacks=[Netout(writers=[__TestWriter()])],
         accelerator="ddp_cpu" if num_processes > 1 else None,
         num_processes=num_processes,
     )
