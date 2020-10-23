@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-import os
+from os.path import join
+from typing import Optional
 
 import pytorch_lightning as pl
 import torch
@@ -17,9 +18,10 @@ from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
+    exp_dirpath = join(args.train_path, args.experiment_dirname)
     model = ModelLoader(
         args.train_path, filename=args.model_filename, device="cpu"
-    ).load_by(os.path.join(args.train_path, args.experiment_dirname, args.checkpoint))
+    ).load_by(join(exp_dirpath, args.checkpoint))
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
@@ -40,10 +42,12 @@ def run(args: argparse.Namespace):
 
     writers = []
     if args.matrix is not None:
-        writers.append(ArchiveMatrixWriter(args.matrix))
+        writers.append(ArchiveMatrixWriter(join(exp_dirpath, args.matrix)))
     if args.lattice is not None:
         writers.append(
-            ArchiveLatticeWriter(args.lattice, digits=args.digits, negate=True)
+            ArchiveLatticeWriter(
+                join(exp_dirpath, args.lattice), digits=args.digits, negate=True
+            )
         )
     if not writers:
         log.error("You did not specify any output file! Use --matrix and/or --lattice")
@@ -98,7 +102,7 @@ def get_args() -> argparse.Namespace:
         ),
     ).add_argument(
         "--matrix",
-        type=argparse.FileType("wb"),
+        type=str,
         default=None,
         help=(
             "Path of the Kaldi's archive containing the output matrices "
@@ -107,7 +111,7 @@ def get_args() -> argparse.Namespace:
         ),
     ).add_argument(
         "--lattice",
-        type=argparse.FileType("w"),
+        type=str,
         default=None,
         help=(
             "Path of the Kaldi's archive containing the output lattices"
