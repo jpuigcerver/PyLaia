@@ -48,15 +48,15 @@ def test_write_text_lattice(dtype, device):
 @pytest.mark.parametrize(
     "device", ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
 )
-def test_archive_matrix_write(device):
-    f = io.BytesIO()
+def test_archive_matrix_writer(tmpdir, device):
     x1 = torch.rand(7, 9, dtype=torch.float, device=device)
     x2 = torch.rand(8, 8, dtype=torch.double, device=device)
+    f = tmpdir / "matrix"
     writer = kaldi.ArchiveMatrixWriter(f)
     writer.write("key1", x1)
     writer.write("longerkey", x2)
     # Test written data
-    binary_data = f.getvalue()
+    binary_data = f.read_binary()
     expected_size1 = 4 + 3 + 3 + 5 + 5 + x1.numel() * x1.element_size()
     expected_size2 = 9 + 3 + 3 + 5 + 5 + x2.numel() * x2.element_size()
     assert len(binary_data) == expected_size1 + expected_size2
@@ -67,17 +67,40 @@ def test_archive_matrix_write(device):
 @pytest.mark.parametrize(
     "device", ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
 )
-def test_archive_matrix_write_iterable(device):
+def test_archive_matrix_writer_write_iterable(tmpdir, device):
     x1 = torch.rand(7, 9, dtype=torch.float, device=device)
     x2 = torch.rand(8, 8, dtype=torch.double, device=device)
 
-    file1 = io.BytesIO()
-    writer1 = kaldi.ArchiveMatrixWriter(file1)
+    f1 = tmpdir / "matrix1"
+    writer1 = kaldi.ArchiveMatrixWriter(f1)
     writer1.write("key1", x1)
     writer1.write("key2", x2)
 
-    file2 = io.BytesIO()
-    writer2 = kaldi.ArchiveMatrixWriter(file2)
+    f2 = tmpdir / "matrix2"
+    writer2 = kaldi.ArchiveMatrixWriter(f2)
     writer2.write_iterable(zip(["key1", "key2"], [x1, x2]))
 
-    assert file2.getvalue() == file1.getvalue()
+    assert f1.read_binary() == f2.read_binary()
+
+
+@pytest.mark.parametrize(
+    "device", ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
+)
+def test_archive_lattice_writer_write_iterable(tmpdir, device):
+    f = tmpdir / "lattice"
+    writer = kaldi.ArchiveLatticeWriter(f, digits=3, negate=True)
+    x1 = torch.tensor([[1, 2], [5, 6]], dtype=torch.float, device=device).neg()
+    x2 = torch.tensor([[1], [5]], dtype=torch.double, device=device)
+    writer.write_iterable([("key1", x1), ("key2", x2)])
+    assert f.read_text("utf-8") == (
+        "key1\n"
+        "0\t1\t1\t1\t0,1.0\n"
+        "0\t1\t2\t2\t0,2.0\n"
+        "1\t2\t1\t1\t0,5.0\n"
+        "1\t2\t2\t2\t0,6.0\n"
+        "2\t0,0\n\n"
+        "key2\n"
+        "0\t1\t1\t1\t0,-1.0\n"
+        "1\t2\t1\t1\t0,-5.0\n"
+        "2\t0,0\n\n"
+    )
