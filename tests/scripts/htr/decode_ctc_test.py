@@ -1,4 +1,5 @@
 import shutil
+from distutils.version import StrictVersion
 from os.path import join
 
 import pytest
@@ -56,6 +57,9 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     assert "Using checkpoint" in stderr
 
 
+@pytest.mark.skipif(
+    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+)  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize("nprocs", (1, 2))
 def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, nprocs):
     syms = downloader("print/syms.txt")
@@ -95,6 +99,50 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, nprocs):
     ]
 
 
+@pytest.mark.skipif(
+    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+)  # https://github.com/pytorch/vision/issues/1943
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Distributed GPU test")
+def test_decode_with_ddp(tmpdir, downloader):
+    syms = downloader("print/syms.txt")
+    img_list = downloader("print/imgs.lst")
+    ckpt = downloader("print/experiment_h128")
+    images = downloader("print/imgs_h128", archive=True)
+    model = downloader("print/model_h128")
+    shutil.move(model, tmpdir)
+
+    args = [
+        syms,
+        img_list,
+        ckpt,
+        images,
+        f"--train_path={tmpdir}",
+        f"--experiment_dirname={tmpdir}",
+        "--model_filename=model_h128",
+        f"--batch_size=3",
+        "--join_str=",
+        "--convert_spaces",
+        "--accelerator=ddp",
+        "--gpus=2",
+    ]
+
+    stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stdout:\n{stdout}")
+    print(f"Script stderr:\n{stderr}")
+
+    lines = sorted(stdout.strip().split("\n"))
+    assert lines == [
+        "ONB_aze_18950706_4.r_10_2.tl_125 Deutschland.",
+        "ONB_aze_18950706_4.r_10_3.tl_126 — Wir haben gestern von dem merkwürdigen Tadel",
+        "ONB_aze_18950706_4.r_10_3.tl_127 erzahlt, den der Colberger Bürgermeister von dem vorgesetzten",
+        "ONB_aze_18950706_4.r_10_3.tl_128 Regierungspräsidenten in Köslin erlitten hat, weil er anläß¬",
+        "ONB_aze_18950706_4.r_10_3.tl_129 lich der Reichsrathswahl im Kreise Colberg=Köslin den",
+    ]
+
+
+@pytest.mark.skipif(
+    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+)  # https://github.com/pytorch/vision/issues/1943
 def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     syms = downloader("print/syms.txt")
     img_list = downloader("print/imgs.lst")
