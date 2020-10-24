@@ -45,7 +45,9 @@ def test_netout_on_dummy_mnist_lines_data(tmpdir, nprocs):
         args.append("--accelerator=ddp_cpu")
         args.append(f"--num_processes={nprocs}")
 
-    _, stderr = call_script(script.__file__, args)
+    stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stdout:\n{stdout}")
+    print(f"Script stderr:\n{stderr}")
 
     assert "Using checkpoint" in stderr
 
