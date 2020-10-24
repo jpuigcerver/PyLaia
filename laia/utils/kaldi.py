@@ -61,7 +61,9 @@ class ArchiveMatrixWriter:
     """
 
     def __init__(self, filepath: str) -> None:
-        Path(filepath).unlink(missing_ok=True)
+        p = Path(filepath)
+        if p.exists():
+            p.unlink()
         self._filepath = filepath
 
     def write(self, key: str, matrix: Union[torch.Tensor, np.ndarray]) -> None:
@@ -99,7 +101,9 @@ class ArchiveLatticeWriter:
     """
 
     def __init__(self, filepath: str, digits: int = 8, negate: bool = False) -> None:
-        Path(filepath).unlink(missing_ok=True)
+        p = Path(filepath)
+        if p.exists():
+            p.unlink()
         self._filepath = filepath
         self._digits = digits
         self._negate = negate
