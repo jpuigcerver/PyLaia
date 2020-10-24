@@ -81,7 +81,9 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, nprocs):
         args.append("--accelerator=ddp_cpu")
         args.append(f"--num_processes={nprocs}")
 
-    stdout, _ = call_script(script.__file__, args)
+    stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stdout:\n{stdout}")
+    print(f"Script stderr:\n{stderr}")
 
     lines = sorted(stdout.strip().split("\n"))
     assert lines == [
