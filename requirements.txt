@@ -2,6 +2,7 @@ textdistance
 natsort
 numpy
 scipy
+matplotlib
 torch
 torchvision
 nnutils-pytorch
