@@ -4,17 +4,17 @@ import torch
 
 import laia.common.logging as log
 
-_TENSOR_REAL = (torch.float, torch.double, torch.half)
 
-
-def check_inf(
+def check_tensor(
     tensor: torch.Tensor,
     msg: Optional[str] = None,
     name: Optional[str] = None,
     raise_exception: bool = False,
     **kwargs,
 ) -> bool:
-    """Check whether a tensor contains a +/- infinite value.
+    """
+    Checks if each element of a tensor is finite or not.
+    Real values are finite when they are not NaN, negative infinity, or infinity.
 
     Arguments:
       tensor (torch.Tensor): tensor to check.
@@ -27,58 +27,17 @@ def check_inf(
       kwargs: additional named arguments passed to format the message.
 
     Return:
-      `True` if the tensor contains any +/- infinite element, or `False`
-      otherwise.
+      `True` if the tensor contains any infinite value, `False` otherwise.
     """
     logger = log.get_logger(name)
-    if logger.isEnabledFor(log.DEBUG) and tensor.dtype in _TENSOR_REAL:
-        num_inf = torch.isinf(tensor).sum().item()
-        if num_inf > 0:
-            per_inf = num_inf / tensor.numel()
+    if logger.isEnabledFor(log.DEBUG):
+        num = tensor.isfinite().logical_not().sum().item()
+        if num > 0:
+            percentage = num / tensor.numel()
             msg = (
-                f"{num_inf:d} ({per_inf:.2%}) INF values found"
+                f"{num:d} ({percentage:.2%}) infinite values found"
                 if msg is None
-                else msg.format(abs_num=num_inf, rel_num=per_inf, **kwargs)
-            )
-            if raise_exception:
-                raise ValueError(msg)
-            else:
-                logger.debug(msg)
-            return True
-    return False
-
-
-def check_nan(
-    tensor: torch.Tensor,
-    msg: Optional[str] = None,
-    name: Optional[str] = None,
-    raise_exception: bool = False,
-    **kwargs,
-) -> bool:
-    """Check whether a tensor contains a NaN value.
-
-    Arguments:
-      tensor (torch.Tensor): tensor to check.
-      msg (str): message format string. The message format can use the keys
-          ``abs_num`` and ``rel_num`` to print the absolute number and the
-           percentage of NaN elements. (Default: None)
-      name (str): Name of the logger used to log the event (Default: None)
-      raise_exception (bool): raise an exception instead of logging the event
-          (Default: False)
-      kwargs: additional named arguments passed to format the message.
-
-    Return:
-      `True` if the tensor contains any NaN element, or `False` otherwise.
-    """
-    logger = log.get_logger(name)
-    if logger.isEnabledFor(log.DEBUG) and tensor.dtype in _TENSOR_REAL:
-        num_nan = torch.isnan(tensor).sum().item()
-        if num_nan > 0:
-            per_nan = num_nan / tensor.numel()
-            msg = (
-                f"{num_nan:d} ({per_nan:.2%}) NaN values found"
-                if msg is None
-                else msg.format(abs_num=num_nan, rel_num=per_nan, **kwargs)
+                else msg.format(abs_num=num, rel_num=percentage, **kwargs)
             )
             if raise_exception:
                 raise ValueError(msg)
