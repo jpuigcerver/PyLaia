@@ -51,6 +51,8 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
         args.append(f"--num_processes={nprocs}")
 
     stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stdout:\n{stdout}")
+    print(f"Script stderr:\n{stderr}")
 
     img_ids = [l.split(" ", maxsplit=1)[0] for l in stdout.strip().split("\n")]
     assert sorted(img_ids) == [f"va-{i}" for i in range(data_module.n["va"])]
@@ -126,7 +128,9 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
         "--join_str=",
         "--convert_spaces",
     ]
-    stdout, _ = call_script(script.__file__, args)
+    stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stdout:\n{stdout}")
+    print(f"Script stderr:\n{stderr}")
 
     lines = sorted(stdout.strip().split("\n"))
     assert lines == [
@@ -136,3 +140,48 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
         "ONB_aze_18950706_4.r_10_3.tl_128 Regierungspräsidenten in Köslin erlitten hat, weil er anläß¬",
         "ONB_aze_18950706_4.r_10_3.tl_129 lich der Reicherathswahl in Kreise Colberg=Köslin den",
     ]
+
+
+@pytest.mark.skipif(
+    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+)  # https://github.com/pytorch/vision/issues/1943
+@pytest.mark.parametrize(
+    "accelerator",
+    [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
+)
+def test_segmentation(tmpdir, downloader, accelerator):
+    syms = downloader("print/syms.txt")
+    img_list = downloader("print/imgs.lst")
+    ckpt = downloader("print/experiment_h128")
+    images = downloader("print/imgs_h128", archive=True)
+    model = downloader("print/model_h128")
+    shutil.move(model, tmpdir)
+
+    args = [
+        syms,
+        img_list,
+        ckpt,
+        images,
+        f"--train_path={tmpdir}",
+        f"--experiment_dirname={tmpdir}",
+        "--model_filename=model_h128",
+        "--batch_size=3",
+        "--print_segmentation=word",
+    ]
+    if accelerator:
+        args.append(f"--accelerator={accelerator}")
+        args.append(f"--{'num_processes' if accelerator == 'ddp_cpu' else 'gpus'}=2")
+
+    stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stdout:\n{stdout}")
+    print(f"Script stderr:\n{stderr}")
+
+    lines = sorted(stdout.strip().split("\n"))
+    expected = [
+        "ONB_aze_18950706_4.r_10_2.tl_125 [('Deutschland.', 1, 1, 735, 128)]",
+        "ONB_aze_18950706_4.r_10_3.tl_126 [('—', 1, 1, 23, 128),",
+        "ONB_aze_18950706_4.r_10_3.tl_127 [('erzahlt,', 1, 1, 247, 128),",
+        "ONB_aze_18950706_4.r_10_3.tl_128 [('Regierungspräsidenten', 1, 1, 568, 128),",
+        "ONB_aze_18950706_4.r_10_3.tl_129 [('lich', 1, 1, 71, 128),",
+    ]
+    assert all(l.startswith(e) for l, e in zip(lines, expected))
