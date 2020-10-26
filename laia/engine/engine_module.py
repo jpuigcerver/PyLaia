@@ -7,7 +7,7 @@ from laia.common.arguments import get_key
 from laia.common.types import Loss as LossT
 from laia.engine.engine_exception import exception_catcher
 from laia.losses.loss import Loss
-from laia.utils import check_inf, check_nan
+from laia.utils import check_tensor
 
 
 class EngineModule(pl.LightningModule):
@@ -33,7 +33,7 @@ class EngineModule(pl.LightningModule):
         # prepare_batch()
         self.batch_input_fn = batch_input_fn
         self.batch_target_fn = batch_target_fn
-        # exception_catcher(), run_checks(), compute_loss()
+        # exception_catcher(), check_tensor(), compute_loss()
         self.batch_id_fn = batch_id_fn
         # training_step(), validation_step()
         self.batch_y_hat = None
@@ -89,24 +89,13 @@ class EngineModule(pl.LightningModule):
             return batch
         return batch, None
 
-    def run_checks(self, batch: Any, batch_y_hat: Any) -> None:
-        # Note: only active when logging level <= DEBUG
-        check_inf(
+    def check_tensor(self, batch: Any, batch_y_hat: Any) -> None:
+        # note: only active when logging level <= DEBUG
+        check_tensor(
             tensor=batch_y_hat.data,
             logger=__name__,
             msg=(
-                "Found {abs_num} ({rel_num:.2%}) INF values in the model output "
-                "at epoch={epoch}, batch={batch}, global_step={global_step}"
-            ),
-            epoch=self.current_epoch,
-            batch=self.batch_id_fn(batch) if self.batch_id_fn else batch,
-            global_step=self.global_step,
-        )
-        check_nan(
-            tensor=batch_y_hat.data,
-            logger=__name__,
-            msg=(
-                "Found {abs_num} ({rel_num:.2%}) NAN values in the model output "
+                "Found {abs_num} ({rel_num:.2%}) infinite values in the model output "
                 "at epoch={epoch}, batch={batch}, global_step={global_step}"
             ),
             epoch=self.current_epoch,
@@ -130,10 +119,8 @@ class EngineModule(pl.LightningModule):
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
             batch_loss = self.criterion(batch_y_hat, batch_y, **kwargs)
             if batch_loss is not None:
-                if torch.sum(torch.isnan(batch_loss)).item() > 0:
-                    raise ValueError("The loss is NaN")
-                if torch.sum(torch.isinf(batch_loss)).item() > 0:
-                    raise ValueError("The loss is ± inf")
+                if not torch.isfinite(batch_loss).all():
+                    raise ValueError("The loss is NaN or ± inf")
             return batch_loss
 
     def backward(self, loss, *_, **__):
@@ -145,7 +132,7 @@ class EngineModule(pl.LightningModule):
         batch_x, batch_y = self.prepare_batch(batch)
         with self.exception_catcher():
             self.batch_y_hat = self.model(batch_x)
-        self.run_checks(batch, self.batch_y_hat)
+        self.check_tensor(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
         if batch_loss is None:
             return
@@ -163,7 +150,7 @@ class EngineModule(pl.LightningModule):
         batch_x, batch_y = self.prepare_batch(batch)
         with self.exception_catcher():
             self.batch_y_hat = self.model(batch_x)
-        self.run_checks(batch, self.batch_y_hat)
+        self.check_tensor(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
         if batch_loss is None:
             return

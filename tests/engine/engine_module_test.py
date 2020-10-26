@@ -35,10 +35,9 @@ def test_run_checks(caplog):
     model = DummyModel((3, 3), 10)
     module = EngineModule(model, "SGD", lambda x: x)
     with caplog.at_level(DEBUG):
-        module.run_checks(None, torch.tensor([1, 5, float("nan"), float("-inf"), -5]))
+        module.check_tensor(None, torch.tensor([1, 5, float("nan"), float("-inf"), -5]))
     assert caplog.messages == [
-        "Found 1 (20.00%) INF values in the model output at epoch=0, batch=None, global_step=0",
-        "Found 1 (20.00%) NAN values in the model output at epoch=0, batch=None, global_step=0",
+        "Found 2 (40.00%) infinite values in the model output at epoch=0, batch=None, global_step=0",
     ]
 
 
@@ -46,7 +45,7 @@ def test_exception_catcher():
     model = DummyModel((3, 3), 10)
     module = EngineModule(model, "SGD", lambda x: x)
     with pytest.raises(EngineException, match=r'Exception "RuntimeError\(\)" raised'):
-        with module.exception_catcher():
+        with module.exception_catcher(None):
             raise RuntimeError()
 
 
@@ -55,16 +54,9 @@ def test_compute_loss():
 
     with pytest.raises(
         EngineException,
-        match=r'Exception "ValueError\(\'The loss is NaN\'[,]?\)" raised',
+        match=r'Exception "ValueError\(\'The loss is NaN or ± inf\'[,]?\)" raised',
     ):
         module = EngineModule(model, "SGD", lambda *_: torch.tensor([1, float("nan")]))
-        module.compute_loss(None, None, None)
-
-    with pytest.raises(
-        EngineException,
-        match=r'Exception "ValueError\(\'The loss is ± inf\'[,]?\)" raised',
-    ):
-        module = EngineModule(model, "SGD", lambda *_: torch.tensor(float("inf")))
         module.compute_loss(None, None, None)
 
     expected = torch.tensor(0.1)
