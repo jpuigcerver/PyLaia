@@ -7,6 +7,5 @@ include *.md
 include LICENSE
 include requirements.txt
 recursive-include laia *.py
-include pylaia-htr-create-model pylaia-htr-train-ctc pylaia-htr-decode-ctc pylaia-htr-netout
 
 prune .git
