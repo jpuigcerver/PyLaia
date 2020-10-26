@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 from os.path import join
-from typing import Optional
 
 import pytorch_lightning as pl
-import torch
 
 import laia.common.logging as log
 from laia import get_installed_versions

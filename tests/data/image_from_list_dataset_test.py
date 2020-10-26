@@ -39,7 +39,7 @@ def test_get_img_ids_and_filepaths_with_dirs(tmpdir, caplog):
     assert filepaths == expected
     assert (
         caplog.messages.count(
-            f"No image file found for image ID '{img_list[-1]}', ignoring example..."
+            f"No image file found for image ID '{img_list[-1]}', ignoring it..."
         )
         == 1
     )
@@ -55,7 +55,7 @@ def test_get_img_ids_and_filepaths_without_dirs(tmpdir, caplog):
     assert ids == filepaths == img_list[:-1]
     assert (
         caplog.messages.count(
-            f"No image file found for image ID '{img_list[-1]}', ignoring example..."
+            f"No image file found for image ID '{img_list[-1]}', ignoring it..."
         )
         == 1
     )
