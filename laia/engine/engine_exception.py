@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Iterator
 
 
 class EngineException(Exception):
@@ -20,7 +20,9 @@ class EngineException(Exception):
 
 
 @contextmanager
-def exception_catcher(batch: Any, current_epoch: int, global_step: int) -> Any:
+def exception_catcher(
+    batch: Any, current_epoch: int, global_step: int
+) -> Iterator[None]:
     try:
         yield
     except Exception as e:

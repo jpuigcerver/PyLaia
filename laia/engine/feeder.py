@@ -25,6 +25,7 @@ class ItemFeeder(Feeder):
         self._key = key
 
     def feed(self, x):
+        assert x is not None
         assert self._key in x, f"Could not find key {self._key} in {x}"
         return x[self._key]
 

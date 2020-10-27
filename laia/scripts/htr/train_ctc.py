@@ -25,6 +25,7 @@ def run(args: argparse.Namespace):
 
     pl.seed_everything(get_key(args, "seed"))
 
+    # maybe load a checkpoint
     checkpoint = None
     exp_dirpath = join(args.train_path, args.experiment_dirname)
     if args.checkpoint:
@@ -35,18 +36,20 @@ def run(args: argparse.Namespace):
             exit(1)
         log.info('Using checkpoint "{}"', checkpoint)
 
-    # Load the non-pytorch_lightning model
+    # load the non-pytorch_lightning model
     model = ModelLoader(args.train_path, filename=args.model_filename).load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
 
+    # prepare the symbols
     syms = SymbolsTable(args.syms)
     for d in args.delimiters:
         if d not in syms:
             log.error('The delimiter "{}" is not available in the symbols file', d)
             exit(1)
 
+    # prepare the engine
     optimizer_kwargs = {
         "learning_rate": args.learning_rate,
         "momentum": args.momentum,
@@ -67,6 +70,7 @@ def run(args: argparse.Namespace):
         batch_id_fn=ItemFeeder("id"),  # Used to print image ids on exception
     )
 
+    # prepare the data
     data_module = DataModule(
         img_dirs=args.img_dirs,
         color_mode=args.color_mode,
@@ -79,15 +83,8 @@ def run(args: argparse.Namespace):
         stage="fit",
     )
 
-    early_stopping_callback = pl.callbacks.EarlyStopping(
-        monitor=args.monitor,
-        patience=args.early_stopping_patience,
-        verbose=True,
-        mode="min",
-        strict=False,  # training_step may return None
-    )
+    # prepare the training callbacks
     # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
-    pl.callbacks.ModelCheckpoint.CHECKPOINT_NAME_LAST = "{epoch}-last"
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         dirpath=exp_dirpath,
         filename="{epoch}-lowest_" + args.monitor,
@@ -97,15 +94,26 @@ def run(args: argparse.Namespace):
         mode="min",
         save_last=True,
     )
-    callbacks = [ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate)]
+    checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"
+    callbacks = [
+        ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
+        pl.callbacks.EarlyStopping(
+            monitor=args.monitor,
+            patience=args.early_stopping_patience,
+            verbose=True,
+            mode="min",
+            strict=False,  # training_step may return None
+        ),
+        checkpoint_callback,
+    ]
     if args.gpu_stats:
         callbacks.append(ProgressBarGPUStats())
     if args.scheduler:
         callbacks.append(LearningRate(logging_interval="epoch"))
 
+    # prepare the trainer
     trainer = pl.Trainer(
         default_root_dir=args.train_path,
-        early_stop_callback=early_stopping_callback,
         checkpoint_callback=checkpoint_callback,
         resume_from_checkpoint=checkpoint,
         callbacks=callbacks,
@@ -113,10 +121,13 @@ def run(args: argparse.Namespace):
         terminate_on_nan=False,
         **vars(args.lightning),
     )
+
+    # train!
     trainer.fit(engine_module, datamodule=data_module)
 
+    # training is over. print best model path
     log.info(
-        f'Best {args.monitor}="{checkpoint_callback.best_model_score}" '
+        f'Best {checkpoint_callback.monitor}="{checkpoint_callback.best_model_score}" '
         f'obtained with model="{checkpoint_callback.best_model_path}"'
     )
 

@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -37,8 +37,6 @@ class EngineModule(pl.LightningModule):
         self.batch_id_fn = batch_id_fn
         # training_step(), validation_step()
         self.batch_y_hat = None
-        # backward()
-        self.current_batch = None
         # required by auto_lr_find
         self.lr = get_key(self.optimizer_kwargs, "learning_rate")
 
@@ -103,17 +101,15 @@ class EngineModule(pl.LightningModule):
             global_step=self.global_step,
         )
 
-    def exception_catcher(self):
+    def exception_catcher(self, batch: Any) -> Iterator[None]:
         return exception_catcher(
-            self.batch_id_fn(self.current_batch)
-            if self.batch_id_fn
-            else self.current_batch,
+            self.batch_id_fn(batch) if self.batch_id_fn else batch,
             self.current_epoch,
             self.global_step,
         )
 
     def compute_loss(self, batch: Any, batch_y_hat: Any, batch_y: Any) -> LossT:
-        with self.exception_catcher():
+        with self.exception_catcher(batch):
             kwargs = {}
             if isinstance(self.criterion, Loss) and self.batch_id_fn:
                 kwargs = {"batch_ids": self.batch_id_fn(batch)}
@@ -123,14 +119,15 @@ class EngineModule(pl.LightningModule):
                     raise ValueError("The loss is NaN or ± inf")
             return batch_loss
 
-    def backward(self, loss, *_, **__):
-        with self.exception_catcher():
-            loss.backward()
+    # TODO: find out how to get the batch here
+    # TODO: check gradients after backward
+    # def backward(self, loss, *args, **kwargs):
+    #     with self.exception_catcher(batch):
+    #         super().backward(loss, *args, **kwargs)
 
     def training_step(self, batch: Any, *_, **__):
-        self.current_batch = batch
         batch_x, batch_y = self.prepare_batch(batch)
-        with self.exception_catcher():
+        with self.exception_catcher(batch):
             self.batch_y_hat = self.model(batch_x)
         self.check_tensor(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
@@ -148,7 +145,7 @@ class EngineModule(pl.LightningModule):
 
     def validation_step(self, batch: Any, *_, **__):
         batch_x, batch_y = self.prepare_batch(batch)
-        with self.exception_catcher():
+        with self.exception_catcher(batch):
             self.batch_y_hat = self.model(batch_x)
         self.check_tensor(batch, self.batch_y_hat)
         batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
