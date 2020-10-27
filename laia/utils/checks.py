@@ -31,7 +31,7 @@ def check_tensor(
     """
     logger = log.get_logger(name)
     if logger.isEnabledFor(log.DEBUG):
-        num = tensor.isfinite().logical_not().sum().item()
+        num = torch.isfinite(tensor).logical_not().sum().item()
         if num > 0:
             percentage = num / tensor.numel()
             msg = (
