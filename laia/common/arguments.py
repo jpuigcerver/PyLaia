@@ -229,7 +229,8 @@ def group_to_namespace(
 
 
 # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/3076
-def add_lightning_args(parser):
+# TODO: upstream blocklist
+def add_lightning_args(parser, blocklist=None):
     import pytorch_lightning.utilities.parsing as parsing
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.utilities.argparse_utils import (
@@ -237,15 +238,19 @@ def add_lightning_args(parser):
         _gpus_arg_default,
         _int_or_float_type,
         get_init_arguments_and_types,
+        parse_args_from_docstring,
     )
 
     cls = Trainer
 
-    blacklist = ["kwargs"]
-    depr_arg_names = cls.get_deprecated_arg_names() + blacklist
+    if blocklist is None:
+        blocklist = []
+    blocklist += ["kwargs"]
+    depr_arg_names = cls.get_deprecated_arg_names() + blocklist
 
     allowed_types = (str, int, float, bool)
 
+    args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__)
     for arg, arg_types, arg_default in (
         at for at in get_init_arguments_and_types(cls) if at[0] not in depr_arg_names
     ):
@@ -285,6 +290,7 @@ def add_lightning_args(parser):
             dest=arg,
             default=arg_default,
             type=use_type,
+            help=args_help.get(arg),
             **arg_kwargs,
         )
 
