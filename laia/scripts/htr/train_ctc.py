@@ -235,6 +235,9 @@ def get_args() -> argparse.Namespace:
             "log_gpu_memory",
             "logger",
             "terminate_on_nan",
+            # TODO: support these 2
+            "auto_scale_batch_size",
+            "auto_lr_find",
         ],
     )
 
