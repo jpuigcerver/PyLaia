@@ -148,15 +148,12 @@ def get_args() -> argparse.Namespace:
 
     # Add lightning default arguments to a group
     pl_group = parser.parser.add_argument_group(title="pytorch-lightning arguments")
-    pl_group = add_lightning_args(pl_group)
+    pl_group = add_lightning_args(pl_group, blocklist=["default_root_dir"])
 
     args = parser.parse_args()
 
     # Move lightning default arguments to their own namespace
     args = group_to_namespace(args, pl_group, "lightning")
-    # Delete some which will be set manually
-    for a in ("default_root_dir",):
-        delattr(args.lightning, a)
 
     return args
 

@@ -110,6 +110,7 @@ def run(args: argparse.Namespace):
         resume_from_checkpoint=checkpoint,
         callbacks=callbacks,
         logger=EpochCSVLogger(exp_dirpath),
+        terminate_on_nan=False,
         **vars(args.lightning),
     )
     trainer.fit(engine_module, datamodule=data_module)
@@ -214,7 +215,17 @@ def get_args() -> argparse.Namespace:
 
     # Add lightning default arguments to a group
     pl_group = parser.parser.add_argument_group(title="pytorch-lightning arguments")
-    pl_group = add_lightning_args(pl_group)
+    pl_group = add_lightning_args(
+        pl_group,
+        blocklist=[
+            "checkpoint_callback",
+            "default_root_dir",
+            "resume_from_checkpoint",
+            "log_gpu_memory",
+            "logger",
+            "terminate_on_nan",
+        ],
+    )
 
     args = parser.parse_args()
 
@@ -222,15 +233,6 @@ def get_args() -> argparse.Namespace:
     args = group_to_namespace(args, pl_group, "lightning")
     # Hard-code some args
     args.lightning.weights_summary = "full"
-    # Delete some which will be set manually
-    for a in (
-        "checkpoint_callback",
-        "default_root_dir",
-        "resume_from_checkpoint",
-        "log_gpu_memory",
-        "logger",
-    ):
-        delattr(args.lightning, a)
 
     return args
 
