@@ -1,11 +1,14 @@
 import os
+import shutil
 from collections import OrderedDict
 from pathlib import Path
 
 import pytest
+import pytorch_lightning as pl
 import torch
 
 from laia.common.loader import ModelLoader, ObjectLoader
+from laia.dummies import DummyEngine, DummyMNIST, DummyTrainer
 
 
 class Foo:
@@ -161,3 +164,75 @@ def test_model_loader_choose_by(tmpdir, input, expected):
         torch.save(None, f)
     assert len(os.listdir(tmpdir)) == n_files
     assert ModelLoader.choose_by(f"{tmpdir}/{input}") == f"{tmpdir}/{expected}"
+
+
+def test_model_loader_find_best(tmpdir):
+    # empty directory
+    assert ModelLoader.find_best(tmpdir, "test") is None
+
+    # with no-monitor ckpts
+    mc = pl.callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
+    trainer = DummyTrainer(
+        default_root_dir=tmpdir, checkpoint_callback=mc, max_epochs=3
+    )
+    trainer.fit(DummyEngine(), datamodule=DummyMNIST())
+    assert ModelLoader.find_best(tmpdir, "test") is None
+
+    # with monitor ckpts
+    monitor = "bar"
+    mc = pl.callbacks.ModelCheckpoint(
+        dirpath=tmpdir, save_top_k=-1, monitor=monitor, mode="max"
+    )
+    trainer = DummyTrainer(
+        default_root_dir=tmpdir, checkpoint_callback=mc, max_epochs=3
+    )
+    trainer.fit(DummyEngine(), datamodule=DummyMNIST())
+    assert (
+        ModelLoader.find_best(tmpdir, monitor, mode="max")
+        == tmpdir / "epoch=2-v0.ckpt"
+        == mc.best_model_path
+    )
+    assert (
+        ModelLoader.find_best(tmpdir, monitor, mode="min") == tmpdir / "epoch=0-v0.ckpt"
+    )
+
+
+def test_model_loader_prepare_checkpoint(tmpdir, caplog):
+    # create some checkpoints
+    monitor = "bar"
+    exp_dirpath = tmpdir / "experiment"
+    mc = pl.callbacks.ModelCheckpoint(
+        dirpath=exp_dirpath, save_top_k=-1, monitor=monitor, mode="max"
+    )
+    trainer = DummyTrainer(
+        default_root_dir=tmpdir, checkpoint_callback=mc, max_epochs=2
+    )
+    trainer.fit(DummyEngine(), datamodule=DummyMNIST())
+
+    expected = exp_dirpath / "epoch=0.ckpt"
+    # nothing
+    assert ModelLoader.prepare_checkpoint("", exp_dirpath, monitor) == expected
+    # direct path
+    assert ModelLoader.prepare_checkpoint(expected, exp_dirpath, monitor) == expected
+    # direct path outside of exp_dirpath
+    shutil.copy(expected, "/tmp")
+    assert (
+        ModelLoader.prepare_checkpoint("/tmp/epoch=0.ckpt", exp_dirpath, monitor)
+        == "/tmp/epoch=0.ckpt"
+    )
+    # filename
+    assert (
+        ModelLoader.prepare_checkpoint("epoch=0.ckpt", exp_dirpath, monitor) == expected
+    )
+    # globbed filename
+    assert (
+        ModelLoader.prepare_checkpoint("epoch=?.ckpt", exp_dirpath, monitor)
+        == exp_dirpath / "epoch=1.ckpt"
+    )
+    # failures
+    with pytest.raises(SystemExit):
+        ModelLoader.prepare_checkpoint("", tmpdir, monitor)
+        assert caplog.messages[-1].startswith("Could not find a valid checkpoint in")
+    with pytest.raises(SystemExit):
+        ModelLoader.prepare_checkpoint("?", exp_dirpath, monitor)
+        assert caplog.messages[-1].startswith("Could not find the checkpoint")

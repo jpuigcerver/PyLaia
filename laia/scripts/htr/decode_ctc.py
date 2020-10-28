@@ -16,21 +16,26 @@ from laia.utils import SymbolsTable
 def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
-    model = ModelLoader(
-        args.train_path, filename=args.model_filename, device="cpu"
-    ).load_by(join(args.train_path, args.experiment_dirname, args.checkpoint))
+    loader = ModelLoader(args.train_path, filename=args.model_filename, device="cpu")
+    checkpoint = loader.prepare_checkpoint(
+        args.checkpoint, join(args.train_path, args.experiment_dirname), args.monitor
+    )
+    model = loader.load_by(checkpoint)
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
 
+    # prepare the evaluator
     evaluator_module = EvaluatorModule(
         model,
         batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
         batch_id_fn=ItemFeeder("id"),
     )
 
+    # prepare the symbols
     syms = SymbolsTable(args.syms)
 
+    # prepare the data
     data_module = DataModule(
         img_dirs=args.img_dirs,
         color_mode=args.color_mode,
@@ -40,38 +45,37 @@ def run(args: argparse.Namespace):
         stage="test",
     )
 
+    # prepare the testing callbacks
     callbacks = [
         ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
+        Segmentation(
+            syms,
+            segmentation=args.print_segmentation,
+            input_space=args.input_space,
+            separator=args.separator,
+            include_img_ids=args.include_img_ids,
+        )
+        if bool(args.print_segmentation)
+        else Decode(
+            syms=syms,
+            use_symbols=args.use_symbols,
+            input_space=args.input_space,
+            output_space=args.output_space,
+            convert_spaces=args.convert_spaces,
+            join_str=args.join_str,
+            separator=args.separator,
+            include_img_ids=args.include_img_ids,
+        ),
     ]
-    if bool(args.print_segmentation):
-        callbacks.append(
-            Segmentation(
-                syms,
-                segmentation=args.print_segmentation,
-                input_space=args.input_space,
-                separator=args.separator,
-                include_img_ids=args.include_img_ids,
-            )
-        )
-    else:
-        callbacks.append(
-            Decode(
-                syms=syms,
-                use_symbols=args.use_symbols,
-                input_space=args.input_space,
-                output_space=args.output_space,
-                convert_spaces=args.convert_spaces,
-                join_str=args.join_str,
-                separator=args.separator,
-                include_img_ids=args.include_img_ids,
-            )
-        )
 
+    # prepare the trainer
     trainer = pl.Trainer(
         default_root_dir=args.train_path,
         callbacks=callbacks,
         **vars(args.lightning),
     )
+
+    # decode!
     trainer.test(evaluator_module, datamodule=data_module, verbose=False)
 
 
@@ -79,6 +83,8 @@ def get_args() -> argparse.Namespace:
     parser = LaiaParser().add_defaults(
         "batch_size",
         "train_path",
+        "monitor",
+        "checkpoint",
         "model_filename",
         "experiment_dirname",
         "color_mode",
@@ -91,10 +97,6 @@ def get_args() -> argparse.Namespace:
         "img_list",
         type=argparse.FileType("r"),
         help="File containing images to decode. Doesn't require the extension",
-    ).add_argument(
-        "checkpoint",
-        type=str,
-        help="Name of the model checkpoint to use, can be a glob pattern",
     ).add_argument(
         "img_dirs",
         type=str,

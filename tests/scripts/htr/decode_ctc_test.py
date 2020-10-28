@@ -15,8 +15,8 @@ from tests.scripts.htr.script_utils import call_script, downloader  # noqa
 
 @pytest.mark.parametrize("nprocs", (1, 2))
 def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
-    seed_everything(0x12345)
     # prepare data
+    seed_everything(0x12345)
     data_module = DummyMNISTLines(tr_n=0, va_n=5, batch_size=3, samples_per_space=3)
     data_module.prepare_data()
     # prepare model file
@@ -40,10 +40,9 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     args = [
         syms,
         str(img_list),
-        ckpt,
         join(data_module.root, "va"),
+        f"--checkpoint={ckpt}",
         f"--train_path={tmpdir}",
-        f"--experiment_dirname={tmpdir}",
         f"--batch_size={data_module.batch_size}",
     ]
     if nprocs > 1:
@@ -72,15 +71,14 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
     ckpt = downloader("print/experiment_h128")
     images = downloader("print/imgs_h128", archive=True)
     model = downloader("print/model_h128")
-    shutil.move(model, tmpdir)
+    shutil.copy(model, tmpdir)
 
     args = [
         syms,
         img_list,
-        ckpt,
         images,
         f"--train_path={tmpdir}",
-        f"--experiment_dirname={tmpdir}",
+        f"--checkpoint={ckpt}",
         "--model_filename=model_h128",
         "--batch_size=3",
         "--join_str=",
@@ -114,15 +112,14 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     images = downloader("print/imgs", archive=True)
     # download and move model
     model = downloader("print/old_model")
-    shutil.move(model, tmpdir)
+    shutil.copy(model, tmpdir)
 
     args = [
         syms,
         img_list,
-        ckpt,
         images,
         f"--train_path={tmpdir}",
-        f"--experiment_dirname={tmpdir}",
+        f"--checkpoint={ckpt}",
         "--model_filename=old_model",
         f"--batch_size=3",
         "--join_str=",
@@ -155,15 +152,15 @@ def test_segmentation(tmpdir, downloader, accelerator):
     ckpt = downloader("print/experiment_h128")
     images = downloader("print/imgs_h128", archive=True)
     model = downloader("print/model_h128")
-    shutil.move(model, tmpdir)
+    shutil.copy(model, tmpdir)
 
     args = [
         syms,
         img_list,
-        ckpt,
         images,
         f"--train_path={tmpdir}",
         f"--experiment_dirname={tmpdir}",
+        f"--checkpoint={ckpt}",
         "--model_filename=model_h128",
         "--batch_size=3",
         "--print_segmentation=word",

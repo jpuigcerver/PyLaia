@@ -17,19 +17,21 @@ def run(args: argparse.Namespace):
     log.info(f"Installed: {get_installed_versions()}")
 
     exp_dirpath = join(args.train_path, args.experiment_dirname)
-    model = ModelLoader(
-        args.train_path, filename=args.model_filename, device="cpu"
-    ).load_by(join(exp_dirpath, args.checkpoint))
+    loader = ModelLoader(args.train_path, filename=args.model_filename, device="cpu")
+    checkpoint = loader.prepare_checkpoint(args.checkpoint, exp_dirpath, args.monitor)
+    model = loader.load_by(checkpoint)
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
 
+    # prepare the evaluator
     evaluator_module = EvaluatorModule(
         model,
         batch_input_fn=Compose([ItemFeeder("img"), ImageFeeder()]),
         batch_id_fn=ItemFeeder("id"),
     )
 
+    # prepare the data
     data_module = DataModule(
         img_dirs=args.img_dirs,
         color_mode=args.color_mode,
@@ -38,6 +40,7 @@ def run(args: argparse.Namespace):
         stage="test",
     )
 
+    # prepare the kaldi writers
     writers = []
     if args.matrix is not None:
         writers.append(ArchiveMatrixWriter(join(exp_dirpath, args.matrix)))
@@ -51,16 +54,20 @@ def run(args: argparse.Namespace):
         log.error("You did not specify any output file! Use --matrix and/or --lattice")
         exit(1)
 
+    # prepare the testing callbacks
     callbacks = [
         Netout(writers, output_transform=args.output_transform),
         ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
     ]
 
+    # prepare the trainer
     trainer = pl.Trainer(
         default_root_dir=args.train_path,
         callbacks=callbacks,
         **vars(args.lightning),
     )
+
+    # run netout!
     trainer.test(evaluator_module, datamodule=data_module, verbose=False)
 
 
@@ -68,6 +75,8 @@ def get_args() -> argparse.Namespace:
     parser = LaiaParser().add_defaults(
         "batch_size",
         "train_path",
+        "monitor",
+        "checkpoint",
         "model_filename",
         "experiment_dirname",
         "color_mode",
@@ -76,10 +85,6 @@ def get_args() -> argparse.Namespace:
         "img_list",
         type=argparse.FileType("r"),
         help="File containing images to decode. Doesn't require the extension",
-    ).add_argument(
-        "checkpoint",
-        type=str,
-        help="Name of the model checkpoint to use, can be a glob pattern",
     ).add_argument(
         "img_dirs",
         type=str,

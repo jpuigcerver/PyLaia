@@ -25,19 +25,16 @@ def run(args: argparse.Namespace):
 
     pl.seed_everything(get_key(args, "seed"))
 
-    # maybe load a checkpoint
-    checkpoint = None
     exp_dirpath = join(args.train_path, args.experiment_dirname)
-    if args.checkpoint:
-        checkpoint_path = join(exp_dirpath, args.checkpoint)
-        checkpoint = ModelLoader.choose_by(checkpoint_path)
-        if not checkpoint:
-            log.error('Could not find the checkpoint "{}"', checkpoint_path)
-            exit(1)
-        log.info('Using checkpoint "{}"', checkpoint)
-
+    loader = ModelLoader(args.train_path, filename=args.model_filename, device="cpu")
+    # maybe load a checkpoint
+    checkpoint = (
+        loader.prepare_checkpoint(args.checkpoint, exp_dirpath, args.monitor)
+        if args.resume_training
+        else None
+    )
     # load the non-pytorch_lightning model
-    model = ModelLoader(args.train_path, filename=args.model_filename).load()
+    model = loader.load()
     if model is None:
         log.error('Could not find the model. Have you run "pylaia-htr-create-model"?')
         exit(1)
@@ -133,7 +130,6 @@ def run(args: argparse.Namespace):
 
 
 def get_args() -> argparse.Namespace:
-    metrics = [f"va_{x}" for x in ("loss", "cer", "wer")]
     parser = LaiaParser().add_defaults(
         "batch_size",
         "learning_rate",
@@ -142,6 +138,7 @@ def get_args() -> argparse.Namespace:
         "nesterov",
         "seed",
         "train_path",
+        "monitor",
         "checkpoint",
         "checkpoint_k",
         "model_filename",
@@ -170,6 +167,13 @@ def get_args() -> argparse.Namespace:
         default=["<space>"],
         help="Sequence of characters representing the word delimiters",
     ).add_argument(
+        "--resume_training",
+        type=pl.utilities.parsing.str_to_bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Whether to resume training with a checkpoint. See --checkpoint",
+    ).add_argument(
         "--early_stopping_patience",
         type=NumberInClosedRange(int, vmin=0),
         default=20,
@@ -183,12 +187,6 @@ def get_args() -> argparse.Namespace:
         default="RMSProp",
         choices=["SGD", "RMSProp", "Adam"],
         help="Optimization algorithm",
-    ).add_argument(
-        "--monitor",
-        type=str,
-        default="va_cer",
-        choices=metrics,
-        help="Metric to monitor for early stopping and checkpointing",
     ).add_argument(
         "--scheduler",
         type=pl.utilities.parsing.str_to_bool,
@@ -208,7 +206,7 @@ def get_args() -> argparse.Namespace:
         "--scheduler_monitor",
         type=str,
         default="va_loss",
-        choices=metrics,
+        choices=[f"va_{m}" for m in ("loss", "cer", "wer")],
         help="Metric for the scheduler to monitor",
     ).add_argument(
         "--scheduler_factor",
