@@ -19,7 +19,7 @@ def test_get_args(tmpdir):
         "ignored",
         str(syms),
         str(img_list),
-        str(ckpt),
+        f"--checkpoint={ckpt}",
         "--use_symbols=f",
         "--convert_spaces",
         "--color_mode",
@@ -31,6 +31,7 @@ def test_get_args(tmpdir):
 
     assert isinstance(args, argparse.Namespace)
     assert isinstance(args.lightning, argparse.Namespace)
+    assert args.checkpoint == str(ckpt)
     assert len(args.img_dirs) == 0
     assert not args.use_symbols
     assert args.convert_spaces

@@ -83,12 +83,30 @@ default_args = {
         ("--train_path",),
         {"type": str, "default": "", "help": "Save any files in this location"},
     ),
+    "monitor": (
+        ("--monitor",),
+        {
+            "type": str,
+            "default": "va_cer",
+            "choices": [f"va_{m}" for m in ("loss", "cer", "wer")],
+            "help": "Metric to monitor for early stopping and checkpointing",
+        },
+    ),
     "checkpoint": (
         ("--checkpoint",),
         {
             "type": str,
-            "default": None,
-            "help": "Name of the model checkpoint to use, can be a glob pattern",
+            "default": "",
+            "help": (
+                "Any of: 1 - Nothing: load the best checkpoint with respect to the "
+                "--monitor, checkpoints will be searched in the --experiment_dirname "
+                "directory. 2 - A filepath: the filepath to the checkpoint (e.g. "
+                '"/tmp/model.ckpt"). 3 - A filename: the filename of the checkpoint to '
+                'load inside the --experiment_dirname directory (e.g. "model.ckpt"). '
+                '4 - A glob pattern: e.g. "epoch=*.ckpt" will load the checkpoint '
+                "with the highest epoch number, globbing will be done inside the "
+                "--experiment_dirname directory"
+            ),
         },
     ),
     "checkpoint_k": (

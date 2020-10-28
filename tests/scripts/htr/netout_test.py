@@ -31,9 +31,9 @@ def test_netout_on_dummy_mnist_lines_data(tmpdir, nprocs):
 
     args = [
         str(img_list),
-        ckpt,
         join(data_module.root, "va"),
         f"--train_path={tmpdir}",
+        f"--checkpoint={ckpt}",
         f"--experiment_dirname={tmpdir}",
         f"--batch_size={data_module.batch_size}",
         "--output_transform=softmax",

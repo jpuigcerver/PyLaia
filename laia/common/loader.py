@@ -6,6 +6,7 @@ from io import BytesIO
 from typing import Any, Callable, Optional, Union
 
 import natsort as ns
+import pytorch_lightning as pl
 import torch
 
 from laia.common.logging import get_logger
@@ -90,25 +91,54 @@ class ModelLoader(ObjectLoader):
         else:
             return ckpt
 
-    # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/1395
     @staticmethod
     def choose_by(
         pattern: str, key: Optional[Callable] = None, reverse: bool = True
-    ) -> Any:
+    ) -> Optional[str]:
         matches = glob(pattern)
         matches = [m for m in matches if os.path.isfile(m)]
         if not len(matches):
             return None
         return ns.natsorted(matches, key=key, reverse=reverse, alg=ns.ns.PATH)[0]
 
-    def load_by(self, pattern: str) -> Any:
-        checkpoint = self.choose_by(pattern)
-        if not checkpoint:
-            _logger.error('Could not find the checkpoint "{}"', pattern)
-            exit(1)
+    def load_by(self, checkpoint: str) -> Optional[torch.nn.Module]:
         _logger.info('Using checkpoint "{}"', checkpoint)
         model = self.load()
         if model is not None:
             state_dict = self.get_model_state_dict(checkpoint)
             model.load_state_dict(state_dict)
         return model
+
+    @staticmethod
+    def find_best(directory: str, monitor: str, mode: str = "min") -> Optional[str]:
+        ckpts = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if f.endswith(".ckpt")
+        ]
+        ckpts = [(f, torch.load(f, map_location="cpu")) for f in ckpts]
+        ckpts = [
+            (f, ckpt["callbacks"][type(pl.callbacks.ModelCheckpoint())])
+            for f, ckpt in ckpts
+        ]
+        # note: requires checkpoints generated using pl>1.0.4
+        ckpts = [(f, ckpt) for f, ckpt in ckpts if ckpt.get("monitor") == monitor]
+        if not len(ckpts):
+            return
+        mode = min if mode == "min" else max
+        f, _ = mode(ckpts, key=lambda x: x[1]["best_model_score"])
+        return f
+
+    @staticmethod
+    def prepare_checkpoint(checkpoint: str, exp_dirpath: str, monitor: str) -> str:
+        if checkpoint:
+            checkpoint_path = os.path.join(exp_dirpath, checkpoint)
+            found = ModelLoader.choose_by(checkpoint_path)
+            err_msg = f'Could not find the checkpoint "{checkpoint_path}"'
+        else:
+            found = ModelLoader.find_best(exp_dirpath, monitor)
+            err_msg = f'Could not find a valid checkpoint in "{exp_dirpath}"'
+        if not found:
+            _logger.error(err_msg)
+            exit(1)
+        return found
