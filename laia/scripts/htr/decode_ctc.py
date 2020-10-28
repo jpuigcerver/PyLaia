@@ -96,14 +96,19 @@ def get_args() -> argparse.Namespace:
     ).add_argument(
         "img_list",
         type=argparse.FileType("r"),
-        help="File containing images to decode. Doesn't require the extension",
+        help=(
+            "File containing the images to decode. Each image is expected to be in one "
+            'line. Lines starting with "#" will be ignored. Lines can be filepaths '
+            '(e.g. "/tmp/img.jpg") or filenames of images present in --img_dirs (e.g. '
+            "img.jpg). The filename extension is optional and case insensitive"
+        ),
     ).add_argument(
         "img_dirs",
         type=str,
         nargs="*",
         help=(
             "Directory containing word images. "
-            "Optional if img_list contains whole paths"
+            "Optional if img_list contains filepaths"
         ),
     ).add_argument(
         "--include_img_ids",
