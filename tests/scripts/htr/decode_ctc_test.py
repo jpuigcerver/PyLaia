@@ -10,7 +10,7 @@ from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines, DummyModel
 from laia.scripts.htr import decode_ctc as script
 from laia.utils import SymbolsTable
-from tests.scripts.htr.script_utils import call_script, downloader  # noqa
+from tests.scripts.htr.conftest import call_script
 
 
 @pytest.mark.parametrize("nprocs", (1, 2))

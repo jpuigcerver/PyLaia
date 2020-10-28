@@ -73,6 +73,16 @@ def test_iterator():
         next(it)
 
 
+def test_contains():
+    st = SymbolsTable()
+    st.add("a", 1)
+    assert "a" in st
+    assert 1 in st
+    assert 2 not in st
+    with pytest.raises(ValueError, match="SymbolsTable contains pairs"):
+        assert None in st
+
+
 def test_load():
     table_file = StringIO("\n\na   1\nb     2\n")
     st = SymbolsTable(table_file)

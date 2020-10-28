@@ -12,7 +12,7 @@ from laia.dummies import DummyMNIST
 class DummyMNISTLines(DummyMNIST):
     def __init__(
         self,
-        max_length: int = 80,
+        max_length: int = 50,
         tr_n: int = 30,
         va_n: int = 15,
         space_sym: Optional[str] = "<space>",

@@ -49,7 +49,9 @@ class SymbolsTable:
         elif isinstance(x, str):
             return x in self._sym2val
         else:
-            raise ValueError("SymbolsTable contains pairs of integers and strings")
+            raise ValueError(
+                f'SymbolsTable contains pairs of integers and strings, found "{x}"'
+            )
 
     def add(self, symbol, value):
         if not isinstance(symbol, str):

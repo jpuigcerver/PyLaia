@@ -7,7 +7,7 @@ from pytorch_lightning import seed_everything
 from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines, DummyModel
 from laia.scripts.htr import netout as script
-from tests.scripts.htr.script_utils import call_script
+from tests.scripts.htr.conftest import call_script
 
 
 @pytest.mark.parametrize("nprocs", (1, 2))
