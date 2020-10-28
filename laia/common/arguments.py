@@ -115,9 +115,9 @@ default_args = {
             "type": int,
             "default": 3,
             "help": (
-                "checkpoint_k == k, the best k models will be saved. "
-                "checkpoint_k == 0, no models are saved. "
-                "checkpoint_k == -1, all models are saved"
+                "-1: all models are saved. "
+                "0: no models are saved. "
+                "k: the best k models will be saved"
             ),
         },
     ),
@@ -130,7 +130,10 @@ default_args = {
         {
             "type": str,
             "default": "experiment",
-            "help": "Directory name of the experiment",
+            "help": (
+                "Directory name of the experiment. "
+                "It will be created inside of --train_path"
+            ),
         },
     ),
     "logging_also_to_stderr": (
