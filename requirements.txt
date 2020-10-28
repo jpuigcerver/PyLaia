@@ -6,5 +6,4 @@ matplotlib
 torch
 torchvision
 nnutils-pytorch
-#pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@8e3faa2
-pytorch-lightning @ git+https://github.com/carmocca/pytorch-lightning@feature/4368_best-model-monitor
+pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@b26c71e

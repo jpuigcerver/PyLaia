@@ -34,6 +34,8 @@ def call_script(
 
 @pytest.fixture
 def downloader():
+    """https://docs.pytest.org/en/latest/fixture.html#conftest-py-sharing-fixture-functions"""
+
     def get(resource: str, archive: bool = False) -> str:
         # --no-check-certificate
         ssl._create_default_https_context = ssl._create_unverified_context
