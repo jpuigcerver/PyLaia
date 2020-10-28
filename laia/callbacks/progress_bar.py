@@ -138,8 +138,8 @@ class ProgressBar(pl.callbacks.ProgressBar):
         format_dict["elapsed"] = timer.value
         return format_dict
 
-    def on_train_epoch_end(self, *args, **kwargs):
-        super().on_train_epoch_end(*args, **kwargs)
+    def on_train_epoch_end(self, trainer, *args, **kwargs):
+        super().on_train_epoch_end(trainer, *args, **kwargs)
         if self.is_enabled:
             # add metrics to training bar
             self.set_postfix(self.main_progress_bar, "tr_")
@@ -150,6 +150,8 @@ class ProgressBar(pl.callbacks.ProgressBar):
             # log training bar
             _logger.log(self.level, tqdm.format_meter(**format_dict))
 
+            if (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch:
+                return
             # add metrics to training bar.
             # note: this is here instead of in `on_validation_epoch_end`
             # because `val_loop` gets called before `on_train_epoch_end` so the VA
