@@ -92,15 +92,16 @@ def run(args: argparse.Namespace):
         save_last=True,
     )
     checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"
+    early_stopping_callback = pl.callbacks.EarlyStopping(
+        monitor=args.monitor,
+        patience=args.early_stopping_patience,
+        verbose=True,
+        mode="min",
+        strict=False,  # training_step may return None
+    )
     callbacks = [
         ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
-        pl.callbacks.EarlyStopping(
-            monitor=args.monitor,
-            patience=args.early_stopping_patience,
-            verbose=True,
-            mode="min",
-            strict=False,  # training_step may return None
-        ),
+        early_stopping_callback,
         checkpoint_callback,
     ]
     if args.gpu_stats:
@@ -122,10 +123,21 @@ def run(args: argparse.Namespace):
     # train!
     trainer.fit(engine_module, datamodule=data_module)
 
-    # training is over. print best model path
+    # training is over
+    if early_stopping_callback.stopped_epoch:
+        log.info(
+            "Early stopping triggered after epoch"
+            f" {early_stopping_callback.stopped_epoch + 1} (waited for"
+            f" {early_stopping_callback.wait_count} epochs). The best score was"
+            f" {early_stopping_callback.best_score}"
+        )
     log.info(
-        f'Best {checkpoint_callback.monitor}="{checkpoint_callback.best_model_score}" '
-        f'obtained with model="{checkpoint_callback.best_model_path}"'
+        f"Model has been trained for {trainer.current_epoch + 1} epochs"
+        f" ({trainer.global_step + 1} steps)"
+    )
+    log.info(
+        f"Best {checkpoint_callback.monitor}={checkpoint_callback.best_model_score} "
+        f"obtained with model={checkpoint_callback.best_model_path}"
     )
 
 

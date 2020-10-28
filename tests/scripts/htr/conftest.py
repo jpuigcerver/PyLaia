@@ -21,6 +21,7 @@ def call_script(
     # To circumvent these limitations, we launch our own process (here) to call the"
     # script file and capture its stdout and stderr"
     command = [sys.executable, file] + args
+    print(" ".join(command))
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         stdout, stderr = p.communicate(timeout=timeout)
