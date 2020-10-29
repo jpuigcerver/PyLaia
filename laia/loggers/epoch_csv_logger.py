@@ -81,6 +81,11 @@ class EpochCSVLogger(CSVLogger):
 
     @staticmethod
     def get_next_version(root_dir):
+        if not os.path.exists(root_dir):
+            # env PL_EXP_VERSION is set by ddp before init so root_dir
+            # might not exist which would make listdir fail
+            return -1
+
         versions = []
         for d in os.listdir(root_dir):
             if d == "metrics.csv":
