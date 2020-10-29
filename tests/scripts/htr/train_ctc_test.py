@@ -50,9 +50,12 @@ def prepare_model(dir, image_sequencer):
     ModelSaver(dir).save(LaiaCRNN, *args)
 
 
-# TODO: add distributed tests
-@pytest.mark.parametrize("nprocs", (1,))
-def test_train_fast_dev(tmpdir, nprocs):
+# TODO: add ddp_cpu test
+@pytest.mark.parametrize(
+    "accelerator",
+    [None, "ddp"] if torch.cuda.device_count() > 1 else [None],
+)
+def test_train_1_epoch(tmpdir, accelerator):
     syms, img_dirs, data_module = prepare_data(tmpdir)
     args = [
         syms,
@@ -61,21 +64,20 @@ def test_train_fast_dev(tmpdir, nprocs):
         str(data_module.root / "va.gt"),
         f"--train_path={tmpdir}",
         f"--batch_size={data_module.batch_size}",
-        "--fast_dev_run=1",
+        "--max_epochs=1",
         "--checkpoint_k=1",
     ]
-    if nprocs > 1:
-        args.append("--accelerator=ddp_cpu")
-        args.append(f"--num_processes={nprocs}")
+    if accelerator:
+        args.append(f"--accelerator={accelerator}")
+        args.append(f"--{'num_processes' if accelerator == 'ddp_cpu' else 'gpus'}=2")
 
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stderr:\n{stderr}")
 
     assert not len(stdout)
-    assert "Running in fast_dev_run" in stderr
     assert "as top 1" in stderr
     assert "Saving latest checkpoint" in stderr
-    assert "Best va_cer=0.9740259647369385" in stderr
+    assert "Best va_cer=0.96" in stderr
     assert {f.basename for f in tmpdir.join("experiment").listdir()} == {
         "epoch=0-lowest_va_cer.ckpt",
         "epoch=0-last.ckpt",
@@ -105,6 +107,7 @@ def test_train_half_precision(tmpdir):
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stderr:\n{stderr}")
 
+    assert "Running in fast_dev_run" in stderr
     assert "Using native 16bit precision" in stderr
     assert "Model has been trained for" in stderr
 
