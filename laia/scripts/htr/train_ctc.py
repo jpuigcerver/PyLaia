@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
+from distutils.version import StrictVersion
 from os.path import join
 
 import pytorch_lightning as pl
+import torch
 
 import laia.common.logging as log
 from laia import get_installed_versions
@@ -257,6 +259,16 @@ def get_args() -> argparse.Namespace:
     args = group_to_namespace(args, pl_group, "lightning")
     # Hard-code some args
     args.lightning.weights_summary = "full"
+
+    if (
+        StrictVersion(torch.__version__) < StrictVersion("1.7.0")
+        and args.lightning.precision != 32
+    ):
+        log.error(
+            "AMP requires torch>=1.7.0. Additionally, only "
+            "fixed height models are currently supported"
+        )
+        exit(1)
 
     return args
 

@@ -12,11 +12,11 @@ from laia.utils import SymbolsTable
 from tests.scripts.htr.conftest import call_script
 
 
-def prepare_data(dir):
+def prepare_data(dir, image_sequencer="avgpool-8"):
     seed_everything(0x12345)
     data_module = DummyMNISTLines(batch_size=3, samples_per_space=5)
     data_module.prepare_data()
-    prepare_model(dir)
+    prepare_model(dir, image_sequencer)
     # prepare syms file
     syms = str(dir / "syms")
     syms_table = SymbolsTable()
@@ -28,7 +28,7 @@ def prepare_data(dir):
     return syms, img_dirs, data_module
 
 
-def prepare_model(dir):
+def prepare_model(dir, image_sequencer):
     args = [
         1,  # num_input_channels
         12,  # num_output_channels
@@ -40,7 +40,7 @@ def prepare_model(dir):
         [(2, 2)],  # cnn_poolsize
         [0],  # cnn_dropout
         [False],  # cnn_batchnorm
-        "avgpool-8",  # image_sequencer
+        image_sequencer,
         16,  # rnn_units
         1,  # rnn_layers
         0,  # rnn_dropout
@@ -81,6 +81,32 @@ def test_train_fast_dev(tmpdir, nprocs):
         "epoch=0-last.ckpt",
         "metrics.csv",
     }
+
+
+@pytest.mark.skipif(
+    StrictVersion(torch.__version__) < StrictVersion("1.7.0"),
+    reason="Some ops do not support AMP before 1.7.0",
+)
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="AMP needs CUDA")
+def test_train_half_precision(tmpdir):
+    # TODO: add test using nnutils: https://github.com/jpuigcerver/nnutils/issues/4
+    syms, img_dirs, data_module = prepare_data(tmpdir, image_sequencer="none-14")
+    args = [
+        syms,
+        *img_dirs,
+        str(data_module.root / "tr.gt"),
+        str(data_module.root / "va.gt"),
+        f"--train_path={tmpdir}",
+        f"--batch_size={data_module.batch_size}",
+        "--fast_dev_run=1",
+        "--precision=16",
+        "--gpus=1",
+    ]
+    stdout, stderr = call_script(script.__file__, args)
+    print(f"Script stderr:\n{stderr}")
+
+    assert "Using native 16bit precision" in stderr
+    assert "Model has been trained for" in stderr
 
 
 def test_train_can_resume_training(tmpdir):
