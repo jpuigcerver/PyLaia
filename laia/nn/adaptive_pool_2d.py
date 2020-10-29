@@ -1,9 +1,10 @@
 import torch
+from nnutils_pytorch import adaptive_avgpool_2d, adaptive_maxpool_2d
 
 from laia.data import PaddedTensor
 
 
-class AdaptivePool2dBase(torch.nn.Module):
+class AdaptivePool2d(torch.nn.Module):
     def __init__(self, output_sizes, func):
         super().__init__()
         self._output_sizes = output_sizes
@@ -26,3 +27,13 @@ class AdaptivePool2dBase(torch.nn.Module):
             dim = int(self.output_sizes[0] is None)
             ys[:, dim] = self.output_sizes[dim]
             return PaddedTensor.build(y, ys)
+
+
+class AdaptiveAvgPool2d(AdaptivePool2d):
+    def __init__(self, output_size):
+        super().__init__(output_sizes=output_size, func=adaptive_avgpool_2d)
+
+
+class AdaptiveMaxPool2d(AdaptivePool2d):
+    def __init__(self, output_size):
+        super().__init__(output_sizes=output_size, func=adaptive_maxpool_2d)
