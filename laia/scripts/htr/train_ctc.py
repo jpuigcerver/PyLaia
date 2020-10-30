@@ -103,6 +103,7 @@ def run(args: argparse.Namespace):
     )
     callbacks = [
         ProgressBar(refresh_rate=args.lightning.progress_bar_refresh_rate),
+        checkpoint_callback,
         early_stopping_callback,
         checkpoint_callback,
     ]
@@ -114,7 +115,6 @@ def run(args: argparse.Namespace):
     # prepare the trainer
     trainer = pl.Trainer(
         default_root_dir=args.train_path,
-        checkpoint_callback=checkpoint_callback,
         resume_from_checkpoint=checkpoint,
         callbacks=callbacks,
         logger=EpochCSVLogger(exp_dirpath),

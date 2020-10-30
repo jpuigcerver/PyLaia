@@ -6,4 +6,4 @@ matplotlib
 torch
 torchvision
 nnutils-pytorch
-pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@b26c71e
+pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@0f584fa
