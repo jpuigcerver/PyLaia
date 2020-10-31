@@ -1,11 +1,5 @@
-recursive-exclude __pycache__  *.py[cod]
+global-exclude __pycache__
+global-exclude *.py[cod]
 exclude *.yml
 exclude *.yaml
-recursive-exclude tests *
-
-include *.md
-include LICENSE
-include requirements.txt
-recursive-include laia *.py
-
-prune .git
+prune tests
