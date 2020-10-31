@@ -92,7 +92,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         super(pl.callbacks.ProgressBar, self).on_epoch_start(trainer, *args, **kwargs)
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(self.total_train_batches))
-        self.main_progress_bar.set_description(f"TR - Epoch {trainer.current_epoch}")
+        self.main_progress_bar.set_description(f"TR - E{trainer.current_epoch}")
 
     def on_train_epoch_start(self, *args, **kwargs):
         super().on_train_epoch_start(*args, **kwargs)
@@ -105,7 +105,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         else:
             self.tr_timer.stop()
             self.va_timer.reset()
-            self.val_progress_bar.set_description(f"VA - Epoch {trainer.current_epoch}")
+            self.val_progress_bar.set_description(f"VA - E{trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer, *args, **kwargs):
         # skip parent to avoid two postfix calls

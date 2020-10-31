@@ -46,7 +46,7 @@ def test_cpu(tmpdir, num_processes):
     lines = [l.strip() for l in log_filepath.readlines()]
     assert (
         sum(
-            l.startswith(f"Epoch {e}: tr_time=")
+            l.startswith(f"E{e}: tr_time=")
             for l in lines
             for e in range(trainer.max_epochs)
         )

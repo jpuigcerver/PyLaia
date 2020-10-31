@@ -43,5 +43,5 @@ def test_learning_rate(tmpdir, num_processes):
     assert log_filepath.exists()
     lines = [l.strip() for l in log_filepath.readlines()]
     for e in range(1, trainer.max_epochs):
-        expected = f"Epoch {e}: lr-Adam 1.000e-0{e + 2} ⟶ 1.000e-0{e + 3}"
+        expected = f"E{e}: lr-Adam 1.000e-0{e + 2} ⟶ 1.000e-0{e + 3}"
         assert lines.count(expected) == 1

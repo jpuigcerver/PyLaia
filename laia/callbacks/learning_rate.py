@@ -30,7 +30,7 @@ class LearningRate(pl.callbacks.LearningRateMonitor):
             new_value = v[-1]
             if prev_value is not None and prev_value != new_value:
                 _logger.info(
-                    "Epoch {}: {} {:.3e} ⟶ {:.3e}",
+                    "E{}: {} {:.3e} ⟶ {:.3e}",
                     trainer.current_epoch,
                     k,
                     prev_value,
