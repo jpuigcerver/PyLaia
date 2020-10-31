@@ -52,7 +52,8 @@ class ImagePoolingSequencer(torch.nn.Module):
                 ):
                     raise ValueError(
                         "Input images must have a fixed "
-                        f"height of {self._fix_size} pixels"
+                        f"height of {self._fix_size} pixels, "
+                        f"found {xs[:, 0].unique().tolist()}"
                     )
                 elif (
                     not self._columnwise
@@ -60,7 +61,8 @@ class ImagePoolingSequencer(torch.nn.Module):
                 ):
                     raise ValueError(
                         "Input images must have a fixed "
-                        f"width of {self._fix_size} pixels"
+                        f"width of {self._fix_size} pixels, "
+                        f"found {xs[:, 1].unique().tolist()}"
                     )
             else:
                 if self._columnwise and x.size(-2) != self._fix_size:
