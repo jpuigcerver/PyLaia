@@ -9,8 +9,6 @@ from tqdm.auto import tqdm
 import laia.common.logging as log
 from laia.callbacks.meters import Timer
 
-_logger = log.get_logger(__name__)
-
 
 class ProgressBar(pl.callbacks.ProgressBar):
     def __init__(
@@ -133,7 +131,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
     @staticmethod
     def fix_format_dict_time(pbar, prefix, timer):
         format_dict = pbar.format_dict
-        _logger.debug(
+        log.debug(
             f"{prefix} - lightning-elapsed={format_dict['elapsed']} elapsed={timer.value}"
         )
         format_dict["elapsed"] = timer.value
@@ -149,7 +147,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
                 self.main_progress_bar, "TR", self.tr_timer
             )
             # log training bar
-            _logger.log(self.level, tqdm.format_meter(**format_dict))
+            log.log(self.level, tqdm.format_meter(**format_dict))
 
             if (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch:
                 return
@@ -164,7 +162,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
                 self.val_progress_bar, "VA", self.va_timer
             )
             # log validation bar
-            _logger.log(self.level, tqdm.format_meter(**format_dict))
+            log.log(self.level, tqdm.format_meter(**format_dict))
 
     def on_validation_batch_end(self, *args, **kwargs):
         # skip parent
@@ -177,7 +175,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         if self.is_enabled:
             if trainer.running_sanity_check:
                 self.val_progress_bar.refresh()
-                _logger.log(self.level, str(self.val_progress_bar))
+                log.log(self.level, str(self.val_progress_bar))
             else:
                 self.va_timer.stop()
 
