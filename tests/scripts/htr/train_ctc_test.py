@@ -14,7 +14,7 @@ from tests.scripts.htr.conftest import call_script
 
 def prepare_data(dir, image_sequencer="avgpool-8"):
     seed_everything(0x12345)
-    data_module = DummyMNISTLines(batch_size=3, samples_per_space=5)
+    data_module = DummyMNISTLines(samples_per_space=5)
     data_module.prepare_data()
     prepare_model(dir, image_sequencer)
     # prepare syms file
@@ -63,7 +63,7 @@ def test_train_1_epoch(tmpdir, accelerator):
         str(data_module.root / "tr.gt"),
         str(data_module.root / "va.gt"),
         f"--train_path={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
+        f"--batch_size=3",
         "--max_epochs=1",
         "--checkpoint_k=1",
     ]
@@ -99,7 +99,7 @@ def test_train_half_precision(tmpdir):
         str(data_module.root / "tr.gt"),
         str(data_module.root / "va.gt"),
         f"--train_path={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
+        f"--batch_size=3",
         "--fast_dev_run=1",
         "--precision=16",
         "--gpus=1",
@@ -120,7 +120,7 @@ def test_train_can_resume_training(tmpdir):
         str(data_module.root / "tr.gt"),
         str(data_module.root / "va.gt"),
         f"--train_path={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
+        f"--batch_size=3",
         "--progress_bar_refresh_rate=0",
         "--use_distortions",
         "--optimizer=SGD",
@@ -145,7 +145,7 @@ def test_train_early_stops(tmpdir):
         str(data_module.root / "tr.gt"),
         str(data_module.root / "va.gt"),
         f"--train_path={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
+        f"--batch_size=3",
         "--progress_bar_refresh_rate=0",
         "--max_epochs=5",
         "--early_stopping_patience=2",
@@ -163,7 +163,7 @@ def test_train_with_scheduler(tmpdir):
         str(data_module.root / "tr.gt"),
         str(data_module.root / "va.gt"),
         f"--train_path={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
+        f"--batch_size=3",
         "--progress_bar_refresh_rate=0",
         "--max_epochs=3",
         "--scheduler",
@@ -176,3 +176,45 @@ def test_train_with_scheduler(tmpdir):
     print(f"Script stderr:\n{stderr}")
     assert "Epoch 1: lr-RMSprop 1.000e+00 ⟶ 5.000e-01" in stderr
     assert "Epoch 2: lr-RMSprop 5.000e-01 ⟶ 2.500e-01" in stderr
+
+
+@pytest.mark.skipif(
+    StrictVersion(torch.__version__) < StrictVersion("1.5.0"),
+    reason="1.4.0 needs more epochs",
+)
+def test_train_can_overfit_one_image(tmpdir):
+    syms, img_dirs, data_module = prepare_data(tmpdir)
+    # manually select a specific image
+    txt_file = data_module.root / "tr.gt"
+    line = "tr-6 9 2 0 1"
+    assert txt_file.read_text().splitlines()[6] == line
+    txt_file.write_text(line)
+    args = [
+        syms,
+        *img_dirs,
+        str(txt_file),
+        str(txt_file),
+        f"--train_path={tmpdir}",
+        "--batch_size=1",
+        "--seed=0x12345",
+        # not necessary on the CPU
+        # given that we are using only 1 image
+        # CPU is faster than GPU
+        # "--deterministic",
+        "--overfit_batches=1",
+        "--experiment_dir=",
+        "--max_epochs=66",
+        # after some manual runs, this lr seems to be the
+        # fastest one to reliably learn for this toy example
+        "--learning_rate=0.01",
+        # RMSProp performed considerably better than Adam|SGD
+        "--optimizer=RMSProp",
+        "--monitor=va_loss",
+        "--checkpoint_k=0",  # disable checkpoints
+        "--check_val_every_n_epoch=1000",  # disable val
+        "--early_stopping_patience=1000",  # disable early stopping
+    ]
+    _, stderr = call_script(script.__file__, args)
+    print(f"Script stderr:\n{stderr}")
+
+    assert "cer=0.0%, wer=0.0%" in stderr
