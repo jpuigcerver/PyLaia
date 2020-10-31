@@ -33,7 +33,7 @@ class TrainingTimer(pl.Callback):
     def on_train_epoch_end(self, trainer, *args, **kwargs):
         super().on_train_epoch_end(trainer, *args, **kwargs)
         _logger.info(
-            f"Epoch {trainer.current_epoch}: "
+            f"E{trainer.current_epoch}: "
             f"tr_time={self.time_to_str(self.tr_timer.value)}, "
             f"va_time={self.time_to_str(self.va_timer.value)}"
         )

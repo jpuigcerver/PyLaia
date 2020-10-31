@@ -174,8 +174,8 @@ def test_train_with_scheduler(tmpdir):
     ]
     _, stderr = call_script(script.__file__, args)
     print(f"Script stderr:\n{stderr}")
-    assert "Epoch 1: lr-RMSprop 1.000e+00 ⟶ 5.000e-01" in stderr
-    assert "Epoch 2: lr-RMSprop 5.000e-01 ⟶ 2.500e-01" in stderr
+    assert "E1: lr-RMSprop 1.000e+00 ⟶ 5.000e-01" in stderr
+    assert "E2: lr-RMSprop 5.000e-01 ⟶ 2.500e-01" in stderr
 
 
 @pytest.mark.skipif(

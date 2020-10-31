@@ -13,7 +13,7 @@ class __TestCallback(pl.Callback):
 
     def on_epoch_start(self, trainer, *_, **__):
         assert self.pbar.main_progress_bar.total == trainer.num_training_batches
-        assert self.pbar.main_progress_bar.desc.startswith("TR - Epoch ")
+        assert self.pbar.main_progress_bar.desc.startswith("TR - E")
 
     def on_train_epoch_start(self, *_, **__):
         assert self.pbar.tr_timer.end is None
@@ -24,7 +24,7 @@ class __TestCallback(pl.Callback):
         else:
             assert self.pbar.tr_timer.end is not None
             assert self.pbar.va_timer.end is None
-            assert self.pbar.val_progress_bar.desc.startswith("VA - Epoch")
+            assert self.pbar.val_progress_bar.desc.startswith("VA - E")
 
     def on_train_batch_end(self, *_, **__):
         assert "running_loss" in str(self.pbar.main_progress_bar)
@@ -69,7 +69,7 @@ def test_progress_bar(tmpdir):
     # check bar string
     float_pattern = "([0-9]*[.])?[0-9]+"
     pattern = (
-        r" - Epoch 1: "
+        r" - E1: "
         r"100%\|[█]+\| 10/10 \[00:00<00:00, "
         rf"{float_pattern}it/s, "
         rf"loss={float_pattern}, "
