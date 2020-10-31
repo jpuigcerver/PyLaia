@@ -11,7 +11,7 @@ class _TestDecoder:
     def __call__(self, batch_y_hat):
         _, xs = transform_batch(batch_y_hat)
         batch_size = len(xs)
-        return {"hyp": [[0, 3, 11, 5, 10, 9] for _ in range(batch_size)]}
+        return {"hyp": [[1, 4, 11, 6, 0, 10] for _ in range(batch_size)]}
 
 
 class __TestDecode(Decode):
@@ -27,14 +27,14 @@ class __TestDecode(Decode):
 @pytest.mark.parametrize(
     ["kwargs", "img_id", "hyp"],
     [
-        ({"include_img_ids": False}, "", "[0, 3, 11, 5, 10, 9]"),
+        ({"include_img_ids": False}, "", "[1, 4, 11, 6, 0, 10]"),
         ({"use_symbols": True}, r"va-\d+ ", "['0', '3', '<space>', '5', '<ctc>', '9']"),
         (
             {"use_symbols": True, "convert_spaces": True},
             r"va-\d+ ",
             "['0', '3', ' ', '5', '<ctc>', '9']",
         ),
-        ({"join_str": "-", "separator": " --- "}, r"va-\d+ --- ", "0-3-11-5-10-9"),
+        ({"join_str": "-", "separator": " --- "}, r"va-\d+ --- ", "1-4-11-6-0-10"),
         ({"use_symbols": True, "join_str": ""}, r"va-\d+ ", "03<space>5<ctc>9"),
     ],
 )

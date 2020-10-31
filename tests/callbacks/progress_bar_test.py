@@ -32,7 +32,7 @@ class __TestCallback(pl.Callback):
 
     def on_train_epoch_end(self, *_, **__):
         assert "cer=100.0%" in str(self.pbar.main_progress_bar)
-        assert "wer=33.0" in str(self.pbar.val_progress_bar)
+        assert "cer=33.0" in str(self.pbar.val_progress_bar)
 
     def on_validation_epoch_end(self, trainer, *_, **__):
         if not trainer.running_sanity_check:
@@ -51,7 +51,7 @@ def test_progress_bar(tmpdir):
 
     # fake things to include in the pbar
     trainer.progress_bar_metrics["tr_cer"] = 1
-    trainer.progress_bar_metrics["va_wer"] = 0.33
+    trainer.progress_bar_metrics["va_cer"] = 0.33
     trainer.progress_bar_metrics["gpu_stats"] = {"gpu_stats": "baz"}
 
     trainer.fit(module, datamodule=data_module)
@@ -68,14 +68,16 @@ def test_progress_bar(tmpdir):
     assert pbar.test_progress_bar is None
     # check bar string
     float_pattern = "([0-9]*[.])?[0-9]+"
-    assert re.match(
-        rf"TR - Epoch 1: 100%\|[█]+\| 10\/10 \[00:00<00:00, {float_pattern}it\/s\, cer=100\.0%]",
-        str(pbar.main_progress_bar),
+    pattern = (
+        r" - Epoch 1: "
+        r"100%\|[█]+\| 10/10 \[00:00<00:00, "
+        rf"{float_pattern}it/s, "
+        rf"loss={float_pattern}, "
+        rf"cer={float_pattern}%, "
+        r"gpu_stats={'gpu_stats': 'baz'}]"
     )
-    assert re.match(
-        rf"VA - Epoch 1: 100%\|[█]+\| 10\/10 \[00:00<00:00, {float_pattern}it\/s\, wer=33\.0%]",
-        str(pbar.val_progress_bar),
-    )
+    assert re.match("TR" + pattern, str(pbar.main_progress_bar))
+    assert re.match("VA" + pattern, str(pbar.val_progress_bar))
 
     trainer.test(module, datamodule=data_module)
     # previous checks for test
@@ -83,6 +85,6 @@ def test_progress_bar(tmpdir):
     assert pbar.total_test_batches == pbar.test_progress_bar.total == k
     assert pbar.test_progress_bar.n == pbar.test_batch_idx == k
     assert re.match(
-        rf"Decoding: 100%\|[█]+\| 10\/10 \[00:00<00:00, {float_pattern}it\/s\]",
+        rf"Decoding: 100%\|[█]+\| 10/10 \[00:00<00:00, {float_pattern}it/s]",
         str(pbar.test_progress_bar),
     )

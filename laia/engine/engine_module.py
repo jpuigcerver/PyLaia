@@ -76,6 +76,7 @@ class EngineModule(pl.LightningModule):
                 "monitor": self.optimizer_kwargs.get("scheduler_monitor", "va_loss"),
                 "interval": "epoch",
                 "frequency": 1,
+                "strict": False,
             }
             return [optimizer], [scheduler]
         return optimizer
@@ -128,9 +129,9 @@ class EngineModule(pl.LightningModule):
     def training_step(self, batch: Any, *_, **__):
         batch_x, batch_y = self.prepare_batch(batch)
         with self.exception_catcher(batch):
-            self.batch_y_hat = self.model(batch_x)
-        self.check_tensor(batch, self.batch_y_hat)
-        batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
+            batch_y_hat = self.model(batch_x)
+        self.check_tensor(batch, batch_y_hat)
+        batch_loss = self.compute_loss(batch, batch_y_hat, batch_y)
         if batch_loss is None:
             return
         self.log(
@@ -141,14 +142,14 @@ class EngineModule(pl.LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
-        return batch_loss
+        return {"loss": batch_loss, "batch_y_hat": batch_y_hat}
 
     def validation_step(self, batch: Any, *_, **__):
         batch_x, batch_y = self.prepare_batch(batch)
         with self.exception_catcher(batch):
-            self.batch_y_hat = self.model(batch_x)
-        self.check_tensor(batch, self.batch_y_hat)
-        batch_loss = self.compute_loss(batch, self.batch_y_hat, batch_y)
+            batch_y_hat = self.model(batch_x)
+        self.check_tensor(batch, batch_y_hat)
+        batch_loss = self.compute_loss(batch, batch_y_hat, batch_y)
         if batch_loss is None:
             return
         self.log(
@@ -159,7 +160,7 @@ class EngineModule(pl.LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
-        return batch_loss
+        return {"loss": batch_loss, "batch_y_hat": batch_y_hat}
 
     def get_progress_bar_dict(self):
         items = super().get_progress_bar_dict()

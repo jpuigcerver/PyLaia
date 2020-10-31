@@ -37,7 +37,7 @@ class HTREngineModule(EngineModule):
         if result is None:
             return
         batch_x, batch_y = self.prepare_batch(batch)
-        batch_decode = self.decoder(self.batch_y_hat)["hyp"]
+        batch_decode = self.decoder(result["batch_y_hat"])["hyp"]
         cer = torch.tensor(
             SequenceError.compute(batch_y, batch_decode), device=batch_x.device
         )
@@ -72,7 +72,7 @@ class HTREngineModule(EngineModule):
         if result is None:
             return
         batch_x, batch_y = self.prepare_batch(batch)
-        batch_decode = self.decoder(self.batch_y_hat)["hyp"]
+        batch_decode = self.decoder(result["batch_y_hat"])["hyp"]
         cer = torch.tensor(
             SequenceError.compute(batch_y, batch_decode), device=batch_x.device
         )

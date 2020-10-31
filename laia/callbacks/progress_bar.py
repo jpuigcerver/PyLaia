@@ -122,11 +122,12 @@ class ProgressBar(pl.callbacks.ProgressBar):
 
     def set_postfix(self, pbar, prefix):
         l = len(prefix)
-        postfix = {
-            k[l:]: self.format[k[l:]].format(v)
-            for k, v in self.trainer.progress_bar_dict.items()
-            if k.startswith(prefix)
-        }
+        postfix = {}
+        for k, v in self.trainer.progress_bar_dict.items():
+            if k.startswith(prefix):
+                postfix[k[l:]] = self.format[k[l:]].format(v)
+            elif not k.startswith("tr_") and not k.startswith("va_"):
+                postfix[k] = v
         pbar.set_postfix(postfix, refresh=True)
 
     @staticmethod
