@@ -1,8 +1,10 @@
 import re
 
 import pytorch_lightning as pl
+from tqdm import tqdm
 
 from laia.callbacks import ProgressBar
+from laia.callbacks.meters import Timer
 from laia.dummies import DummyEngine, DummyMNIST, DummyTrainer
 
 
@@ -87,4 +89,22 @@ def test_progress_bar(tmpdir):
     assert re.match(
         rf"Decoding: 100%\|[█]+\| 10/10 \[00:00<00:00, {float_pattern}it/s]",
         str(pbar.test_progress_bar),
+    )
+
+
+def test_fix_format_dict():
+    pbar = tqdm(desc="Test", postfix={"foo": "bar"}, total=30)
+    timer = Timer()
+    timer.end = timer.start + 50
+    format_dict = ProgressBar.fix_format_dict(pbar, timer=timer)
+    format_dict["rate"] = 1.55
+    assert (
+        tqdm.format_meter(**format_dict)
+        == "Test: 0% 0/30 [00:50<00:19, 1.55it/s, foo=bar]"
+    )
+    format_dict["n"] = 29
+    format_dict["rate"] = 10
+    assert (
+        tqdm.format_meter(**format_dict)
+        == "Test: 97% 29/30 [00:50<00:00, 10.00it/s, foo=bar]"
     )
