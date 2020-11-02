@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from typing import Optional
 
 from pytorch_lightning.utilities import rank_zero_only
 from tqdm.auto import tqdm
@@ -12,10 +13,7 @@ WARNING = logging.WARNING
 ERROR = logging.ERROR
 CRITICAL = logging.CRITICAL
 
-BASIC_FORMAT = "%(asctime)s %(levelname)s %(name)s : %(message)s"
-DETAILED_FORMAT = (
-    "%(asctime)s %(levelname)s %(name)s [%(pathname)s:%(lineno)d] : %(message)s"
-)
+BASIC_FORMAT = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 
 class TqdmStreamHandler(logging.StreamHandler):
@@ -129,11 +127,11 @@ def capture_warnings():
 
 
 def config(
-    fmt=BASIC_FORMAT,
-    level=INFO,
-    filename=None,
-    filemode="a",
-    logging_also_to_stderr=ERROR,
+    fmt: str = BASIC_FORMAT,
+    level: int = INFO,
+    filename: Optional[str] = None,
+    filemode: str = "a",
+    logging_also_to_stderr: int = ERROR,
     exception_handling_fn=handle_exception,
 ):
     capture_warnings()
@@ -164,7 +162,7 @@ def config(
     root.setLevel(level)
 
 
-def config_from_args(args, fmt=BASIC_FORMAT):
+def config_from_args(args, fmt: str = BASIC_FORMAT):
     config(
         filemode="w" if args.logging_overwrite else "a",
         filename=args.logging_file,
@@ -183,29 +181,29 @@ def clear():
     warnings.setLevel(logging.NOTSET)
 
 
-def log(level, msg, *args, **kwargs):
+def log(level: int, msg: str, *args, **kwargs):
     root.log(level, msg, *args, **kwargs)
 
 
-def debug(msg, *args, **kwargs):
+def debug(msg: str, *args, **kwargs):
     root.debug(msg, *args, **kwargs)
 
 
-def error(msg, *args, **kwargs):
+def error(msg: str, *args, **kwargs):
     root.error(msg, *args, **kwargs)
 
 
-def info(msg, *args, **kwargs):
+def info(msg: str, *args, **kwargs):
     root.info(msg, *args, **kwargs)
 
 
-def warning(msg, *args, **kwargs):
+def warning(msg: str, *args, **kwargs):
     root.warning(msg, *args, **kwargs)
 
 
-def critical(msg, *args, **kwargs):
+def critical(msg: str, *args, **kwargs):
     root.critical(msg, *args, **kwargs)
 
 
-def set_level(level):
+def set_level(level: int):
     root.setLevel(level)

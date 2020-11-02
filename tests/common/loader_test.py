@@ -171,9 +171,11 @@ def test_model_loader_find_best(tmpdir):
     assert ModelLoader.find_best(tmpdir, "test") is None
 
     # with no-monitor ckpts
-    mc = pl.callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     trainer = DummyTrainer(
-        default_root_dir=tmpdir, checkpoint_callback=mc, max_epochs=3
+        default_root_dir=tmpdir,
+        callbacks=[pl.callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)],
+        checkpoint_callback=True,
+        max_epochs=3,
     )
     trainer.fit(DummyEngine(), datamodule=DummyMNIST())
     assert ModelLoader.find_best(tmpdir, "test") is None
@@ -184,7 +186,7 @@ def test_model_loader_find_best(tmpdir):
         dirpath=tmpdir, save_top_k=-1, monitor=monitor, mode="max"
     )
     trainer = DummyTrainer(
-        default_root_dir=tmpdir, checkpoint_callback=mc, max_epochs=3
+        default_root_dir=tmpdir, callbacks=[mc], checkpoint_callback=True, max_epochs=3
     )
     trainer.fit(DummyEngine(), datamodule=DummyMNIST())
     assert (
@@ -201,11 +203,15 @@ def test_model_loader_prepare_checkpoint(tmpdir, caplog):
     # create some checkpoints
     monitor = "bar"
     exp_dirpath = tmpdir / "experiment"
-    mc = pl.callbacks.ModelCheckpoint(
-        dirpath=exp_dirpath, save_top_k=-1, monitor=monitor, mode="max"
-    )
     trainer = DummyTrainer(
-        default_root_dir=tmpdir, checkpoint_callback=mc, max_epochs=2
+        default_root_dir=tmpdir,
+        callbacks=[
+            pl.callbacks.ModelCheckpoint(
+                dirpath=exp_dirpath, save_top_k=-1, monitor=monitor, mode="max"
+            )
+        ],
+        checkpoint_callback=True,
+        max_epochs=2,
     )
     trainer.fit(DummyEngine(), datamodule=DummyMNIST())
 

@@ -1,6 +1,6 @@
 import sys
 from collections import defaultdict
-from typing import Optional
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import convert_inf
@@ -15,7 +15,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         self,
         refresh_rate: int = 1,
         ncols: Optional[int] = 120,
-        dynamic_ncols: bool = False,
+        dynamic_ncols: bool = True,
     ):
         super().__init__(refresh_rate=refresh_rate)
         self.ncols = ncols
@@ -90,7 +90,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         super(pl.callbacks.ProgressBar, self).on_epoch_start(trainer, *args, **kwargs)
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(self.total_train_batches))
-        self.main_progress_bar.set_description(f"TR - E{trainer.current_epoch}")
+        self.main_progress_bar.set_description_str(f"TR - E{trainer.current_epoch}")
 
     def on_train_epoch_start(self, *args, **kwargs):
         super().on_train_epoch_start(*args, **kwargs)
@@ -99,11 +99,11 @@ class ProgressBar(pl.callbacks.ProgressBar):
     def on_validation_epoch_start(self, trainer, *args, **kwargs):
         super().on_validation_start(trainer, *args, **kwargs)
         if trainer.running_sanity_check:
-            self.val_progress_bar.set_description("VA sanity check")
+            self.val_progress_bar.set_description_str("VA sanity check")
         else:
             self.tr_timer.stop()
             self.va_timer.reset()
-            self.val_progress_bar.set_description(f"VA - E{trainer.current_epoch}")
+            self.val_progress_bar.set_description_str(f"VA - E{trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer, *args, **kwargs):
         # skip parent to avoid two postfix calls
@@ -129,12 +129,20 @@ class ProgressBar(pl.callbacks.ProgressBar):
         pbar.set_postfix(postfix, refresh=True)
 
     @staticmethod
-    def fix_format_dict_time(pbar, prefix, timer):
+    def fix_format_dict(
+        pbar: tqdm, prefix: Optional[str] = None, timer: Optional[Timer] = None
+    ) -> Dict:
         format_dict = pbar.format_dict
-        log.debug(
-            f"{prefix} - lightning-elapsed={format_dict['elapsed']} elapsed={timer.value}"
+        if timer is not None:
+            log.debug(
+                f"{prefix} - lightning-elapsed={format_dict['elapsed']} elapsed={timer.value}"
+            )
+            format_dict["elapsed"] = timer.value
+        # remove the square blocks, they provide no info
+        format_dict["bar_format"] = (
+            "{desc}: {percentage:.0f}% {n_fmt}/{total_fmt} "
+            "[{elapsed}<{remaining}, {rate_noinv:.2f}it/s{postfix}]"
         )
-        format_dict["elapsed"] = timer.value
         return format_dict
 
     def on_train_epoch_end(self, trainer, *args, **kwargs):
@@ -143,7 +151,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
             # add metrics to training bar
             self.set_postfix(self.main_progress_bar, "tr_")
             # override training time
-            format_dict = self.fix_format_dict_time(
+            format_dict = self.fix_format_dict(
                 self.main_progress_bar, "TR", self.tr_timer
             )
             # log training bar
@@ -158,7 +166,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
             # https://pytorch-lightning.readthedocs.io/en/stable/lightning-module.html#hook-lifecycle-pseudocode
             self.set_postfix(self.val_progress_bar, "va_")
             # override validation time
-            format_dict = self.fix_format_dict_time(
+            format_dict = self.fix_format_dict(
                 self.val_progress_bar, "VA", self.va_timer
             )
             # log validation bar
@@ -175,7 +183,10 @@ class ProgressBar(pl.callbacks.ProgressBar):
         if self.is_enabled:
             if trainer.running_sanity_check:
                 self.val_progress_bar.refresh()
-                log.log(self.level, str(self.val_progress_bar))
+                log.log(
+                    self.level,
+                    tqdm.format_meter(**self.fix_format_dict(self.val_progress_bar)),
+                )
             else:
                 self.va_timer.stop()
 
