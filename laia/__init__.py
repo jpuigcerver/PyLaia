@@ -33,6 +33,7 @@ def get_installed_versions() -> List[str]:
         for r in f.readlines():
             r = r.strip()
             r = r.split(" @ ")[0]  # support 'pkg @ git+https://...' notation
+            r = r.split("==")[0]
             r = r.split(">=")[0]
             requirements.append(r)
     freeze = subprocess.check_output(["pip", "freeze", "--exclude-editable"])
