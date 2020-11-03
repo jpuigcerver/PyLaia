@@ -7,7 +7,7 @@
 **It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).**
 
 [![Build](https://img.shields.io/github/workflow/status/carmocca/PyLaia/Laia%20CI?&label=Build&logo=GitHub&labelColor=1b1f23)](https://github.com/carmocca/PyLaia/actions?query=workflow%3A%22Laia+CI%22)
-[![Coverage](https://img.shields.io/codecov/c/github/carmocca/PyLaia?&label=Coverage&logo=Codecov&logoColor=ffffff&labelColor=282828")](https://codecov.io/gh/carmocca/PyLaia)
+[![Coverage](https://img.shields.io/codecov/c/github/carmocca/PyLaia?&label=Coverage&logo=Codecov&logoColor=ffffff&labelColor=f01f7a)](https://codecov.io/gh/carmocca/PyLaia)
 [![Code quality](https://img.shields.io/codefactor/grade/github/carmocca/PyLaia?&label=CodeFactor&logo=CodeFactor&labelColor=2782f7)](https://www.codefactor.io/repository/github/carmocca/PyLaia)
 
 [![Python: 3.6+](https://img.shields.io/badge/Python-3.6%2B-FFD43B.svg?&logo=Python&logoColor=white&labelColor=306998)](https://www.python.org/)

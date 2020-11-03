@@ -3,6 +3,7 @@ name: Laia CI
 on:
   push:
     branches: [master]
+    paths-ignore: ['README.md']
   pull_request:
   schedule:
     # at 07:00 on Sunday
