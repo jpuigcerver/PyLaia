@@ -99,7 +99,8 @@ def test_get_images_and_texts_from_text_table_with_dirs(tmpdir, caplog):
 def test_get_img_ids_and_filepaths_without_dirs(tmpdir, caplog):
     img_names = ["1.jpeg", "2.png", "3.JPG"]
     img_list = [tmpdir / name for name in img_names]
-    [img.write(None) for img in img_list[:-1]]
+    for img in img_list[:-1]:
+        img.write(None)
     table_file = [f"{a} {b}" for a, b in zip(img_list, ["foo", "bar", "baz"])]
     ids, filepaths, txts = _get_images_and_texts_from_text_table(table_file)
     assert ids == filepaths == img_list[:-1]

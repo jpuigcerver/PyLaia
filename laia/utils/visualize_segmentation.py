@@ -1,4 +1,5 @@
 import argparse
+from ast import literal_eval
 
 import matplotlib.pyplot as plt
 
@@ -17,7 +18,7 @@ def visualize(args: argparse.Namespace):
     colors = plt.get_cmap(args.cmap).colors
     fig.canvas.set_window_title(img_id)
 
-    data = eval(data)
+    data = literal_eval(data)
     for i, (val, x1, y1, x2, y2) in enumerate(data):
         ax.axvspan(x1, x2 + 1, alpha=0.3, facecolor=colors[i % len(colors)])
         if val != args.space:

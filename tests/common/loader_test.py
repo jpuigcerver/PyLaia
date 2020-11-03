@@ -145,7 +145,7 @@ def test_model_loader_get_model_state_dict(tmpdir, input, expected):
 
 @pytest.mark.parametrize("input", ["", "foo"])
 def test_model_loader_choose_by_empty(tmpdir, input):
-    assert ModelLoader.choose_by(f"{tmpdir}/{input}") == None
+    assert ModelLoader.choose_by(f"{tmpdir}/{input}") is None
 
 
 @pytest.mark.parametrize(

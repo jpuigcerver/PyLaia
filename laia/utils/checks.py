@@ -41,7 +41,6 @@ def check_tensor(
             )
             if raise_exception:
                 raise ValueError(msg)
-            else:
-                logger.debug(msg)
+            logger.debug(msg)
             return True
     return False

@@ -1,4 +1,5 @@
 import argparse
+from ast import literal_eval
 
 import laia.common.arguments as args
 import laia.common.logging as log
@@ -37,7 +38,7 @@ def test_args(caplog, monkeypatch):
     parser.parse_args([])
     assert log.get_logger().level == log.INFO
     assert len(caplog.messages) == 1
-    assert eval(caplog.messages[0]) == {
+    assert literal_eval(caplog.messages[0]) == {
         "logging_also_to_stderr": 40,
         "logging_file": None,
         "logging_level": 20,

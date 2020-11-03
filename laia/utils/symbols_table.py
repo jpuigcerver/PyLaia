@@ -36,8 +36,7 @@ class SymbolsTable:
             return self._val2sym.get(x, None)
         elif isinstance(x, str):
             return self._sym2val.get(x, None)
-        else:
-            raise ValueError("SymbolsTable contains pairs of integers and strings")
+        raise ValueError("SymbolsTable contains pairs of integers and strings")
 
     def __iter__(self):
         for v, s in self._val2sym.items():
@@ -48,10 +47,9 @@ class SymbolsTable:
             return x in self._val2sym
         elif isinstance(x, str):
             return x in self._sym2val
-        else:
-            raise ValueError(
-                f'SymbolsTable contains pairs of integers and strings, found "{x}"'
-            )
+        raise ValueError(
+            f'SymbolsTable contains pairs of integers and strings, found "{x}"'
+        )
 
     def add(self, symbol, value):
         if not isinstance(symbol, str):
@@ -70,7 +68,7 @@ class SymbolsTable:
             self._val2sym[value] = symbol
         elif old_val == value and old_sym == symbol:
             # Nothing changes, so just ignore the add() operation
-            pass
+            return
         elif old_val is not None:
             raise KeyError(
                 f'Symbol "{symbol}" was already present '

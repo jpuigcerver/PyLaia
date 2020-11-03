@@ -40,7 +40,7 @@ def test_cpu(tmpdir, num_processes):
     if num_processes > 1:
         log_filepath_rank1 = tmpdir.join("log.rank1")
         assert log_filepath_rank1.exists()
-        assert not len(log_filepath_rank1.read_text("utf-8"))
+        assert not log_filepath_rank1.read_text("utf-8")
 
     assert log_filepath.exists()
     lines = [l.strip() for l in log_filepath.readlines()]

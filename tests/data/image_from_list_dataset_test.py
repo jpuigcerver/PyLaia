@@ -48,7 +48,8 @@ def test_get_img_ids_and_filepaths_with_dirs(tmpdir, caplog):
 def test_get_img_ids_and_filepaths_without_dirs(tmpdir, caplog):
     img_names = ["foo", "bar", "baz"]
     img_list = [tmpdir / name for name in img_names]
-    [img.write(None) for img in img_list[:-1]]
+    for img in img_list[:-1]:
+        img.write(None)
     ids, filepaths = _get_img_ids_and_filepaths(
         [str(x) for x in img_list], img_dirs=None
     )

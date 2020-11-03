@@ -104,7 +104,7 @@ warnings = logging.getLogger("py.warnings")
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     # https://stackoverflow.com/a/16993115
-    if not len(root.handlers) or all(
+    if not root.handlers or all(
         isinstance(h, logging.NullHandler) for h in root.handlers
     ):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)

@@ -1,3 +1,4 @@
+import sys
 from typing import List
 
 import laia.callbacks
@@ -36,7 +37,9 @@ def get_installed_versions() -> List[str]:
             r = r.split("==")[0]
             r = r.split(">=")[0]
             requirements.append(r)
-    freeze = subprocess.check_output(["pip", "freeze", "--exclude-editable"])
+    freeze = subprocess.check_output(
+        [sys.executable, "-m", "pip", "freeze", "--exclude-editable"]
+    )
     freeze = freeze.decode("ascii").strip().split("\n")
     versions = [
         r

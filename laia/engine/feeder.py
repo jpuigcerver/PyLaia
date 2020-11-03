@@ -72,8 +72,7 @@ class ImageFeeder(Feeder):
             if xs.size(1) == 3 and not self._keep_channels_in_size:
                 xs = xs[:, 1:]
             return PaddedTensor.build(x, xs)
-        else:
-            return x
+        return x
 
 
 Compose = torchvision.transforms.Compose

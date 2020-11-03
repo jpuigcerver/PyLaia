@@ -22,11 +22,10 @@ class AdaptivePool2d(torch.nn.Module):
         y = self._func(batch_input=x, output_sizes=self.output_sizes, batch_sizes=xs)
         if xs is None or self._fixed_size:
             return y
-        else:
-            ys = xs.clone()
-            dim = int(self.output_sizes[0] is None)
-            ys[:, dim] = self.output_sizes[dim]
-            return PaddedTensor.build(y, ys)
+        ys = xs.clone()
+        dim = int(self.output_sizes[0] is None)
+        ys[:, dim] = self.output_sizes[dim]
+        return PaddedTensor.build(y, ys)
 
 
 class AdaptiveAvgPool2d(AdaptivePool2d):

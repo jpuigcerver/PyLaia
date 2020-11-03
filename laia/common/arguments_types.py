@@ -83,7 +83,7 @@ class TupleList:
         if isinstance(x, self.type):
             return (x,) * self.dimensions
         elif isinstance(x, (tuple, list)):
-            if not all(type(v) == self.type for v in x):
+            if not all(isinstance(v, self.type) for v in x):
                 raise ArgumentTypeError(f"An element of {x} is not a {self.type}")
             if len(x) != self.dimensions:
                 raise ArgumentTypeError(
@@ -91,5 +91,4 @@ class TupleList:
                     f"the given dimensions {self.dimensions}"
                 )
             return tuple(x)
-        else:
-            raise ArgumentTypeError(f"{v} is neither a tuple nor {self.type}")
+        raise ArgumentTypeError(f"{v} is neither a tuple nor {self.type}")

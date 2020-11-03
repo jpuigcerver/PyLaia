@@ -98,8 +98,7 @@ class PaddingCollater:
                 x = PaddingCollater.collate_tensors(batch, max_sizes)
                 xs = torch.stack([torch.tensor(x.size()) for x in batch])
                 return PaddedTensor.build(x, xs)
-            else:
-                return torch.stack(batch)
+            return torch.stack(batch)
         elif isinstance(elem, np.ndarray):
             return self.collate([torch.from_numpy(b) for b in batch], sizes)
         elif isinstance(elem, Mapping):

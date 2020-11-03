@@ -74,7 +74,7 @@ def test_train_1_epoch(tmpdir, accelerator):
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stderr:\n{stderr}")
 
-    assert not len(stdout)
+    assert not stdout
     assert "as top 1" in stderr
     assert "Saving latest checkpoint" in stderr
     assert "Best va_cer=0." in stderr
