@@ -78,7 +78,7 @@ class ModelLoader(ObjectLoader):
             state_dict = ckpt["state_dict"]
             assert all(k.startswith("model.") for k in state_dict.keys())
             return OrderedDict((k[len("model.") :], v) for k, v in state_dict.items())
-        elif "tr_engine" in ckpt:
+        if "tr_engine" in ckpt:
             # backwards compatibility
             engine = ckpt["tr_engine"]
             _logger.debug(

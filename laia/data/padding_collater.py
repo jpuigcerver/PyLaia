@@ -99,16 +99,16 @@ class PaddingCollater:
                 xs = torch.stack([torch.tensor(x.size()) for x in batch])
                 return PaddedTensor.build(x, xs)
             return torch.stack(batch)
-        elif isinstance(elem, np.ndarray):
+        if isinstance(elem, np.ndarray):
             return self.collate([torch.from_numpy(b) for b in batch], sizes)
-        elif isinstance(elem, Mapping):
+        if isinstance(elem, Mapping):
             return {
                 k: self.collate([d[k] for d in batch], sizes[k])
                 if k in sizes
                 else [d[k] for d in batch]
                 for k in elem
             }
-        elif isinstance(elem, Sequence):
+        if isinstance(elem, Sequence):
             return [self.collate(b, s) for b, s in zip(batch, sizes)]
         raise TypeError(
             f"Batch must contain tensors, numbers, dicts or lists. Found {elem_type}"

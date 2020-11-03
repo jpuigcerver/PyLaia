@@ -95,8 +95,8 @@ class TestPaddingCollater(unittest.TestCase):
         collate_fn = PaddingCollater(sizes)
         batch = [torch.rand(3, 20, 40), torch.rand(3, 25, 30), torch.rand(5, 15, 35)]
         x, xs = collate_fn(batch)
-        for i in range(len(batch)):
-            self.assertEqual(list(batch[i].size()), xs[i].tolist())
+        for i, b in enumerate(batch):
+            self.assertEqual(list(b.size()), xs[i].tolist())
         self.check_collated(batch, (3, 5, 25, 40), x)
 
     def test_collate_with_tensor_and_fixed_sizes(self):

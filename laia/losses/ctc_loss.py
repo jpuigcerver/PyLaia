@@ -122,6 +122,6 @@ class CTCLoss(Loss):
 
         if self.reduction == "none":
             return losses
-        elif self.reduction == "sum":
+        if self.reduction == "sum":
             return losses.sum()
         return losses.mean()

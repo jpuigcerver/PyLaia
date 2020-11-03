@@ -82,7 +82,7 @@ class TupleList:
         x = literal_eval(v)
         if isinstance(x, self.type):
             return (x,) * self.dimensions
-        elif isinstance(x, (tuple, list)):
+        if isinstance(x, (tuple, list)):
             if not all(isinstance(v, self.type) for v in x):
                 raise ArgumentTypeError(f"An element of {x} is not a {self.type}")
             if len(x) != self.dimensions:

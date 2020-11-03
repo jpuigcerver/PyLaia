@@ -34,7 +34,7 @@ class SymbolsTable:
     def __getitem__(self, x):
         if isinstance(x, int):
             return self._val2sym.get(x, None)
-        elif isinstance(x, str):
+        if isinstance(x, str):
             return self._sym2val.get(x, None)
         raise ValueError("SymbolsTable contains pairs of integers and strings")
 
@@ -45,7 +45,7 @@ class SymbolsTable:
     def __contains__(self, x):
         if isinstance(x, int):
             return x in self._val2sym
-        elif isinstance(x, str):
+        if isinstance(x, str):
             return x in self._sym2val
         raise ValueError(
             f'SymbolsTable contains pairs of integers and strings, found "{x}"'
