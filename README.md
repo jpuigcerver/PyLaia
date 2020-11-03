@@ -1,10 +1,10 @@
-# PyLaia
-
 <div align="center">
 
-**PyLaia is a device agnostic, PyTorch based, deep learning toolkit specialized for handwritten document analysis. It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).**
+# PyLaia
 
----
+**PyLaia is a device agnostic, PyTorch based, deep learning toolkit for handwritten document analysis.**
+
+**It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).**
 
 [![Build](https://img.shields.io/github/workflow/status/carmocca/PyLaia/Laia%20CI?&label=Build&logo=GitHub&labelColor=1b1f23)](https://github.com/carmocca/PyLaia/actions?query=workflow%3A%22Laia+CI%22)
 [![Coverage](https://img.shields.io/codecov/c/github/carmocca/PyLaia?&label=Coverage&logo=Codecov&logoColor=ffffff&labelColor=282828")](https://codecov.io/gh/carmocca/PyLaia)
