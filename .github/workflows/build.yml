@@ -27,14 +27,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.9, 3.8, 3.7, 3.6]
-        torch-version: [1.7.*, 1.6.*, 1.5.*, 1.4.*]
+        # TODO: include 3.9 when NumPy adds support
+        python-version: [3.8, 3.7, 3.6]
+        # TODO: include 1.7.* when 1.7.1 is released
+        torch-version: [1.6.*, 1.5.*, 1.4.*]
+        # fix torchvision and nnutils versions for each torch version
         include:
-          # fix torchvision and nnutils versions for each torch version
-          - torch-version: 1.7.*
-            # TODO: update when released
-            nnutils-version: 1.6.*
-            torchvision-version: 0.8.*
+          #- torch-version: 1.7.*
+          #  # TODO: update when released
+          #  nnutils-version: 1.6.*
+          #  torchvision-version: 0.8.*
           - torch-version: 1.6.*
             nnutils-version: 1.6.*
             torchvision-version: 0.7.*
@@ -44,9 +46,6 @@ jobs:
           - torch-version: 1.4.*
             nnutils-version: 1.4.*
             torchvision-version: 0.5.*
-        exclude:
-          # TODO: NumPy does not support 3.9 yet
-          - python-version: 3.9
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
