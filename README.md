@@ -1,8 +1,9 @@
 # PyLaia
 
-[![Build](https://img.shields.io/travis/jpuigcerver/PyLaia?&label=Build&logo=Travis%20CI&logoColor=white&labelColor=2782f7)](https://travis-ci.com/jpuigcerver/PyLaia)
+[![Build](https://img.shields.io/github/workflow/status/carmocca/PyLaia/Laia%20CI?&label=Build&logo=GitHub&labelColor=1b1f23)](https://github.com/carmocca/PyLaia/actions?query=workflow%3A%22Laia+CI%22)
 [![Python: 3.6+](https://img.shields.io/badge/Python-3.6%2B-FFD43B.svg?&logo=Python&logoColor=white&labelColor=306998)](https://www.python.org/)
 [![PyTorch: 1.4.0+](https://img.shields.io/badge/PyTorch-1.4.0%2B-8628d5.svg?&logo=PyTorch&logoColor=white&labelColor=%23ee4c2c)](https://pytorch.org/)
+[![Code quality](https://img.shields.io/codefactor/grade/github/carmocca/PyLaia?&label=CodeFactor&logo=CodeFactor&labelColor=2782f7)](https://www.codefactor.io/repository/github/carmocca/PyLaia)
 [![pre-commit: enabled](https://img.shields.io/badge/pre--commit-enabled-76877c?&logo=pre-commit&labelColor=1f2d23)](https://github.com/pre-commit/pre-commit)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?)](https://github.com/ambv/black)
 
