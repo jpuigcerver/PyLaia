@@ -100,8 +100,7 @@ class LaiaCRNN(nn.Module):
                 x, xs = x.data, x.batch_sizes
             d = F.dropout(x, p=p, training=self.training)
             return cls(d, xs) if cls is not None else d
-        else:
-            return x
+        return x
 
     def forward(
         self, x: Union[torch.Tensor, PaddedTensor]

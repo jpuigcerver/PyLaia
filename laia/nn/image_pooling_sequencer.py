@@ -25,7 +25,6 @@ class ImagePoolingSequencer(torch.nn.Module):
             self.sequencer = AdaptiveMaxPool2d(
                 (self._fix_size, None) if columnwise else (None, self._fix_size)
             )
-
         else:
             # Assume that the images have a fixed height
             # (or width if columnwise=False)

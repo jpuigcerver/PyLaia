@@ -141,8 +141,8 @@ class TestPaddingCollater(unittest.TestCase):
             {"img": torch.rand(3, 15, 35)},
         ]
         x, xs = collate_fn(batch)["img"]
-        for i in range(len(batch)):
-            self.assertEqual(list(batch[i]["img"].size()), xs[i].tolist())
+        for i, b in enumerate(batch):
+            self.assertEqual(list(b["img"].size()), xs[i].tolist())
         self.check_collated([b["img"] for b in batch], (3, 3, 25, 40), x)
 
 

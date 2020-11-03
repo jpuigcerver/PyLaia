@@ -26,18 +26,16 @@ class RandomBetaMorphology:
         n = (filter_size_max - filter_size_min) // 2 + 1
         if n < 2:
             return [filter_size_min], np.asarray([1.0], dtype=np.float32)
-        else:
-            filter_sizes = []
-            filter_probs = []
-            for k in range(n):
-                filter_sizes.append(filter_size_min + 2 * k)
-                filter_probs.append(
-                    scipy.special.comb(n, k)
-                    * scipy.special.beta(alpha + k, n - k + beta)
-                )
-            np_filter_probs = np.asarray(filter_probs, dtype=np.float32)
-            np_filter_probs = filter_probs / np_filter_probs.sum()
-            return filter_sizes, np_filter_probs
+        filter_sizes = []
+        filter_probs = []
+        for k in range(n):
+            filter_sizes.append(filter_size_min + 2 * k)
+            filter_probs.append(
+                scipy.special.comb(n, k) * scipy.special.beta(alpha + k, n - k + beta)
+            )
+        np_filter_probs = np.asarray(filter_probs, dtype=np.float32)
+        np_filter_probs = filter_probs / np_filter_probs.sum()
+        return filter_sizes, np_filter_probs
 
     def sample_filter_size(self):
         filter_size = np.random.choice(self.filter_sizes, p=self.filter_probs)

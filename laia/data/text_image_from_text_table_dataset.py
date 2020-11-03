@@ -66,7 +66,7 @@ def _load_text_table_from_file(
         table_file = open(table_file)
     for line in (l.split(maxsplit=1) for l in table_file):
         # skip empty lines and lines starting with '#'
-        if not len(line) or line[0].startswith("#"):
+        if not line or line[0].startswith("#"):
             continue
         elif len(line) == 1:
             _logger.warning(

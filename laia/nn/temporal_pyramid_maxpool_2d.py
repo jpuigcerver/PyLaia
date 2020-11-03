@@ -11,22 +11,20 @@ def _adaptive_maxpool_2d(batch_input, output_sizes, batch_sizes, use_nnutils):
         return adaptive_maxpool_2d(
             batch_input=batch_input, output_sizes=output_sizes, batch_sizes=batch_sizes
         )
-    else:
-        if batch_sizes is None:
-            return torch.nn.functional.adaptive_max_pool2d(
-                input=batch_input, output_size=output_sizes
+    if batch_sizes is None:
+        return torch.nn.functional.adaptive_max_pool2d(
+            input=batch_input, output_size=output_sizes
+        )
+    to_stack = []
+    for n in range(batch_input.size(0)):
+        nh, nw = int(batch_sizes[n, 0]), int(batch_sizes[n, 1])
+        batch_view = batch_input[n, :, :nh, :nw].contiguous()
+        to_stack.append(
+            torch.nn.functional.adaptive_max_pool2d(
+                input=batch_view, output_size=output_sizes
             )
-        else:
-            to_stack = []
-            for n in range(batch_input.size(0)):
-                nh, nw = int(batch_sizes[n, 0]), int(batch_sizes[n, 1])
-                batch_view = batch_input[n, :, :nh, :nw].contiguous()
-                to_stack.append(
-                    torch.nn.functional.adaptive_max_pool2d(
-                        input=batch_view, output_size=output_sizes
-                    )
-                )
-            return torch.stack(to_stack)
+        )
+    return torch.stack(to_stack)
 
 
 class TemporalPyramidMaxPool2d(torch.nn.Module):

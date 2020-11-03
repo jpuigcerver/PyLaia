@@ -20,5 +20,4 @@ class MaskImageFromSize(torch.nn.Module):
                 inplace=self.inplace,
             )
             return PaddedTensor.build(y, xs)
-        else:
-            return x
+        return x

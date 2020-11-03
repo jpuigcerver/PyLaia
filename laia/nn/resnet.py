@@ -30,8 +30,6 @@ def downsample(inplanes, planes, expansion, stride=1, norm_layer=None):
         if norm_layer is not None:
             downsample.append(norm_layer(planes * expansion))
         return nn.Sequential(*downsample)
-    else:
-        return None
 
 
 class BasicBlock(nn.Module):
@@ -284,8 +282,7 @@ class ResnetConv(nn.Module):
 
         if xs is None:
             return x
-        else:
-            return PaddedTensor.build(x, self.get_output_batch_size(xs))
+        return PaddedTensor.build(x, self.get_output_batch_size(xs))
 
     def get_output_batch_size(self, xs):
         return self.get_output_size(xs, self._options)

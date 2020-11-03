@@ -88,7 +88,7 @@ class CTCLoss(Loss):
             )
         if not valid_indices:
             _logger.warning("All samples in the batch were ignored!")
-            return None
+            return
 
         # prepare tensors of the correct type
         x = torch.nn.functional.log_softmax(x, dim=-1)
@@ -122,7 +122,6 @@ class CTCLoss(Loss):
 
         if self.reduction == "none":
             return losses
-        elif self.reduction == "mean":
-            return losses.mean()
         elif self.reduction == "sum":
             return losses.sum()
+        return losses.mean()

@@ -58,8 +58,8 @@ def test_getitem():
     assert st["b"] == 2
     assert st[1] == "a"
     assert st[2] == "b"
-    assert st[-9] == None
-    assert st["c"] == None
+    assert st[-9] is None
+    assert st["c"] is None
 
 
 def test_iterator():

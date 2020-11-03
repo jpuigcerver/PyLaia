@@ -21,11 +21,8 @@ def image_to_sequence(x, columnwise=True, return_packed=False):
 
     if xs is None:
         return x
-    else:
-        xs = xs[:, 1 if columnwise else 0]
-        return (
-            pack_padded_sequence(x, xs.tolist()) if return_packed else (x, xs.tolist())
-        )
+    xs = xs[:, 1 if columnwise else 0]
+    return pack_padded_sequence(x, xs.tolist()) if return_packed else (x, xs.tolist())
 
 
 class ImageToSequence(torch.nn.Module):

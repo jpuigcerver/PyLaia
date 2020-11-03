@@ -30,7 +30,6 @@ class BasicLoader(Loader):
             return torch.load(f, map_location=device)
         except FileNotFoundError:
             _logger.info("Could not find the file {}", f)
-        return None
 
 
 class ObjectLoader(Loader):
@@ -44,7 +43,7 @@ class ObjectLoader(Loader):
     def load(self) -> Any:
         obj = self._loader.load(self._f, device=self._device)
         if obj is None:
-            return None
+            return
         module = import_module(obj["module"])
         fn = getattr(module, obj["name"])
         args = obj.get("args", [])
@@ -88,8 +87,7 @@ class ModelLoader(ObjectLoader):
                 engine["iterations"],
             )
             return engine["model"]
-        else:
-            return ckpt
+        return ckpt
 
     @staticmethod
     def choose_by(
@@ -97,8 +95,8 @@ class ModelLoader(ObjectLoader):
     ) -> Optional[str]:
         matches = glob(pattern)
         matches = [m for m in matches if os.path.isfile(m)]
-        if not len(matches):
-            return None
+        if not matches:
+            return
         return ns.natsorted(matches, key=key, reverse=reverse, alg=ns.ns.PATH)[0]
 
     def load_by(self, checkpoint: str) -> Optional[torch.nn.Module]:
@@ -123,7 +121,7 @@ class ModelLoader(ObjectLoader):
         ]
         # note: requires checkpoints generated using pl>1.0.4
         ckpts = [(f, ckpt) for f, ckpt in ckpts if ckpt.get("monitor") == monitor]
-        if not len(ckpts):
+        if not ckpts:
             return
         mode = min if mode == "min" else max
         f, _ = mode(ckpts, key=lambda x: x[1]["best_model_score"])
