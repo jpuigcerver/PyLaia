@@ -1,5 +1,6 @@
 import sys
 from collections import defaultdict
+from logging import INFO
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
@@ -21,7 +22,7 @@ class ProgressBar(pl.callbacks.ProgressBar):
         self.ncols = ncols
         self.dynamic_ncols = dynamic_ncols
         self.running_sanity = None
-        self.level = log.INFO
+        self.level = INFO
         self.format = defaultdict(
             self.format_factory,
             {

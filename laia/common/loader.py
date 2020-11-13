@@ -136,7 +136,5 @@ class ModelLoader(ObjectLoader):
         else:
             found = ModelLoader.find_best(exp_dirpath, monitor)
             err_msg = f'Could not find a valid checkpoint in "{exp_dirpath}"'
-        if not found:
-            _logger.error(err_msg)
-            exit(1)
+        assert found, err_msg
         return found

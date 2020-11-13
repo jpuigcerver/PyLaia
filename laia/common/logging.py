@@ -1,19 +1,11 @@
 import logging
 import os
 import sys
+from enum import Enum
 from typing import Optional
 
 from pytorch_lightning.utilities import rank_zero_only
 from tqdm.auto import tqdm
-
-# Inherit loglevels from Python's logging
-DEBUG = logging.DEBUG
-INFO = logging.INFO
-WARNING = logging.WARNING
-ERROR = logging.ERROR
-CRITICAL = logging.CRITICAL
-
-BASIC_FORMAT = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 
 class TqdmStreamHandler(logging.StreamHandler):
@@ -22,11 +14,11 @@ class TqdmStreamHandler(logging.StreamHandler):
     logging messages don't break the tqdm bar.
     """
 
-    def __init__(self, level=logging.NOTSET):
+    def __init__(self, level: int = 0):
         super().__init__()
         self.setLevel(level)
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         if record.levelno < self.level:
             return
         try:
@@ -38,7 +30,7 @@ class TqdmStreamHandler(logging.StreamHandler):
 
 
 class FormatMessage:
-    def __init__(self, fmt, *args, **kwargs):
+    def __init__(self, fmt: str, *args, **kwargs):
         self.fmt = fmt
         self.args = args
         self.kwargs = kwargs
@@ -48,10 +40,10 @@ class FormatMessage:
 
 
 class Logger(logging.Logger):
-    def __init__(self, name, level=logging.NOTSET):
+    def __init__(self, name: str, level: int = 0):
         super().__init__(name, level)
 
-    def _log(self, level, msg, args, **kwargs):
+    def _log(self, level: int, msg: str, args, **kwargs):
         if "exc_info" in kwargs:
             exc_info = kwargs["exc_info"]
             del kwargs["exc_info"]
@@ -70,24 +62,20 @@ class Logger(logging.Logger):
         super()._log(level=level, msg=msg, args=(), exc_info=exc_info, extra=extra)
 
 
-def get_logger(name=None):
-    """Create/Get a Laia logger.
+def get_logger(name: str = "laia"):
+    """Create/Get the Laia logger.
+    The logger is an object of the class :class:`~.Logger`
+    which uses the new string formatting, and accepts keyword arguments.
 
-    The logger is an object of the class :class:`~.Logger` use the new string
-    formatting, and accepts keyword arguments.
-
-    Arguments:
-        name (str) : name of the logger to get. If `None`, the root logger
-            for Laia will be returned (`laia`).
-
+    Args:
+        name: name of the logger to get.
     Returns:
         A :obj:`~.Logger` object.
     """
     logging._acquireLock()  # noqa
     backup_class = logging.getLoggerClass()
     logging.setLoggerClass(Logger)
-    # Use 'laia' as the root logger
-    logger = logging.getLogger(name if name else "laia")
+    logger = logging.getLogger(name)
     logging.setLoggerClass(backup_class)
     logging._releaseLock()  # noqa
     return logger
@@ -126,59 +114,71 @@ def capture_warnings():
     logging.captureWarnings(True)
 
 
+class Level(Enum):
+    # used as choices in config by jsonargparse
+    NOTSET = logging.NOTSET
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+    CRITICAL = logging.CRITICAL
+
+
 def config(
-    fmt: str = BASIC_FORMAT,
-    level: int = INFO,
-    filename: Optional[str] = None,
-    filemode: str = "a",
-    logging_also_to_stderr: int = ERROR,
+    fmt: str = "[%(asctime)s %(levelname)s %(name)s] %(message)s",
+    level: Level = Level.INFO,
+    filepath: Optional[str] = None,
+    overwrite: bool = False,
+    to_stderr_level: Level = Level.ERROR,
     exception_handling_fn=handle_exception,
 ):
+    """
+    Logging arguments
+
+    Args:
+        fmt: Logging format
+        level: Logging level
+        filepath: Filepath for the logs file
+        overwrite: Whether to overwrite the logfile or to append
+        to_stderr_level: If filename is set, use this to log also to stderr at
+            the given level.
+        exception_handling_fn: internal
+    """
     capture_warnings()
 
     set_exception_handler(func=exception_handling_fn)
-    fmt = logging.Formatter(fmt)
 
+    fmt = logging.Formatter(fmt)
     # log to stderr on master only
     if rank_zero_only.rank == 0:
-        handler = TqdmStreamHandler(level=level)
+        handler = TqdmStreamHandler(level=level.value)
         handler.setFormatter(fmt)
-        if filename:
-            handler.setLevel(logging_also_to_stderr)
+        if filepath:
+            handler.setLevel(to_stderr_level.value)
         root.addHandler(handler)
         lightning.addHandler(handler)
         warnings.addHandler(handler)
 
-    if filename:
+    if filepath:
         if rank_zero_only.rank > 0:
-            filename += f".rank{rank_zero_only.rank}"
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        handler = logging.FileHandler(filename, filemode)
+            filepath += f".rank{rank_zero_only.rank}"
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        handler = logging.FileHandler(filepath, "w" if overwrite else "a")
         handler.setFormatter(fmt)
         root.addHandler(handler)
         lightning.addHandler(handler)
         warnings.addHandler(handler)
 
-    root.setLevel(level)
-
-
-def config_from_args(args, fmt: str = BASIC_FORMAT):
-    config(
-        filemode="w" if args.logging_overwrite else "a",
-        filename=args.logging_file,
-        fmt=fmt,
-        level=args.logging_level,
-        logging_also_to_stderr=args.logging_also_to_stderr,
-    )
+    root.setLevel(level.value)
 
 
 def clear():
     root.handlers = []
     lightning.handlers = []
     warnings.handlers = []
-    root.setLevel(logging.NOTSET)
-    lightning.setLevel(logging.NOTSET)
-    warnings.setLevel(logging.NOTSET)
+    root.setLevel(0)
+    lightning.setLevel(0)
+    warnings.setLevel(0)
 
 
 def log(level: int, msg: str, *args, **kwargs):

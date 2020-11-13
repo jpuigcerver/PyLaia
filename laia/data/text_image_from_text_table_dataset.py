@@ -1,6 +1,6 @@
 from os.path import isfile, join
 from pathlib import Path
-from typing import Callable, Generator, List, Optional, TextIO, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, TextIO, Tuple, Union
 
 import laia.common.logging as log
 from laia.data.text_image_dataset import TextImageDataset
@@ -31,15 +31,15 @@ class TextImageFromTextTableDataset(TextImageDataset):
         # Prepare dataset using the previous image filenames and transcripts.
         super().__init__(imgs, txts, img_transform, txt_transform)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> Dict[str, Any]:
         """Returns the ID of the example, the image and its transcript from
         the dataset.
 
         Args:
-          index (int): Index of the item to return.
+          index: Index of the item to return.
 
         Returns:
-          dict: Dictionary containing the example ID ('id'), image ('img') and
+          Dictionary containing the example ID ('id'), image ('img') and
             the transcript ('txt') of the image.
         """
         out = super().__getitem__(index)

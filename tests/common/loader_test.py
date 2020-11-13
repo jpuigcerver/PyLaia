@@ -173,7 +173,11 @@ def test_model_loader_find_best(tmpdir):
     # with no-monitor ckpts
     trainer = DummyTrainer(
         default_root_dir=tmpdir,
-        callbacks=[pl.callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)],
+        callbacks=[
+            pl.callbacks.ModelCheckpoint(
+                dirpath=tmpdir, save_top_k=-1, filename="{epoch}"
+            )
+        ],
         checkpoint_callback=True,
         max_epochs=3,
     )
@@ -183,7 +187,7 @@ def test_model_loader_find_best(tmpdir):
     # with monitor ckpts
     monitor = "bar"
     mc = pl.callbacks.ModelCheckpoint(
-        dirpath=tmpdir, save_top_k=-1, monitor=monitor, mode="max"
+        dirpath=tmpdir, save_top_k=-1, monitor=monitor, mode="max", filename="{epoch}"
     )
     trainer = DummyTrainer(
         default_root_dir=tmpdir, callbacks=[mc], checkpoint_callback=True, max_epochs=3
@@ -199,7 +203,7 @@ def test_model_loader_find_best(tmpdir):
     )
 
 
-def test_model_loader_prepare_checkpoint(tmpdir, caplog):
+def test_model_loader_prepare_checkpoint(tmpdir):
     # create some checkpoints
     monitor = "bar"
     exp_dirpath = tmpdir / "experiment"
@@ -207,7 +211,11 @@ def test_model_loader_prepare_checkpoint(tmpdir, caplog):
         default_root_dir=tmpdir,
         callbacks=[
             pl.callbacks.ModelCheckpoint(
-                dirpath=exp_dirpath, save_top_k=-1, monitor=monitor, mode="max"
+                dirpath=exp_dirpath,
+                save_top_k=-1,
+                monitor=monitor,
+                mode="max",
+                filename="{epoch}",
             )
         ],
         checkpoint_callback=True,
@@ -236,9 +244,7 @@ def test_model_loader_prepare_checkpoint(tmpdir, caplog):
         == exp_dirpath / "epoch=1.ckpt"
     )
     # failures
-    with pytest.raises(SystemExit):
+    with pytest.raises(AssertionError, match="Could not find a valid checkpoint in"):
         ModelLoader.prepare_checkpoint("", tmpdir, monitor)
-        assert caplog.messages[-1].startswith("Could not find a valid checkpoint in")
-    with pytest.raises(SystemExit):
+    with pytest.raises(AssertionError, match="Could not find the checkpoint"):
         ModelLoader.prepare_checkpoint("?", exp_dirpath, monitor)
-        assert caplog.messages[-1].startswith("Could not find the checkpoint")

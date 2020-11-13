@@ -24,15 +24,15 @@ _logger = log.get_logger(__name__)
 class DataModule(pl.LightningDataModule):
     def __init__(
         self,
-        img_dirs: List[str],
-        color_mode: str,
-        batch_size: int,
+        syms: Optional[Union[Dict, SymbolsTable]] = None,
+        img_dirs: Optional[List[str]] = None,
         tr_txt_table: Optional[str] = None,
         va_txt_table: Optional[str] = None,
-        tr_shuffle: bool = True,
-        tr_distortions: bool = False,
-        te_img_list: Optional[List[str]] = None,
-        syms: Optional[Union[Dict, SymbolsTable]] = None,
+        te_img_list: Optional[Union[str, List[str]]] = None,
+        batch_size: int = 8,
+        color_mode: str = "L",
+        shuffle_tr: bool = True,
+        augment_tr: bool = False,
         stage: str = "fit",
     ) -> None:
         assert stage in ("fit", "test")
@@ -49,12 +49,12 @@ class DataModule(pl.LightningDataModule):
             self.va_ds = None
             self.tr_txt_table = tr_txt_table
             self.va_txt_table = va_txt_table
-            self.tr_shuffle = tr_shuffle
+            self.shuffle_tr = shuffle_tr
             tr_img_transform = transforms.vision.ToImageTensor(
                 mode=color_mode,
                 invert=True,
                 random_transform=transforms.vision.RandomBetaAffine()
-                if tr_distortions
+                if augment_tr
                 else None,
             )
             txt_transform = transforms.text.ToTensor(syms)
@@ -65,9 +65,7 @@ class DataModule(pl.LightningDataModule):
             )
         elif stage == "test":
             self.te_ds = None
-            # convert to str to avoid "cannot pickle '_io.TextIOWrapper' object"
-            # when using multiprocessing.spawn
-            self.te_img_list = [str(x) for x in te_img_list]
+            self.te_img_list = te_img_list
             super().__init__(test_transforms=base_img_transform)
 
     def setup(self, stage: Optional[str] = None):
@@ -112,7 +110,7 @@ class DataModule(pl.LightningDataModule):
             dataset=self.tr_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=self.tr_shuffle,
+            shuffle=self.shuffle_tr,
             worker_init_fn=DataModule.worker_init_fn,
             pin_memory=self.trainer.on_gpu,
             collate_fn=PaddingCollater(

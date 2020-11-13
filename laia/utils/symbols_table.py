@@ -1,15 +1,25 @@
+from pathlib import Path
+from typing import Iterator, Optional, Tuple, Union
+
+
 class SymbolsTable:
-    def __init__(self, f=None):
+    """
+    Bijective mapping between symbols (strings) and integers
+
+    Args:
+        filepath: Filepath to the symbols file
+    """
+
+    def __init__(self, filepath: Optional[Union[str, Path]] = None):
         self._sym2val, self._val2sym = dict(), dict()
-        if f:
-            self.load(f)
+        if filepath:
+            self.load(filepath)
 
     def clear(self):
         self._sym2val, self._val2sym = dict(), dict()
 
-    def load(self, f):
-        if isinstance(f, str):
-            f = open(f)
+    def load(self, f: Union[str, Path]):
+        f = open(f)
         self.clear()
         try:
             lines = [line.split() for line in f if len(line.split())]
@@ -20,29 +30,28 @@ class SymbolsTable:
         finally:
             f.close()
 
-    def save(self, f):
-        if isinstance(f, str):
-            f = open(f, "w")
+    def save(self, f: Union[str, Path]):
+        f = open(f, "w")
         max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
             f.write(f"{s:>{max_len}} {v}\n")
         f.close()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._val2sym)
 
-    def __getitem__(self, x):
+    def __getitem__(self, x: Union[str, int]) -> Optional[Union[str, int]]:
         if isinstance(x, int):
             return self._val2sym.get(x, None)
         if isinstance(x, str):
             return self._sym2val.get(x, None)
         raise ValueError("SymbolsTable contains pairs of integers and strings")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, int]]:
         for v, s in self._val2sym.items():
             yield s, v
 
-    def __contains__(self, x):
+    def __contains__(self, x: Union[str, int]) -> bool:
         if isinstance(x, int):
             return x in self._val2sym
         if isinstance(x, str):
@@ -51,7 +60,7 @@ class SymbolsTable:
             f'SymbolsTable contains pairs of integers and strings, found "{x}"'
         )
 
-    def add(self, symbol, value):
+    def add(self, symbol: str, value: int):
         if not isinstance(symbol, str):
             raise KeyError(
                 f"Symbol must be a string, but type {type(symbol)} was given"
@@ -60,7 +69,6 @@ class SymbolsTable:
             raise KeyError(
                 f"Value must be an integer, but type {type(value)} was given"
             )
-
         old_val = self._sym2val.get(symbol, None)
         old_sym = self._val2sym.get(value, None)
         if old_val is None and old_sym is None:

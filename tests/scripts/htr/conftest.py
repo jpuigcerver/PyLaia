@@ -20,6 +20,7 @@ def call_script(
     # also the issue that spawned processes' objects must be entirely pickleable."
     # To circumvent these limitations, we launch our own process (here) to call the"
     # script file and capture its stdout and stderr"
+    args = [str(a) for a in args]
     command = [sys.executable, file] + args
     print(" ".join(command))
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

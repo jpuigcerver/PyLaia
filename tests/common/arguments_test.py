@@ -1,48 +1,58 @@
-import argparse
-from ast import literal_eval
+from re import escape
 
-import laia.common.arguments as args
-import laia.common.logging as log
+import pytest
+import pytorch_lightning as pl
+import torch
 
-
-def test_get_key():
-    assert args.get_key({"learning_rate": 1.0}, "learning_rate") == 1.0
-    assert args.get_key({}, "learning_rate") == 5e-4
-    assert not args.get_key({"foo": "bar"}, "nesterov")
-    assert args.get_key({"foo": "bar", "nesterov": True}, "nesterov")
+from laia.common.arguments import CreateCRNNArgs, TrainerArgs
 
 
-def test_valid_arguments():
-    parser = argparse.ArgumentParser()
-    for names, kwargs in args.default_args.values():
-        parser.add_argument(*names, **kwargs)
-    parser.parse_args([])
+def test_trainer_args():
+    args = TrainerArgs()
+    assert not hasattr(args, "callbacks")
+    # instantiate to check if its valid
+    pl.Trainer(**vars(args))
 
 
-def test_add_defaults():
-    parser = args.LaiaParser().add_defaults("nesterov", "momentum", momentum=3)
-    parsed = parser.parse_args([], should_log=False)
-    assert not parsed.nesterov
-    assert parsed.momentum == 3.0
+def test_trainer_args_postinit(monkeypatch):
+    monkeypatch.setattr(torch, "__version__", "1.5.0")
+    with pytest.raises(ValueError, match=r"AMP requires torch>=1\.7\.0"):
+        TrainerArgs(precision=15)
 
 
-def test_args(caplog, monkeypatch):
-    parser = args.LaiaParser().add_defaults(
-        "logging_also_to_stderr",
-        "logging_file",
-        "logging_level",
-        "logging_overwrite",
-        "print_args",
-    )
-    assert log.get_logger().level == 0
-    parser.parse_args([])
-    assert log.get_logger().level == log.INFO
-    assert len(caplog.messages) == 1
-    assert literal_eval(caplog.messages[0]) == {
-        "logging_also_to_stderr": 40,
-        "logging_file": None,
-        "logging_level": 20,
-        "logging_overwrite": False,
-        "print_args": True,
-    }
-    log.clear()  # reset logging
+def test_createcrnn_args_postinit():
+    with pytest.raises(ValueError, match="Wrong cnn layer dimensions"):
+        CreateCRNNArgs(cnn_num_features=[1])
+    with pytest.raises(ValueError, match="Could not find all cnn activations"):
+        CreateCRNNArgs(cnn_activation=["ReLU"] * 3 + ["RELU"])
+    with pytest.raises(ValueError, match="Could not find RNN type"):
+        CreateCRNNArgs(rnn_type="LSTN")
+
+
+@pytest.mark.parametrize(
+    ["v", "msg"],
+    [
+        ([{}], "{} (<class 'dict'>) is neither a tuple nor an int"),
+        ([1, 2.0], "2.0 (<class 'float'>) is neither a tuple nor an int"),
+        (
+            [(1, 2, 3)],
+            "The given input [(1, 2, 3)] does not match the given dimensions 2",
+        ),
+    ],
+)
+def test_parse_parameter_raises(v, msg):
+    with pytest.raises(ValueError, match=escape(msg)):
+        CreateCRNNArgs.parse_parameter(v)
+
+
+@pytest.mark.parametrize(
+    ["v", "expected"],
+    [
+        ([1], [[1] * 3]),
+        ([1, 2, 3], [[1] * 3, [2] * 3, [3] * 3]),
+        ([(1, 2, 3)], [[1, 2, 3]]),
+        ([[1, 2, 3]], [[1, 2, 3]]),
+    ],
+)
+def test_parse_parameter(v, expected):
+    assert CreateCRNNArgs.parse_parameter(v, dim=3) == expected

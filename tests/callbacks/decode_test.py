@@ -34,8 +34,8 @@ class __TestDecode(Decode):
             r"va-\d+ ",
             "['0', '3', ' ', '5', '<ctc>', '9']",
         ),
-        ({"join_str": "-", "separator": " --- "}, r"va-\d+ --- ", "1-4-11-6-0-10"),
-        ({"use_symbols": True, "join_str": ""}, r"va-\d+ ", "03<space>5<ctc>9"),
+        ({"join_string": "-", "separator": " --- "}, r"va-\d+ --- ", "1-4-11-6-0-10"),
+        ({"use_symbols": True, "join_string": ""}, r"va-\d+ ", "03<space>5<ctc>9"),
     ],
 )
 @pytest.mark.parametrize("num_processes", (1, 2))

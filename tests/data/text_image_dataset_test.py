@@ -14,11 +14,8 @@ def test_text_image_dataset_different_length():
 
 
 @pytest.mark.parametrize("transform", [None, lambda x: 1])
-def test_image_dataset(transform):
-    def monkeypatch(*_):
-        return {"img": None}
-
-    ImageDataset.__getitem__ = monkeypatch
+def test_image_dataset(transform, monkeypatch):
+    monkeypatch.setattr(ImageDataset, "__getitem__", lambda *_: {"img": None})
     dataset = TextImageDataset(["foo.jpg"], ["bar"], txt_transform=transform)
     assert len(dataset) == 1
     assert list(dataset[0].keys()) == ["img", "txt"]

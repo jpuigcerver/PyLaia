@@ -1,8 +1,9 @@
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import torch
 
 from laia.callbacks.meters import SequenceError, char_to_word_seq
+from laia.common.arguments import OptimizerArgs, SchedulerArgs
 from laia.decoders import CTCGreedyDecoder
 from laia.engine import EngineModule
 from laia.losses import CTCLoss
@@ -12,19 +13,19 @@ class HTREngineModule(EngineModule):
     def __init__(
         self,
         model: torch.nn.Module,
-        optimizer: str,
         delimiters: Iterable,
         criterion: Optional[Callable] = CTCLoss(),
-        optimizer_kwargs: Optional[Dict] = None,
+        optimizer: OptimizerArgs = OptimizerArgs(),
+        scheduler: Optional[SchedulerArgs] = None,
         batch_input_fn: Optional[Callable] = None,
         batch_target_fn: Optional[Callable] = None,
         batch_id_fn: Optional[Callable] = None,
     ):
         super().__init__(
             model,
-            optimizer,
             criterion,
-            optimizer_kwargs=optimizer_kwargs,
+            optimizer=optimizer,
+            scheduler=scheduler,
             batch_input_fn=batch_input_fn,
             batch_target_fn=batch_target_fn,
             batch_id_fn=batch_id_fn,

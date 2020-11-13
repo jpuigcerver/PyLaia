@@ -1,13 +1,12 @@
-from os.path import join
-
 import pytest
 import torch
+from conftest import call_script
 from pytorch_lightning import seed_everything
 
+from laia.common.arguments import CommonArgs
 from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines, DummyModel
 from laia.scripts.htr import netout as script
-from tests.scripts.htr.conftest import call_script
 
 
 @pytest.mark.parametrize("nprocs", (1, 2))
@@ -30,20 +29,20 @@ def test_netout_on_dummy_mnist_lines_data(tmpdir, nprocs):
     )
 
     args = [
-        str(img_list),
-        join(data_module.root, "va"),
-        f"--train_path={tmpdir}",
-        f"--checkpoint={ckpt}",
-        f"--experiment_dirname={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
-        "--output_transform=softmax",
-        "--digits=3",
-        f"--lattice=lattice",
-        f"--matrix=matrix",
+        img_list,
+        f"--img_dirs=[{str(data_module.root / 'va')}]",
+        f"--common.train_path={tmpdir}",
+        f"--common.checkpoint={ckpt}",
+        f"--common.experiment_dirname={tmpdir}",
+        f"--data.batch_size={data_module.batch_size}",
+        "--netout.output_transform=softmax",
+        "--netout.digits=3",
+        "--netout.lattice=lattice",
+        "--netout.matrix=matrix",
     ]
     if nprocs > 1:
-        args.append("--accelerator=ddp_cpu")
-        args.append(f"--num_processes={nprocs}")
+        args.append("--trainer.accelerator=ddp_cpu")
+        args.append(f"--trainer.num_processes={nprocs}")
 
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stdout:\n{stdout}")
@@ -61,3 +60,30 @@ def test_netout_on_dummy_mnist_lines_data(tmpdir, nprocs):
     matrix = tmpdir / "matrix"
     assert matrix.exists()
     assert len(matrix.read_binary()) > 0
+
+
+def test_raises(tmpdir):
+    # generate a model and a checkpoint
+    model_args = [(1, 1), 1]
+    ModelSaver(tmpdir).save(DummyModel, *model_args)
+    ckpt = tmpdir / "model.ckpt"
+    torch.save(DummyModel(*model_args).state_dict(), str(ckpt))
+
+    with pytest.raises(AssertionError, match="Could not find the model"):
+        script.run(
+            "",
+            common=CommonArgs(
+                train_path=tmpdir,
+                experiment_dirname="",
+                model_filename="test",
+                checkpoint="model.ckpt",
+            ),
+        )
+
+    with pytest.raises(AssertionError, match="You did not specify any output file"):
+        script.run(
+            "",
+            common=CommonArgs(
+                train_path=tmpdir, experiment_dirname="", checkpoint="model.ckpt"
+            ),
+        )

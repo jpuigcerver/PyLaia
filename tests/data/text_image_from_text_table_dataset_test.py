@@ -16,14 +16,11 @@ def test_text_image_from_text_table_dataset_empty():
     assert len(dataset) == 0
 
 
-def test_text_image_from_text_table_dataset(tmpdir):
-    def monkeypatch(*_):
-        return {"img": None}
-
+def test_text_image_from_text_table_dataset(tmpdir, monkeypatch):
+    monkeypatch.setattr(ImageDataset, "__getitem__", lambda *_: {"img": None})
     f = tmpdir / "foo"
     f.write(None)
     txt = "12 3 4"
-    ImageDataset.__getitem__ = monkeypatch
     dataset = TextImageFromTextTableDataset([f"{f} {txt}"])
     assert len(dataset) == 1
     assert list(dataset[0].keys()) == ["img", "txt", "id"]
