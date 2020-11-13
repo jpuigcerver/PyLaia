@@ -1,9 +1,9 @@
-from typing import Any, Callable, Dict, Iterator, Optional, Tuple
+from typing import Any, Callable, Iterator, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
 
-from laia.common.arguments import get_key
+from laia.common.arguments import OptimizerArgs, SchedulerArgs
 from laia.common.types import Loss as LossT
 from laia.engine.engine_exception import exception_catcher
 from laia.losses.loss import Loss
@@ -14,9 +14,9 @@ class EngineModule(pl.LightningModule):
     def __init__(
         self,
         model: torch.nn.Module,
-        optimizer: str,
         criterion: Callable,
-        optimizer_kwargs: Optional[Dict] = None,
+        optimizer: OptimizerArgs = OptimizerArgs(),
+        scheduler: Optional[SchedulerArgs] = None,
         batch_input_fn: Optional[Callable] = None,
         batch_target_fn: Optional[Callable] = None,
         batch_id_fn: Optional[Callable] = None,
@@ -25,9 +25,7 @@ class EngineModule(pl.LightningModule):
         self.model = model
         # configure_optimizers()
         self.optimizer = optimizer
-        if optimizer_kwargs is None:
-            optimizer_kwargs = {}
-        self.optimizer_kwargs = optimizer_kwargs
+        self.scheduler = scheduler
         # compute_loss()
         self.criterion = criterion
         # prepare_batch()
@@ -38,42 +36,42 @@ class EngineModule(pl.LightningModule):
         # training_step(), validation_step()
         self.batch_y_hat = None
         # required by auto_lr_find
-        self.lr = get_key(self.optimizer_kwargs, "learning_rate")
+        self.lr = optimizer.learning_rate
 
     def configure_optimizers(self):
-        weight_decay = get_key(self.optimizer_kwargs, "weight_l2_penalty")
-        if self.optimizer == "SGD":
+        weight_decay = self.optimizer.weight_l2_penalty
+        if self.optimizer.name == "SGD":
             optimizer = torch.optim.SGD(
                 self.parameters(),
                 lr=self.lr,
-                momentum=get_key(self.optimizer_kwargs, "momentum"),
+                momentum=self.optimizer.momentum,
                 weight_decay=weight_decay,
-                nesterov=get_key(self.optimizer_kwargs, "nesterov"),
+                nesterov=self.optimizer.nesterov,
             )
-        elif self.optimizer == "RMSProp":
+        elif self.optimizer.name == "RMSProp":
             optimizer = torch.optim.RMSprop(
                 self.parameters(),
                 lr=self.lr,
                 weight_decay=weight_decay,
-                momentum=get_key(self.optimizer_kwargs, "momentum"),
+                momentum=self.optimizer.momentum,
             )
-        elif self.optimizer == "Adam":
+        elif self.optimizer.name == "Adam":
             optimizer = torch.optim.Adam(
                 self.parameters(),
                 lr=self.lr,
                 weight_decay=weight_decay,
             )
         else:
-            raise NotImplementedError(f"Optimizer: {self.optimizer}")
-        if self.optimizer_kwargs.get("scheduler", False):
+            raise NotImplementedError(f"Optimizer: {self.optimizer.name}")
+        if self.scheduler is not None and self.scheduler.active:
             scheduler = {
                 "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer,
                     mode="min",
-                    factor=self.optimizer_kwargs.get("scheduler_factor", 0.1),
-                    patience=self.optimizer_kwargs.get("scheduler_patience", 5) - 1,
+                    factor=self.scheduler.factor,
+                    patience=self.scheduler.patience - 1,
                 ),
-                "monitor": self.optimizer_kwargs.get("scheduler_monitor", "va_loss"),
+                "monitor": self.scheduler.monitor,
                 "interval": "epoch",
                 "frequency": 1,
                 "strict": False,

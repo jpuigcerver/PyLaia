@@ -1,3 +1,4 @@
+from logging import DEBUG
 from typing import Optional
 
 import torch
@@ -8,7 +9,7 @@ import laia.common.logging as log
 def check_tensor(
     tensor: torch.Tensor,
     msg: Optional[str] = None,
-    name: Optional[str] = None,
+    name: Optional[str] = "laia",
     raise_exception: bool = False,
     **kwargs,
 ) -> bool:
@@ -30,7 +31,7 @@ def check_tensor(
       `True` if the tensor contains any infinite value, `False` otherwise.
     """
     logger = log.get_logger(name)
-    if logger.isEnabledFor(log.DEBUG):
+    if logger.isEnabledFor(DEBUG):
         num = torch.isfinite(tensor).logical_not().sum().item()
         if num > 0:
             percentage = num / tensor.numel()

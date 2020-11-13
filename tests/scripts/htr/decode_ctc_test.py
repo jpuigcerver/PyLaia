@@ -1,16 +1,18 @@
 import shutil
 from distutils.version import StrictVersion
-from os.path import join
+from io import StringIO
+from unittest import mock
 
 import pytest
 import torch
+from conftest import call_script
 from pytorch_lightning import seed_everything
 
+from laia.common.arguments import CommonArgs, DataArgs, DecodeArgs
 from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines, DummyModel
 from laia.scripts.htr import decode_ctc as script
 from laia.utils import SymbolsTable
-from tests.scripts.htr.conftest import call_script
 
 
 @pytest.mark.parametrize("nprocs", (1, 2))
@@ -26,7 +28,7 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     ckpt = tmpdir / "model.ckpt"
     torch.save(DummyModel(*model_args).state_dict(), str(ckpt))
     # prepare syms file
-    syms = str(tmpdir / "syms")
+    syms = tmpdir / "syms"
     syms_table = SymbolsTable()
     for k, v in data_module.syms.items():
         syms_table.add(v, k)
@@ -39,15 +41,15 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
 
     args = [
         syms,
-        str(img_list),
-        join(data_module.root, "va"),
-        f"--checkpoint={ckpt}",
-        f"--train_path={tmpdir}",
-        f"--batch_size={data_module.batch_size}",
+        img_list,
+        f"--img_dirs={[str(data_module.root / 'va')]}",
+        f"--common.checkpoint={ckpt}",
+        f"--common.train_path={tmpdir}",
+        f"--data.batch_size={data_module.batch_size}",
     ]
     if nprocs > 1:
-        args.append("--accelerator=ddp_cpu")
-        args.append(f"--num_processes={nprocs}")
+        args.append("--trainer.accelerator=ddp_cpu")
+        args.append(f"--trainer.num_processes={nprocs}")
 
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stdout:\n{stdout}")
@@ -76,17 +78,19 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
     args = [
         syms,
         img_list,
-        images,
-        f"--train_path={tmpdir}",
-        f"--checkpoint={ckpt}",
-        "--model_filename=model_h128",
-        "--batch_size=3",
-        "--join_str=",
-        "--convert_spaces",
+        f"--img_dirs={[images]}",
+        f"--common.train_path={tmpdir}",
+        f"--common.checkpoint={ckpt}",
+        "--common.model_filename=model_h128",
+        "--data.batch_size=3",
+        "--decode.join_string=''",
+        "--decode.convert_spaces=true",
     ]
     if accelerator:
-        args.append(f"--accelerator={accelerator}")
-        args.append(f"--{'num_processes' if accelerator == 'ddp_cpu' else 'gpus'}=2")
+        args.append(f"--trainer.accelerator={accelerator}")
+        args.append(
+            f"--trainer.{'num_processes' if accelerator == 'ddp_cpu' else 'gpus'}=2"
+        )
 
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stdout:\n{stdout}")
@@ -114,23 +118,19 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     model = downloader("print/old_model")
     shutil.copy(model, tmpdir)
 
-    args = [
-        syms,
-        img_list,
-        images,
-        f"--train_path={tmpdir}",
-        f"--checkpoint={ckpt}",
-        "--model_filename=old_model",
-        f"--batch_size=3",
-        "--join_str=",
-        "--convert_spaces",
-    ]
-    stdout, stderr = call_script(script.__file__, args)
-    print(f"Script stdout:\n{stdout}")
-    print(f"Script stderr:\n{stderr}")
-
-    lines = sorted(stdout.strip().split("\n"))
-    assert lines == [
+    stdout = StringIO()
+    with mock.patch("sys.stdout", new=stdout):
+        script.run(
+            syms,
+            img_list,
+            [images],
+            common=CommonArgs(
+                train_path=tmpdir, checkpoint=ckpt, model_filename="old_model"
+            ),
+            data=DataArgs(batch_size=3),
+            decode=DecodeArgs(join_string="", convert_spaces=True),
+        )
+    assert sorted(stdout.getvalue().strip().split("\n")) == [
         "ONB_aze_18950706_4.r_10_2.tl_125 Deuklichland.",
         "ONB_aze_18950706_4.r_10_3.tl_126 — Wir haben gestern von dem merkwürdigen Tadel",
         "ONB_aze_18950706_4.r_10_3.tl_127 erzählt, den der Colberger Bürgermeister von dem vorgesetzten",
@@ -157,17 +157,19 @@ def test_segmentation(tmpdir, downloader, accelerator):
     args = [
         syms,
         img_list,
-        images,
-        f"--train_path={tmpdir}",
-        f"--experiment_dirname={tmpdir}",
-        f"--checkpoint={ckpt}",
-        "--model_filename=model_h128",
-        "--batch_size=3",
-        "--print_segmentation=word",
+        f"--img_dirs={[images]}",
+        f"--common.train_path={tmpdir}",
+        f"--common.experiment_dirname={tmpdir}",
+        f"--common.checkpoint={ckpt}",
+        "--common.model_filename=model_h128",
+        "--data.batch_size=3",
+        "--decode.segmentation=word",
     ]
     if accelerator:
-        args.append(f"--accelerator={accelerator}")
-        args.append(f"--{'num_processes' if accelerator == 'ddp_cpu' else 'gpus'}=2")
+        args.append(f"--trainer.accelerator={accelerator}")
+        args.append(
+            f"--trainer.{'num_processes' if accelerator == 'ddp_cpu' else 'gpus'}=2"
+        )
 
     stdout, stderr = call_script(script.__file__, args)
     print(f"Script stdout:\n{stdout}")
@@ -182,3 +184,23 @@ def test_segmentation(tmpdir, downloader, accelerator):
         "ONB_aze_18950706_4.r_10_3.tl_129 [('lich', 1, 1, 71, 128),",
     ]
     assert all(l.startswith(e) for l, e in zip(lines, expected))
+
+
+def test_raises(tmpdir):
+    # generate a model and a checkpoint
+    model_args = [(1, 1), 1]
+    ModelSaver(tmpdir).save(DummyModel, *model_args)
+    ckpt = tmpdir / "model.ckpt"
+    torch.save(DummyModel(*model_args).state_dict(), str(ckpt))
+
+    with pytest.raises(AssertionError, match="Could not find the model"):
+        script.run(
+            "",
+            "",
+            common=CommonArgs(
+                train_path=tmpdir,
+                experiment_dirname="",
+                model_filename="test",
+                checkpoint="model.ckpt",
+            ),
+        )

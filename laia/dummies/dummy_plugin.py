@@ -11,7 +11,7 @@ class DummyLoggingPlugin(DDPPlugin):
 
     @staticmethod
     def setup_logging(log_filepath):
-        log.config(fmt="%(message)s", filename=log_filepath, filemode="w")
+        log.config(fmt="%(message)s", filepath=log_filepath, overwrite=True)
 
     def configure_ddp(self, *args, **kwargs):
         # call _setup_logging again here otherwise processes

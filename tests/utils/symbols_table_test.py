@@ -1,5 +1,5 @@
 import re
-from io import StringIO
+from pathlib import Path
 
 import pytest
 
@@ -80,12 +80,14 @@ def test_contains():
     assert 1 in st
     assert 2 not in st
     with pytest.raises(ValueError, match="SymbolsTable contains pairs"):
-        assert None in st
+        assert None in st  # noqa: expected type
 
 
-def test_load():
-    table_file = StringIO("\n\na   1\nb     2\n")
-    st = SymbolsTable(table_file)
+@pytest.mark.parametrize("as_type", [str, Path])
+def test_load(tmpdir, as_type):
+    file = tmpdir / "f"
+    file.write_text("\n\na   1\nb     2\n", "utf-8")
+    st = SymbolsTable(as_type(file))
     assert len(st) == 2
     assert st["a"] == 1
     assert st["b"] == 2
@@ -93,10 +95,11 @@ def test_load():
     assert st[2] == "b"
 
 
-def test_load_value_error():
-    table_file = StringIO("\n\na   1\nb     c\n")
+def test_load_value_error(tmpdir):
+    file = tmpdir / "f"
+    file.write_text("\n\na   1\nb     c\n", "utf-8")
     with pytest.raises(ValueError):
-        SymbolsTable(table_file)
+        SymbolsTable(file)
 
 
 def test_save(tmpdir):

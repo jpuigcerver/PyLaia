@@ -17,7 +17,7 @@ class Decode(pl.Callback):
         input_space: str = "<space>",
         output_space: str = " ",
         convert_spaces: bool = False,
-        join_str: Optional[str] = None,
+        join_string: Optional[str] = None,
         separator: str = " ",
         include_img_ids: bool = True,
     ):
@@ -32,7 +32,7 @@ class Decode(pl.Callback):
         self.convert_spaces = convert_spaces
         if convert_spaces:
             assert use_symbols
-        self.join_str = join_str
+        self.join_string = join_string
         self.separator = separator
         self.include_img_ids = include_img_ids
 
@@ -48,8 +48,8 @@ class Decode(pl.Callback):
                         self.output_space if sym == self.input_space else sym
                         for sym in hyp
                     ]
-            if self.join_str is not None:
-                hyp = self.join_str.join(str(x) for x in hyp)
+            if self.join_string is not None:
+                hyp = self.join_string.join(str(x) for x in hyp)
             self.write(
                 f"{img_id}{self.separator}{hyp}" if self.include_img_ids else str(hyp)
             )

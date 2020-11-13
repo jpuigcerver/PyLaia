@@ -4,7 +4,6 @@ import pytest
 
 from laia.callbacks.segmentation import Segmentation
 from laia.dummies import DummyEvaluator, DummyMNISTLines, DummyTrainer
-from laia.losses.ctc_loss import transform_batch
 
 
 def test_char_segmentation_empty():
