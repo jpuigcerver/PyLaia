@@ -27,9 +27,7 @@ In order to install PyLaia, follow this recipe:
 ```bash
 git clone https://github.com/jpuigcerver/PyLaia
 cd PyLaia
-pip install --editable .
-# alternatively, to install extras
-pip install --editable .[dev,test]
+pip install -e .
 ```
 
 The following Python scripts will be installed in your system:
