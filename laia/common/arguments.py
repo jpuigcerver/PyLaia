@@ -2,6 +2,7 @@ import inspect
 from dataclasses import dataclass, field, make_dataclass
 from distutils.version import StrictVersion
 from enum import Enum
+from os.path import join
 from typing import Any, List, Optional, Tuple, Type, Union
 
 import pytorch_lightning as pl
@@ -52,6 +53,9 @@ class CommonArgs:
     experiment_dirname: str = "experiment"
     monitor: Monitor = Monitor.va_cer
     checkpoint: Optional[str] = None
+
+    def __post_init__(self):
+        self.experiment_dirpath = join(self.train_path, self.experiment_dirname)
 
 
 @dataclass

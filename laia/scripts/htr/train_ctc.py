@@ -36,13 +36,14 @@ def run(
 ):
     pl.seed_everything(common.seed)
 
-    exp_dirpath = join(common.train_path, common.experiment_dirname)
     loader = ModelLoader(
         common.train_path, filename=common.model_filename, device="cpu"
     )
     # maybe load a checkpoint
     checkpoint = (
-        loader.prepare_checkpoint(common.checkpoint, exp_dirpath, common.monitor)
+        loader.prepare_checkpoint(
+            common.checkpoint, common.experiment_dirpath, common.monitor
+        )
         if train.resume
         else None
     )
@@ -84,7 +85,7 @@ def run(
     # prepare the training callbacks
     # TODO: save on lowest_va_wer and every k epochs https://github.com/PyTorchLightning/pytorch-lightning/issues/2908
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        dirpath=exp_dirpath,
+        dirpath=common.experiment_dirpath,
         filename="{epoch}-lowest_" + common.monitor,
         monitor=common.monitor,
         verbose=True,
@@ -116,7 +117,7 @@ def run(
         default_root_dir=common.train_path,
         resume_from_checkpoint=checkpoint,
         callbacks=callbacks,
-        logger=EpochCSVLogger(exp_dirpath),
+        logger=EpochCSVLogger(common.experiment_dirpath),
         checkpoint_callback=True,
         **vars(trainer),
     )
@@ -194,7 +195,13 @@ def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
 def main():
     args = get_args()
     del args["config"]
-    log.config(**args.pop("logging"))
+    # configure logging
+    logging = args.pop("logging")
+    if logging["filepath"] is not None:
+        logging["filepath"] = join(
+            args["common"].experiment_dirpath, logging["filepath"]
+        )
+    log.config(**logging)
     log.info(f"Arguments: {args}")
     log.info(f"Installed: {get_installed_versions()}")
     run(**args)
