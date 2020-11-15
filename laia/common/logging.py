@@ -138,11 +138,11 @@ def config(
     Args:
         fmt: Logging format
         level: Logging level
-        filepath: Filepath for the logs file
+        filepath: Filepath for the logs file. Can be a filepath or a
+            filename to be created in `train_path`/`experiment_dirname`
         overwrite: Whether to overwrite the logfile or to append
-        to_stderr_level: If filename is set, use this to log also to stderr at
-            the given level.
-        exception_handling_fn: internal
+        to_stderr_level: If filename is set, use this to log also
+            to stderr at the given level.
     """
     capture_warnings()
 

@@ -22,12 +22,11 @@ def run(
     netout: NetoutArgs = NetoutArgs(),
     trainer: TrainerArgs = TrainerArgs(),
 ):
-    exp_dirpath = join(common.train_path, common.experiment_dirname)
     loader = ModelLoader(
         common.train_path, filename=common.model_filename, device="cpu"
     )
     checkpoint = loader.prepare_checkpoint(
-        common.checkpoint, exp_dirpath, common.monitor
+        common.checkpoint, common.experiment_dirpath, common.monitor
     )
     model = loader.load_by(checkpoint)
     assert (
@@ -53,11 +52,15 @@ def run(
     # prepare the kaldi writers
     writers = []
     if netout.matrix is not None:
-        writers.append(ArchiveMatrixWriter(join(exp_dirpath, netout.matrix)))
+        writers.append(
+            ArchiveMatrixWriter(join(common.experiment_dirpath, netout.matrix))
+        )
     if netout.lattice is not None:
         writers.append(
             ArchiveLatticeWriter(
-                join(exp_dirpath, netout.lattice), digits=netout.digits, negate=True
+                join(common.experiment_dirpath, netout.lattice),
+                digits=netout.digits,
+                negate=True,
             )
         )
     assert (
@@ -124,7 +127,13 @@ def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
 def main():
     args = get_args()
     del args["config"]
-    log.config(**args.pop("logging"))
+    # configure logging
+    logging = args.pop("logging")
+    if logging["filepath"] is not None:
+        logging["filepath"] = join(
+            args["common"].experiment_dirpath, logging["filepath"]
+        )
+    log.config(**logging)
     log.info(f"Arguments: {args}")
     log.info(f"Installed: {get_installed_versions()}")
     run(**args)
