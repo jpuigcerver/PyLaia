@@ -83,6 +83,7 @@ def run(
     trainer = pl.Trainer(
         default_root_dir=common.train_path,
         callbacks=callbacks,
+        logger=False,
         **vars(trainer),
     )
 
