@@ -1,15 +1,26 @@
 from pathlib import Path
 
-import laia
+import pkg_resources
+
+from laia import *
 
 
-def test_version_exists():
-    assert hasattr(laia, "__version__")
+def test_star_import():
+    # these are defined in __all__
+    assert __version__
+    assert __root__
+    assert get_installed_versions
+
+
+def test_versions_match():
+    # check __init__ version matches setup.py (installed) version
+    version = pkg_resources.require("laia")[0].version
+    assert __version__.startswith(version)
 
 
 def test_installed_versions():
-    versions = laia.get_installed_versions()
-    requirements_path = Path(__file__).parent.parent / "requirements.txt"
+    versions = get_installed_versions()
+    requirements_path = __root__ / "requirements.txt"
     with open(requirements_path) as f:
         expected = len([l for l in f.readlines() if not l.startswith("#")])
         expected += 1  # laia's version

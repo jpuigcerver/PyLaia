@@ -18,11 +18,7 @@ def get_long_description():
 
 setuptools.setup(
     name="laia",
-    use_scm_version={
-        "write_to": "laia/version.py",
-        "write_to_template": '__version__ = "{version}"\n',
-        "local_scheme": lambda v: f"+{v.node}.{v.branch}{'.dirty' if v.dirty else ''}",
-    },
+    version="1.0.0rc1",
     author="Joan Puigcerver",
     author_email="joapuipe@gmail.com",
     maintainer="Carlos Mocholí",
@@ -34,7 +30,7 @@ setuptools.setup(
     setup_requires=["setuptools_scm"],
     install_requires=get_requirements(),
     extras_require={
-        "dev": ["pre-commit", "isort", "black", "setuptools_scm"],
+        "dev": ["pre-commit", "isort", "black"],
         "test": ["pytest", "pytest-cov", "pandas"],
     },
     python_requires=">=3.6",

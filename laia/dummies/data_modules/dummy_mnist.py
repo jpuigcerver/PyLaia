@@ -1,16 +1,15 @@
-from pathlib import Path
-
 import pytorch_lightning as pl
 import torch
 import torchvision
 
+from laia import __root__
 from laia.data.transforms.vision import ToImageTensor
 
 
 class DummyMNIST(pl.LightningDataModule):
     def __init__(self, batch_size: int = 64):
         self.batch_size = batch_size
-        self.root = Path(__file__).parents[3] / "datasets"
+        self.root = __root__ / "datasets"
         super().__init__(
             train_transforms=ToImageTensor(),
             val_transforms=ToImageTensor(),

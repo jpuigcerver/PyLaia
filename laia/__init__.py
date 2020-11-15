@@ -1,4 +1,7 @@
+import subprocess
 import sys
+from pathlib import Path
+from shutil import which
 from typing import List
 
 import laia.callbacks
@@ -10,27 +13,30 @@ import laia.losses
 import laia.nn
 import laia.utils
 
-__all__ = ["__version__", "get_installed_versions"]
+__all__ = ["__version__", "__root__", "get_installed_versions"]
+__version__ = "1.0.0rc1"
+__root__ = Path(__file__).parent.parent
 
 try:
-    from setuptools_scm import get_version
-
-    __version__ = get_version(
-        root="..",
-        relative_to=__file__,
-        local_scheme=lambda v: f"+{v.node}.{v.branch}{'.dirty' if v.dirty else ''}",
+    branch = subprocess.check_output(
+        [which("git"), "-C", str(__root__), "branch", "--show-current"],
+        stderr=subprocess.DEVNULL,
     )
-except ImportError:
-    from laia.version import __version__
+    branch = branch.decode().strip()
+    node = subprocess.check_output(
+        [which("git"), "-C", str(__root__), "describe", "--always", "--dirty"],
+        stderr=subprocess.DEVNULL,
+    )
+    node = node.decode().strip()
+    __version__ += f"-{branch}-{node}"
+except subprocess.CalledProcessError:
+    pass
 
 
 def get_installed_versions() -> List[str]:
-    import subprocess
-    from pathlib import Path
-
-    requirements_path = Path(__file__).parent.parent / "requirements.txt"
+    requirements_path = __root__ / "requirements.txt"
+    requirements = []
     with open(requirements_path) as f:
-        requirements = []
         for r in f.readlines():
             r = r.strip()
             r = r.split(" @ ")[0]  # support 'pkg @ git+https://...' notation
@@ -41,7 +47,7 @@ def get_installed_versions() -> List[str]:
     freeze = subprocess.check_output(
         [sys.executable, "-m", "pip", "freeze", "--exclude-editable"]
     )
-    freeze = freeze.decode("ascii").strip().split("\n")
+    freeze = freeze.decode().strip().split("\n")
     versions = [
         r
         for r in freeze
