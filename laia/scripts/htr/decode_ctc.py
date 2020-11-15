@@ -23,8 +23,6 @@ def run(
     decode: DecodeArgs = DecodeArgs(),
     trainer: TrainerArgs = TrainerArgs(),
 ):
-    log.info(f"Installed: {get_installed_versions()}")
-
     loader = ModelLoader(
         common.train_path, filename=common.model_filename, device="cpu"
     )
