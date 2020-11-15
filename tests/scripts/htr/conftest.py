@@ -1,11 +1,12 @@
 import ssl
 import subprocess
 import sys
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 import pytest
 from torchvision.datasets.utils import download_and_extract_archive, download_url
+
+from laia import __root__
 
 
 def call_script(
@@ -43,7 +44,7 @@ def downloader():
         ssl._create_default_https_context = ssl._create_unverified_context
 
         from_root = "https://www.prhlt.upv.es/~cmocholi/PyLaia/test-resources"
-        to_root = Path(__file__).parents[3] / "test-resources" / resource
+        to_root = __root__ / "test-resources" / resource
         url = from_root + "/" + resource
         if not archive:
             download_url(url, str(to_root.parent))
