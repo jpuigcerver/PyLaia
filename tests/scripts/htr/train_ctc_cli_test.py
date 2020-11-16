@@ -13,7 +13,7 @@ def test_get_args(tmpdir):
         "[tr,va,te]",
         "tr_table",
         "va_table",
-        "--train.delimiters=",
+        "--train.delimiters=null",
         "--train.checkpoint_k=-1",
         "--scheduler.monitor=va_wer",
         "--scheduler.patience=20",
