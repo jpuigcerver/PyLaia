@@ -83,7 +83,7 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
         f"--common.checkpoint={ckpt}",
         "--common.model_filename=model_h128",
         "--data.batch_size=3",
-        "--decode.join_string=''",
+        "--decode.join_string=",
         "--decode.convert_spaces=true",
     ]
     if accelerator:
