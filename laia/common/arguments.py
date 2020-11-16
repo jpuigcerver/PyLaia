@@ -313,7 +313,7 @@ class DecodeArgs:
 
     include_img_ids: bool = True
     separator: str = " "
-    join_string: Optional[str] = None
+    join_string: Optional[str] = " "
     use_symbols: bool = True
     convert_spaces: bool = False
     input_space: str = "<space>"

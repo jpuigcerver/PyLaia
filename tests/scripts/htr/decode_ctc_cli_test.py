@@ -26,7 +26,7 @@ def test_get_args():
     assert args["img_dirs"] is None
     assert not args["decode"].use_symbols
     assert args["decode"].separator == " "
-    assert args["decode"].join_string is None
+    assert args["decode"].join_string == " "
     assert args["decode"].convert_spaces
     assert args["data"].color_mode == "RGBA"
     assert issubclass(type(args["data"].color_mode), Enum)
@@ -83,7 +83,7 @@ decode:
   convert_spaces: false
   include_img_ids: true
   input_space: <space>
-  join_string: null
+  join_string: ' '
   output_space: ' '
   segmentation: null
   separator: ' '
@@ -113,7 +113,10 @@ def test_config_output():
 def test_config_input(tmpdir):
     config = tmpdir / "config"
     config.write_text(expected_config, "utf-8")
-    args = get_args([f"--config={config}", "a", "b", "--img_dirs=[]"])
+    args = get_args(
+        [f"--config={config}", "a", "b", "--img_dirs=[]", "--decode.join_string=null"]
+    )
     assert args["syms"] == "a"
     assert args["img_list"] == "b"
     assert not len(args["img_dirs"])
+    assert args["decode"].join_string is None
