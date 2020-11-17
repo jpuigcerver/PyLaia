@@ -162,7 +162,9 @@ def config(
     if filepath:
         if rank_zero_only.rank > 0:
             filepath += f".rank{rank_zero_only.rank}"
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        dirname = os.path.dirname(filepath)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
         handler = logging.FileHandler(filepath, "w" if overwrite else "a")
         handler.setFormatter(fmt)
         root.addHandler(handler)
