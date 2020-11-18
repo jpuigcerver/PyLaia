@@ -54,8 +54,8 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Configure requirements
       run: |
-        sed -i s/^torch$/torch==${{ matrix.torch }}/ requirements.txt
-        sed -i s/^torchvision$/torchvision==${{ matrix.torchvision }}/ requirements.txt
+        sed -i s/^torch\<1.7.0$/torch==${{ matrix.torch }}/ requirements.txt
+        sed -i s/^torchvision\<0.8.0$/torchvision==${{ matrix.torchvision }}/ requirements.txt
         sed -i s/^nnutils-pytorch$/nnutils-pytorch==${{ matrix.nnutils }}/ requirements.txt
     - name: Install requirements
       run: pip install -e .[test]

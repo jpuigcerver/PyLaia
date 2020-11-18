@@ -3,8 +3,8 @@ natsort
 numpy
 scipy
 matplotlib
-torch
-torchvision
+torch<1.7.0
+torchvision<0.8.0
 nnutils-pytorch
 pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@e81707b
 jsonargparse[signatures] @ git+https://github.com/omni-us/jsonargparse@f0aa159
