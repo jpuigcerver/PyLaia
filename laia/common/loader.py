@@ -124,7 +124,7 @@ class ModelLoader(ObjectLoader):
         if not ckpts:
             return
         mode = min if mode == "min" else max
-        f, _ = mode(ckpts, key=lambda x: x[1]["best_model_score"])
+        f, _ = mode(ckpts, key=lambda x: x[1]["current_score"])
         return f
 
     @staticmethod
