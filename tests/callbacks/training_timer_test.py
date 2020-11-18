@@ -44,11 +44,10 @@ def test_cpu(tmpdir, num_processes):
 
     assert log_filepath.exists()
     lines = [l.strip() for l in log_filepath.readlines()]
-    assert (
-        sum(
-            l.startswith(f"E{e}: tr_time=")
-            for l in lines
-            for e in range(trainer.max_epochs)
-        )
-        == trainer.max_epochs
-    )
+    print(lines)
+    lines = [
+        l.startswith(f"E{e}: tr_time=")
+        for l in lines
+        for e in range(trainer.max_epochs)
+    ]
+    assert sum(lines) == trainer.max_epochs

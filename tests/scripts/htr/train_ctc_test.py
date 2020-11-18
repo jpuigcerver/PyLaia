@@ -226,11 +226,11 @@ def test_train_can_overfit_one_image(tmpdir, caplog):
         trainer=TrainerArgs(
             weights_summary=None,
             overfit_batches=1,
-            max_epochs=66,
+            max_epochs=70,
             check_val_every_n_epoch=100,  # disable validation
         ),
     )
-    assert sum(m.endswith("cer=0.0%, wer=0.0%]") for m in caplog.messages)
+    assert sum("cer=0.0%" in m and "wer=0.0%" in m for m in caplog.messages)
 
 
 def test_raises(tmpdir):
