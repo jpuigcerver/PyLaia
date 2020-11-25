@@ -271,7 +271,9 @@ def __get_trainer_fields() -> List[Tuple[str, Type, Any]]:
 
 
 @dataclass
-class TrainerArgs(make_dataclass("_TrainerArgs", __get_trainer_fields())):
+class TrainerArgs(make_dataclass("", __get_trainer_fields())):
+    __doc__ = pl.Trainer.__init__.__doc__
+
     def __post_init__(self):
         if (
             StrictVersion(torch.__version__) < StrictVersion("1.7.0")
@@ -281,9 +283,6 @@ class TrainerArgs(make_dataclass("_TrainerArgs", __get_trainer_fields())):
                 "AMP requires torch>=1.7.0. Additionally, only "
                 "fixed height models are currently supported"
             )
-
-
-TrainerArgs.__doc__ = pl.Trainer.__init__.__doc__
 
 
 @dataclass
