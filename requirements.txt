@@ -7,5 +7,5 @@ torch<1.7.0
 torchvision<0.8.0
 nnutils-pytorch
 pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@d24a267
-jsonargparse[signatures] @ git+https://github.com/omni-us/jsonargparse@f0aa159
+jsonargparse[signatures] @ git+https://github.com/omni-us/jsonargparse@4278f9e
 dataclasses; python_version < '3.7'

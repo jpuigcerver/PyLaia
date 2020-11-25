@@ -69,7 +69,7 @@ def test_entry_point():
     assert "Any of: 1" in help
     assert "(type: Union[List[str], null], default: ['<space>'])" in help
     assert "(type: int v>=-1, default: 3)" in help
-    assert "--train.resume RESUME" in help
+    assert "--train.resume {true,false}" in help
     assert "[%(asctime)s %(levelname)s %(name)s] %(message)s" in help
     assert "--optimizer.name {SGD,RMSProp,Adam}" in help
     assert "(type: Monitor, default: va_loss)" in help
