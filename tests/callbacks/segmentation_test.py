@@ -137,6 +137,12 @@ class __TestSegmentation(Segmentation):
             r"va-\d+ ",
             str([("ab", 1, 1, 3, 10), ("<space>", 4, 1, 5, 10), ("c", 6, 1, 800, 10)]),
         ),
+        pytest.param(
+            {},
+            "tr",
+            "",
+            marks=pytest.mark.xfail(reason="Check write called", strict=True),
+        ),
     ],
 )
 @pytest.mark.parametrize("num_processes", (1, 2))

@@ -1,4 +1,3 @@
-import sys
 from typing import Callable, Optional, Union
 
 import pytorch_lightning as pl
@@ -55,4 +54,8 @@ class Decode(pl.Callback):
             )
 
     def write(self, value):
-        return tqdm.write(value, file=sys.stdout)
+        # no idea why adding the line break is necessary. in distributed mode with
+        # >1 gpus some lines will not include it. also happens with print() so it's
+        # not a tqdm issue. couldn't reproduce it on toy examples but it does
+        # happen in the iam-htr example
+        return tqdm.write(value + "\n", end="")

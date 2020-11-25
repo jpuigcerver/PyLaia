@@ -62,7 +62,7 @@ class Logger(logging.Logger):
         super()._log(level=level, msg=msg, args=(), exc_info=exc_info, extra=extra)
 
 
-def get_logger(name: str = "laia"):
+def get_logger(name: str = "laia") -> Logger:
     """Create/Get the Laia logger.
     The logger is an object of the class :class:`~.Logger`
     which uses the new string formatting, and accepts keyword arguments.
