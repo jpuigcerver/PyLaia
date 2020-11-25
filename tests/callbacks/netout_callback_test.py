@@ -17,7 +17,7 @@ class __TestWriter(ArchiveMatrixWriter):
 
 
 @pytest.mark.parametrize("num_processes", (1, 2))
-def test_segmentation_callback(tmpdir, num_processes):
+def test_netout_callback(tmpdir, num_processes):
     data_module = DummyMNISTLines(batch_size=2, va_n=12)
     trainer = DummyTrainer(
         default_root_dir=tmpdir,

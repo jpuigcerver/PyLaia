@@ -36,6 +36,12 @@ class __TestDecode(Decode):
         ),
         ({"join_string": "-", "separator": " --- "}, r"va-\d+ --- ", "1-4-11-6-0-10"),
         ({"use_symbols": True, "join_string": ""}, r"va-\d+ ", "03<space>5<ctc>9"),
+        pytest.param(
+            {},
+            "tr",
+            "",
+            marks=pytest.mark.xfail(reason="Check write called", strict=True),
+        ),
     ],
 )
 @pytest.mark.parametrize("num_processes", (1, 2))
