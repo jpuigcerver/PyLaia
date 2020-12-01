@@ -3,7 +3,7 @@ import pkg_resources
 from laia import *  # pylint: disable=wildcard-import
 
 
-def test_star_import():
+def test_wildcard_import():
     # these are defined in __all__
     assert __version__
     assert __root__
