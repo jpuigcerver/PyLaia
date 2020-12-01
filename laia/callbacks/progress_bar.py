@@ -111,8 +111,8 @@ class ProgressBar(pl.callbacks.ProgressBar):
         super(pl.callbacks.ProgressBar, self).on_train_batch_end(
             trainer, *args, **kwargs
         )
-        if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
-            self.main_progress_bar.update(self.refresh_rate)
+        if self._should_update(self.train_batch_idx, self.total_train_batches):
+            self._update_bar(self.main_progress_bar)
             self.main_progress_bar.set_postfix(
                 refresh=True,
                 running_loss=trainer.progress_bar_dict["loss"],
@@ -176,8 +176,8 @@ class ProgressBar(pl.callbacks.ProgressBar):
     def on_validation_batch_end(self, *args, **kwargs):
         # skip parent
         super(pl.callbacks.ProgressBar, self).on_validation_batch_end(*args, **kwargs)
-        if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
-            self.val_progress_bar.update(self.refresh_rate)
+        if self._should_update(self.val_batch_idx, self.total_val_batches):
+            self._update_bar(self.val_progress_bar)
 
     def on_validation_epoch_end(self, trainer, *args, **kwargs):
         super().on_validation_epoch_end(trainer, *args, **kwargs)

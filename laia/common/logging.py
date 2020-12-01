@@ -130,7 +130,6 @@ def config(
     filepath: Optional[str] = None,
     overwrite: bool = False,
     to_stderr_level: Level = Level.ERROR,
-    exception_handling_fn=handle_exception,
 ):
     """
     Logging arguments
@@ -146,7 +145,7 @@ def config(
     """
     capture_warnings()
 
-    set_exception_handler(func=exception_handling_fn)
+    set_exception_handler(func=handle_exception)
 
     fmt = logging.Formatter(fmt)
     # log to stderr on master only

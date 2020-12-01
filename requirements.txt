@@ -6,6 +6,6 @@ matplotlib
 torch<1.7.0
 torchvision<0.8.0
 nnutils-pytorch
-pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@d24a267
-jsonargparse[signatures] @ git+https://github.com/omni-us/jsonargparse@4278f9e
+pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
+jsonargparse[signatures]==3.0.0rc4
 dataclasses; python_version < '3.7'

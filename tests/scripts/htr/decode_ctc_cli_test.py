@@ -101,7 +101,7 @@ syms: null"""
 
 def test_config_output():
     proc = subprocess.run(
-        [shutil.which("pylaia-htr-decode-ctc"), "--print-config"],
+        [shutil.which("pylaia-htr-decode-ctc"), "--print_config"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -118,5 +118,5 @@ def test_config_input(tmpdir):
     )
     assert args["syms"] == "a"
     assert args["img_list"] == "b"
-    assert not len(args["img_dirs"])
+    assert not args["img_dirs"]
     assert args["decode"].join_string is None

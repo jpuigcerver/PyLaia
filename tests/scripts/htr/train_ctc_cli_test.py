@@ -117,7 +117,7 @@ train:
 
 def test_config_output():
     proc = subprocess.run(
-        [shutil.which("pylaia-htr-train-ctc"), "--print-config"],
+        [shutil.which("pylaia-htr-train-ctc"), "--print_config"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

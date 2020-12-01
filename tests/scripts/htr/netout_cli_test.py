@@ -71,7 +71,7 @@ netout:
 
 def test_config_output():
     proc = subprocess.run(
-        [shutil.which("pylaia-htr-netout"), "--print-config"],
+        [shutil.which("pylaia-htr-netout"), "--print_config"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -85,4 +85,4 @@ def test_config_input(tmpdir):
     config.write_text(expected_config, "utf-8")
     args = get_args([f"--config={config}", "a", "--img_dirs=[]"])
     assert args["img_list"] == "a"
-    assert not len(args["img_dirs"])
+    assert not args["img_dirs"]
