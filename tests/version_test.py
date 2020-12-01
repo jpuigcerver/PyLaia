@@ -1,8 +1,6 @@
-from pathlib import Path
-
 import pkg_resources
 
-from laia import *
+from laia import *  # pylint: disable=wildcard-import
 
 
 def test_star_import():

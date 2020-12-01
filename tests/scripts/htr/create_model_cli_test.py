@@ -149,7 +149,7 @@ syms: null"""
 
 def test_config_output():
     proc = subprocess.run(
-        [shutil.which("pylaia-htr-create-model"), "--print-config"],
+        [shutil.which("pylaia-htr-create-model"), "--print_config"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
