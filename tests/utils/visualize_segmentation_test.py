@@ -42,5 +42,12 @@ def test_visualize_segmentation_raises(tmpdir):
     cmd_args = ["ignored", "img_path", str(segmentation), "cba"]
     with patch("sys.argv", new=cmd_args):
         ns = args()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="No segmentation data"):
+        visualize(ns)
+
+    segmentation.write_text("", encoding="utf-8")
+    cmd_args = ["ignored", "img_path", str(segmentation), "abc"]
+    with patch("sys.argv", new=cmd_args):
+        ns = args()
+    with pytest.raises(AssertionError):
         visualize(ns)

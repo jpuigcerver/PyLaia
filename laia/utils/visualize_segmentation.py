@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 def visualize(args: argparse.Namespace):
     with open(args.segmentation_path) as f:
         lines = [l.split(args.separator, maxsplit=1) for l in f.readlines()]
+        assert lines, "No segmentation data"
         for img_id, data in lines:
             if img_id == args.img_id:
                 break
@@ -16,9 +17,10 @@ def visualize(args: argparse.Namespace):
     img = plt.imread(args.img_path)
     fig, ax = plt.subplots()
     colors = plt.get_cmap(args.cmap).colors
-    fig.canvas.set_window_title(img_id)
+    # img_id and data will be defined, otherwise an exception is raised
+    fig.canvas.set_window_title(img_id)  # pylint: disable=undefined-loop-variable
 
-    data = literal_eval(data)
+    data = literal_eval(data)  # pylint: disable=undefined-loop-variable
     for i, (val, x1, y1, x2, y2) in enumerate(data):
         ax.axvspan(x1, x2 + 1, alpha=0.3, facecolor=colors[i % len(colors)])
         if val != args.space:
