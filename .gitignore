@@ -85,3 +85,8 @@ laia/version.py
 # data
 datasets/
 test-resources/
+
+# benchmarks
+benchmarks/basic
+benchmarks/distributed
+benchmarks/half

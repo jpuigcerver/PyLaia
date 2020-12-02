@@ -1,5 +1,6 @@
-global-exclude __pycache__
-global-exclude *.py[cod]
-exclude *.yml
-exclude *.yaml
+exclude .pre-commit-config.yaml
+exclude CONTRIBUTING.md
+
+prune .github
+prune benchmarks
 prune tests
