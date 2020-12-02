@@ -1,1 +1,0 @@
-../../../washington/src/python/train_phocnet.py

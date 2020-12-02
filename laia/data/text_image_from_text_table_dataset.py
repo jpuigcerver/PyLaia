@@ -1,10 +1,6 @@
-from __future__ import absolute_import
-
-import io
-from os import listdir
-from os.path import isfile, join, splitext
-
-from torch._six import string_classes
+from os.path import isfile, join
+from pathlib import Path
+from typing import Any, Callable, Dict, Generator, List, Optional, TextIO, Tuple, Union
 
 import laia.common.logging as log
 from laia.data.text_image_dataset import TextImageDataset
@@ -17,93 +13,99 @@ _logger = log.get_logger(__name__)
 class TextImageFromTextTableDataset(TextImageDataset):
     def __init__(
         self,
-        txt_table,
-        img_dirs,
-        img_transform=None,
-        txt_transform=None,
-        img_extensions=IMAGE_EXTENSIONS,
-        encoding="utf8",
+        txt_table: Union[TextIO, str, List[str]],
+        img_dirs: Optional[Union[List[str], str, List[Path], Path]] = None,
+        img_transform: Callable = None,
+        txt_transform: Callable = None,
+        img_extensions: List[str] = IMAGE_EXTENSIONS,
     ):
-        if isinstance(img_dirs, string_classes):
+        if img_dirs is None:
+            img_dirs = []
+        elif isinstance(img_dirs, (str, Path)):
             img_dirs = [img_dirs]
         # First, load the transcripts and find the corresponding image filenames
         # in the given directory. Also save the IDs (basename) of the examples.
         self._ids, imgs, txts = _get_images_and_texts_from_text_table(
-            txt_table, img_dirs, img_extensions, encoding=encoding
+            txt_table, img_dirs=img_dirs, img_extensions=img_extensions
         )
         # Prepare dataset using the previous image filenames and transcripts.
-        super(TextImageFromTextTableDataset, self).__init__(
-            imgs, txts, img_transform, txt_transform
-        )
+        super().__init__(imgs, txts, img_transform, txt_transform)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Dict[str, Any]:
         """Returns the ID of the example, the image and its transcript from
         the dataset.
 
         Args:
-          index (int): Index of the item to return.
+          index: Index of the item to return.
 
         Returns:
-          dict: Dictionary containing the example ID ('id'), image ('img') and
+          Dictionary containing the example ID ('id'), image ('img') and
             the transcript ('txt') of the image.
         """
-        out = super(TextImageFromTextTableDataset, self).__getitem__(index)
+        out = super().__getitem__(index)
         out["id"] = self._ids[index]
         return out
 
 
-def _get_valid_image_filenames_from_dir(imgs_dir, img_extensions):
-    img_extensions = set(img_extensions)
-    valid_image_filenames = {}
-    for fname in listdir(imgs_dir):
-        bname, ext = splitext(fname)
-        fname = join(imgs_dir, fname)
-        if isfile(fname) and ext.lower() in img_extensions:
-            valid_image_filenames[bname] = fname
-    return valid_image_filenames
-
-
-def find_image_filename_from_id(imgid, img_dir, img_extensions):
+def find_image_filepath_from_id(
+    img_id: str, img_dir: Union[str, Path], img_extensions: List[str] = IMAGE_EXTENSIONS
+) -> Optional[str]:
     extensions = set(ext.lower() for ext in img_extensions)
     extensions.update(ext.upper() for ext in img_extensions)
     for ext in extensions:
-        fname = join(img_dir, imgid if imgid.endswith(ext) else imgid + ext)
-        if isfile(fname):
-            return fname
-    return None
+        filepath = join(img_dir, img_id if img_id.endswith(ext) else img_id + ext)
+        if isfile(filepath):
+            return filepath
+    return
 
 
-def _load_text_table_from_file(table_file, encoding="utf-8"):
-    if isinstance(table_file, string_classes):
-        table_file = io.open(table_file, "r", encoding=encoding)
-    for n, line in enumerate((l.split() for l in table_file), 1):
-        # Skip empty lines and lines starting with #
-        if not len(line) or line[0].startswith("#"):
+def _load_text_table_from_file(
+    table_file: Union[TextIO, str, List[str], Path]
+) -> Generator[Tuple[int, str, str], None, None]:
+    if isinstance(table_file, (str, Path)):
+        table_file = open(table_file)
+    for line in (l.split(maxsplit=1) for l in table_file):
+        # skip empty lines and lines starting with '#'
+        if not line or line[0].startswith("#"):
             continue
-        yield n, line[0], line[1:]
-    table_file.close()
+        elif len(line) == 1:
+            _logger.warning(
+                "No text found for image ID '{}', ignoring example...", line[0]
+            )
+            continue
+        img_id, txt = line
+        img_id = img_id.strip()
+        txt = txt.rstrip()
+        yield img_id, txt
+    if hasattr(table_file, "close"):
+        table_file.close()
 
 
 def _get_images_and_texts_from_text_table(
-    table_file, img_dirs, img_extensions, encoding="utf8"
-):
-    assert len(img_dirs) > 0, "No image directory provided"
-    ids, imgs, txts = [], [], []
-    for _, imgid, txt in _load_text_table_from_file(table_file, encoding=encoding):
-        imgid = imgid.rstrip()
+    table_file: Union[TextIO, str, List[str]],
+    img_dirs: Optional[List[Union[str, Path]]] = None,
+    img_extensions: List[str] = IMAGE_EXTENSIONS,
+) -> Tuple[List[str], List[str], List[str]]:
+    if img_dirs is None:
+        img_dirs = []
+    ids, filepaths, txts = [], [], []
+    for img_id, txt in _load_text_table_from_file(table_file):
         for dir in img_dirs:
-            fname = find_image_filename_from_id(imgid, dir, img_extensions)
-            if fname is not None:
-                break
-        if fname is None:
-            _logger.warning(
-                "No image file was found for image " 'ID "{}", ignoring example...',
-                imgid,
+            filepath = find_image_filepath_from_id(
+                img_id, dir, img_extensions=img_extensions
             )
-            continue
+            if filepath is not None:
+                break
         else:
-            ids.append(imgid)
-            imgs.append(fname)
-            txts.append(txt)
-
-    return ids, imgs, txts
+            if isfile(img_id):
+                # the img id must be a path to the image
+                filepath = img_id
+            else:
+                _logger.warning(
+                    "No image file found for image ID '{}', ignoring example...", img_id
+                )
+                continue
+        ids.append(img_id)
+        filepaths.append(filepath)
+        txts.append(txt)
+    return ids, filepaths, txts

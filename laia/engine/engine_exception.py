@@ -1,20 +1,34 @@
-from __future__ import absolute_import
+from contextlib import contextmanager
+from typing import Any, Iterator
 
 
 class EngineException(Exception):
-    def __init__(self, epoch, iteration, batch, cause=None):
+    def __init__(
+        self, epoch: int, global_step: int, batch: Any, cause: Exception = None
+    ):
         self._epoch = epoch
-        self._iteration = iteration
+        self._global_step = global_step
         self._batch = batch
         self._cause = cause
 
     def __str__(self):
+        exception_text = f'"{repr(self._cause)}" ' if self._cause else ""
         return (
-            "Exception {}raised during epoch {}, iteration {}. "
-            "The batch that caused the exception was: {}".format(
-                '"{!r}" '.format(self._cause) if self._cause else "",
-                self._epoch,
-                self._iteration,
-                self._batch,
-            )
+            f"Exception {exception_text}raised during epoch={self._epoch}, "
+            f"global_step={self._global_step} with batch={self._batch}"
         )
+
+
+@contextmanager
+def exception_catcher(
+    batch: Any, current_epoch: int, global_step: int
+) -> Iterator[None]:
+    try:
+        yield
+    except Exception as e:
+        raise EngineException(
+            epoch=current_epoch,
+            global_step=global_step,
+            batch=batch,
+            cause=e,
+        ) from e

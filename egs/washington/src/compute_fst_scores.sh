@@ -1,1 +1,0 @@
-../../iam/src/compute_fst_scores.sh

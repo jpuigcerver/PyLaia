@@ -1,21 +1,25 @@
-from __future__ import absolute_import
-
-import io
-from torch._six import string_classes
+from pathlib import Path
+from typing import Iterator, Optional, Tuple, Union
 
 
-class SymbolsTable(object):
-    def __init__(self, f=None):
+class SymbolsTable:
+    """
+    Bijective mapping between symbols (strings) and integers
+
+    Args:
+        filepath: Filepath to the symbols file
+    """
+
+    def __init__(self, filepath: Optional[Union[str, Path]] = None):
         self._sym2val, self._val2sym = dict(), dict()
-        if f:
-            self.load(f)
+        if filepath:
+            self.load(filepath)
 
     def clear(self):
         self._sym2val, self._val2sym = dict(), dict()
 
-    def load(self, f, encoding="utf8"):
-        if isinstance(f, string_classes):
-            f = io.open(f, "r", encoding=encoding)
+    def load(self, f: Union[str, Path]):
+        f = open(f)
         self.clear()
         try:
             lines = [line.split() for line in f if len(line.split())]
@@ -26,47 +30,45 @@ class SymbolsTable(object):
         finally:
             f.close()
 
-    def save(self, f, encoding="utf8"):
-        if isinstance(f, string_classes):
-            f = io.open(f, "w", encoding=encoding)
+    def save(self, f: Union[str, Path]):
+        f = open(f, "w")
         max_len = max(len(s) for s in self._sym2val)
         for v, s in self._val2sym.items():
-            f.write("{:>{w}} {}\n".format(s, v, w=max_len).encode(encoding))
+            f.write(f"{s:>{max_len}} {v}\n")
         f.close()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._val2sym)
 
-    def __getitem__(self, x):
+    def __getitem__(self, x: Union[str, int]) -> Optional[Union[str, int]]:
         if isinstance(x, int):
             return self._val2sym.get(x, None)
-        elif isinstance(x, string_classes):
+        if isinstance(x, str):
             return self._sym2val.get(x, None)
-        else:
-            raise ValueError("SymbolsTable contains pairs of integers and strings")
+        raise ValueError("SymbolsTable contains pairs of integers and strings")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, int]]:
         for v, s in self._val2sym.items():
             yield s, v
 
-    def __contains__(self, x):
+    def __contains__(self, x: Union[str, int]) -> bool:
         if isinstance(x, int):
             return x in self._val2sym
-        elif isinstance(x, string_classes):
+        if isinstance(x, str):
             return x in self._sym2val
-        else:
-            raise ValueError("SymbolsTable contains pairs of integers and strings")
+        raise ValueError(
+            f'SymbolsTable contains pairs of integers and strings, found "{x}"'
+        )
 
-    def add(self, symbol, value):
-        if not isinstance(symbol, string_classes):
+    def add(self, symbol: str, value: int):
+        if not isinstance(symbol, str):
             raise KeyError(
-                "Symbol must be a string, but type {} was given".format(type(symbol))
+                f"Symbol must be a string, but type {type(symbol)} was given"
             )
         if not isinstance(value, int):
             raise KeyError(
-                "Value must be an integer, but type {} was given".format(type(value))
+                f"Value must be an integer, but type {type(value)} was given"
             )
-
         old_val = self._sym2val.get(symbol, None)
         old_sym = self._val2sym.get(value, None)
         if old_val is None and old_sym is None:
@@ -74,14 +76,14 @@ class SymbolsTable(object):
             self._val2sym[value] = symbol
         elif old_val == value and old_sym == symbol:
             # Nothing changes, so just ignore the add() operation
-            pass
+            return
         elif old_val is not None:
             raise KeyError(
-                'Symbol "{}" was already present in the table '
-                "(assigned to value {})".format(symbol, old_val)
+                f'Symbol "{symbol}" was already present '
+                f'in the table (assigned to value "{old_val}")'
             )
         elif old_sym is not None:
             raise KeyError(
-                'Value "{}" was already present in the table '
-                '(assigned to symbol "{}")'.format(value, old_sym)
+                f'Value "{value}" was already present '
+                f'in the table (assigned to symbol "{old_sym}")'
             )

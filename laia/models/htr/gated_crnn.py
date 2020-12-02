@@ -1,24 +1,25 @@
-from __future__ import absolute_import
-
-from typing import Union, Tuple, Callable, Sequence, Optional
+from typing import List, Optional, Sequence, Union
 
 import torch
 from torch.nn.functional import dropout
 from torch.nn.utils.rnn import PackedSequence
 
-from laia.data.padding_collater import PaddedTensor
-from laia.nn.image_pooling_sequencer import ImagePoolingSequencer
-
-Size = Union[int, Tuple[int, int]]
-Module = Callable[..., torch.nn.Module]
+from laia.common.types import Module, Param2d
+from laia.data import PaddedTensor
+from laia.nn import ImagePoolingSequencer
 
 
 class GatedConv2d(torch.nn.Module):
     def __init__(
-        self, in_channels, out_channels, kernel_size, activation, stride=1, padding=0
-    ):
-        # type: (int, int, Size, Module, Size, Size) -> None
-        super(GatedConv2d, self).__init__()
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Param2d,
+        activation: Module,
+        stride: Param2d = 1,
+        padding: Param2d = 0,
+    ) -> None:
+        super().__init__()
 
         conv1 = torch.nn.Conv2d(
             in_channels=in_channels,
@@ -46,18 +47,16 @@ class GatedConv2d(torch.nn.Module):
 class GatedEncoder(torch.nn.Module):
     def __init__(
         self,
-        in_channels,  # type: int
-        features,  # type: Sequence[int]
-        kernel_sizes,  # type: Sequence[Size]
-        add_gating,  # type: Sequence[bool]
-        strides=1,  # type: Sequence[Size]
-        activation=torch.nn.Tanh,
-        # type: Union[Module, Sequence[Module]]
-        poolsize=None,  # type: Optional[Sequence[Size]]
-        inplace=True,  # type: bool
-    ):
-        # type: (...) -> None
-        super(GatedEncoder, self).__init__()
+        in_channels: int,
+        features: Sequence[int],
+        kernel_sizes: Sequence[Param2d],
+        add_gating: Sequence[bool],
+        strides: Union[Param2d, Sequence[Param2d]],
+        activation: Union[Module, Sequence[Module]] = torch.nn.Tanh,
+        poolsize: Optional[Sequence[Param2d]] = None,
+        inplace: bool = True,
+    ) -> None:
+        super().__init__()
         assert isinstance(features, (tuple, list))
         assert isinstance(kernel_sizes, (tuple, list))
         assert isinstance(add_gating, (tuple, list))
@@ -71,32 +70,26 @@ class GatedEncoder(torch.nn.Module):
         if len(add_gating) < n:
             add_gating = add_gating + [False] * (n - len(add_gating))
 
-        if isinstance(strides, (tuple, list)):
+        if isinstance(strides, Sequence):
             if len(strides) < n:
-                strides = strides + [1] * (n - len(strides))
+                strides = list(strides) + [1] * (n - len(strides))
         else:
             strides = [strides] * n
 
-        if isinstance(activation, (tuple, list)):
+        if isinstance(activation, Sequence):
             assert len(activation) == n
         else:
             activation = [activation] * n
 
-        if isinstance(poolsize, (tuple, list)):
+        if isinstance(poolsize, Sequence):
             if len(poolsize) < n:
-                poolsize = poolsize + [None] * (n - len(poolsize))
+                poolsize = list(poolsize) + [None] * (n - len(poolsize))
         else:
             poolsize = [poolsize] * n
 
-        if isinstance(inplace, (tuple, list)):
-            if len(inplace) < n:
-                inplace = inplace + [True] * (n - len(inplace))
-        else:
-            inplace = [inplace] * n
-
-        self._conv_sizes = []
-        self._conv_strides = []
-        self._pool_sizes = []
+        self._conv_sizes = []  # type: List
+        self._conv_strides = []  # type: List
+        self._pool_sizes = []  # type: List
         layers = []
         for i, (n, k, s, f, g, p) in enumerate(
             zip(features, kernel_sizes, strides, activation, add_gating, poolsize)
@@ -156,22 +149,21 @@ class GatedEncoder(torch.nn.Module):
     def forward(self, x):
         x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         y = self.blocks(x)
-        return y if xs is None else PaddedTensor(y, self._compute_output_size(xs))
+        return y if xs is None else PaddedTensor.build(y, self._compute_output_size(xs))
 
 
 class RNNDecoder(torch.nn.Module):
     def __init__(
         self,
-        input_size,  # type: int
-        num_outputs,  # type: int
-        rnn_hidden_size,  # type: int
-        rnn_num_layers,  # type: int
-        rnn_type=torch.nn.LSTM,  # type: Module
-        bidirectional=True,  # type: bool
-        dropout_p=0.0,  # type: float
-    ):
-        # type: (...) -> None
-        super(RNNDecoder, self).__init__()
+        input_size: int,
+        num_outputs: int,
+        rnn_hidden_size: int,
+        rnn_num_layers: int,
+        rnn_type: Module = torch.nn.LSTM,
+        bidirectional: bool = True,
+        dropout_p: float = 0.0,
+    ) -> None:
+        super().__init__()
         self._dropout = dropout_p
         self.rnn = rnn_type(
             input_size=input_size,
@@ -183,14 +175,14 @@ class RNNDecoder(torch.nn.Module):
             2 * rnn_hidden_size if bidirectional else rnn_hidden_size, num_outputs
         )
 
-    def dropout(self, x):
+    def dropout(self, x: Union[torch.Tensor, PackedSequence]) -> torch.Tensor:
         if self._dropout > 0.0:
             if isinstance(x, PackedSequence):
                 x = x.data
             x = dropout(x, self._dropout, self.training)
         return x
 
-    def forward(self, x):
+    def forward(self, x: Union[torch.Tensor, PackedSequence]) -> torch.Tensor:
         x = self.dropout(x)
         x = self.rnn(x)
         x = self.dropout(x)
@@ -203,26 +195,24 @@ class RNNDecoder(torch.nn.Module):
 class GatedCRNN(torch.nn.Module):
     def __init__(
         self,
-        in_channels,  # type: int
-        num_outputs,  # type: int
-        cnn_num_features,  # type: Sequence[int]
-        cnn_kernel_sizes,  # type: Sequence[Size]
-        cnn_add_gating,  # type: Sequence[bool]
-        cnn_strides=1,  # type: Sequence[Size]
-        cnn_poolsize=None,  # type: Optional[Sequence[bool]]
-        cnn_activation=torch.nn.Tanh,
-        # type: Union[Module, Sequence[Module]]
-        cnn_use_inplace=True,  # type: bool
-        sequencer="maxpool-1",  # type: str
-        columnwise=True,  # type: bool
-        rnn_hidden_size=128,  # type: int
-        rnn_num_layers=2,  # type: int
-        rnn_type=torch.nn.LSTM,  # type: Module
-        rnn_bidirectional=True,  # type: bool
-        rnn_dropout=0.0,  # type: float
-    ):
-        # type: (...) -> None
-        super(GatedCRNN, self).__init__()
+        in_channels: int,
+        num_outputs: int,
+        cnn_num_features: Sequence[int],
+        cnn_kernel_sizes: Sequence[Param2d],
+        cnn_add_gating: Sequence[bool],
+        cnn_strides: Sequence[Param2d],
+        cnn_poolsize: Optional[Sequence[bool]] = None,
+        cnn_activation: Union[Module, Sequence[Module]] = torch.nn.Tanh,
+        cnn_use_inplace: bool = True,
+        sequencer: str = "maxpool-1",
+        columnwise: bool = True,
+        rnn_hidden_size: int = 128,
+        rnn_num_layers: int = 2,
+        rnn_type: Module = torch.nn.LSTM,
+        rnn_bidirectional: bool = True,
+        rnn_dropout: float = 0.0,
+    ) -> None:
+        super().__init__()
 
         self.encoder = GatedEncoder(
             in_channels=in_channels,

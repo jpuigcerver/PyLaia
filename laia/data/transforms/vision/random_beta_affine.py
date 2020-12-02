@@ -1,25 +1,21 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from PIL import Image
 from scipy.linalg import solve
 
 
-class RandomBetaAffine(object):
+class RandomBetaAffine:
     """Apply a random affine transform on a PIL image
     using a Beta distribution."""
 
     def __init__(
         self,
-        max_offset_ratio=0.2,  # type: float
-        alpha=2,  # type: float
-        beta=2,  # type: float
-        fillcolor=None,  # type: Union[None, int, Tuple[int, int, int]]
-    ):
+        max_offset_ratio: float = 0.2,
+        alpha: float = 2,
+        beta: float = 2,
+        fillcolor: Union[None, int, Tuple[int, int, int]] = None,
+    ) -> None:
         assert max_offset_ratio > 0
         assert alpha > 0
         assert beta > 0
@@ -28,8 +24,7 @@ class RandomBetaAffine(object):
         self.beta = beta
         self.fillcolor = fillcolor
 
-    def __call__(self, img):
-        # type: (Image.Image) -> Image.Image
+    def __call__(self, img: Image.Image) -> Image.Image:
         max_offset = min(img.size) * self.max_offset_ratio
         z = np.random.beta(self.alpha, self.beta, size=(3, 2))
         offset = ((2.0 * z - 1.0) * max_offset).astype(np.float32)
@@ -45,16 +40,16 @@ class RandomBetaAffine(object):
             fillcolor=self.fillcolor,
         )
 
-    def __repr__(self):
-        s = "vision.{name}(max_offset_ratio={max_offset_ratio}, alpha={alpha}, beta={beta}"
-        if self.fillcolor:
-            s += ", fillcolor={fillcolor}"
-        s += ")"
-        return s.format(name=self.__class__.__name__, **self.__dict__)
+    def __repr__(self) -> str:
+        return (
+            f"vision.{self.__class__.__name__}("
+            f"max_offset_ratio={self.max_offset_ratio}, "
+            f"alpha={self.alpha}, beta={self.beta}"
+            f"{f', fillcolor={self.fillcolor}' if self.fillcolor else ''})"
+        )
 
     @staticmethod
-    def get_affine_transform(src, dst):
-        # type: (np.ndarray, np.ndarray) -> np.ndarray
+    def get_affine_transform(src: np.ndarray, dst: np.ndarray) -> np.ndarray:
         assert src.shape == (3, 2)
         assert dst.shape == (3, 2)
         coeffs = np.zeros((6, 6), dtype=np.float32)
@@ -88,7 +83,4 @@ if __name__ == "__main__":
         z.paste(y, (0, h))
         z = z.resize(size=(w // 2, h), resample=Image.BICUBIC)
         z.show()
-        try:
-            raw_input()
-        except NameError:
-            input()
+        input()

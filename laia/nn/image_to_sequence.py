@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import torch
 from torch.nn.utils.rnn import pack_padded_sequence
 
@@ -23,16 +21,13 @@ def image_to_sequence(x, columnwise=True, return_packed=False):
 
     if xs is None:
         return x
-    else:
-        xs = xs[:, 1 if columnwise else 0]
-        return (
-            pack_padded_sequence(x, xs.tolist()) if return_packed else (x, xs.tolist())
-        )
+    xs = xs[:, 1 if columnwise else 0]
+    return pack_padded_sequence(x, xs.tolist()) if return_packed else (x, xs.tolist())
 
 
 class ImageToSequence(torch.nn.Module):
     def __init__(self, columnwise=True, return_packed=False):
-        super(ImageToSequence, self).__init__()
+        super().__init__()
         self._columnwise = columnwise
         self._return_packed = return_packed
 

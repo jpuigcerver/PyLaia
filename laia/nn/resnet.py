@@ -1,9 +1,9 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Type, Union
 
 import torch
 import torch.nn as nn
 
-from laia.data.padding_collater import PaddedTensor
+from laia.data import PaddedTensor
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1):
@@ -30,15 +30,13 @@ def downsample(inplanes, planes, expansion, stride=1, norm_layer=None):
         if norm_layer is not None:
             downsample.append(norm_layer(planes * expansion))
         return nn.Sequential(*downsample)
-    else:
-        return None
 
 
 class BasicBlock(nn.Module):
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, groups=1, norm_layer=None):
-        super(BasicBlock, self).__init__()
+        super().__init__()
         if groups != 1:
             raise ValueError("BasicBlock only supports groups=1")
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
@@ -77,7 +75,7 @@ class Bottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, groups=1, norm_layer=None):
-        super(Bottleneck, self).__init__()
+        super().__init__()
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, planes)
         self.bn1 = None if norm_layer is None else norm_layer(planes)
@@ -117,10 +115,10 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResnetOptions(object):
+class ResnetOptions:
     def __init__(
         self,
-        block: Union[BasicBlock, Bottleneck],
+        block: Type[Union[BasicBlock, Bottleneck]],
         input_channels: int = 1,
         root_kernel: int = 5,
         layers: Sequence[int] = (2, 2, 2, 2),
@@ -128,7 +126,7 @@ class ResnetOptions(object):
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
-        norm_layer: Optional[nn.Module] = None,
+        norm_layer: Optional[Type[nn.Module]] = None,
     ):
 
         if len(layers) != 4:
@@ -200,7 +198,7 @@ class ResnetOptions(object):
 
 class ResnetConv(nn.Module):
     def __init__(self, options: ResnetOptions):
-        super(ResnetConv, self).__init__()
+        super().__init__()
 
         self.inplanes = options.planes[0]
         self.conv1 = nn.Conv2d(
@@ -221,7 +219,7 @@ class ResnetConv(nn.Module):
         for i in range(4):
             setattr(
                 self,
-                "layer%d" % (i + 1),
+                f"layer{i + 1}",
                 self._make_layer(
                     block=options.block,
                     planes=options.planes[i],
@@ -256,33 +254,19 @@ class ResnetConv(nn.Module):
         return self._options
 
     def _make_layer(self, block, planes, blocks, stride, groups, norm_layer):
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, groups, norm_layer))
+        layers = [block(self.inplanes, planes, stride, groups, norm_layer)]
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(
                 block(self.inplanes, planes, groups=groups, norm_layer=norm_layer)
             )
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        if isinstance(x, PaddedTensor):
-            x, xs = x.data, x.sizes
-            assert xs.dim() == 2, "PaddedTensor.sizes must be a matrix"
-            assert xs.size(1) == 2, (
-                "PaddedTensor.sizes must have 2 columns: Height and Width, "
-                "{} columns given instead.".format(xs.size(1))
-            )
-            assert x.size(0) == xs.size(0), (
-                "Number of batch sizes ({}) does not match the number of "
-                "samples in the batch {}".format(xs.size(0), x.size(0))
-            )
-        else:
-            xs = None
+        x, xs = (x.data, x.sizes) if isinstance(x, PaddedTensor) else (x, None)
         assert x.size(1) == self._options.input_channels, (
-            "Input image depth ({}) does not match the "
-            "expected ({})".format(x.size(1), self._options.input_channels)
+            f"Input image depth ({x.size(1)}) does not match "
+            f"the expected ({self._options.input_channels})"
         )
 
         x = self.conv1(x)
@@ -298,8 +282,7 @@ class ResnetConv(nn.Module):
 
         if xs is None:
             return x
-        else:
-            return PaddedTensor(x, self.get_output_batch_size(xs))
+        return PaddedTensor.build(x, self.get_output_batch_size(xs))
 
     def get_output_batch_size(self, xs):
         return self.get_output_size(xs, self._options)
