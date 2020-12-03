@@ -23,30 +23,19 @@ jobs:
           pre-commit run --all-files
 
   pytest:
-    name: Python ${{ matrix.python }} - PyTorch ${{ matrix.torch }}
+    name: Python ${{ matrix.python }} - PyTorch ${{ matrix.cfg.torch }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # TODO: include 3.9 when NumPy adds support
+        # TODO: include 3.9 when supported
         python: [3.8, 3.7, 3.6]
-        # TODO: include 1.7.* when 1.7.1 is released
-        torch: [1.6.*, 1.5.*, 1.4.*]
-        # fix torchvision and nnutils versions for each torch version
-        include:
-          #- torch: 1.7.*
-          #  # TODO: update when released
-          #  nnutils: 1.6.*
-          #  torchvision: 0.8.*
-          - torch: 1.6.*
-            nnutils: 1.6.*
-            torchvision: 0.7.*
-          - torch: 1.5.*
-            nnutils: 1.5.*
-            torchvision: 0.6.*
-          - torch: 1.4.*
-            nnutils: 1.4.*
-            torchvision: 0.5.*
+        cfg:
+          # TODO: uncomment when released
+          #- { torch: 1.7.1, nnutils: 1.7.1, torchvision: 0.8.1 }
+          - { torch: 1.6.0, nnutils: 1.6.0, torchvision: 0.7.0 }
+          - { torch: 1.5.1, nnutils: 1.5.1, torchvision: 0.6.1 }
+          - { torch: 1.4.0, nnutils: 1.4.0, torchvision: 0.5.0 }
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
@@ -54,13 +43,13 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Configure requirements
       run: |
-        sed -i s/^torch\<1.7.0$/torch==${{ matrix.torch }}/ requirements.txt
-        sed -i s/^torchvision\<0.8.0$/torchvision==${{ matrix.torchvision }}/ requirements.txt
-        sed -i s/^nnutils-pytorch$/nnutils-pytorch==${{ matrix.nnutils }}/ requirements.txt
+        sed -i s/^torch\<1.7.0$/torch==${{ matrix.cfg.torch }}/ requirements.txt
+        sed -i s/^torchvision\<0.8.0$/torchvision==${{ matrix.cfg.torchvision }}/ requirements.txt
+        sed -i s/^nnutils-pytorch$/nnutils-pytorch==${{ matrix.cfg.nnutils }}/ requirements.txt
     - name: Install requirements
       run: pip install -e .[test]
     - name: Run pytest
       run: pytest --cov=laia tests
     - uses: codecov/codecov-action@v1
       # upload coverage only for main job
-      if: ${{ matrix.python == '3.8' && matrix.torch == '1.6.*'}}
+      if: ${{ matrix.python == '3.8' && matrix.cfg.torch == '1.6.0' }}
