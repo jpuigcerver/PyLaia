@@ -142,9 +142,10 @@ def test_train_can_resume_training(tmpdir, caplog):
     # run to have a checkpoint
     script.run(*args, **kwargs)
     assert "Model has been trained for 1 epochs (11 steps)" in caplog.messages
-    # resume training
-    kwargs["trainer"].max_epochs = 2
-    kwargs["train"] = TrainArgs(resume=True)
+    caplog.clear()
+
+    # train for one more epoch
+    kwargs["train"] = TrainArgs(resume=1)
     script.run(*args, **kwargs)
     assert "Model has been trained for 2 epochs (21 steps)" in caplog.messages
 
