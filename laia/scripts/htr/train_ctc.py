@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 import jsonargparse
 import pytorch_lightning as pl
+import torch
 
 import laia.common.logging as log
 from laia import get_installed_versions
@@ -40,13 +41,13 @@ def run(
         common.train_path, filename=common.model_filename, device="cpu"
     )
     # maybe load a checkpoint
-    checkpoint = (
-        loader.prepare_checkpoint(
+    checkpoint = None
+    if train.resume:
+        checkpoint = loader.prepare_checkpoint(
             common.checkpoint, common.experiment_dirpath, common.monitor
         )
-        if train.resume
-        else None
-    )
+        trainer.max_epochs = torch.load(checkpoint)["epoch"] + train.resume
+
     # load the non-pytorch_lightning model
     model = loader.load()
     assert (
