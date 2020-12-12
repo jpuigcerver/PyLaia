@@ -47,6 +47,8 @@ def run(
             common.checkpoint, common.experiment_dirpath, common.monitor
         )
         trainer.max_epochs = torch.load(checkpoint)["epoch"] + train.resume
+        log.info(f'Using checkpoint "{checkpoint}"')
+        log.info(f"Max epochs set to {trainer.max_epochs}")
 
     # load the non-pytorch_lightning model
     model = loader.load()
