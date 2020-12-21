@@ -18,7 +18,7 @@ def get_long_description():
 
 setuptools.setup(
     name="laia",
-    version="1.0.0",
+    version="1.0.1.dev0",
     author="Joan Puigcerver",
     author_email="joapuipe@gmail.com",
     maintainer="Carlos Mocholí",
