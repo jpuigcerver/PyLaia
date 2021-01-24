@@ -35,6 +35,8 @@ except subprocess.CalledProcessError:
 
 def get_installed_versions() -> List[str]:
     requirements_path = __root__ / "requirements.txt"
+    if not requirements_path.exists():
+        return []
     requirements = []
     with open(requirements_path) as f:
         for r in f.readlines():

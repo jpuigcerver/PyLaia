@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from os.path import join
 from typing import Any, Dict, List, Optional
 
 import jsonargparse
@@ -8,10 +7,10 @@ from jsonargparse.typing import NonNegativeInt
 from pytorch_lightning import seed_everything
 
 import laia.common.logging as log
-from laia import get_installed_versions
 from laia.common.arguments import CommonArgs, CreateCRNNArgs
 from laia.common.saver import ModelSaver
 from laia.models.htr import LaiaCRNN
+from laia.scripts.htr import common_main
 from laia.utils import SymbolsTable
 
 
@@ -121,14 +120,7 @@ def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
 
 def main():
     args = get_args()
-    del args["config"]
-    # configure logging
-    logging = args.pop("logging")
-    if logging["filepath"] is not None:
-        logging["filepath"] = join(args["common"].train_path, logging["filepath"])
-    log.config(**logging)
-    log.info(f"Arguments: {args}")
-    log.info(f"Installed: {get_installed_versions()}")
+    args = common_main(args)
     run(**args)
 
 

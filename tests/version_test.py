@@ -19,9 +19,12 @@ def test_versions_match():
 def test_installed_versions():
     versions = get_installed_versions()
     requirements_path = __root__ / "requirements.txt"
-    with open(requirements_path) as f:
-        expected = len([l for l in f.readlines() if not l.startswith("#")])
-        expected += 1  # laia's version
-        expected -= 1  # dataclasses
-        assert len(versions) == expected
-    assert all("==" in v or " @ " in v for v in versions)
+    if not requirements_path.exists():
+        assert not versions
+    else:
+        with open(requirements_path) as f:
+            expected = len([l for l in f.readlines() if not l.startswith("#")])
+            expected += 1  # laia's version
+            expected -= 1  # dataclasses
+            assert len(versions) == expected
+        assert all("==" in v or " @ " in v for v in versions)
