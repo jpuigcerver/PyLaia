@@ -1,6 +1,6 @@
 import inspect
 from dataclasses import dataclass, field, make_dataclass
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from enum import Enum
 from os.path import join
 from typing import Any, List, Optional, Tuple, Type, Union
@@ -277,7 +277,7 @@ class TrainerArgs(make_dataclass("", __get_trainer_fields())):
 
     def __post_init__(self):
         if (
-            StrictVersion(torch.__version__) < StrictVersion("1.7.0")
+            LooseVersion(torch.__version__) < LooseVersion("1.7.0")
             and self.precision != 32
         ):
             raise ValueError(
