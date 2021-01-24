@@ -1,5 +1,5 @@
 import shutil
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from io import StringIO
 from unittest import mock
 
@@ -61,7 +61,7 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
 
 
 @pytest.mark.skipif(
-    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="torch 1.4.0 bug"
 )  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize(
     "accelerator",
@@ -107,7 +107,7 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
 
 
 @pytest.mark.skipif(
-    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="torch 1.4.0 bug"
 )  # https://github.com/pytorch/vision/issues/1943
 def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     syms = downloader("print/syms.txt")
@@ -140,7 +140,7 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
 
 
 @pytest.mark.skipif(
-    StrictVersion(torch.__version__) < StrictVersion("1.5.0"), reason="torch 1.4.0 bug"
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="torch 1.4.0 bug"
 )  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize(
     "accelerator",
