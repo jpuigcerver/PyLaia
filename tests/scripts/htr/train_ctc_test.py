@@ -1,4 +1,4 @@
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -95,7 +95,7 @@ def test_train_1_epoch(tmpdir, accelerator):
 
 
 @pytest.mark.skipif(
-    StrictVersion(torch.__version__) < StrictVersion("1.7.0"),
+    LooseVersion(torch.__version__) < LooseVersion("1.7.0"),
     reason="Some ops do not support AMP before 1.7.0",
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="AMP needs CUDA")
@@ -195,7 +195,7 @@ def test_train_with_scheduler(tmpdir, caplog):
 
 
 @pytest.mark.skipif(
-    StrictVersion(torch.__version__) < StrictVersion("1.5.0"),
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
     reason="1.4.0 needs more epochs",
 )
 def test_train_can_overfit_one_image(tmpdir, caplog):
