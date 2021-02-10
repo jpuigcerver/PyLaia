@@ -6,11 +6,11 @@ import jsonargparse
 import pytorch_lightning as pl
 
 import laia.common.logging as log
-from laia import get_installed_versions
 from laia.callbacks import Netout, ProgressBar
 from laia.common.arguments import CommonArgs, DataArgs, NetoutArgs, TrainerArgs
 from laia.common.loader import ModelLoader
 from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemFeeder
+from laia.scripts.htr import common_main
 from laia.utils.kaldi import ArchiveLatticeWriter, ArchiveMatrixWriter
 
 
@@ -127,16 +127,7 @@ def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
 
 def main():
     args = get_args()
-    del args["config"]
-    # configure logging
-    logging = args.pop("logging")
-    if logging["filepath"] is not None:
-        logging["filepath"] = join(
-            args["common"].experiment_dirpath, logging["filepath"]
-        )
-    log.config(**logging)
-    log.info(f"Arguments: {args}")
-    log.info(f"Installed: {get_installed_versions()}")
+    args = common_main(args)
     run(**args)
 
 
