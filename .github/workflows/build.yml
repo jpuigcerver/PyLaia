@@ -7,7 +7,7 @@ on:
   pull_request:
   schedule:
     # at 07:00 on Sunday
-    - cron: '0 7 * * sun'
+    - cron: '0 7 * * SUN'
 
 jobs:
   pre-commit:
@@ -32,7 +32,7 @@ jobs:
         python: [3.8, 3.7, 3.6]
         cfg:
           # TODO: uncomment when released
-          #- { torch: 1.7.1, nnutils: 1.7.1, torchvision: 0.8.1 }
+          #- { torch: 1.7.1, nnutils: 1.7.1, torchvision: 0.8.2 }
           - { torch: 1.6.0, nnutils: 1.6.0, torchvision: 0.7.0 }
           - { torch: 1.5.1, nnutils: 1.5.1, torchvision: 0.6.1 }
           - { torch: 1.4.0, nnutils: 1.4.0, torchvision: 0.5.0 }
@@ -47,7 +47,7 @@ jobs:
         sed -i s/^torchvision\<0.8.0$/torchvision==${{ matrix.cfg.torchvision }}/ requirements.txt
         sed -i s/^nnutils-pytorch$/nnutils-pytorch==${{ matrix.cfg.nnutils }}/ requirements.txt
     - name: Install requirements
-      run: pip install -e .[test]
+      run: pip install .[test]
     - name: Run pytest
       run: pytest --cov=laia tests
     - uses: codecov/codecov-action@v1
