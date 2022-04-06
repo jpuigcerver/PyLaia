@@ -19,6 +19,7 @@ class Decode(pl.Callback):
         join_string: Optional[str] = None,
         separator: str = " ",
         include_img_ids: bool = True,
+        compute_confidence_scores: bool = True,
     ):
         super().__init__()
         self.decoder = decoder
@@ -34,12 +35,14 @@ class Decode(pl.Callback):
         self.join_string = join_string
         self.separator = separator
         self.include_img_ids = include_img_ids
+        self.compute_confidence_scores = compute_confidence_scores
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
         img_ids = pl_module.batch_id_fn(batch)
         hyps = self.decoder(outputs)["hyp"]
-        for i, (img_id, hyp) in enumerate(zip(img_ids, hyps)):
+        probs = self.decoder(outputs)["prob-htr"]
+        for i, (img_id, hyp, prob) in enumerate(zip(img_ids, hyps, probs)):
             if self.use_symbols:
                 hyp = [self.syms[v] for v in hyp]
                 if self.convert_spaces:
@@ -49,9 +52,19 @@ class Decode(pl.Callback):
                     ]
             if self.join_string is not None:
                 hyp = self.join_string.join(str(x) for x in hyp)
-            self.write(
-                f"{img_id}{self.separator}{hyp}" if self.include_img_ids else str(hyp)
-            )
+
+            if self.compute_confidence_scores:
+                self.write(
+                    f"{img_id}{self.separator}{prob:.4f}{self.separator}{hyp}"
+                    if self.include_img_ids
+                    else f"{prob:.4f}{self.separator}{hyp}"
+                )
+            else:
+                self.write(
+                    f"{img_id}{self.separator}{hyp}"
+                    if self.include_img_ids
+                    else str(hyp)
+                )
 
     def write(self, value):
         # no idea why adding the line break is necessary. in distributed mode with
