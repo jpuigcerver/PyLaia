@@ -29,11 +29,12 @@ class CTCGreedyDecoder:
         x = [x_n.indices for x_n in x]
 
         # Remove repeated symbols
+        zero_tensor = torch.tensor([0]).cuda() if x[0].is_cuda else torch.tensor([0])
         counts = [
             torch.unique_consecutive(x_n, return_counts=True)[1] for x_n in x
         ]  # counts of consecutive symbols [0, 0, 0, 1, 2, 2] => [3, 1, 2]
         idxs = [
-            torch.cat((torch.tensor([0]), count.cumsum(0)[:-1])) for count in counts
+            torch.cat((zero_tensor, count.cumsum(0)[:-1])) for count in counts
         ]  # compute index to keep [0, 3, 4] (always keep the first index, then use cumulative sum of counts tensor)
         x = [x[i][idxs[i]] for i in range(len(x))]  # keep only non consecutive symbols
         probs = [
