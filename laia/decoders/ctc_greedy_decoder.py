@@ -51,7 +51,7 @@ class CTCGreedyDecoder:
 
         # Save results
         out["hyp"] = [x_n.tolist() for x_n in x]
-        out["prob-htr"] = [prob.mean().item() for prob in probs]
+        out["prob-htr-char"] = [prob.tolist() for prob in probs]    # returns probability for each character to compute word-based probability later
 
         return out
 
