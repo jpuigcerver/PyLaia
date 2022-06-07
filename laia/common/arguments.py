@@ -319,6 +319,7 @@ class DecodeArgs:
     input_space: str = "<space>"
     output_space: str = " "
     segmentation: Optional[Segmentation] = None
+    print_confidence_scores: bool = False
 
 
 @dataclass
