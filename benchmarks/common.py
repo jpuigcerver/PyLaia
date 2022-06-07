@@ -10,7 +10,7 @@ def setup(train_path, fixed_input_height=0):
     seed = 31102020
     seed_everything(seed)
 
-    n = 10 ** 4
+    n = 10**4
     data_module = DummyMNISTLines(tr_n=n, va_n=int(0.1 * n), samples_per_space=5)
     print("Generating data...")
     data_module.prepare_data()

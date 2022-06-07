@@ -8,22 +8,22 @@ from laia.decoders import CTCGreedyDecoder
 from laia.utils import SymbolsTable
 
 
-def get_slices(space_indexes, max_len):
-    slices = [slice(0, space_indexes[0])]                               # first slice 0:index_1
-    for i in range(0, len(space_indexes)-1):
-        slices.append(slice(space_indexes[i]+1, space_indexes[i+1]))    # other slices index_{n}+1:index_{n+1}
-    slices.append(slice(space_indexes[-1]+1, max_len))                  # last slice index_{-1}:-1
-    return slices
-
-
-def compute_word_prob(hyp, prob, space_token):
-    space_index = np.argwhere(np.array(hyp) == space_token).reshape(-1).tolist()        # [4 16]
-    if space_index:
-        word_slices = get_slices(space_index, len(hyp))      # [(0, 4), (5, 16), (16, len(out["hyp"]))+1]
-        prob_per_word = [np.mean(prob[word_slice]) for word_slice in word_slices]      # note: could use np.average with weights to speed up ?
-    else:
-        prob_per_word = np.mean(prob)
-    return prob_per_word
+def compute_word_prob(symbols, hyp, prob, input_separator):
+    # compute mean confidence score and mean confidence score by word
+    space_id = symbols._sym2val[input_separator]
+    word_prob_list = []
+    word_prob, word_chars = [], ""
+    for value, prob in zip(hyp, prob):
+        char = symbols[value]
+        if value != space_id:
+            word_prob.append(prob)
+            word_chars += char
+        elif word_chars:
+            word_prob_list.append((word_chars, sum(word_prob) / len(word_prob)))
+            word_prob, word_chars = [], ""
+    if word_chars:
+        word_prob_list.append((word_chars, sum(word_prob) / len(word_prob)))
+    return word_prob_list
 
 
 class Decode(pl.Callback):
@@ -38,7 +38,7 @@ class Decode(pl.Callback):
         join_string: Optional[str] = None,
         separator: str = " ",
         include_img_ids: bool = True,
-        compute_confidence_scores: bool = True,
+        print_confidence_scores: bool = True,
     ):
         super().__init__()
         self.decoder = decoder
@@ -54,7 +54,7 @@ class Decode(pl.Callback):
         self.join_string = join_string
         self.separator = separator
         self.include_img_ids = include_img_ids
-        self.compute_confidence_scores = compute_confidence_scores
+        self.print_confidence_scores = print_confidence_scores
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
@@ -62,19 +62,11 @@ class Decode(pl.Callback):
         hyps = self.decoder(outputs)["hyp"]
         probs = self.decoder(outputs)["prob-htr-char"]
 
-        # compute mean confidence score and mean confidence score by word
-        space_id = self.syms._sym2val[self.input_space]
+        # compute mean confidence score
         mean_probs = [np.mean(prob) for prob in probs]
-        word_probs = [compute_word_prob(hyps[i], probs[i], space_id) for i in range(len(probs))]
 
-        if len(word_probs[0]) == 3:
-            print(word_probs[0])
-            with open('col1.txt', 'a') as f:
-                f.write(f"{word_probs[0][0]:.4f}\n")
-            with open('col2.txt', 'a') as f:
-                f.write(f"{word_probs[0][1]:.4f}\n")
-            with open('col3.txt', 'a') as f:
-                f.write(f"{word_probs[0][2]:.4f}\n")
+        # compute mean confidence score by word (if needed)
+        # word_probs = [compute_word_prob(self.syms, hyps[i], probs[i], self.input_space) for i in range(len(probs))]
 
         for i, (img_id, hyp, prob) in enumerate(zip(img_ids, hyps, mean_probs)):
             if self.use_symbols:
@@ -87,9 +79,9 @@ class Decode(pl.Callback):
             if self.join_string is not None:
                 hyp = self.join_string.join(str(x) for x in hyp)
 
-            if self.compute_confidence_scores:
+            if self.print_confidence_scores:
                 self.write(
-                    f"{img_id}{self.separator}{prob:.4f}{self.separator}{hyp}"
+                    f"{img_id}{self.separator}{prob:.2f}{self.separator}{hyp}"
                     if self.include_img_ids
                     else f"{prob:.4f}{self.separator}{hyp}"
                 )

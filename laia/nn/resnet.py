@@ -149,7 +149,7 @@ class ResnetOptions:
         self._width_per_group = width_per_group
         self._norm_layer = norm_layer
 
-        self._planes = [int(width_per_group * groups * 2 ** i) for i in range(4)]
+        self._planes = [int(width_per_group * groups * 2**i) for i in range(4)]
 
     @property
     def input_channels(self):
