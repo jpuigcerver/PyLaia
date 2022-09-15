@@ -23,7 +23,7 @@ class CTCGreedyDecoderTest(unittest.TestCase):
     def test_prob(self):
         x = torch.tensor([[[0.3, 0.6, 0.1]], [[0.6, 0.3, 0.2]]]).log()
         decoder = CTCGreedyDecoder()
-        r = decoder(x, segmentation=True)
+        r = decoder(x, segmentation=True, apply_softmax=False)
         e = [[1]]
         self.assertEqual(e, r["hyp"])
         # Check actual loss prob
@@ -41,12 +41,14 @@ class CTCGreedyDecoderTest(unittest.TestCase):
             x, torch.tensor(e), torch.tensor([1]), torch.tensor([1]), reduction="none"
         )
         loss_prob = loss.neg().exp()
-        torch.testing.assert_allclose(loss_prob, [p.mean() for p in r["prob"]][0])
+        torch.testing.assert_allclose(
+            loss_prob, [p.mean() for p in r["prob-segmentation"]][0]
+        )
 
     def test_batch(self):
         x = torch.tensor([[[0.3, 0.6], [0.5, 0.9]], [[0.6, 0.3], [0.6, 0.9]]]).log()
         decoder = CTCGreedyDecoder()
-        r = decoder(x, segmentation=True)
+        r = decoder(x, segmentation=True, apply_softmax=False)
         e = [[1], [1]]
         self.assertEqual(e, r["hyp"])
         # note: checking with ctc_loss does not work for every x
@@ -58,7 +60,7 @@ class CTCGreedyDecoderTest(unittest.TestCase):
             reduction="none",
         )
         e = loss.neg().exp()
-        r = torch.tensor([p.mean() for p in r["prob"]])
+        r = torch.tensor([p.mean() for p in r["prob-segmentation"]])
         torch.testing.assert_allclose(r, e)
 
     def test_segmentation_empty(self):

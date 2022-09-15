@@ -1,11 +1,11 @@
 import shutil
-from distutils.version import LooseVersion
 from io import StringIO
 from unittest import mock
 
 import pytest
 import torch
 from conftest import call_script
+from packaging import version
 from pytorch_lightning import seed_everything
 
 from laia.common.arguments import CommonArgs, DataArgs, DecodeArgs
@@ -29,10 +29,7 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     torch.save(DummyModel(*model_args).state_dict(), str(ckpt))
     # prepare syms file
     syms = tmpdir / "syms"
-    syms_table = SymbolsTable()
-    for k, v in data_module.syms.items():
-        syms_table.add(v, k)
-    syms_table.save(syms)
+    data_module.syms.save(syms)
     # prepare img list
     img_list = tmpdir / "img_list"
     img_list.write_text(
@@ -60,8 +57,9 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     assert "Using checkpoint" in stderr
 
 
+@pytest.mark.skip(reason="HTTP Error 404: Not Found")
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="torch 1.4.0 bug"
+    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
 )  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize(
     "accelerator",
@@ -106,8 +104,9 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
     ]
 
 
+@pytest.mark.skip(reason="HTTP Error 404: Not Found")
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="torch 1.4.0 bug"
+    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
 )  # https://github.com/pytorch/vision/issues/1943
 def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     syms = downloader("print/syms.txt")
@@ -139,8 +138,9 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     ]
 
 
+@pytest.mark.skip(reason="HTTP Error 404: Not Found")
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="torch 1.4.0 bug"
+    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
 )  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize(
     "accelerator",
