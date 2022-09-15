@@ -44,7 +44,6 @@ def test_cpu(tmpdir, num_processes):
 
     assert log_filepath.exists()
     lines = [l.strip() for l in log_filepath.readlines()]
-    print(lines)
     lines = [
         l.startswith(f"E{e}: tr_time=")
         for l in lines

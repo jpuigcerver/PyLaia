@@ -19,7 +19,7 @@ def test_get_args():
 
 @pytest.mark.parametrize(
     "arg",
-    [None, "--netout.digits=5.0", "--netout.digits=-1"],
+    [None, "--netout.digits=-1"],
 )
 def test_invalid_args(arg):
     args = [] if arg is None else ["img_list", arg]
@@ -41,32 +41,32 @@ def test_entry_point():
     assert "(type: Union[str, null], default: null)" in help
     assert "containing the output matrices" in help
     assert "containing the output lattices" in help
-    assert "used for formatting (type: int v>=0, default: 10)" in help
+    assert "used for formatting (type: NonNegativeInt, default: 10)" in help
 
 
-expected_config = """common:
-  checkpoint: null
-  experiment_dirname: experiment
-  model_filename: model
-  monitor: va_cer
+expected_config = """img_list: null
+img_dirs: null
+common:
   seed: 74565
   train_path: ''
+  model_filename: model
+  experiment_dirname: experiment
+  monitor: va_cer
+  checkpoint: null
 data:
   batch_size: 8
   color_mode: L
-img_dirs: null
-img_list: null
 logging:
-  filepath: null
   fmt: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
   level: INFO
+  filepath: null
   overwrite: false
   to_stderr_level: ERROR
 netout:
-  digits: 10
-  lattice: null
+  output_transform: null
   matrix: null
-  output_transform: null"""
+  lattice: null
+  digits: 10"""
 
 
 def test_config_output():

@@ -68,7 +68,7 @@ def test_entry_point():
     assert "--common.experiment_dirname EXPERIMENT_DIRNAME" in help
     assert "Any of: 1" in help
     assert "(type: Union[List[str], null], default: ['<space>'])" in help
-    assert "(type: int v>=-1, default: 3)" in help
+    assert "(type: int_ge-1, default: 3)" in help
     assert "--train.resume RESUME" in help
     assert "Union[bool, NonNegativeInt]" in help
     assert "[%(asctime)s %(levelname)s %(name)s] %(message)s" in help
@@ -76,44 +76,45 @@ def test_entry_point():
     assert "(type: Monitor, default: va_loss)" in help
 
 
-expected_config = """common:
-  checkpoint: null
-  experiment_dirname: experiment
-  model_filename: model
-  monitor: va_cer
+expected_config = """syms: null
+img_dirs: []
+tr_txt_table: null
+va_txt_table: null
+common:
   seed: 74565
   train_path: ''
+  model_filename: model
+  experiment_dirname: experiment
+  monitor: va_cer
+  checkpoint: null
 data:
   batch_size: 8
   color_mode: L
-img_dirs: []
+train:
+  delimiters:
+  - <space>
+  checkpoint_k: 3
+  resume: false
+  early_stopping_patience: 20
+  gpu_stats: false
+  augment_training: false
 logging:
-  filepath: null
   fmt: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
   level: INFO
+  filepath: null
   overwrite: false
   to_stderr_level: ERROR
 optimizer:
+  name: RMSProp
   learning_rate: 0.0005
   momentum: 0.0
-  name: RMSProp
-  nesterov: false
   weight_l2_penalty: 0.0
+  nesterov: false
 scheduler:
   active: false
-  factor: 0.1
   monitor: va_loss
   patience: 5
-syms: null
-tr_txt_table: null
-train:
-  augment_training: false
-  checkpoint_k: 3
-  delimiters:
-  - <space>
-  early_stopping_patience: 20
-  gpu_stats: false
-  resume: false"""
+  factor: 0.1"""
 
 
 def test_config_output():
@@ -125,7 +126,6 @@ def test_config_output():
     config = proc.stdout.decode().strip()
     expected = expected_config + "\ntrainer:"
     assert config.startswith(expected)
-    assert config.endswith("va_txt_table: null")
 
 
 def test_config_input(tmpdir):

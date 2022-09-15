@@ -1,6 +1,5 @@
 import inspect
 from dataclasses import dataclass, field, make_dataclass
-from distutils.version import LooseVersion
 from enum import Enum
 from os.path import join
 from typing import Any, List, Optional, Tuple, Type, Union
@@ -15,6 +14,7 @@ from jsonargparse.typing import (
     PositiveInt,
     restricted_number_type,
 )
+from packaging import version
 
 GeNeg1Int = restricted_number_type(None, int, (">=", -1))
 
@@ -277,7 +277,7 @@ class TrainerArgs(make_dataclass("", __get_trainer_fields())):
 
     def __post_init__(self):
         if (
-            LooseVersion(torch.__version__) < LooseVersion("1.7.0")
+            version.parse(torch.__version__) < version.parse("1.7.0")
             and self.precision != 32
         ):
             raise ValueError(
@@ -319,7 +319,8 @@ class DecodeArgs:
     input_space: str = "<space>"
     output_space: str = " "
     segmentation: Optional[Segmentation] = None
-    print_confidence_scores: bool = False
+    print_line_confidence_scores: bool = False
+    print_word_confidence_scores: bool = False
 
 
 @dataclass

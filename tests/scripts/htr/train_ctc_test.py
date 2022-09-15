@@ -1,8 +1,7 @@
-from distutils.version import LooseVersion
-
 import pytest
 import torch
 from conftest import call_script
+from packaging import version
 from pytorch_lightning import seed_everything
 
 from laia.common.arguments import (
@@ -27,10 +26,7 @@ def prepare_data(dir, image_sequencer="avgpool-8"):
     prepare_model(dir, image_sequencer)
     # prepare syms file
     syms = dir / "syms"
-    syms_table = SymbolsTable()
-    for k, v in data_module.syms.items():
-        syms_table.add(v, k)
-    syms_table.save(syms)
+    data_module.syms.save(syms)
     # prepare img dirs
     img_dirs = [str(data_module.root / p) for p in ("tr", "va")]
     return syms, img_dirs, data_module
@@ -78,11 +74,9 @@ def test_train_1_epoch(tmpdir, accelerator):
     ]
     if accelerator:
         args.append(f"--trainer.accelerator={accelerator}")
-        args.append(f"--trainer.gpus=2")
+        args.append(f"--trainer.gpus={torch.cuda.device_count()}")
 
     stdout, stderr = call_script(script.__file__, args)
-    print(f"Script stderr:\n{stderr}")
-
     assert not stdout
     assert "as top 1" in stderr
     assert "Saving latest checkpoint" in stderr
@@ -95,7 +89,7 @@ def test_train_1_epoch(tmpdir, accelerator):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.7.0"),
+    version.parse(torch.__version__) < version.parse("1.7.0"),
     reason="Some ops do not support AMP before 1.7.0",
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="AMP needs CUDA")
@@ -195,7 +189,7 @@ def test_train_with_scheduler(tmpdir, caplog):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
+    version.parse(torch.__version__) < version.parse("1.5.0"),
     reason="1.4.0 needs more epochs",
 )
 def test_train_can_overfit_one_image(tmpdir, caplog):

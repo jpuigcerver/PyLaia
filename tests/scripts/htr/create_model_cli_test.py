@@ -44,7 +44,7 @@ def test_get_args(cmd_args):
         "--common.monitor=va.xer",
         "--logging.level=10",
         "--logging.level=warning",
-        "--crnn.num_input_channels=5.0",
+        "--crnn.num_input_channels=a",
         "--crnn.num_input_channels=-5",
         "--crnn.cnn_num_features=[10,0,10]",
         "--crnn.rnn_dropout=-0.5",
@@ -76,75 +76,80 @@ def test_entry_point():
     )
     assert "(type: List[PositiveInt], default: [16, 16, 32, 32])" in help
     assert "--crnn.lin_dropout LIN_DROPOUT" in help
-    assert "(type: float v>=0 and v<=1, default: 0.5)" in help
+    assert "(type: ClosedUnitInterval, default: 0.5)" in help
 
 
-expected_config = """adaptive_pooling: avgpool-16
+expected_config = """syms: null
+fixed_input_height: 0
+adaptive_pooling: avgpool-16
+save_model: true
 common:
-  checkpoint: null
-  experiment_dirname: experiment
-  model_filename: model
-  monitor: va_cer
   seed: 74565
   train_path: ''
+  model_filename: model
+  experiment_dirname: experiment
+  monitor: va_cer
+  checkpoint: null
+logging:
+  fmt: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
+  level: INFO
+  filepath: null
+  overwrite: false
+  to_stderr_level: ERROR
 crnn:
-  cnn_activation:
-  - LeakyReLU
-  - LeakyReLU
-  - LeakyReLU
-  - LeakyReLU
-  cnn_batchnorm:
-  - false
-  - false
-  - false
-  - false
-  cnn_dilation:
-  - 1
-  - 1
-  - 1
-  - 1
-  cnn_dropout:
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  cnn_kernel_size:
-  - 3
-  - 3
-  - 3
-  - 3
+  num_input_channels: 1
+  vertical_text: false
   cnn_num_features:
   - 16
   - 16
   - 32
   - 32
-  cnn_poolsize:
-  - 2
-  - 2
-  - 2
-  - 0
+  cnn_kernel_size:
+  - 3
+  - 3
+  - 3
+  - 3
   cnn_stride:
   - 1
   - 1
   - 1
   - 1
-  lin_dropout: 0.5
-  num_input_channels: 1
-  rnn_dropout: 0.5
-  rnn_layers: 3
-  rnn_type: LSTM
-  rnn_units: 256
+  cnn_dilation:
+  - 1
+  - 1
+  - 1
+  - 1
+  cnn_activation:
+  - LeakyReLU
+  - LeakyReLU
+  - LeakyReLU
+  - LeakyReLU
+  cnn_poolsize:
+  - 2
+  - 2
+  - 2
+  - 0
+  cnn_dropout:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  cnn_batchnorm:
+  - false
+  - false
+  - false
+  - false
   use_masks: false
-  vertical_text: false
-fixed_input_height: 0
-logging:
-  filepath: null
-  fmt: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
-  level: INFO
-  overwrite: false
-  to_stderr_level: ERROR
-save_model: true
-syms: null"""
+  rnn_layers: 3
+  rnn_units: 256
+  rnn_dropout: 0.5
+  rnn_type: LSTM
+  lin_dropout: 0.5"""
+
+expected_syms = """<ctc> 0
+a 1
+b 2
+c 3"""
 
 
 def test_config_output():
@@ -159,6 +164,12 @@ def test_config_output():
 
 def test_config_input(tmpdir):
     config = tmpdir / "config"
-    config.write_text(expected_config, "utf-8")
-    args = get_args([f"--config={config}", "--save_model=False"])
+    syms = (
+        tmpdir / "syms"
+    )  # create dummy syms.txt to avoid TypeError: Configuration check failed
+
+    config.write_text(expected_config.replace("syms: null", f"syms: {syms}"), "utf-8")
+    syms.write_text(expected_syms, "utf-8")
+
+    args = get_args(argv=[f"--config={config}", "--save_model=False"])
     assert not args["save_model"]
