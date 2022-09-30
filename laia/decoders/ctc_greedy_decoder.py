@@ -16,10 +16,14 @@ class CTCGreedyDecoder:
         if apply_softmax:
             x = torch.nn.functional.log_softmax(x, dim=-1)
 
-        # Transform to list where len(list) = batch_size
+        # Get device
+        device = torch.device("cuda") if x.is_cuda else torch.device("cpu")
+
+        # Transform to list of size = batch_size
         x = [x[: xs[i], i, :] for i in range(len(xs))]
         x = [x_n.max(dim=1) for x_n in x]
 
+        # If needed, return text <-> image alignments
         out = {}
         if segmentation:
             out["prob-segmentation"] = [x_n.values.exp() for x_n in x]
@@ -27,26 +31,28 @@ class CTCGreedyDecoder:
                 CTCGreedyDecoder.compute_segmentation(x_n.indices.tolist()) for x_n in x
             ]
 
+        # Get symbols and probabilities
         probs = [x_n.values.exp() for x_n in x]
         x = [x_n.indices for x_n in x]
 
-        # Remove repeated symbols
-        zero_tensor = torch.tensor([0]).cuda() if x[0].is_cuda else torch.tensor([0])
-        # => keep track of counts of consecutive symbols [0, 0, 0, 1, 2, 2] => [3, 1, 2]
+        # Remove consecutive symbols
+        # Keep track of counts of consecutive symbols. Example: [0, 0, 0, 1, 2, 2] => [3, 1, 2]
         counts = [torch.unique_consecutive(x_n, return_counts=True)[1] for x_n in x]
-        # => select indexes to keep [0, 3, 4] (always keep the first index, then use cumulative sum of counts tensor)
+
+        # Select indexes to keep. Example: [0, 3, 4] (always keep the first index, then use cumulative sum of counts tensor)
+        zero_tensor = torch.tensor([0], device=device)
         idxs = [torch.cat((zero_tensor, count.cumsum(0)[:-1])) for count in counts]
-        # => keep only non consecutive symbols
+
+        # Keep only non consecutive symbols and their associated probabilities
         x = [x[i][idxs[i]] for i in range(len(x))]
-        # => keep only probabilities associated to non consecutives symbols
         probs = [probs[i][idxs[i]] for i in range(len(x))]
 
-        # Remove CTC blank symbol
-        # => get index for non blank symbols
+        # Remove blank symbols
+        # Get index for non blank symbols
         idxs = [torch.nonzero(x_n, as_tuple=True) for x_n in x]
-        # => keep only non blank symbols
+
+        # Keep only non blank symbols and their associated probabilities
         x = [x[i][idxs[i]] for i in range(len(x))]
-        # => keep only probabilities associated to non blank symbols
         probs = [probs[i][idxs[i]] for i in range(len(x))]
 
         # Save results

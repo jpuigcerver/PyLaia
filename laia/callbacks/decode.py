@@ -9,7 +9,10 @@ from laia.utils import SymbolsTable
 
 
 def compute_word_prob(symbols, hyp, prob, input_separator):
-    # compute mean confidence score and mean confidence score by word
+    """
+    Compute confidence score for each word.
+    Returns a list of word-level confidence scores.
+    """
     space_id = symbols._sym2val[input_separator]
     word_prob_list = []
     word_prob, word_chars = [], ""
@@ -69,9 +72,10 @@ class Decode(pl.Callback):
 
         # compute mean confidence score by word
         word_probs = [
-            compute_word_prob(self.syms, hyps[i], probs[i], self.input_space)
-            for i in range(len(probs))
+            compute_word_prob(self.syms, hyp, prob, self.input_space)
+            for hyp, prob in zip(hyps, probs)
         ]
+
         for i, (img_id, hyp, line_prob, word_prob) in enumerate(
             zip(img_ids, hyps, line_probs, word_probs)
         ):
