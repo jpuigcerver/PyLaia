@@ -61,7 +61,7 @@ def test_entry_point():
     assert help.startswith("usage: pylaia-htr-decode-ctc")
     assert "syms img_list" in help
     assert "--common.monitor {va_loss,va_cer,va_wer}" in help
-    assert "Batch size (type: int v>0, default: 8)" in help
+    assert "Batch size (type: PositiveInt, default: 8)" in help
     assert "--data.color_mode {L,RGB,RGBA}" in help
     assert "Decode arguments:" in help
     assert "type: Union[str, null], default: null" in help
@@ -69,34 +69,36 @@ def test_entry_point():
     assert "--decode.segmentation {char,word,null}" in help
 
 
-expected_config = """common:
-  checkpoint: null
-  experiment_dirname: experiment
-  model_filename: model
-  monitor: va_cer
+expected_config = """syms: null
+img_list: null
+img_dirs: null
+common:
   seed: 74565
   train_path: ''
+  model_filename: model
+  experiment_dirname: experiment
+  monitor: va_cer
+  checkpoint: null
 data:
   batch_size: 8
   color_mode: L
-decode:
-  convert_spaces: false
-  include_img_ids: true
-  input_space: <space>
-  join_string: ' '
-  output_space: ' '
-  segmentation: null
-  separator: ' '
-  use_symbols: true
-img_dirs: null
-img_list: null
 logging:
-  filepath: null
   fmt: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
   level: INFO
+  filepath: null
   overwrite: false
   to_stderr_level: ERROR
-syms: null"""
+decode:
+  include_img_ids: true
+  separator: ' '
+  join_string: ' '
+  use_symbols: true
+  convert_spaces: false
+  input_space: <space>
+  output_space: ' '
+  segmentation: null
+  print_line_confidence_scores: false
+  print_word_confidence_scores: false"""
 
 
 def test_config_output():

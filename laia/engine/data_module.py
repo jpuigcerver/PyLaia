@@ -149,6 +149,6 @@ class DataModule(pl.LightningDataModule):
     def worker_init_fn(worker_id):
         # We need to reset the Numpy and Python PRNG, or we will get the
         # same numbers in each epoch (when the workers are re-generated)
-        seed = (torch.initial_seed() + worker_id) % 2 ** 32  # [0, 2**32)
+        seed = (torch.initial_seed() + worker_id) % 2**32  # [0, 2**32)
         random.seed(seed)
         np.random.seed(seed)

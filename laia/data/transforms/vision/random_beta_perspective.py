@@ -71,7 +71,6 @@ if __name__ == "__main__":
     transformer = RandomBetaPerspective(
         max_offset_ratio=args.max_offset_ratio, alpha=args.alpha, beta=args.beta
     )
-    print(transformer)
     for f in args.images:
         x = Image.open(f, "r").convert("L")
         y = transformer(x)

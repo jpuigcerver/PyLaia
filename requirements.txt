@@ -9,3 +9,4 @@ nnutils-pytorch
 pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
 jsonargparse[signatures]
 dataclasses; python_version < '3.7'
+pandas

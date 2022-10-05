@@ -10,10 +10,16 @@ class SymbolsTable:
         filepath: Filepath to the symbols file
     """
 
-    def __init__(self, filepath: Optional[Union[str, Path]] = None):
+    def __init__(
+        self,
+        filepath: Optional[Union[str, Path]] = None,
+        from_dict: Optional[dict] = None,
+    ):
         self._sym2val, self._val2sym = dict(), dict()
         if filepath:
             self.load(filepath)
+        elif from_dict:
+            self.load_dict(from_dict)
 
     def clear(self):
         self._sym2val, self._val2sym = dict(), dict()
@@ -29,6 +35,11 @@ class SymbolsTable:
             raise
         finally:
             f.close()
+
+    def load_dict(self, d: dict):
+        self.clear()
+        for index, symbol in d.items():
+            self.add(symbol, int(index))
 
     def save(self, f: Union[str, Path]):
         f = open(f, "w")

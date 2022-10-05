@@ -72,7 +72,6 @@ if __name__ == "__main__":
     transformer = RandomBetaAffine(
         alpha=args.alpha, beta=args.beta, max_offset_ratio=args.max_offset_ratio
     )
-    print(transformer)
     for f in args.images:
         x = Image.open(f, "r").convert("L")
         y = transformer(x)

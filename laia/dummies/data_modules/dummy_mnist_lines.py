@@ -7,6 +7,7 @@ import torchvision
 
 from laia.data import PaddingCollater, TextImageFromTextTableDataset
 from laia.dummies import DummyMNIST
+from laia.utils import SymbolsTable
 
 
 class DummyMNISTLines(DummyMNIST):
@@ -26,10 +27,11 @@ class DummyMNISTLines(DummyMNIST):
         self.space_sym = space_sym
         self.samples_per_space = samples_per_space
         # prepare symbols table
-        self.syms = {0: "<ctc>"}
-        self.syms.update({i + 1: str(i) for i in range(10)})
+        syms = {0: "<ctc>"}
+        syms.update({i + 1: str(i) for i in range(10)})
         if space_sym is not None and samples_per_space is not None:
-            self.syms[11] = space_sym
+            syms[11] = space_sym
+        self.syms = SymbolsTable(from_dict=syms)
 
     @staticmethod
     def get_indices(
