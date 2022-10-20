@@ -8,6 +8,7 @@ import laia.common.logging as log
 from laia.callbacks import Decode, ProgressBar, Segmentation
 from laia.common.arguments import CommonArgs, DataArgs, DecodeArgs, TrainerArgs
 from laia.common.loader import ModelLoader
+from laia.decoders import CTCGreedyDecoder, CTCLanguageDecoder
 from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemFeeder
 from laia.scripts.htr import common_main
 from laia.utils import SymbolsTable
@@ -55,6 +56,23 @@ def run(
         stage="test",
     )
 
+    if decode.use_language_model:
+        decoder = CTCLanguageDecoder(
+            language_model_path=decode.language_model_path,
+            tokens_path=decode.tokens_path,
+            lexicon_path=decode.lexicon_path,
+            language_model_weight=decode.language_model_weight,
+            blank_token=decode.blank_token,
+            unk_token=decode.unk_token,
+            sil_token=decode.input_space,
+        )
+        # confidence scores are not supported when using a language model
+        decode.print_line_confidence_scores = False
+        decode.print_word_confidence_scores = False
+
+    else:
+        decoder = CTCGreedyDecoder()
+
     # prepare the testing callbacks
     callbacks = [
         ProgressBar(refresh_rate=trainer.progress_bar_refresh_rate),
@@ -67,6 +85,7 @@ def run(
         )
         if bool(decode.segmentation)
         else Decode(
+            decoder=decoder,
             syms=syms,
             use_symbols=decode.use_symbols,
             input_space=decode.input_space,
