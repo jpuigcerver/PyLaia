@@ -3,10 +3,11 @@ natsort
 numpy
 scipy
 matplotlib
-torch<1.7.0
-torchvision<0.8.0
 nnutils-pytorch
-pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
+pytorch-lightning
+torch==1.12
+torchvision==0.12
+torchaudio==0.12
 jsonargparse[signatures]
 dataclasses; python_version < '3.7'
 pandas
