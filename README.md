@@ -30,6 +30,8 @@ cd PyLaia
 pip install -e .
 ```
 
+Please note that the CUDA version of nnutils ([`nnutils-pytorch-cuda`](https://pypi.org/project/nnutils-pytorch-cuda/)) is installed by default. If you do not have a GPU, you should install the CPU version ([`nnutils-pytorch`](https://pypi.org/project/nnutils-pytorch/)).
+
 The following Python scripts will be installed in your system:
 
 - [`pylaia-htr-create-model`](laia/scripts/htr/create_model.py): Create a VGG-like model with BLSTMs on top for handwriting text recognition. The script has different options to costumize the model. The architecture is based on the paper ["Are Multidimensional Recurrent Layers Really Necessary for Handwritten Text Recognition?"](https://ieeexplore.ieee.org/document/8269951) (2017) by J. Puigcerver.
