@@ -3,10 +3,9 @@ natsort
 numpy
 scipy
 matplotlib
-nnutils-pytorch @ https://github.com/starride-teklia/nnutils/releases/download/v0/nnutils_pytorch-1.12-cp38-cp38-linux_x86_64.whl
+nnutils-pytorch-cuda # cpu version: nnutils-pytorch
 pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
-torch==1.12
-torchvision==0.13
-jsonargparse[signatures]
+torch==1.13
+torchvision==0.14
+jsonargparse[signatures] < 4.14
 dataclasses; python_version < '3.7'
-pandas
