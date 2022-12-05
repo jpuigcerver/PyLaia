@@ -55,6 +55,7 @@ class ConvBlockTest(unittest.TestCase):
         m = ConvBlock(1, 1, activation=None, use_masks=True)
         # Reset parameters so that the operation does nothing
         for name, param in m.named_parameters():
+            param.requires_grad = False
             param.data.zero_()
             if name == "conv.weight":
                 param[:, :, 1, 1] = 1
