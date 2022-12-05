@@ -33,16 +33,17 @@ class CTCGreedyDecoderTest(unittest.TestCase):
         loss = torch.nn.functional.ctc_loss(
             x, torch.tensor(e), torch.tensor([2]), torch.tensor([1]), reduction="none"
         )
-        loss_prob = loss.neg().exp()
-        path_prob = paths.exp().sum()
+        loss_prob = loss.neg().exp().item()
+        path_prob = paths.exp().sum().item()
+
         torch.testing.assert_allclose(loss_prob, path_prob)
         # Check 1best prob against loss with input_length = 1
         loss = torch.nn.functional.ctc_loss(
             x, torch.tensor(e), torch.tensor([1]), torch.tensor([1]), reduction="none"
         )
-        loss_prob = loss.neg().exp()
+        loss_prob = loss.neg().exp().item()
         torch.testing.assert_allclose(
-            loss_prob, [p.mean() for p in r["prob-segmentation"]][0]
+            loss_prob, [p.mean() for p in r["prob-segmentation"]][0].item()
         )
 
     def test_batch(self):
