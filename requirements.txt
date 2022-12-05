@@ -3,7 +3,8 @@ natsort
 numpy
 scipy
 matplotlib
-nnutils-pytorch-cuda # cpu version: nnutils-pytorch
+# cpu version: nnutils-pytorch
+nnutils-pytorch-cuda
 pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
 torch==1.13
 torchvision==0.14
