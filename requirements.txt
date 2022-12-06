@@ -8,5 +8,5 @@ nnutils-pytorch-cuda
 pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
 torch==1.13
 torchvision==0.14
-jsonargparse[signatures] < 4.14
+jsonargparse[signatures]==4.7
 dataclasses; python_version < '3.7'
