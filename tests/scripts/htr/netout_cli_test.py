@@ -38,7 +38,6 @@ def test_entry_point():
     assert help.startswith("usage: pylaia-htr-netout")
     assert "File containing the images to decode" in help
     assert " --netout.output_transform {softmax,log_softmax,null}" in help
-    assert "(type: Union[str, null], default: null)" in help
     assert "containing the output matrices" in help
     assert "containing the output lattices" in help
     assert "used for formatting (type: NonNegativeInt, default: 10)" in help

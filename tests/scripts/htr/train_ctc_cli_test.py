@@ -67,7 +67,6 @@ def test_entry_point():
     assert "Mapping from strings to integers" in help
     assert "--common.experiment_dirname EXPERIMENT_DIRNAME" in help
     assert "Any of: 1" in help
-    assert "(type: Union[List[str], null], default: ['<space>'])" in help
     assert "(type: int_ge-1, default: 3)" in help
     assert "--train.resume RESUME" in help
     assert "Union[bool, NonNegativeInt]" in help
