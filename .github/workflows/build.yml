@@ -23,7 +23,7 @@ jobs:
           pre-commit run --all-files
 
   pytest:
-    name: Python ${{ matrix.python }} - PyTorch ${{ matrix.cfg.torch }}
+    name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
