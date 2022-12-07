@@ -16,40 +16,28 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: "3.9"
       - name: Run pre-commit
         run: |
           pip install pre-commit
           pre-commit run --all-files
 
   pytest:
-    name: Python ${{ matrix.python }} - PyTorch ${{ matrix.cfg.torch }}
+    name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # TODO: include 3.9 when supported
-        python: [3.8, 3.7, 3.6]
-        cfg:
-          # TODO: uncomment when released
-          #- { torch: 1.7.1, nnutils: 1.7.1, torchvision: 0.8.2 }
-          - { torch: 1.6.0, nnutils: 1.6.0, torchvision: 0.7.0 }
-          - { torch: 1.5.1, nnutils: 1.5.1, torchvision: 0.6.1 }
-          - { torch: 1.4.0, nnutils: 1.4.0, torchvision: 0.5.0 }
+        python: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-    - name: Configure requirements
-      run: |
-        sed -i s/^torch\<1.7.0$/torch==${{ matrix.cfg.torch }}/ requirements.txt
-        sed -i s/^torchvision\<0.8.0$/torchvision==${{ matrix.cfg.torchvision }}/ requirements.txt
-        sed -i s/^nnutils-pytorch$/nnutils-pytorch==${{ matrix.cfg.nnutils }}/ requirements.txt
     - name: Install requirements
       run: pip install .[test]
     - name: Run pytest
       run: pytest --cov=laia tests
     - uses: codecov/codecov-action@v1
       # upload coverage only for main job
-      if: ${{ matrix.python == '3.8' && matrix.cfg.torch == '1.6.0' }}
+      if: ${{ matrix.python == '3.8' }}
