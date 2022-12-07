@@ -33,7 +33,6 @@ class CTCLanguageDecoder:
         self,
         x: Any,
     ) -> Dict[str, List]:
-
         x, xs = transform_batch(x)
         x = x.detach()
 
@@ -44,11 +43,14 @@ class CTCLanguageDecoder:
         x = x.permute((1, 0, 2))
         x = torch.nn.functional.log_softmax(x, dim=-1)
         x = x.to(device)
+        if isinstance(xs, list):
+            xs = torch.tensor(xs)
+            xs.to(device)
 
         # decode
         hypotheses = self.decoder(x, xs)
         out = {}
-        out["hyp"] = [hypothesis[0].tokens.tolist() for hypothesis in hypotheses]
+        out["hyp"] = [hypothesis[0].tokens.tolist()[1:-1] for hypothesis in hypotheses]
         # no character-based probability
         # however, a score can be accessed with hypothesis[0].score
         return out
