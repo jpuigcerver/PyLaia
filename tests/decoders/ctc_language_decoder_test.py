@@ -1,6 +1,8 @@
-import torch
-import pytest
 from pathlib import Path
+
+import pytest
+import torch
+
 from laia.decoders import CTCLanguageDecoder
 
 tokens = """<ctc>
@@ -14,7 +16,7 @@ t
 <unk>
 <space>"""
 
-lexicon="""<ctc> <ctc>
+lexicon = """<ctc> <ctc>
 a a
 e e
 h h
@@ -25,7 +27,7 @@ t t
 <unk> <unk>
 <space> <space>"""
 
-arpa_lm="""\\data\\
+arpa_lm = """\\data\\
 ngram 1=10
 ngram 2=14
 
@@ -63,23 +65,31 @@ ngram 2=14
 @pytest.mark.parametrize(
     ["input_tensor", "lm_weight", "expected_result"],
     [
-        (torch.tensor([
-            [[-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2]],
-            [[-2.1, -0.1, -0.3, -4.2, -5.0, -5.1, -4.7, -4.2, -5.2, -1.2]],
-            [[-2.1, -2.5, -4.1, -4.2, -5.0, -0.7, -0.9, -1.7, -5.2, -1.2]],
-            [[-2.1, -0.5, -4.1, -4.2, -5.0, -0.7, -0.1, -1.1, -5.2, -1.2]],
-        ]), 
-        0, 
-        "tast"
-    ), (torch.tensor(
-        [
-            [[-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2]],
-            [[-2.1, -0.1, -0.3, -4.2, -5.0, -5.1, -4.7, -4.2, -5.2, -1.2]],
-            [[-2.1, -2.5, -4.1, -4.2, -5.0, -0.7, -0.9, -1.7, -5.2, -1.2]],
-            [[-2.1, -0.5, -4.1, -4.2, -5.0, -0.7, -0.1, -1.1, -5.2, -1.2]],
-        ]
-    ), 1, "test")
-    ]
+        (
+            torch.tensor(
+                [
+                    [[-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2]],
+                    [[-2.1, -0.1, -0.3, -4.2, -5.0, -5.1, -4.7, -4.2, -5.2, -1.2]],
+                    [[-2.1, -2.5, -4.1, -4.2, -5.0, -0.7, -0.9, -1.7, -5.2, -1.2]],
+                    [[-2.1, -0.5, -4.1, -4.2, -5.0, -0.7, -0.1, -1.1, -5.2, -1.2]],
+                ]
+            ),
+            0,
+            "tast",
+        ),
+        (
+            torch.tensor(
+                [
+                    [[-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2]],
+                    [[-2.1, -0.1, -0.3, -4.2, -5.0, -5.1, -4.7, -4.2, -5.2, -1.2]],
+                    [[-2.1, -2.5, -4.1, -4.2, -5.0, -0.7, -0.9, -1.7, -5.2, -1.2]],
+                    [[-2.1, -0.5, -4.1, -4.2, -5.0, -0.7, -0.1, -1.1, -5.2, -1.2]],
+                ]
+            ),
+            1,
+            "test",
+        ),
+    ],
 )
 def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_result):
     tokens_path = Path(tmpdir) / "tokens.txt"
@@ -90,15 +100,15 @@ def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_result):
     arpa_path.write_bytes(bytes(arpa_lm, "utf-8"))
 
     decoder = CTCLanguageDecoder(
-        language_model_path=str(arpa_path), 
-        tokens_path=str(tokens_path), 
+        language_model_path=str(arpa_path),
+        tokens_path=str(tokens_path),
         lexicon_path=str(lexicon_path),
-        language_model_weight=lm_weight
-        )
+        language_model_weight=lm_weight,
+    )
 
     with open(tokens_path, "r") as f:
         tokens_char = f.read().splitlines()
 
     r = decoder(input_tensor)
     expected_result_index = [tokens_char.index(char) for char in expected_result]
-    assert r["hyp"][0]==expected_result_index
+    assert r["hyp"][0] == expected_result_index
