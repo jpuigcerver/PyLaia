@@ -97,7 +97,14 @@ decode:
   output_space: ' '
   segmentation: null
   print_line_confidence_scores: false
-  print_word_confidence_scores: false"""
+  print_word_confidence_scores: false
+  use_language_model: false
+  language_model_path: null
+  language_model_weight: null
+  tokens_path: null
+  lexicon_path: null
+  unk_token: <unk>
+  blank_token: <ctc>"""
 
 
 def test_config_output():

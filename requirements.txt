@@ -8,5 +8,6 @@ nnutils-pytorch-cuda
 pytorch-lightning==1.1.0
 torch==1.13
 torchvision==0.14
+torchaudio==0.13
 jsonargparse[signatures]==4.7
 dataclasses; python_version < '3.7'

@@ -1,10 +1,11 @@
 from typing import Any, Dict, List
 
+import numpy as np
 import torch
 from torchaudio.models.decoder import ctc_decoder
-import numpy as np
 
 from laia.losses.ctc_loss import transform_batch
+
 
 class CTCLanguageDecoder:
     def __init__(
@@ -35,12 +36,12 @@ class CTCLanguageDecoder:
 
         x, xs = transform_batch(x)
         x = x.detach()
-    
+
         # no GPU support
         device = torch.device("cpu")
 
         # from (frame, bs, num_tokens) to (bs, frame, num_tokens)
-        x = x.permute((1, 0, 2))  
+        x = x.permute((1, 0, 2))
         x = torch.nn.functional.log_softmax(x, dim=-1)
         x = x.to(device)
 
