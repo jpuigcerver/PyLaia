@@ -5,7 +5,7 @@ scipy
 matplotlib
 # cpu version: nnutils-pytorch
 nnutils-pytorch-cuda
-pytorch-lightning @ git+https://github.com/PyTorchLightning/pytorch-lightning@1d3724a
+pytorch-lightning==1.1.0
 torch==1.13
 torchvision==0.14
 jsonargparse[signatures]==4.7
