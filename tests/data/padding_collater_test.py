@@ -81,7 +81,7 @@ class TestPaddingCollater(unittest.TestCase):
                 collated[i, : x.size(0), : x.size(1), : x.size(2)], x
             )
             torch.testing.assert_allclose(
-                sum(collated[i, x.size(0) :, x.size(1) :, x.size(2) :]), 0
+                torch.sum(collated[i, x.size(0) :, x.size(1) :, x.size(2) :]), 0
             )
 
     def test_collate_tensors(self):

@@ -64,7 +64,6 @@ def test_entry_point():
     assert "Batch size (type: PositiveInt, default: 8)" in help
     assert "--data.color_mode {L,RGB,RGBA}" in help
     assert "Decode arguments:" in help
-    assert "type: Union[str, null], default: null" in help
     assert "(type: str, default: <space>)" in help
     assert "--decode.segmentation {char,word,null}" in help
 

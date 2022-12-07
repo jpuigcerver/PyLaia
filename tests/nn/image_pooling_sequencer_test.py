@@ -53,7 +53,7 @@ def _generate_gradcheck_test(sequencer, fn, poolsize, columnwise, x, xs):
                 xk, output_size=(poolsize, xsk[1]) if columnwise else (xsk[0], poolsize)
             )
             (dxk,) = torch.autograd.grad(yk.sum(), (xk,))
-            torch.testing.assert_allclose(dxk, (dx1[i, :, : xsk[0], : xsk[1]]))
+            torch.testing.assert_allclose(dxk, (dx1[i : i + 1, :, : xsk[0], : xsk[1]]))
 
     return _test
 
