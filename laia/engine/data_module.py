@@ -34,6 +34,7 @@ class DataModule(pl.LightningDataModule):
         shuffle_tr: bool = True,
         augment_tr: bool = False,
         stage: str = "fit",
+        num_workers: Optional[int] = None,
     ) -> None:
         assert stage in ("fit", "test")
         base_img_transform = transforms.vision.ToImageTensor(
@@ -43,7 +44,7 @@ class DataModule(pl.LightningDataModule):
         self.img_channels = len(color_mode)
         self.batch_size = batch_size
         # TODO: https://github.com/PyTorchLightning/pytorch-lightning/issues/2196
-        self.num_workers = multiprocessing.cpu_count()
+        self.num_workers = num_workers or multiprocessing.cpu_count()
         if stage == "fit":
             self.tr_ds = None
             self.va_ds = None
