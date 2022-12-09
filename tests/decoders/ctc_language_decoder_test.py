@@ -63,9 +63,11 @@ ngram 2=14
 
 
 @pytest.mark.parametrize(
-    ["input_tensor", "lm_weight", "expected_result"],
+    ["input_tensor", "lm_weight", "expected_string"],
     [
         (
+            # Simulate a feature vector of size (n_frame=4, batch_size=1, n_tokens=10)
+            # Line 1 corresponds to the first frame. The highest value corresponds to the most probable token (column index 6 => token "t")
             torch.tensor(
                 [
                     [[-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2]],
@@ -78,6 +80,7 @@ ngram 2=14
             "tast",
         ),
         (
+            # For frame 2, tokens with index 1 and 2 are the most probable tokens (the model a feature vector of size (n_frame=4, batch_size=1, n_tokens=10)
             torch.tensor(
                 [
                     [[-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2]],
@@ -91,7 +94,7 @@ ngram 2=14
         ),
     ],
 )
-def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_result):
+def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_string):
     tokens_path = Path(tmpdir) / "tokens.txt"
     lexicon_path = Path(tmpdir) / "lexicon.txt"
     arpa_path = Path(tmpdir) / "lm.arpa"
@@ -109,6 +112,8 @@ def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_result):
     with open(tokens_path, "r") as f:
         tokens_char = f.read().splitlines()
 
-    r = decoder(input_tensor)
-    expected_result_index = [tokens_char.index(char) for char in expected_result]
-    assert r["hyp"][0] == expected_result_index
+    predicted_tokens = decoder(input_tensor)["hyp"][0]
+    predicted_string = "".join([tokens_char[char] for char in predicted_tokens])
+    predicted_string = predicted_string.replace("<space>", " ").strip()
+
+    assert predicted_string == expected_string

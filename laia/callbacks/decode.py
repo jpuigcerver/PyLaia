@@ -60,9 +60,10 @@ class Decode(pl.Callback):
         self.include_img_ids = include_img_ids
         self.print_line_confidence_scores = print_line_confidence_scores
         self.print_word_confidence_scores = print_word_confidence_scores
-        self.print_confidence_scores = (
-            self.print_word_confidence_scores or self.print_line_confidence_scores
-        )
+
+    @property
+    def print_confidence_scores(self):
+        return self.print_word_confidence_scores or self.print_line_confidence_scores
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
@@ -76,6 +77,11 @@ class Decode(pl.Callback):
                 compute_word_prob(self.syms, hyp, prob, self.input_space)
                 for hyp, prob in zip(hyps, probs)
             ]
+
+        else:
+            probs = []
+            line_probs = []
+            word_probs = []
 
         for i, (img_id, hyp) in enumerate(zip(img_ids, hyps)):
 
