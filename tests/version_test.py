@@ -13,8 +13,6 @@ def test_wildcard_import():
 def test_versions_match():
     # check __init__ version matches setup.py (installed) version
     version = pkg_resources.require("pylaia")[0].version
-    print(version)
-    print(__version__)
     assert __version__.startswith(version)
 
 
