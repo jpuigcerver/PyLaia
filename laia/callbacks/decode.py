@@ -61,24 +61,29 @@ class Decode(pl.Callback):
         self.print_line_confidence_scores = print_line_confidence_scores
         self.print_word_confidence_scores = print_word_confidence_scores
 
+    @property
+    def print_confidence_scores(self):
+        return self.print_word_confidence_scores or self.print_line_confidence_scores
+
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
         img_ids = pl_module.batch_id_fn(batch)
         hyps = self.decoder(outputs)["hyp"]
-        probs = self.decoder(outputs)["prob-htr-char"]
 
-        # compute mean confidence score
-        line_probs = [np.mean(prob) for prob in probs]
+        if self.print_confidence_scores:
+            probs = self.decoder(outputs)["prob-htr-char"]
+            line_probs = [np.mean(prob) for prob in probs]
+            word_probs = [
+                compute_word_prob(self.syms, hyp, prob, self.input_space)
+                for hyp, prob in zip(hyps, probs)
+            ]
 
-        # compute mean confidence score by word
-        word_probs = [
-            compute_word_prob(self.syms, hyp, prob, self.input_space)
-            for hyp, prob in zip(hyps, probs)
-        ]
+        else:
+            probs = []
+            line_probs = []
+            word_probs = []
 
-        for i, (img_id, hyp, line_prob, word_prob) in enumerate(
-            zip(img_ids, hyps, line_probs, word_probs)
-        ):
+        for i, (img_id, hyp) in enumerate(zip(img_ids, hyps)):
 
             if self.use_symbols:
                 hyp = [self.syms[v] for v in hyp]
@@ -88,22 +93,25 @@ class Decode(pl.Callback):
                         for sym in hyp
                     ]
             if self.join_string is not None:
-                hyp = self.join_string.join(str(x) for x in hyp)
+                hyp = self.join_string.join(str(x) for x in hyp).strip()
 
-            if self.print_line_confidence_scores:
-                self.write(
-                    f"{img_id}{self.separator}{line_prob:.2f}{self.separator}{hyp}"
-                    if self.include_img_ids
-                    else f"{line_prob:.2f}{self.separator}{hyp}"
-                )
+            if self.print_confidence_scores:
 
-            elif self.print_word_confidence_scores:
-                word_prob = [f"{prob:.2f}" for prob in word_prob]
-                self.write(
-                    f"{img_id}{self.separator}{word_prob}{self.separator}{hyp}"
-                    if self.include_img_ids
-                    else f"{word_prob}{self.separator}{hyp}"
-                )
+                if self.print_word_confidence_scores:
+                    word_prob = [f"{prob:.2f}" for prob in word_probs[i]]
+                    self.write(
+                        f"{img_id}{self.separator}{word_prob}{self.separator}{hyp}"
+                        if self.include_img_ids
+                        else f"{word_prob}{self.separator}{hyp}"
+                    )
+
+                else:
+                    line_prob = line_probs[i]
+                    self.write(
+                        f"{img_id}{self.separator}{line_prob:.2f}{self.separator}{hyp}"
+                        if self.include_img_ids
+                        else f"{line_prob:.2f}{self.separator}{hyp}"
+                    )
 
             else:
                 self.write(
