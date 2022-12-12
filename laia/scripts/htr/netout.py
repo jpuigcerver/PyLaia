@@ -21,6 +21,7 @@ def run(
     data: DataArgs = DataArgs(),
     netout: NetoutArgs = NetoutArgs(),
     trainer: TrainerArgs = TrainerArgs(),
+    num_workers: Optional[int] = None,
 ):
     loader = ModelLoader(
         common.train_path, filename=common.model_filename, device="cpu"
@@ -47,6 +48,7 @@ def run(
         batch_size=data.batch_size,
         color_mode=data.color_mode,
         stage="test",
+        num_workers=num_workers,
     )
 
     # prepare the kaldi writers
