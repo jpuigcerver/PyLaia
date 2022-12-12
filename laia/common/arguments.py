@@ -321,6 +321,13 @@ class DecodeArgs:
     segmentation: Optional[Segmentation] = None
     print_line_confidence_scores: bool = False
     print_word_confidence_scores: bool = False
+    use_language_model: bool = False
+    language_model_path: str = None
+    language_model_weight: float = None
+    tokens_path: str = None
+    lexicon_path: str = None
+    unk_token: str = "<unk>"
+    blank_token: str = "<ctc>"
 
 
 @dataclass
