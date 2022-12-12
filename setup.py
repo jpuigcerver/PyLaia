@@ -4,6 +4,9 @@ import setuptools
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
+with open(os.path.join(DIR, "laia/VERSION")) as f:
+    VERSION = f.read()
+
 
 def get_requirements():
     requirements_path = os.path.join(DIR, "requirements.txt")
@@ -18,7 +21,7 @@ def get_long_description():
 
 setuptools.setup(
     name="pylaia",
-    version="1.0.2",
+    version=VERSION,
     author="Joan Puigcerver",
     author_email="joapuipe@gmail.com",
     maintainer="Teklia",
