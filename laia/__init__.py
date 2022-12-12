@@ -14,7 +14,7 @@ import laia.nn
 import laia.utils
 
 __all__ = ["__version__", "__root__", "get_installed_versions"]
-__version__ = "1.0.1.dev0"
+__version__ = "1.0.2"
 __root__ = Path(__file__).parent.parent
 
 try:
