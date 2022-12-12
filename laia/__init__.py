@@ -14,8 +14,9 @@ import laia.nn
 import laia.utils
 
 __all__ = ["__version__", "__root__", "get_installed_versions"]
-__version__ = "1.0.2"
-__root__ = Path(__file__).parent.parent
+__lib__ = Path(__file__).parent
+__root__ = lib.parent
+__version__ = (__lib__ / "VERSION").read_text()
 
 try:
     branch = subprocess.check_output(

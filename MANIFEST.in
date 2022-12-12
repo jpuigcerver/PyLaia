@@ -1,3 +1,5 @@
+include laia/VERSION
+
 exclude .pre-commit-config.yaml
 exclude CONTRIBUTING.md
 
