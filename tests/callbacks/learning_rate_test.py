@@ -4,7 +4,6 @@ import torch
 from laia.callbacks import LearningRate
 from laia.dummies import DummyEngine, DummyLoggingPlugin, DummyMNIST, DummyTrainer
 
-
 def test_learning_rate_warns(tmpdir):
     trainer = DummyTrainer(
         default_root_dir=tmpdir,
@@ -13,7 +12,6 @@ def test_learning_rate_warns(tmpdir):
     )
     with pytest.warns(RuntimeWarning, match=r"You are using LearningRateMonitor.*"):
         trainer.fit(DummyEngine(), datamodule=DummyMNIST())
-
 
 class __TestEngine(DummyEngine):
     def configure_optimizers(self):
