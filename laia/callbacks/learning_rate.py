@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.utilities import rank_zero_only
 
 import laia.common.logging as log
 
@@ -20,9 +20,9 @@ class LearningRate(LearningRateMonitor):
                 RuntimeWarning,
             )
         names = self._find_names(trainer.lr_schedulers)
-        self.lrs = {name: [] for name in names} 
+        self.lrs = {name: [] for name in names}
         self.last_values = {}
-    
+
     @rank_zero_only
     def on_train_epoch_end(self, trainer, *args, **kwargs):
         super().on_train_epoch_end(trainer, *args, **kwargs)
