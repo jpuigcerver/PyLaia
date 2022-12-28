@@ -22,7 +22,7 @@ jobs:
           pip install pre-commit
           pre-commit run --all-files
 
-  pytest:
+  build:
     name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     strategy:
@@ -41,3 +41,10 @@ jobs:
     - uses: codecov/codecov-action@v1
       # upload coverage only for main job
       if: ${{ matrix.python == '3.8' }}
+    - name: Build wheel
+      name: python setup.py bdist_wheel
+    - name: Publish package
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
