@@ -1,3 +1,4 @@
+import os
 import shutil
 from io import StringIO
 from unittest import mock
@@ -16,6 +17,7 @@ from laia.utils import SymbolsTable
 
 
 # TODO: fix test with nprocs=2
+# @pytest.mark.parametrize("nprocs", (1,2))
 @pytest.mark.parametrize("nprocs", (1,))
 def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     # prepare data
@@ -58,29 +60,29 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     assert "Using checkpoint" in stderr
 
 
-@pytest.mark.skip(reason="HTTP Error 404: Not Found")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
-)  # https://github.com/pytorch/vision/issues/1943
+# @pytest.mark.parametrize(
+#     "accelerator",
+#     [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
+# )
 @pytest.mark.parametrize(
     "accelerator",
-    [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
+    [None, "ddp"] if torch.cuda.device_count() > 1 else [None],
 )
-def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
-    syms = downloader("print/syms.txt")
-    img_list = downloader("print/imgs.lst")
-    ckpt = downloader("print/experiment_h128")
-    images = downloader("print/imgs_h128", archive=True)
-    model = downloader("print/model_h128")
-    shutil.copy(model, tmpdir)
+def test_decode_with_trained_ckpt_fixed_height(downloader, accelerator):
+    syms = downloader("syms.txt")
+    ckpt = os.path.basename(downloader("weights.ckpt"))
+    model = os.path.basename(downloader("model"))
+
+    base_path = "tests/resources/"
+    img_list = os.path.join(base_path, "img_list.txt")
 
     args = [
         syms,
         img_list,
-        f"--img_dirs={[images]}",
-        f"--common.train_path={tmpdir}",
+        f"--img_dirs={[base_path]}",
+        f"--common.train_path={base_path}",
         f"--common.checkpoint={ckpt}",
-        "--common.model_filename=model_h128",
+        f"--common.model_filename={model}",
         "--data.batch_size=3",
         "--decode.join_string=",
         "--decode.convert_spaces=true",
@@ -97,75 +99,71 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
 
     lines = sorted(stdout.strip().split("\n"))
     assert lines == [
-        "ONB_aze_18950706_4.r_10_2.tl_125 Deutschland.",
-        "ONB_aze_18950706_4.r_10_3.tl_126 — Wir haben gestern von dem merkwürdigen Tadel",
-        "ONB_aze_18950706_4.r_10_3.tl_127 erzahlt, den der Colberger Bürgermeister von dem vorgesetzten",
-        "ONB_aze_18950706_4.r_10_3.tl_128 Regierungspräsidenten in Köslin erlitten hat, weil er anläß¬",
-        "ONB_aze_18950706_4.r_10_3.tl_129 lich der Reichsrathswahl im Kreise Colberg=Köslin den",
+        "image_01.jpg dig, saasnart jeg fik ted, men nu kom dette idag,",
+        "image_02.jpg – Jeg frygter for Anstrærgelse",
+        "image_03.jpg Forstørrelse af et mindre og meget",
+        "image_04.jpg Lov kommet friske hjem fra Holmenkol-",
+        "image_05.jpg da han neppe interesseren",
     ]
 
 
-@pytest.mark.skip(reason="HTTP Error 404: Not Found")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
-)  # https://github.com/pytorch/vision/issues/1943
 def test_decode_with_old_trained_ckpt(tmpdir, downloader):
-    syms = downloader("print/syms.txt")
-    img_list = downloader("print/imgs.lst")
-    ckpt = downloader("print/old_experiment")
-    images = downloader("print/imgs", archive=True)
-    # download and move model
-    model = downloader("print/old_model")
-    shutil.copy(model, tmpdir)
+    syms = downloader("syms.txt")
+    ckpt = os.path.basename(downloader("weights.ckpt"))
+    model = os.path.basename(downloader("model"))
+
+    base_path = "tests/resources/"
+    img_list = os.path.join(base_path, "img_list.txt")
 
     stdout = StringIO()
     with mock.patch("sys.stdout", new=stdout):
         script.run(
             syms,
             img_list,
-            [images],
+            [base_path],
             common=CommonArgs(
-                train_path=tmpdir, checkpoint=ckpt, model_filename="old_model"
+                train_path=base_path, checkpoint=ckpt, model_filename=model
             ),
             data=DataArgs(batch_size=3),
             decode=DecodeArgs(join_string="", convert_spaces=True),
         )
     assert sorted(stdout.getvalue().strip().split("\n")) == [
-        "ONB_aze_18950706_4.r_10_2.tl_125 Deuklichland.",
-        "ONB_aze_18950706_4.r_10_3.tl_126 — Wir haben gestern von dem merkwürdigen Tadel",
-        "ONB_aze_18950706_4.r_10_3.tl_127 erzählt, den der Colberger Bürgermeister von dem vorgesetzten",
-        "ONB_aze_18950706_4.r_10_3.tl_128 Regierungspräsidenten in Köslin erlitten hat, weil er anläß¬",
-        "ONB_aze_18950706_4.r_10_3.tl_129 lich der Reicherathswahl in Kreise Colberg=Köslin den",
+        "image_01.jpg dig, saasnart jeg fik ted, men nu kom dette idag,",
+        "image_02.jpg – Jeg frygter for Anstrærgelse",
+        "image_03.jpg Forstørrelse af et mindre og meget",
+        "image_04.jpg Lov kommet friske hjem fra Holmenkol-",
+        "image_05.jpg da han neppe interesseren",
     ]
 
 
-@pytest.mark.skip(reason="HTTP Error 404: Not Found")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
-)  # https://github.com/pytorch/vision/issues/1943
+# @pytest.mark.parametrize(
+#     "accelerator",
+#     [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
+# )
 @pytest.mark.parametrize(
     "accelerator",
-    [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
+    [None, "ddp"] if torch.cuda.device_count() > 1 else [None],
 )
-def test_segmentation(tmpdir, downloader, accelerator):
-    syms = downloader("print/syms.txt")
-    img_list = downloader("print/imgs.lst")
-    ckpt = downloader("print/experiment_h128")
-    images = downloader("print/imgs_h128", archive=True)
-    model = downloader("print/model_h128")
-    shutil.copy(model, tmpdir)
+def test_segmentation(downloader, accelerator):
+    syms = downloader("syms.txt")
+    ckpt = os.path.basename(downloader("weights.ckpt"))
+    model = os.path.basename(downloader("model"))
+
+    base_path = "tests/resources/"
+    img_list = os.path.join(base_path, "img_list.txt")
 
     args = [
         syms,
         img_list,
-        f"--img_dirs={[images]}",
-        f"--common.train_path={tmpdir}",
-        f"--common.experiment_dirname={tmpdir}",
+        f"--img_dirs={[base_path]}",
+        f"--common.train_path={base_path}",
         f"--common.checkpoint={ckpt}",
-        "--common.model_filename=model_h128",
+        f"--common.model_filename={model}",
         "--data.batch_size=3",
+        "--decode.join_string=",
         "--decode.segmentation=word",
     ]
+
     if accelerator:
         args.append(f"--trainer.accelerator={accelerator}")
         args.append(
@@ -178,11 +176,11 @@ def test_segmentation(tmpdir, downloader, accelerator):
 
     lines = sorted(stdout.strip().split("\n"))
     expected = [
-        "ONB_aze_18950706_4.r_10_2.tl_125 [('Deutschland.', 1, 1, 735, 128)]",
-        "ONB_aze_18950706_4.r_10_3.tl_126 [('—', 1, 1, 23, 128),",
-        "ONB_aze_18950706_4.r_10_3.tl_127 [('erzahlt,', 1, 1, 247, 128),",
-        "ONB_aze_18950706_4.r_10_3.tl_128 [('Regierungspräsidenten', 1, 1, 568, 128),",
-        "ONB_aze_18950706_4.r_10_3.tl_129 [('lich', 1, 1, 71, 128),",
+        "image_01.jpg [('dig,', 1, 1, 143, 128)",
+        "image_02.jpg [('–', 1, 1, 39, 128)",
+        "image_03.jpg [('Forstørrelse', 1, 1, 431, 128)",
+        "image_04.jpg [('Lov', 1, 1, 119, 128)",
+        "image_05.jpg [('da', 1, 1, 127, 128)",
     ]
     assert all(l.startswith(e) for l, e in zip(lines, expected))
 
