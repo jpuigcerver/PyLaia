@@ -40,16 +40,16 @@ def call_script(
 def downloader():
     """https://docs.pytest.org/en/latest/fixture.html#conftest-py-sharing-fixture-functions"""
 
-    def get(resource: str) -> str:
+    def get(resource: str, tmpdir: str) -> str:
         # --no-check-certificate
         ssl._create_default_https_context = ssl._create_unverified_context
 
         from_root = "https://huggingface.co/Teklia/pylaia-huginmunin/resolve/main"
-        to_root = __root__ / "tests/resources/experiment" / resource
+        to_root = tmpdir / resource
 
         url = from_root + "/" + resource
         if not os.path.exists(to_root):
-            download_url(url, str(to_root.parent))
+            download_url(url, str(tmpdir))
         return str(to_root)
 
     return get

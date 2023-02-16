@@ -1,5 +1,4 @@
 import os
-import shutil
 from io import StringIO
 from unittest import mock
 
@@ -13,7 +12,6 @@ from laia.common.arguments import CommonArgs, DataArgs, DecodeArgs
 from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines, DummyModel
 from laia.scripts.htr import decode_ctc as script
-from laia.utils import SymbolsTable
 
 
 # TODO: fix test with nprocs=2
@@ -52,14 +50,13 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
         args.append(f"--trainer.num_processes={nprocs}")
 
     stdout, stderr = call_script(script.__file__, args)
-    print(f"Script stdout:\n{stdout}")
-    print(f"Script stderr:\n{stderr}")
 
     img_ids = [l.split(" ", maxsplit=1)[0] for l in stdout.strip().split("\n")]
     assert sorted(img_ids) == [f"va-{i}" for i in range(data_module.n["va"])]
     assert "Using checkpoint" in stderr
 
 
+# TODO: fix test with ddp_cpu
 # @pytest.mark.parametrize(
 #     "accelerator",
 #     [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
@@ -68,21 +65,24 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
     "accelerator",
     [None, "ddp"] if torch.cuda.device_count() > 1 else [None],
 )
-def test_decode_with_trained_ckpt_fixed_height(downloader, accelerator):
-    syms = downloader("syms.txt")
-    ckpt = os.path.basename(downloader("weights.ckpt"))
-    model = os.path.basename(downloader("model"))
+def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
+    ckpt = "weights.ckpt"
+    model = "model"
+    downloader(ckpt, tmpdir)
+    downloader(model, tmpdir)
+    syms = downloader("syms.txt", tmpdir)
 
-    base_path = "tests/resources/"
-    img_list = os.path.join(base_path, "img_list.txt")
+    im_path = "tests/resources/"
+    img_list = os.path.join(im_path, "img_list.txt")
 
     args = [
         syms,
         img_list,
-        f"--img_dirs={[base_path]}",
-        f"--common.train_path={base_path}",
+        f"--img_dirs={[im_path]}",
+        f"--common.train_path={tmpdir}",
         f"--common.checkpoint={ckpt}",
         f"--common.model_filename={model}",
+        f"--common.experiment_dirname=",
         "--data.batch_size=3",
         "--decode.join_string=",
         "--decode.convert_spaces=true",
@@ -108,21 +108,27 @@ def test_decode_with_trained_ckpt_fixed_height(downloader, accelerator):
 
 
 def test_decode_with_old_trained_ckpt(tmpdir, downloader):
-    syms = downloader("syms.txt")
-    ckpt = os.path.basename(downloader("weights.ckpt"))
-    model = os.path.basename(downloader("model"))
+    syms = "syms.txt"
+    ckpt = "weights.ckpt"
+    model = "model"
 
-    base_path = "tests/resources/"
-    img_list = os.path.join(base_path, "img_list.txt")
+    im_path = "tests/resources/"
+    syms = downloader(syms, tmpdir)
+    downloader(ckpt, tmpdir)
+    downloader(model, tmpdir)
 
+    img_list = os.path.join(im_path, "img_list.txt")
     stdout = StringIO()
     with mock.patch("sys.stdout", new=stdout):
         script.run(
             syms,
             img_list,
-            [base_path],
+            [im_path],
             common=CommonArgs(
-                train_path=base_path, checkpoint=ckpt, model_filename=model
+                train_path=tmpdir,
+                checkpoint=ckpt,
+                model_filename=model,
+                experiment_dirname="",
             ),
             data=DataArgs(batch_size=3),
             decode=DecodeArgs(join_string="", convert_spaces=True),
@@ -136,6 +142,7 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     ]
 
 
+# TODO: fix test with ddp_cpu
 # @pytest.mark.parametrize(
 #     "accelerator",
 #     [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
@@ -144,21 +151,23 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     "accelerator",
     [None, "ddp"] if torch.cuda.device_count() > 1 else [None],
 )
-def test_segmentation(downloader, accelerator):
-    syms = downloader("syms.txt")
-    ckpt = os.path.basename(downloader("weights.ckpt"))
-    model = os.path.basename(downloader("model"))
+def test_segmentation(tmpdir, downloader, accelerator):
+    syms = downloader("syms.txt", tmpdir)
+    ckpt = os.path.basename(downloader("weights.ckpt", tmpdir))
+    model = os.path.basename(downloader("model", tmpdir))
 
-    base_path = "tests/resources/"
-    img_list = os.path.join(base_path, "img_list.txt")
+    train_path = os.path.dirname(syms)
+    image_path = "tests/resources/"
+    img_list = os.path.join(image_path, "img_list.txt")
 
     args = [
         syms,
         img_list,
-        f"--img_dirs={[base_path]}",
-        f"--common.train_path={base_path}",
+        f"--img_dirs={[image_path]}",
+        f"--common.train_path={train_path}",
         f"--common.checkpoint={ckpt}",
         f"--common.model_filename={model}",
+        f"--common.experiment_dirname=",
         "--data.batch_size=3",
         "--decode.join_string=",
         "--decode.segmentation=word",
