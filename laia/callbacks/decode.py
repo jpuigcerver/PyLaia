@@ -84,7 +84,6 @@ class Decode(pl.Callback):
             word_probs = []
 
         for i, (img_id, hyp) in enumerate(zip(img_ids, hyps)):
-
             if self.use_symbols:
                 hyp = [self.syms[v] for v in hyp]
                 if self.convert_spaces:
@@ -96,7 +95,6 @@ class Decode(pl.Callback):
                 hyp = self.join_string.join(str(x) for x in hyp).strip()
 
             if self.print_confidence_scores:
-
                 if self.print_word_confidence_scores:
                     word_prob = [f"{prob:.2f}" for prob in word_probs[i]]
                     self.write(

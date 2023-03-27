@@ -128,7 +128,6 @@ class ResnetOptions:
         width_per_group: int = 64,
         norm_layer: Optional[Type[nn.Module]] = None,
     ):
-
         if len(layers) != 4:
             raise ValueError("The length of layers should be 4")
 
