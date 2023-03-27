@@ -33,7 +33,6 @@ class CTCLanguageDecoder:
         unk_token: str = "<unk>",
         sil_token: str = "<space>",
     ):
-
         self.decoder = ctc_decoder(
             lm=language_model_path,
             lexicon=lexicon_path,
