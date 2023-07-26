@@ -96,6 +96,7 @@ def run(
             join_string=decode.join_string,
             separator=decode.separator,
             include_img_ids=decode.include_img_ids,
+            temperature = decode.temperature,
             print_line_confidence_scores=decode.print_line_confidence_scores,
             print_word_confidence_scores=decode.print_word_confidence_scores,
         ),
