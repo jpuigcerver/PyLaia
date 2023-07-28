@@ -63,7 +63,7 @@ def prepare_model(dir, image_sequencer):
 )
 def test_train_1_epoch(tmpdir, accelerator):
     syms, img_dirs, data_module = prepare_data(tmpdir)
-    # we cant just call run ourselves due to pytest-ddp issues
+    # we can't just call run ourselves due to pytest-ddp issues
     args = [
         syms,
         img_dirs,

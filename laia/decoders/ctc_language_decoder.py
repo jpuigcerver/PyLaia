@@ -9,7 +9,7 @@ from laia.losses.ctc_loss import transform_batch
 
 class CTCLanguageDecoder:
     """
-    Intialize a CTC decoder with n-gram language modeling.
+    Initialize a CTC decoder with n-gram language modeling.
     Args:
         language_model_path (str): path to a KenLM or ARPA language model
         lexicon_path (str): path to a lexicon file containing the possible words and corresponding spellings.
@@ -53,7 +53,7 @@ class CTCLanguageDecoder:
             features (Any): feature vector of size (n_frame, batch_size, n_tokens).
                 Can be either a torch.tensor or a torch.nn.utils.rnn.PackedSequence
         Returns:
-            out (Dict[str, List]): a dictionnary containing the hypothesis (the list of decoded tokens).
+            out (Dict[str, List]): a dictionary containing the hypothesis (the list of decoded tokens).
                 There is no character-based probability.
         """
 
@@ -80,5 +80,5 @@ class CTCLanguageDecoder:
         # Format the output
         out = {}
         out["hyp"] = [hypothesis[0].tokens.tolist() for hypothesis in hypotheses]
-        # you can get a log likelyhood with hypothesis[0].score
+        # you can get a log likelihood with hypothesis[0].score
         return out
