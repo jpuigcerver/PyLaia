@@ -104,6 +104,13 @@ class Decode(pl.Callback):
                         if self.include_img_ids
                         else f"{word_prob}{self.separator}{hyp}"
                     )
+                    
+                    self.save_probabilities_to_file(
+                        f"{img_id}{self.separator}{word_prob}{self.separator}{hyp}"
+                        if self.include_img_ids
+                        else f"{word_prob}{self.separator}{hyp}", 
+                        "probabilities.txt"
+                    )
 
                 else:
                     line_prob = line_probs[i]
@@ -126,3 +133,9 @@ class Decode(pl.Callback):
         # not a tqdm issue. couldn't reproduce it on toy examples but it does
         # happen in the iam-htr example
         return tqdm.write(value + "\n", end="")
+
+    def save_probabilities_to_file(self, value, output_file):
+        if output_file:
+            with open(output_file, "a") as f:
+                f.write(value)
+
