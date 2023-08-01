@@ -70,10 +70,10 @@ class Decode(pl.Callback):
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
         img_ids = pl_module.batch_id_fn(batch)
-        hyps = self.decoder(outputs, temperature = self.temperature)["hyp"]
+        hyps = self.decoder(outputs, temperature=self.temperature)["hyp"]
 
         if self.print_confidence_scores:
-            probs = self.decoder(outputs, temperature = self.temperature)["prob-htr-char"]
+            probs = self.decoder(outputs, temperature=self.temperature)["prob-htr-char"]
             line_probs = [np.mean(prob) for prob in probs]
             word_probs = [
                 compute_word_prob(self.syms, hyp, prob, self.input_space)
@@ -104,13 +104,6 @@ class Decode(pl.Callback):
                         if self.include_img_ids
                         else f"{word_prob}{self.separator}{hyp}"
                     )
-                    
-                    self.save_probabilities_to_file(
-                        f"{img_id}{self.separator}{word_prob}{self.separator}{hyp}"
-                        if self.include_img_ids
-                        else f"{word_prob}{self.separator}{hyp}", 
-                        "probabilities.txt"
-                    )
 
                 else:
                     line_prob = line_probs[i]
@@ -133,9 +126,3 @@ class Decode(pl.Callback):
         # not a tqdm issue. couldn't reproduce it on toy examples but it does
         # happen in the iam-htr example
         return tqdm.write(value + "\n", end="")
-
-    def save_probabilities_to_file(self, value, output_file):
-        if output_file:
-            with open(output_file, "a") as f:
-                f.write(value)
-
