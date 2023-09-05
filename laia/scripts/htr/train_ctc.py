@@ -79,6 +79,7 @@ def run(
         tr_txt_table=tr_txt_table,
         va_txt_table=va_txt_table,
         batch_size=data.batch_size,
+        min_valid_size=model.get_min_valid_image_size(),
         color_mode=data.color_mode,
         shuffle_tr=not bool(trainer.limit_train_batches),
         augment_tr=train.augment_training,
