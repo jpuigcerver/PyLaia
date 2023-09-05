@@ -152,3 +152,16 @@ class LaiaCRNN(nn.Module):
         for l in self.conv:
             xs = l.get_batch_output_size(xs)
         return xs
+
+    def get_min_valid_image_size(
+        self, max_search_size=128
+    ) -> Union[torch.LongTensor, int]:
+        for size in range(max_search_size):
+            xs = self.get_self_conv_output_size(torch.tensor([[size, size]]))
+            if torch.count_nonzero(xs) == 2:
+                return size
+        raise ValueError(
+            f"Images of size {max_search_size} pixels "
+            f"would produce invalid output sizes. "
+            f"Please review your model architecture."
+        )

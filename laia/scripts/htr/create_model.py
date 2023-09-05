@@ -49,6 +49,9 @@ def run(
         "Model has {} parameters",
         sum(param.numel() for param in model.parameters()),
     )
+    log.info(
+        f"Minimum image size for this architecture: {model.get_min_valid_image_size(fixed_input_height)}"
+    )
     if save_model:
         ModelSaver(common.train_path, common.model_filename).save(
             LaiaCRNN, **vars(crnn)
