@@ -49,9 +49,11 @@ def run(
         "Model has {} parameters",
         sum(param.numel() for param in model.parameters()),
     )
-    log.info(
-        f"Minimum image size for this architecture: {model.get_min_valid_image_size(fixed_input_height)}"
-    )
+    if fixed_input_height:
+        log.info(
+            f"Images should be at least {model.get_min_valid_image_size()} pixels wide for convolutions. "
+            f"Smaller images will be padded."
+        )
     if save_model:
         ModelSaver(common.train_path, common.model_filename).save(
             LaiaCRNN, **vars(crnn)
