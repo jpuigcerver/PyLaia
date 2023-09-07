@@ -57,7 +57,10 @@ class LaiaCRNNTest(unittest.TestCase):
             rnn_dropout=0.5,
             lin_dropout=0.5,
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Images of size \d+ pixels would produce invalid output sizes.\nPlease review your model architecture.",
+        ):
             m.get_min_valid_image_size(128)
 
     def test_exception_on_small_inputs(self):
