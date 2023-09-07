@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
 from pathlib import Path
-from typing import List, TextIO
+from typing import List, TextIO, Union
 
 import imagesize
 
@@ -22,9 +22,9 @@ class ImageStats:
 
     def __init__(
         self,
-        img_dirs: List[str | Path] = None,
-        tr_txt_table: TextIO | str | List[str] = None,
-        va_txt_table: TextIO | str | List[str] = None,
+        img_dirs: Union[List[str], str, List[Path], Path] = None,
+        tr_txt_table: Union[TextIO, str, List[str]] = None,
+        va_txt_table: Union[TextIO, str, List[str]] = None,
     ):
         self.tr_image_paths = _get_images_and_texts_from_text_table(
             tr_txt_table, img_dirs
