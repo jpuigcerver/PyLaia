@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import math
+from functools import cached_property
 from pathlib import Path
 from typing import List, TextIO, Union
 
@@ -32,18 +32,19 @@ class ImageStats:
         self.va_image_paths = _get_images_and_texts_from_text_table(
             va_txt_table, img_dirs
         )[1]
-        self.compute_image_size_stats()
+        sizes = list(map(imagesize.get, self.tr_image_paths + self.va_image_paths))
+        self.widths, self.heights = map(set, zip(*sizes))
 
-    def compute_image_size_stats(self) -> int:
+    @cached_property
+    def max_width(self) -> int:
         """
-        Compute the maximum width of training and validation images
+        Compute the maximum width of images
         """
-        self.max_width = 0
-        self.max_height = 0
-        self.min_height = math.inf
-        for img_path in self.tr_image_paths + self.va_image_paths:
-            width, height = imagesize.get(img_path)
-            self.max_width = max(self.max_width, width)
-            self.max_height = max(self.max_height, height)
-            self.min_height = min(self.min_height, height)
-        self.is_fixed_height = self.min_height == self.max_height
+        return max(self.widths)
+
+    @cached_property
+    def is_fixed_height(self) -> bool:
+        """
+        Check if all images have the same height
+        """
+        return min(self.heights) == max(self.heights)
