@@ -1,4 +1,5 @@
 from itertools import count
+from textwrap import dedent
 from typing import List, Sequence, Tuple, Type, Union
 
 import torch
@@ -163,7 +164,10 @@ class LaiaCRNN(nn.Module):
             if torch.count_nonzero(xs) == 2:
                 return size
         raise ValueError(
-            f"Images of size {max_search_size} pixels "
-            f"would produce invalid output sizes. "
-            f"Please review your model architecture."
+            dedent(
+                f"""
+                Images of size {max_search_size} pixels would produce invalid output sizes.
+                Please review your model architecture.
+                """
+            )
         )
