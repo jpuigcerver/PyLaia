@@ -22,9 +22,9 @@ class ImageStats:
 
     def __init__(
         self,
-        img_dirs: Union[List[str], str, List[Path], Path] = None,
-        tr_txt_table: Union[TextIO, str, List[str]] = None,
-        va_txt_table: Union[TextIO, str, List[str]] = None,
+        tr_txt_table: Union[TextIO, str, List[str]],
+        va_txt_table: Union[TextIO, str, List[str]],
+        img_dirs: Optional[Union[List[str], str, List[Path], Path]] = None,
     ):
         self.tr_image_paths = _get_images_and_texts_from_text_table(
             tr_txt_table, img_dirs
