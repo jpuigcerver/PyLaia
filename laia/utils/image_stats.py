@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+import math
 from pathlib import Path
 from typing import List, TextIO
-from laia.data.text_image_from_text_table_dataset import _get_images_and_texts_from_text_table
+
 import imagesize
-import math
+
+from laia.data.text_image_from_text_table_dataset import (
+    _get_images_and_texts_from_text_table,
+)
 
 
 class ImageStats:
@@ -15,18 +19,23 @@ class ImageStats:
         tr_txt_table: Path to the train text table
         va_txt_table: Path to the validation text table
     """
+
     def __init__(
         self,
         img_dirs: List[str | Path] = None,
         tr_txt_table: TextIO | str | List[str] = None,
         va_txt_table: TextIO | str | List[str] = None,
     ):
-        self.tr_image_paths = _get_images_and_texts_from_text_table(tr_txt_table, img_dirs)[1]
-        self.va_image_paths = _get_images_and_texts_from_text_table(va_txt_table, img_dirs)[1]
+        self.tr_image_paths = _get_images_and_texts_from_text_table(
+            tr_txt_table, img_dirs
+        )[1]
+        self.va_image_paths = _get_images_and_texts_from_text_table(
+            va_txt_table, img_dirs
+        )[1]
         self.compute_image_size_stats()
 
     def compute_image_size_stats(self) -> int:
-        """ 
+        """
         Compute the maximum width of training and validation images
         """
         self.max_width = 0
