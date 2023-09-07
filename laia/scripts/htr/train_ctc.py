@@ -73,7 +73,12 @@ def run(
     )
 
     # prepare the data
-    im_stats = ImageStats(tr_txt_table, va_txt_table, img_dirs)
+    im_stats = ImageStats(
+        stage="fit",
+        tr_txt_table=tr_txt_table,
+        va_txt_table=va_txt_table,
+        img_dirs=img_dirs,
+    )
     data_module = DataModule(
         syms=syms,
         img_dirs=img_dirs,

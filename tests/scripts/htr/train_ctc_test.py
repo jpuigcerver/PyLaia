@@ -112,8 +112,6 @@ def test_train_half_precision(tmpdir):
         "--trainer.gpus=1",
     ]
     stdout, stderr = call_script(script.__file__, args)
-    print(f"Script stderr:\n{stderr}")
-
     assert "Running in fast_dev_run" in stderr
     assert "Using native 16bit precision" in stderr
     assert "Model has been trained for" in stderr

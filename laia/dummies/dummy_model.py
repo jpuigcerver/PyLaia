@@ -42,3 +42,6 @@ class DummyModel(torch.nn.Module):
         return torch.nn.utils.rnn.pack_padded_sequence(
             input=x, lengths=xs, batch_first=False
         )
+
+    def get_min_valid_image_size(self, _):
+        return 1
