@@ -47,4 +47,4 @@ class ImageStats:
         """
         Check if all images have the same height
         """
-        return min(self.heights) == max(self.heights)
+        return len(self.heights) == 1
