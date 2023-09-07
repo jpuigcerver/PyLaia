@@ -16,15 +16,15 @@ tmp-6 a a b b c
 """
 
 
-def prepare_data(tmpdir, sizes):
+def prepare_data(data_dir, sizes):
     for i, size in enumerate(sizes):
         im = Image.new(mode="L", size=size)
-        im.save(str(tmpdir / f"tmp-{i}.jpg"))
-    tr_txt_table = tmpdir / "tr.txt"
+        im.save(str(data_dir / f"tmp-{i}.jpg"))
+    tr_txt_table = data_dir / "tr.txt"
     tr_txt_table.write_text(TR_TXT_TABLE, "utf-8")
-    va_txt_table = tmpdir / "va.txt"
+    va_txt_table = data_dir / "va.txt"
     va_txt_table.write_text(VA_TXT_TABLE, "utf-8")
-    return [tmpdir], str(tr_txt_table), str(va_txt_table)
+    return [data_dir], tr_txt_table, va_txt_table
 
 
 @pytest.mark.parametrize(
@@ -38,9 +38,9 @@ def prepare_data(tmpdir, sizes):
 def test_img_stats(tmpdir, sizes, expected_max_width, expected_is_fixed_height):
     img_dirs, tr_txt_table, va_txt_table = prepare_data(tmpdir, sizes)
     img_stats = ImageStats(
-        img_dirs,
         tr_txt_table,
         va_txt_table,
+        img_dirs,
     )
     assert img_stats.max_width == expected_max_width
     assert img_stats.is_fixed_height == expected_is_fixed_height
