@@ -153,7 +153,11 @@ class LaiaCRNN(nn.Module):
             xs = l.get_batch_output_size(xs)
         return xs
 
-    def get_min_valid_image_size(self, max_search_size: int = 128) -> int:
+    def get_min_valid_image_size(self, max_search_size: int) -> int:
+        """
+        Compute the minimum image width required to get a valid feature vector of size > 0.
+        :param max_search_size: Max search value for the image width.
+        """
         for size in range(max_search_size):
             xs = self.get_self_conv_output_size(torch.tensor([[size, size]]))
             if torch.count_nonzero(xs) == 2:
