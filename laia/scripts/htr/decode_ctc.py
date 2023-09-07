@@ -11,7 +11,7 @@ from laia.common.loader import ModelLoader
 from laia.decoders import CTCGreedyDecoder, CTCLanguageDecoder
 from laia.engine import Compose, DataModule, EvaluatorModule, ImageFeeder, ItemFeeder
 from laia.scripts.htr import common_main
-from laia.utils import SymbolsTable
+from laia.utils import ImageStats, SymbolsTable
 
 
 def run(
@@ -48,11 +48,15 @@ def run(
     syms = SymbolsTable(syms)
 
     # prepare the data
+    im_stats = ImageStats(stage="test", img_list=img_list, img_dirs=img_dirs)
     data_module = DataModule(
         syms=syms,
         img_dirs=img_dirs,
         te_img_list=img_list,
         batch_size=data.batch_size,
+        min_valid_size=model.get_min_valid_image_size(im_stats.max_width)
+        if im_stats.is_fixed_height
+        else None,
         color_mode=data.color_mode,
         stage="test",
         num_workers=num_workers,
