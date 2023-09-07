@@ -30,7 +30,7 @@ class DataModule(pl.LightningDataModule):
         va_txt_table: Optional[str] = None,
         te_img_list: Optional[Union[str, List[str]]] = None,
         batch_size: int = 8,
-        min_valid_size: int = None,
+        min_valid_size: Optional[int] = None,
         color_mode: str = "L",
         shuffle_tr: bool = True,
         augment_tr: bool = False,
