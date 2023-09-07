@@ -73,7 +73,7 @@ def run(
     )
 
     # prepare the data
-    im_stats = ImageStats(img_dirs, tr_txt_table, va_txt_table)
+    im_stats = ImageStats(tr_txt_table, va_txt_table, img_dirs)
     data_module = DataModule(
         syms=syms,
         img_dirs=img_dirs,

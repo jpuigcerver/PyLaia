@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from functools import cached_property
 from pathlib import Path
-from typing import List, TextIO, Union
+from typing import List, Optional, TextIO, Union
 
 import imagesize
 
@@ -27,10 +27,10 @@ class ImageStats:
         img_dirs: Optional[Union[List[str], str, List[Path], Path]] = None,
     ):
         self.tr_image_paths = _get_images_and_texts_from_text_table(
-            tr_txt_table, img_dirs
+            str(tr_txt_table), img_dirs
         )[1]
         self.va_image_paths = _get_images_and_texts_from_text_table(
-            va_txt_table, img_dirs
+            str(va_txt_table), img_dirs
         )[1]
         sizes = list(map(imagesize.get, self.tr_image_paths + self.va_image_paths))
         self.widths, self.heights = map(set, zip(*sizes))

@@ -39,6 +39,27 @@ class LaiaCRNNTest(unittest.TestCase):
         )
         self.assertEqual(m.get_min_valid_image_size(128), 8)
 
+    def test_exception_get_min_valid_image_size(self):
+        m = LaiaCRNN(
+            1,
+            30,
+            cnn_num_features=[16, 32, 48, 64],
+            cnn_kernel_size=[3, 3, 3, 3],
+            cnn_stride=[1, 1, 1, 1],
+            cnn_dilation=[1, 1, 1, 1],
+            cnn_activation=[torch.nn.ReLU] * 4,
+            cnn_poolsize=[10, 2, 10, 2],
+            cnn_dropout=[0, 0, 0.2, 0.1],
+            cnn_batchnorm=[False, False, True, True],
+            image_sequencer="avgpool-16",
+            rnn_units=128,
+            rnn_layers=4,
+            rnn_dropout=0.5,
+            lin_dropout=0.5,
+        )
+        with self.assertRaises(ValueError):
+            m.get_min_valid_image_size(128)
+
     def test_exception_on_small_inputs(self):
         m = LaiaCRNN(
             1,
