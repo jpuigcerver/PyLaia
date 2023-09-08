@@ -7,10 +7,14 @@ from laia.losses.ctc_loss import transform_batch
 
 class CTCGreedyDecoder:
     def __call__(
-        self, x: Any, segmentation: bool = False, apply_softmax: bool = True
+        self, x: Any, segmentation: bool = False, temperature: float = 1.0, apply_softmax: bool = True
     ) -> Dict[str, List]:
         x, xs = transform_batch(x)
         x = x.detach()
+
+        # Apply temperature scaling
+        if temperature:
+            x = x / temperature
 
         # Apply softmax to have log-probabilities
         if apply_softmax:

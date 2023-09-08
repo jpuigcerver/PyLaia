@@ -305,6 +305,7 @@ class DecodeArgs:
         output_space: Output space symbol for decoding.
             (`input_space` -> `output_space`)
         segmentation: Print this kind of segmentation instead of decoding.
+        temperaure: Temperature scalar parameter.
     """
 
     class Segmentation(str, Enum):
@@ -319,6 +320,7 @@ class DecodeArgs:
     input_space: str = "<space>"
     output_space: str = " "
     segmentation: Optional[Segmentation] = None
+    temperature: float = 1.0
     print_line_confidence_scores: bool = False
     print_word_confidence_scores: bool = False
     use_language_model: bool = False
