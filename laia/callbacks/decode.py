@@ -59,7 +59,6 @@ class Decode(pl.Callback):
         self.join_string = join_string
         self.separator = separator
         self.include_img_ids = include_img_ids
-        self.temperature = temperature
         self.print_line_confidence_scores = print_line_confidence_scores
         self.print_word_confidence_scores = print_word_confidence_scores
 
@@ -70,10 +69,10 @@ class Decode(pl.Callback):
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, *args)
         img_ids = pl_module.batch_id_fn(batch)
-        hyps = self.decoder(outputs, temperature=self.temperature)["hyp"]
+        hyps = self.decoder(outputs)["hyp"]
 
         if self.print_confidence_scores:
-            probs = self.decoder(outputs, temperature=self.temperature)["prob-htr-char"]
+            probs = self.decoder(outputs)["prob-htr-char"]
             line_probs = [np.mean(prob) for prob in probs]
             word_probs = [
                 compute_word_prob(self.syms, hyp, prob, self.input_space)
