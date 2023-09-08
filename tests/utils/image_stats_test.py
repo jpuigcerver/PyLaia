@@ -22,10 +22,14 @@ tmp-2
 """
 
 
-def prepare_training_data(data_dir, sizes):
+def prepare_images(data_dir, sizes):
     for i, size in enumerate(sizes):
         im = Image.new(mode="L", size=size)
         im.save(str(data_dir / f"tmp-{i}.jpg"))
+
+
+def prepare_training_data(data_dir, sizes):
+    prepare_images(data_dir, sizes)
     tr_txt_table = data_dir / "tr.txt"
     tr_txt_table.write_text(TR_TXT_TABLE, "utf-8")
     va_txt_table = data_dir / "va.txt"
@@ -34,9 +38,7 @@ def prepare_training_data(data_dir, sizes):
 
 
 def prepare_test_data(data_dir, sizes):
-    for i, size in enumerate(sizes):
-        im = Image.new(mode="L", size=size)
-        im.save(str(data_dir / f"tmp-{i}.jpg"))
+    prepare_images(data_dir, sizes)
     img_list = data_dir / "img_list.txt"
     img_list.write_text(IMG_LIST, "utf-8")
     return [data_dir], str(img_list)

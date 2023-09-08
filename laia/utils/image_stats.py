@@ -16,11 +16,11 @@ class ImageStats:
     Compute statistics on the dataset
 
     Args:
+        stage: String indicating the stage of the processing, either "test" or "fit"
         tr_txt_table: Path to the train text table (train mode)
         va_txt_table: Path to the validation text table (train mode)
         img_list: Path to the list of test images (test mode)
         img_dir: Path to images
-        stage: Enum between "test" and "fit"
     """
 
     def __init__(
@@ -34,7 +34,7 @@ class ImageStats:
         assert stage in ["fit", "test"]
 
         if stage == "fit":
-            assert tr_txt_table, va_txt_table
+            assert tr_txt_table and va_txt_table
             filenames = _get_images_and_texts_from_text_table(tr_txt_table, img_dirs)[1]
             filenames += _get_images_and_texts_from_text_table(va_txt_table, img_dirs)[
                 1
