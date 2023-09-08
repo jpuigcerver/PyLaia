@@ -10,4 +10,5 @@ torch>=1.13,<1.14
 torchvision>=0.14,<0.15
 torchaudio>=0.13,<0.14
 jsonargparse[signatures]==4.7
+imagesize==1.4.1
 dataclasses; python_version < '3.7'

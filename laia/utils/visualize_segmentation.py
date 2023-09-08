@@ -55,7 +55,6 @@ def args() -> argparse.Namespace:
         help="Input space symbol",
     )
     args = parser.parse_args()
-    print(vars(args))
     return args
 
 
