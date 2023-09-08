@@ -96,6 +96,7 @@ decode:
   input_space: <space>
   output_space: ' '
   segmentation: null
+  temperature: 1.0
   print_line_confidence_scores: false
   print_word_confidence_scores: false
   use_language_model: false

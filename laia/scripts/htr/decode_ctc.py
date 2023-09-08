@@ -71,13 +71,16 @@ def run(
             blank_token=decode.blank_token,
             unk_token=decode.unk_token,
             sil_token=decode.input_space,
+            temperature=decode.temperature,
         )
         # confidence scores are not supported when using a language model
         decode.print_line_confidence_scores = False
         decode.print_word_confidence_scores = False
 
     else:
-        decoder = CTCGreedyDecoder()
+        decoder = CTCGreedyDecoder(
+            temperature=decode.temperature,
+        )
 
     # prepare the testing callbacks
     callbacks = [
@@ -100,7 +103,6 @@ def run(
             join_string=decode.join_string,
             separator=decode.separator,
             include_img_ids=decode.include_img_ids,
-            temperature=decode.temperature,
             print_line_confidence_scores=decode.print_line_confidence_scores,
             print_word_confidence_scores=decode.print_word_confidence_scores,
         ),

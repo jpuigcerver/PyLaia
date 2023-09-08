@@ -32,6 +32,7 @@ class CTCLanguageDecoder:
         blank_token: str = "<ctc>",
         unk_token: str = "<unk>",
         sil_token: str = "<space>",
+        temperature: float = 1.0,
     ):
         self.decoder = ctc_decoder(
             lm=language_model_path,
@@ -42,6 +43,7 @@ class CTCLanguageDecoder:
             unk_word=unk_token,
             sil_token=sil_token,
         )
+        self.temperature = temperature
 
     def __call__(
         self,
@@ -63,6 +65,9 @@ class CTCLanguageDecoder:
 
         # Reshape from (n_frame, batch_size, n_tokens) to (batch_size, n_frame, n_tokens)
         batch_features = batch_features.permute((1, 0, 2))
+
+        # Apply temperature scaling
+        batch_features = batch_features / self.temperature
 
         # Apply log softmax
         batch_features = torch.nn.functional.log_softmax(batch_features, dim=-1)
