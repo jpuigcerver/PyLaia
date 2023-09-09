@@ -1,5 +1,6 @@
 import unittest
 
+import pytest
 import torch
 
 from laia.decoders import CTCGreedyDecoder
@@ -45,6 +46,63 @@ class CTCGreedyDecoderTest(unittest.TestCase):
         torch.testing.assert_allclose(
             loss_prob, [p.mean() for p in r["prob-segmentation"]][0].item()
         )
+
+    def test_prob_softmax(self):
+        x = torch.tensor(
+            [
+                [
+                    [-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2],  # 6
+                    [-2.1, -2.5, -4.1, -4.2, -5.0, -0.7, -0.9, -1.7, -5.2, -1.2],  # 5
+                    [-2.1, -0.5, -4.1, -4.2, -5.0, -0.7, -0.1, -1.1, -5.2, -1.2],  # 6
+                ],
+                [
+                    [-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -2.2, -4.2, -5.2, -1.2],  # 9
+                    [-2.1, -2.1, -0.3, -4.2, -5.0, -5.1, -4.7, -4.2, -5.2, -1.2],  # 2
+                    [-2.1, -2.5, -4.1, -4.2, -5.0, -1.7, -2.9, -1.7, -5.2, -1.2],  # 9
+                ],
+            ]
+        )
+
+        decoder = CTCGreedyDecoder()
+        r = decoder(x, apply_softmax=True)
+        e = [[6, 9], [5, 2], [6, 9]]
+        self.assertEqual(e, r["hyp"])
+
+        x = torch.nn.functional.log_softmax(x, dim=-1)
+        confidence = [
+            [x[ts, bs, max_idx].exp().item() for ts, max_idx in enumerate(e[bs])]
+            for bs in range(3)
+        ]
+        torch.testing.assert_allclose(confidence, r["prob-htr-char"])
+
+    def test_prob_softmax_temperature(self):
+        temperature = 2.5
+        x = torch.tensor(
+            [
+                [
+                    [-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -0.2, -4.2, -5.2, -1.2],  # 6
+                    [-2.1, -2.5, -4.1, -4.2, -5.0, -0.7, -0.9, -1.7, -5.2, -1.2],  # 5
+                    [-2.1, -0.5, -4.1, -4.2, -5.0, -0.7, -0.1, -1.1, -5.2, -1.2],  # 6
+                ],
+                [
+                    [-2.1, -1.3, -4.1, -4.2, -5.0, -5.1, -2.2, -4.2, -5.2, -1.2],  # 9
+                    [-2.1, -2.1, -0.3, -4.2, -5.0, -5.1, -4.7, -4.2, -5.2, -1.2],  # 2
+                    [-2.1, -2.5, -4.1, -4.2, -5.0, -1.7, -2.9, -1.7, -5.2, -1.2],  # 9
+                ],
+            ]
+        )
+
+        decoder = CTCGreedyDecoder(temperature=temperature)
+        r = decoder(x, apply_softmax=True)
+        e = [[6, 9], [5, 2], [6, 9]]
+        self.assertEqual(e, r["hyp"])
+
+        x = torch.nn.functional.log_softmax(x / temperature, dim=-1)
+        confidence = [
+            [x[ts, bs, max_idx].exp().item() for ts, max_idx in enumerate(e[bs])]
+            for bs in range(3)
+        ]
+        torch.testing.assert_allclose(confidence, r["prob-htr-char"])
 
     def test_batch(self):
         x = torch.tensor([[[0.3, 0.6], [0.5, 0.9]], [[0.6, 0.3], [0.6, 0.9]]]).log()
