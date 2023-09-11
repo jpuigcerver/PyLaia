@@ -41,7 +41,6 @@ class Decode(pl.Callback):
         join_string: Optional[str] = None,
         separator: str = " ",
         include_img_ids: bool = True,
-        temperature: float = 1,
         print_line_confidence_scores: bool = False,
         print_word_confidence_scores: bool = False,
     ):
