@@ -6,11 +6,26 @@ from laia.losses.ctc_loss import transform_batch
 
 
 class CTCGreedyDecoder:
+    """
+    Initialize a gready CTC decoder.
+    Args:
+        temperature (float): temperature parameter used to scale logits.
+    """
+
+    def __init__(
+        self,
+        temperature: float = 1.0,
+    ):
+        self.temperature = temperature
+
     def __call__(
         self, x: Any, segmentation: bool = False, apply_softmax: bool = True
     ) -> Dict[str, List]:
         x, xs = transform_batch(x)
         x = x.detach()
+
+        # Apply temperature scaling
+        x = x / self.temperature
 
         # Apply softmax to have log-probabilities
         if apply_softmax:
