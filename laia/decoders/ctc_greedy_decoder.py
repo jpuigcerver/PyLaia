@@ -9,7 +9,6 @@ class CTCGreedyDecoder:
     """
     Initialize a gready CTC decoder.
     Args:
-        segmentation (bool): whether to output CTC segmentation info.
         temperature (float): temperature parameter used to scale logits.
     """
 
