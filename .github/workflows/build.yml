@@ -38,6 +38,6 @@ jobs:
       run: pip install .[test]
     - name: Run pytest
       run: pytest --cov=laia tests
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v3
       # upload coverage only for main job
       if: ${{ matrix.python == '3.8' }}
