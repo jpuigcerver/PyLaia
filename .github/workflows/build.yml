@@ -13,8 +13,8 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
       - name: Run pre-commit
@@ -30,14 +30,14 @@ jobs:
       matrix:
         python: ["3.8", "3.9", "3.10"]
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
     - name: Install requirements
       run: pip install .[test]
     - name: Run pytest
       run: pytest --cov=laia tests
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v3
       # upload coverage only for main job
       if: ${{ matrix.python == '3.8' }}
