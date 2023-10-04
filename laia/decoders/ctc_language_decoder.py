@@ -44,6 +44,7 @@ class CTCLanguageDecoder:
             sil_token=sil_token,
         )
         self.temperature = temperature
+        self.language_model_weight = language_model_weight
 
     def __call__(
         self,
@@ -85,5 +86,12 @@ class CTCLanguageDecoder:
         # Format the output
         out = {}
         out["hyp"] = [hypothesis[0].tokens.tolist() for hypothesis in hypotheses]
-        # you can get a log likelihood with hypothesis[0].score
+
+        # Normalize confidence score
+        out["prob-htr"] = [
+            np.exp(
+                hypothesis[0].score / ((self.language_model_weight + 1) * length.item())
+            )
+            for hypothesis, length in zip(hypotheses, batch_sizes)
+        ]
         return out

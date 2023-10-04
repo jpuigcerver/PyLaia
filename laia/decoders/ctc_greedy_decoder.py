@@ -75,6 +75,7 @@ class CTCGreedyDecoder:
 
         # Return char-based probability
         out["prob-htr-char"] = [prob.tolist() for prob in probs]
+        out["prob-htr"] = [prob.mean().item() for prob in probs]
         return out
 
     @staticmethod

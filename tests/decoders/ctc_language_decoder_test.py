@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
@@ -63,7 +64,7 @@ ngram 2=14
 
 
 @pytest.mark.parametrize(
-    ["input_tensor", "lm_weight", "expected_string"],
+    ["input_tensor", "lm_weight", "expected_string", "expected_confidence"],
     [
         (
             # Simulate a feature vector of size (n_frame=4, batch_size=1, n_tokens=10)
@@ -78,6 +79,7 @@ ngram 2=14
             ),
             0,
             "tast",
+            0.38,
         ),
         (
             # For frame 2, tokens with index 1 and 2 are the most probable tokens (the model a feature vector of size (n_frame=4, batch_size=1, n_tokens=10)
@@ -91,10 +93,13 @@ ngram 2=14
             ),
             1,
             "test",
+            0.40,
         ),
     ],
 )
-def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_string):
+def test_lm_decoding_weight(
+    tmpdir, input_tensor, lm_weight, expected_string, expected_confidence
+):
     tokens_path = Path(tmpdir) / "tokens.txt"
     lexicon_path = Path(tmpdir) / "lexicon.txt"
     arpa_path = Path(tmpdir) / "lm.arpa"
@@ -115,5 +120,7 @@ def test_lm_decoding_weight(tmpdir, input_tensor, lm_weight, expected_string):
     predicted_tokens = decoder(input_tensor)["hyp"][0]
     predicted_string = "".join([tokens_char[char] for char in predicted_tokens])
     predicted_string = predicted_string.replace("<space>", " ").strip()
+    predicted_confidence = decoder(input_tensor)["prob-htr"][0]
 
     assert predicted_string == expected_string
+    assert np.around(predicted_confidence, 2) == expected_confidence

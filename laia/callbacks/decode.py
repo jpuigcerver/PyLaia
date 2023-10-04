@@ -70,9 +70,14 @@ class Decode(pl.Callback):
         img_ids = pl_module.batch_id_fn(batch)
         hyps = self.decoder(outputs)["hyp"]
 
-        if self.print_confidence_scores:
+        line_probs = (
+            self.decoder(outputs)["prob-htr"]
+            if self.print_line_confidence_scores
+            else []
+        )
+
+        if self.print_word_confidence_scores:
             probs = self.decoder(outputs)["prob-htr-char"]
-            line_probs = [np.mean(prob) for prob in probs]
             word_probs = [
                 compute_word_prob(self.syms, hyp, prob, self.input_space)
                 for hyp, prob in zip(hyps, probs)
@@ -80,7 +85,6 @@ class Decode(pl.Callback):
 
         else:
             probs = []
-            line_probs = []
             word_probs = []
 
         for i, (img_id, hyp) in enumerate(zip(img_ids, hyps)):
