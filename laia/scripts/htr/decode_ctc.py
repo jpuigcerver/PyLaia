@@ -73,8 +73,7 @@ def run(
             sil_token=decode.input_space,
             temperature=decode.temperature,
         )
-        # confidence scores are not supported when using a language model
-        decode.print_line_confidence_scores = False
+        # word-level confidence scores are not supported when using a language model
         decode.print_word_confidence_scores = False
 
     else:

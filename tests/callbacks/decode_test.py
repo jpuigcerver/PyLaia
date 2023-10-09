@@ -15,6 +15,7 @@ class _TestDecoder:
             "prob-htr-char": [
                 [0.9, 0.9, 0.9, 0.9, 0.9, 0.9] for _ in range(batch_size)
             ],
+            "prob-htr": [0.9 for _ in range(batch_size)],
         }
 
 
