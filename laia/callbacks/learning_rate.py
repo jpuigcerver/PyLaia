@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.utilities import rank_zero_only
 
 import laia.common.logging as log
@@ -6,7 +7,7 @@ import laia.common.logging as log
 _logger = log.get_logger(__name__)
 
 
-class LearningRate(pl.callbacks.LearningRateMonitor):
+class LearningRate(LearningRateMonitor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.last_values = None
@@ -23,8 +24,8 @@ class LearningRate(pl.callbacks.LearningRateMonitor):
         self.last_values = {}
 
     @rank_zero_only
-    def on_epoch_end(self, trainer, *args, **kwargs):
-        super().on_epoch_end(trainer, *args, **kwargs)
+    def on_train_epoch_end(self, trainer, *args, **kwargs):
+        super().on_train_epoch_end(trainer, *args, **kwargs)
         for k, v in self.lrs.items():
             prev_value = self.last_values.get(k, None)
             new_value = v[-1]

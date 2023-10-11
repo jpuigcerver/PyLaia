@@ -75,6 +75,7 @@ def test_progress_bar(tmpdir):
         r"100%\|[█]+\| 10/10 \[00:0[0-9]<00:00, "
         rf"{float_pattern}it/s, "
         rf"loss={float_pattern}, "
+        r"v_num=0, "
         rf"cer={float_pattern}%, "
         r"gpu_stats={'gpu_stats': 'baz'}]"
     )

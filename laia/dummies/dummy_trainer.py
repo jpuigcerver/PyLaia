@@ -5,7 +5,7 @@ class DummyTrainer(pl.Trainer):
     def __init__(self, **kwargs):
         defaults = {
             "checkpoint_callback": False,
-            "logger": False,
+            "logger": True,
             "weights_summary": None,
             "max_epochs": 1,
             "limit_train_batches": 10,
