@@ -9,7 +9,7 @@ from laia.losses.ctc_loss import transform_batch
 
 class CTCLanguageDecoder:
     """
-    Intialize a CTC decoder with n-gram language modeling.
+    Initialize a CTC decoder with n-gram language modeling.
     Args:
         language_model_path (str): path to a KenLM or ARPA language model
         lexicon_path (str): path to a lexicon file containing the possible words and corresponding spellings.
@@ -32,8 +32,8 @@ class CTCLanguageDecoder:
         blank_token: str = "<ctc>",
         unk_token: str = "<unk>",
         sil_token: str = "<space>",
+        temperature: float = 1.0,
     ):
-
         self.decoder = ctc_decoder(
             lm=language_model_path,
             lexicon=lexicon_path,
@@ -43,6 +43,8 @@ class CTCLanguageDecoder:
             unk_word=unk_token,
             sil_token=sil_token,
         )
+        self.temperature = temperature
+        self.language_model_weight = language_model_weight
 
     def __call__(
         self,
@@ -54,7 +56,7 @@ class CTCLanguageDecoder:
             features (Any): feature vector of size (n_frame, batch_size, n_tokens).
                 Can be either a torch.tensor or a torch.nn.utils.rnn.PackedSequence
         Returns:
-            out (Dict[str, List]): a dictionnary containing the hypothesis (the list of decoded tokens).
+            out (Dict[str, List]): a dictionary containing the hypothesis (the list of decoded tokens).
                 There is no character-based probability.
         """
 
@@ -64,6 +66,9 @@ class CTCLanguageDecoder:
 
         # Reshape from (n_frame, batch_size, n_tokens) to (batch_size, n_frame, n_tokens)
         batch_features = batch_features.permute((1, 0, 2))
+
+        # Apply temperature scaling
+        batch_features = batch_features / self.temperature
 
         # Apply log softmax
         batch_features = torch.nn.functional.log_softmax(batch_features, dim=-1)
@@ -81,5 +86,12 @@ class CTCLanguageDecoder:
         # Format the output
         out = {}
         out["hyp"] = [hypothesis[0].tokens.tolist() for hypothesis in hypotheses]
-        # you can get a log likelyhood with hypothesis[0].score
+
+        # Normalize confidence score
+        out["prob-htr"] = [
+            np.exp(
+                hypothesis[0].score / ((self.language_model_weight + 1) * length.item())
+            )
+            for hypothesis, length in zip(hypotheses, batch_sizes)
+        ]
         return out

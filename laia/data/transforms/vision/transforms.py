@@ -83,7 +83,7 @@ class ToImageTensor:
         img: Image.Image,
         fw: Optional[int] = None,
         fh: Optional[int] = None,
-        resample: int = Image.ANTIALIAS,
+        resample: int = Image.Resampling.LANCZOS,
     ) -> Image.Image:
         if fw and fh:
             # resize to a fixed size

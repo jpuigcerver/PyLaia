@@ -63,7 +63,7 @@ def prepare_model(dir, image_sequencer):
 )
 def test_train_1_epoch(tmpdir, accelerator):
     syms, img_dirs, data_module = prepare_data(tmpdir)
-    # we cant just call run ourselves due to pytest-ddp issues
+    # we can't just call run ourselves due to pytest-ddp issues
     args = [
         syms,
         img_dirs,
@@ -112,8 +112,6 @@ def test_train_half_precision(tmpdir):
         "--trainer.gpus=1",
     ]
     stdout, stderr = call_script(script.__file__, args)
-    print(f"Script stderr:\n{stderr}")
-
     assert "Running in fast_dev_run" in stderr
     assert "Using native 16bit precision" in stderr
     assert "Model has been trained for" in stderr

@@ -30,6 +30,7 @@ class DataModule(pl.LightningDataModule):
         va_txt_table: Optional[str] = None,
         te_img_list: Optional[Union[str, List[str]]] = None,
         batch_size: int = 8,
+        min_valid_size: Optional[int] = None,
         color_mode: str = "L",
         shuffle_tr: bool = True,
         augment_tr: bool = False,
@@ -38,7 +39,7 @@ class DataModule(pl.LightningDataModule):
     ) -> None:
         assert stage in ("fit", "test")
         base_img_transform = transforms.vision.ToImageTensor(
-            mode=color_mode, invert=True
+            mode=color_mode, invert=True, min_width=min_valid_size
         )
         self.img_dirs = img_dirs
         self.img_channels = len(color_mode)
@@ -54,6 +55,7 @@ class DataModule(pl.LightningDataModule):
             tr_img_transform = transforms.vision.ToImageTensor(
                 mode=color_mode,
                 invert=True,
+                min_width=min_valid_size,
                 random_transform=transforms.vision.RandomBetaAffine()
                 if augment_tr
                 else None,

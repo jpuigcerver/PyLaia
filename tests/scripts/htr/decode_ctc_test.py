@@ -39,7 +39,7 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
 
     args = [
         syms,
-        img_list,
+        str(img_list),
         f"--img_dirs={[str(data_module.root / 'va')]}",
         f"--common.checkpoint={ckpt}",
         f"--common.train_path={tmpdir}",
