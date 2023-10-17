@@ -1,6 +1,7 @@
 include laia/VERSION
 
 exclude .pre-commit-config.yaml
+exclude .gitlab-ci.yaml
 exclude CONTRIBUTING.md
 
 prune .github

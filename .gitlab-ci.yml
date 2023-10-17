@@ -1,0 +1,90 @@
+stages:
+  - test
+  - release
+
+test:
+  image: $IMAGE
+
+  stage: test
+  cache:
+    paths:
+      - .cache/pip
+
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+  before_script:
+    - pip install .[test]
+
+  except:
+    - schedules
+
+  script:
+    - pytest --cov=laia tests
+  parallel:
+    matrix:
+      - IMAGE:
+        - python:3.8
+        - python:3.9
+        - python:3.10
+
+lint:
+  image: python:3.10
+  stage: test
+
+  cache:
+    paths:
+      - .cache/pip
+      - .cache/pre-commit
+
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
+
+  before_script:
+    - pip install pre-commit
+
+  except:
+    - schedules
+
+  script:
+    - pre-commit run -a
+
+
+deploy-pypi:
+  stage: release
+  image: python:3.8
+
+  only:
+    - tags
+
+  environment:
+    name: pypi
+    url: https://pypi.org/project/pylaia/
+
+  before_script:
+    - pip install twine
+
+  script:
+    - python setup.py sdist bdist_wheel
+    - twine upload dist/*
+
+release-notes:
+  stage: release
+  image: registry.gitlab.com/teklia/devops:latest
+
+  only:
+    - tags
+
+  script:
+    - devops release-notes
+
+bump-python-deps:
+  stage: release
+  image: registry.gitlab.com/teklia/devops:latest
+
+  only:
+    - schedules
+
+  script:
+    - devops python-deps requirements.txt
