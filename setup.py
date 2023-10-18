@@ -1,22 +1,22 @@
-import os
+from pathlib import Path
+from typing import List
 
 import setuptools
 
-DIR = os.path.dirname(os.path.abspath(__file__))
+DIR = Path(__file__).parent
 
-with open(os.path.join(DIR, "laia/VERSION")) as f:
-    VERSION = f.read()
-
-
-def get_requirements():
-    requirements_path = os.path.join(DIR, "requirements.txt")
-    with open(requirements_path, encoding="utf-8") as f:
-        return [line.strip() for line in f]
+VERSION = (DIR / "laia" / "VERSION").read_text()
 
 
-def get_long_description():
-    readme_path = os.path.join(DIR, "README.md")
-    return open(readme_path, encoding="utf-8").read()
+def get_requirements(filename: str) -> List[str]:
+    return [
+        line.strip()
+        for line in (DIR / filename).read_text(encoding="utf-8").splitlines()
+    ]
+
+
+def get_long_description() -> str:
+    return (DIR / "README.md").read_text(encoding="utf-8")
 
 
 setuptools.setup(
@@ -31,10 +31,11 @@ setuptools.setup(
     download_url="https://github.com/jpuigcerver/PyLaia",
     # Requirements
     setup_requires=["setuptools_scm"],
-    install_requires=get_requirements(),
+    install_requires=get_requirements("requirements.txt"),
     extras_require={
         "dev": ["pre-commit", "isort", "black"],
         "test": ["pytest", "pytest-cov", "pandas", "regex"],
+        "docs": get_requirements("doc-requirements.txt"),
     },
     python_requires=">=3.6",
     # Package contents

@@ -1,0 +1,48 @@
+site_name: PyLaia
+site_dir: public
+
+theme:
+  name: material
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  features:
+  - navigation.top
+  - navigation.tracking
+  - navigation.indexes
+  - navigation.instant
+  - navigation.instant.progress
+  - navigation.tabs
+
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+- search
+- autorefs
+
+nav:
+  - Home: index.md
+
+
+copyright:  Copyright &copy; Teklia
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      name: Git repository for this project
+      link: https://github.com/jpuigcerver/PyLaia

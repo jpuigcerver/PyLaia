@@ -1,5 +1,7 @@
 stages:
   - test
+  - build
+  - deploy
   - release
 
 test:
@@ -21,6 +23,7 @@ test:
 
   script:
     - pytest --cov=laia tests
+
   parallel:
     matrix:
       - IMAGE:
@@ -88,3 +91,85 @@ bump-python-deps:
 
   script:
     - devops python-deps requirements.txt
+
+# Make sure docs still build correctly
+.docs:
+  image: python:3.10
+  artifacts:
+    paths:
+      - public
+
+  before_script:
+    - pip install -e .[docs]
+
+  script:
+    - mkdocs build --strict --verbose
+
+docs-build:
+  extends: .docs
+  stage: build
+
+  # Test job outside of tags to ensure the docs still can build before merging
+  # Does not use the `pages` name, therefore will be ignored by GitLab Pages
+  except:
+    - tags
+    - schedules
+
+pages:
+  extends: .docs
+  stage: deploy
+
+  only:
+    - master
+    - tags
+
+  except:
+    - schedules
+
+docs-deploy:
+  image: node:18
+  stage: deploy
+
+  dependencies:
+    - docs-build
+
+  before_script:
+    - npm install -g surge
+
+  except:
+    - master
+    - tags
+    - schedules
+
+  environment:
+    name: ${CI_COMMIT_REF_SLUG}
+    url: https://${CI_COMMIT_REF_SLUG}-teklia-atr-pylaia.surge.sh
+    on_stop: docs-stop-surge
+
+  script:
+    - surge public ${CI_ENVIRONMENT_URL}
+
+docs-stop-surge:
+  image: node:18
+  stage: deploy
+  when: manual
+
+  # Do not try to checkout the branch if it was deleted
+  variables:
+    GIT_STRATEGY: none
+
+  except:
+    - master
+    - tags
+    - schedules
+
+  environment:
+    name: ${CI_COMMIT_REF_SLUG}
+    url: https://${CI_COMMIT_REF_SLUG}-teklia-atr-pylaia.surge.sh
+    action: stop
+
+  before_script:
+    - npm install -g surge
+
+  script:
+    - surge teardown ${CI_ENVIRONMENT_URL}

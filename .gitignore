@@ -64,7 +64,7 @@ venv/
 ENV/
 
 # mkdocs documentation
-/site
+/public
 
 # mypy
 .mypy_cache/
