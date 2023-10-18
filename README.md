@@ -41,7 +41,7 @@ The following Python scripts will be installed in your system:
 
 ## Acknowledgments
 
-Work in this toolkit was financially supported by the [Pattern Recognition and Human Language Technology (PRHLT) Research Center](https://www.prhlt.upv.es/wp/)
+Work in this toolkit was financially supported by the [Pattern Recognition and Human Language Technology (PRHLT) Research Center](https://www.prhlt.upv.es/).
 
 ## BibTeX
 
