@@ -39,6 +39,21 @@ The following Python scripts will be installed in your system:
 - [`pylaia-htr-decode-ctc`](laia/scripts/htr/decode_ctc.py): Decode text line images using a trained model and the CTC algorithm. It can also output the char/word segmentation boundaries of the symbols recognized.
 - [`pylaia-htr-netout`](laia/scripts/htr/netout.py): Dump the output of the model for a set of text-line images in order to decode using an external language model.
 
+## Contributing
+
+If you want to contribute new feature or found a text that is incorrectly segmented using pySBD, then please head to [CONTRIBUTING.md](https://gitlab.teklia.com/atr/pylaia/-/blob/master/CONTRIBUTING.md) to know more and follow these steps.
+
+1.  Fork it ( <https://gitlab.teklia.com/atr/pylaia/-/forks/new> )
+2.  Create your feature branch (`git checkout -b my-new-feature`)
+3.  Commit your changes (`git commit -am 'Add some feature'`)
+4.  Push to the branch (`git push origin my-new-feature`)
+5.  Create a new Merge Request ( <https://gitlab.teklia.com/atr/pylaia/-/merge_requests/new> )
+
+### Code of conduct
+
+We are committed to providing a friendly, safe and welcoming environment for all. Please read and
+respect the [PyLaia Code of Conduct](https://gitlab.teklia.com/atr/pylaia/-/blob/master/CODE_OF_CONDUCT.md).
+
 ## Acknowledgments
 
 Work in this toolkit was financially supported by the [Pattern Recognition and Human Language Technology (PRHLT) Research Center](https://www.prhlt.upv.es/).
