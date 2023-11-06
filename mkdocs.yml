@@ -14,7 +14,6 @@ theme:
   - navigation.indexes
   - navigation.instant
   - navigation.instant.progress
-  - navigation.tabs
 
   palette:
     # Palette toggle for light mode
@@ -37,7 +36,7 @@ plugins:
 
 nav:
   - Home: index.md
-
+  - Releases: releases.md
 
 copyright:  Copyright &copy; Teklia
 
