@@ -21,12 +21,10 @@ Get started by having a look at our [Documentation](https://atr.pages.teklia.com
 
 ## Installation
 
-In order to install PyLaia, follow this recipe:
+To install PyLaia from PyPi:
 
 ```bash
-git clone https://gitlab.teklia.com/atr/pylaia
-cd pylaia
-pip install .
+pip install pylaia
 ```
 
 Please note that the CUDA version of nnutils ([`nnutils-pytorch-cuda`](https://pypi.org/project/nnutils-pytorch-cuda/)) is installed by default. If you do not have a GPU, you should install the CPU version ([`nnutils-pytorch`](https://pypi.org/project/nnutils-pytorch/)).

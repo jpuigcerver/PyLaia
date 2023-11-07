@@ -36,6 +36,13 @@ plugins:
 
 nav:
   - Home: index.md
+  - Original paper: original_paper.md
+  - Get started:
+    - get_started/index.md
+    - Development: get_started/development.md
+  - Usage:
+    - usage/index.md
+    - Model initialization: usage/initialization/index.md
   - Releases: releases.md
 
 copyright:  Copyright &copy; Teklia
