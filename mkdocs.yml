@@ -42,6 +42,7 @@ nav:
     - Development: get_started/development.md
   - Usage:
     - usage/index.md
+    - Dataset: usage/datasets/index.md
     - Model initialization: usage/initialization/index.md
   - Releases: releases.md
 
