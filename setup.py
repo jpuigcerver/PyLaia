@@ -27,8 +27,14 @@ setuptools.setup(
     maintainer="Teklia",
     maintainer_email="contact@teklia.com",
     license="MIT",
-    url="https://github.com/jpuigcerver/PyLaia",
-    download_url="https://github.com/jpuigcerver/PyLaia",
+    license_file="LICENSE",
+    url="https://atr.pages.teklia.com/pylaia/",
+    download_url="https://gitlab.teklia.com/atr/pylaia",
+    project_urls={
+        "Documentation": "https://atr.pages.teklia.com/pylaia/",
+        "Source": "https://gitlab.teklia.com/atr/pylaia/",
+        "Tracker": "https://gitlab.teklia.com/atr/pylaia/issues/",
+    },
     # Requirements
     setup_requires=["setuptools_scm"],
     install_requires=get_requirements("requirements.txt"),
@@ -37,7 +43,7 @@ setuptools.setup(
         "test": ["pytest", "pytest-cov", "pandas", "regex"],
         "docs": get_requirements("doc-requirements.txt"),
     },
-    python_requires=">=3.6",
+    python_requires=">= 3.8, < 3.11",
     # Package contents
     packages=setuptools.find_packages(exclude=["tests"]),
     include_package_data=True,
@@ -51,4 +57,18 @@ setuptools.setup(
     },
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "License :: OSI Approved :: MIT License",
+        # Specify the Python versions you support here.
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        # Topics
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Image Recognition",
+        "Topic :: Text Processing :: Linguistic",
+    ],
+    keywords="HTR OCR python",
 )

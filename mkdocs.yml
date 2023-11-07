@@ -44,4 +44,4 @@ extra:
   social:
     - icon: fontawesome/brands/github
       name: Git repository for this project
-      link: https://github.com/jpuigcerver/PyLaia
+      link: https://gitlab.teklia.com/atr/pylaia

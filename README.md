@@ -17,17 +17,16 @@
 
 </div>
 
-Get started by having a look at our [Wiki](https://github.com/jpuigcerver/PyLaia/wiki)!
-###### Several (mostly undocumented) examples of its use are provided at [PyLaia-examples](https://github.com/carmocca/PyLaia-examples).
+Get started by having a look at our [Documentation](https://atr.pages.teklia.com/pylaia)!
 
 ## Installation
 
 In order to install PyLaia, follow this recipe:
 
 ```bash
-git clone https://github.com/jpuigcerver/PyLaia
-cd PyLaia
-pip install -e .
+git clone https://gitlab.teklia.com/atr/pylaia
+cd pylaia
+pip install .
 ```
 
 Please note that the CUDA version of nnutils ([`nnutils-pytorch-cuda`](https://pypi.org/project/nnutils-pytorch-cuda/)) is installed by default. If you do not have a GPU, you should install the CPU version ([`nnutils-pytorch`](https://pypi.org/project/nnutils-pytorch/)).

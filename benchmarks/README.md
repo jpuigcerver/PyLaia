@@ -8,8 +8,6 @@ You can think of these as an extended suite of training tests which require a GP
 
 All the tests use a synthetic dataset we call "MNIST-lines", where MNIST digits are randomly selected to form text-line images, with spaces randomly added.
 
-For larger experiments using real datasets, please have a look at the PyLaia examples [repository](https://github.com/carmocca/PyLaia-examples).
-
 ### Running
 
 The following are available. Note that all of them require that CUDA is available:
