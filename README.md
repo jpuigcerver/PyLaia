@@ -6,12 +6,12 @@
 
 **It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).**
 
-[![Build](https://img.shields.io/github/workflow/status/jpuigcerver/PyLaia/Laia%20CI?&label=Build&logo=GitHub&labelColor=1b1f23)](https://github.com/jpuigcerver/PyLaia/actions?query=workflow%3A%22Laia+CI%22)
-[![Coverage](https://img.shields.io/codecov/c/github/jpuigcerver/PyLaia?&label=Coverage&logo=Codecov&logoColor=ffffff&labelColor=f01f7a)](https://codecov.io/gh/jpuigcerver/PyLaia)
+[![pipeline status](https://gitlab.teklia.com/atr/pylaia/badges/master/pipeline.svg)](https://gitlab.teklia.com/atr/pylaia/-/commits/master)
+[![Coverage](https://gitlab.teklia.com/atr/pylaia/badges/master/coverage.svg)](https://gitlab.teklia.com/atr/pylaia/-/commits/master)
 [![Code quality](https://img.shields.io/codefactor/grade/github/jpuigcerver/PyLaia?&label=CodeFactor&logo=CodeFactor&labelColor=2782f7)](https://www.codefactor.io/repository/github/jpuigcerver/PyLaia)
 
-[![Python: 3.8+](https://img.shields.io/badge/Python-3.8%2B-FFD43B.svg?&logo=Python&logoColor=white&labelColor=306998)](https://www.python.org/)
-[![PyTorch: 1.13.0+](https://img.shields.io/badge/PyTorch-1.13.0%2B-8628d5.svg?&logo=PyTorch&logoColor=white&labelColor=%23ee4c2c)](https://pytorch.org/)
+[![Python: 3.8 | 3.9 | 3.10](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)](https://www.python.org/)
+[![PyTorch: 1.13.0 | 1.13.1](https://img.shields.io/badge/PyTorch-1.13.0%20%7C%201.13.1-8628d5.svg?&logo=PyTorch&logoColor=white&labelColor=%23ee4c2c)](https://pytorch.org/)
 [![pre-commit: enabled](https://img.shields.io/badge/pre--commit-enabled-76877c?&logo=pre-commit&labelColor=1f2d23)](https://github.com/pre-commit/pre-commit)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?)](https://github.com/ambv/black)
 
