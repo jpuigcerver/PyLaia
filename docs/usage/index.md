@@ -11,7 +11,7 @@ Once the dataset is formatted and `pylaia` is installed and in your environment,
 : To train a PyLaia model. More details in the [dedicated page](./training/index.md).
 
 `pylaia-htr-decode-ctc`
-: To predict using a trained PyLaia model. Under construction.
+: To predict using a trained PyLaia model. More details in the [dedicated page](./prediction/index.md).
 
 `pylaia-htr-netout`
 : To dump features from a PyLaia model. Under construction.

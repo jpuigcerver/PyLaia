@@ -14,6 +14,7 @@ theme:
   - navigation.indexes
   - navigation.instant
   - navigation.instant.progress
+  - content.code.copy
 
   palette:
     # Palette toggle for light mode
@@ -45,6 +46,7 @@ nav:
     - Dataset: usage/datasets/index.md
     - Model initialization: usage/initialization/index.md
     - Training: usage/training/index.md
+    - Prediction: usage/prediction/index.md
   - Releases: releases.md
 
 copyright:  Copyright &copy; Teklia
@@ -54,3 +56,6 @@ extra:
     - icon: fontawesome/brands/github
       name: Git repository for this project
       link: https://gitlab.teklia.com/atr/pylaia
+
+markdown_extensions:
+  - pymdownx.superfences
