@@ -1,5 +1,5 @@
 textdistance
-natsort
+natsort==8.4.0
 numpy
 scipy
 matplotlib
