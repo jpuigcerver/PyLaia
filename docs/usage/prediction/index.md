@@ -88,7 +88,7 @@ This flag is mostly useful to define whether to predict on CPU or GPU.
 
 ## Examples
 
-The model can be trained using command-line arguments or a YAML configuration file. Note that CLI arguments override the values from the configuration file.
+The prediction can be done using command-line arguments or a YAML configuration file. Note that CLI arguments override the values from the configuration file.
 
 ### Predict using a model from Hugging Face
 

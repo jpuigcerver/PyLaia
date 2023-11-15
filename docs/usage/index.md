@@ -15,3 +15,6 @@ Once the dataset is formatted and `pylaia` is installed and in your environment,
 
 `pylaia-htr-netout`
 : To dump features from a PyLaia model. Under construction.
+
+
+PyLaia can also be used in combination with a n-gram language model to improve recognition. More details in the [dedicated page](./language_models/index.md).

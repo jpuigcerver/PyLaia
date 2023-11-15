@@ -47,6 +47,7 @@ nav:
     - Model initialization: usage/initialization/index.md
     - Training: usage/training/index.md
     - Prediction: usage/prediction/index.md
+    - Explicit language modeling: usage/language_models/index.md
   - Releases: releases.md
 
 copyright:  Copyright &copy; Teklia
@@ -59,3 +60,4 @@ extra:
 
 markdown_extensions:
   - pymdownx.superfences
+  - admonition
