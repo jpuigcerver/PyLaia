@@ -47,6 +47,7 @@ nav:
     - Model initialization: usage/initialization/index.md
     - Training: usage/training/index.md
     - Prediction: usage/prediction/index.md
+    - Netout: usage/netout/index.md
     - Explicit language modeling: usage/language_models/index.md
   - Releases: releases.md
 
