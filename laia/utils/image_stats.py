@@ -20,7 +20,7 @@ class ImageStats:
         tr_txt_table: Path to the train text table (train mode)
         va_txt_table: Path to the validation text table (train mode)
         img_list: Path to the list of test images (test mode)
-        img_dir: Path to images
+        img_dirs: Path to images
     """
 
     def __init__(

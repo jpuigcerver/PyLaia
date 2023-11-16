@@ -20,7 +20,7 @@ class ItemFeeder(Feeder):
       key: the key to use.
     """
 
-    def __init__(self, key):
+    def __init__(self, key: str):
         super().__init__()
         self._key = key
 

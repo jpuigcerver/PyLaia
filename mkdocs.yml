@@ -34,6 +34,27 @@ theme:
 plugins:
 - search
 - autorefs
+- literate-nav:
+    nav_file: SUMMARY.md
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          show_root_toc_entry: false
+          show_object_full_path: false
+          show_root_heading: yes
+          show_source: true
+          docstring_style: google
+          merge_init_into_class: yes
+          show_category_heading: yes
+          show_signature_annotations: yes
+          separate_signature: yes
+          members_order: source
+          unwrap_annotated: yes
+          show_if_no_docstring: yes
+          filters:
+            - "!^_"
+            - "!^__"
 
 nav:
   - Home: index.md
@@ -49,6 +70,8 @@ nav:
     - Prediction: usage/prediction/index.md
     - Netout: usage/netout/index.md
     - Explicit language modeling: usage/language_models/index.md
+  # defer to literate-nav
+  - Code Reference: reference/
   - Releases: releases.md
 
 copyright:  Copyright &copy; Teklia

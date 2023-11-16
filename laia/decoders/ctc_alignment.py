@@ -1,7 +1,9 @@
+from typing import List, Tuple
+
 import numpy as np
 
 
-def ctc_alignment(logpost_matrix, seq, ctc_sym=0):
+def ctc_alignment(logpost_matrix, seq, ctc_sym=0) -> Tuple[float, List[int]]:
     """Perform CTC forced alignment of the given sequence in the log-posteriors
     matrix.
 

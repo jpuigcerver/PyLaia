@@ -1,5 +1,5 @@
 from logging import DEBUG
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 
@@ -11,7 +11,7 @@ def check_tensor(
     msg: Optional[str] = None,
     name: Optional[str] = "laia",
     raise_exception: bool = False,
-    **kwargs,
+    **kwargs: Optional[Union[int, float]],
 ) -> bool:
     """
     Checks if each element of a tensor is finite or not.
