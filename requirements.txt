@@ -1,4 +1,4 @@
-textdistance
+textdistance==4.6.0
 natsort==8.4.0
 numpy
 scipy
