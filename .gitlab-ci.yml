@@ -22,7 +22,7 @@ test:
     - schedules
 
   script:
-    - pytest --cov=laia tests
+    - pytest --cov=laia --durations=10 tests
 
   parallel:
     matrix:
