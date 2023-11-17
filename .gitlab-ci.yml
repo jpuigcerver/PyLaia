@@ -27,7 +27,6 @@ test:
   parallel:
     matrix:
       - IMAGE:
-        - python:3.8
         - python:3.9
         - python:3.10
 
@@ -56,7 +55,7 @@ lint:
 
 deploy-pypi:
   stage: release
-  image: python:3.8
+  image: python:3.10
 
   only:
     - tags

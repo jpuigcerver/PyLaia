@@ -43,7 +43,7 @@ setuptools.setup(
         "test": ["pytest", "pytest-cov", "pandas", "regex"],
         "docs": get_requirements("doc-requirements.txt"),
     },
-    python_requires=">= 3.8, < 3.11",
+    python_requires=">= 3.9, < 3.11",
     # Package contents
     packages=setuptools.find_packages(exclude=["tests"]),
     include_package_data=True,
@@ -62,7 +62,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         # Specify the Python versions you support here.
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         # Topics
