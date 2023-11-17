@@ -14,6 +14,8 @@ test:
 
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    # Limit number of threads for parallel regions
+    OMP_NUM_THREADS: 1
 
   before_script:
     - pip install .[test]
