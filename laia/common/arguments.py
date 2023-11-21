@@ -276,10 +276,7 @@ class TrainerArgs(make_dataclass("", __get_trainer_fields())):
     __doc__ = pl.Trainer.__init__.__doc__
 
     def __post_init__(self):
-        if (
-            version.parse(torch.__version__) < version.parse("1.7.0")
-            and self.precision != 32
-        ):
+        if self.precision != 32:
             raise ValueError(
                 "AMP requires torch>=1.7.0. Additionally, only "
                 "fixed height models are currently supported"

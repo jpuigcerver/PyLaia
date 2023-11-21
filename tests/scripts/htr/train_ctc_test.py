@@ -92,10 +92,6 @@ def test_train_1_epoch(tmpdir, accelerator):
 
 # TODO: fix issue with half precision
 @pytest.mark.skip(reason="Issue with half_precision")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.7.0"),
-    reason="Some ops do not support AMP before 1.7.0",
-)
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="AMP needs CUDA")
 def test_train_half_precision(tmpdir):
     # TODO: add test using nnutils: https://github.com/jpuigcerver/nnutils/issues/4
@@ -190,10 +186,6 @@ def test_train_with_scheduler(tmpdir, caplog):
     assert "E2: lr-RMSprop 5.000e-01 ⟶ 2.500e-01" in caplog.messages
 
 
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"),
-    reason="1.4.0 needs more epochs",
-)
 def test_train_can_overfit_one_image(tmpdir, caplog):
     syms, img_dirs, data_module = prepare_data(tmpdir)
     # manually select a specific image

@@ -59,9 +59,6 @@ def test_decode_on_dummy_mnist_lines_data(tmpdir, nprocs):
 
 
 @pytest.mark.skip(reason="HTTP Error 404: Not Found")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
-)  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize(
     "accelerator",
     [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
@@ -106,9 +103,6 @@ def test_decode_with_trained_ckpt_fixed_height(tmpdir, downloader, accelerator):
 
 
 @pytest.mark.skip(reason="HTTP Error 404: Not Found")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
-)  # https://github.com/pytorch/vision/issues/1943
 def test_decode_with_old_trained_ckpt(tmpdir, downloader):
     syms = downloader("print/syms.txt")
     img_list = downloader("print/imgs.lst")
@@ -140,9 +134,6 @@ def test_decode_with_old_trained_ckpt(tmpdir, downloader):
 
 
 @pytest.mark.skip(reason="HTTP Error 404: Not Found")
-@pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"), reason="torch 1.4.0 bug"
-)  # https://github.com/pytorch/vision/issues/1943
 @pytest.mark.parametrize(
     "accelerator",
     [None, "ddp_cpu", "ddp"] if torch.cuda.device_count() > 1 else [None, "ddp_cpu"],
