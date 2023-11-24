@@ -27,14 +27,14 @@ The full list of parameters is detailed in this section.
 
 ### Common parameters
 
-| Name                        | Description                                                                                                                                                                                                                                         | Type         | Default          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ---------------- |
-| `common.seed`               | Seed for random number generators.                                                                                                                                                                                                                  | `int`        | `74565`          |
-| `common.train_path`         | Directory where the model will be saved                                                                                                                                                                                                             | `str`        | `.`              |
-| `common.model_filename`     | Filename of the model.                                                                                                                                                                                                                              | `str`        | `model`          |
-| `common.experiment_dirname` | Directory name of the experiment.                                                                                                                                                                                                                   | `experiment` | `74565`          |
-| `common.monitor`            | Metric to monitor for early stopping and checkpointing.                                                                                                                                                                                             | `Monitor`    | `Monitor.va_cer` |
-| `common.checkpoint`         | Checkpoint to load. Must be a filepath, a filename, a glob pattern or `None` (in this case, the best checkpoint will be loaded). Note that the checkpoint will be searched in `common.experiment_dirname`, unless you provide an absolute filepath. | `int`        | `None`           |
+| Name                        | Description                                                                                                                                                                                                                                         | Type            | Default          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---------------- |
+| `common.seed`               | Seed for random number generators.                                                                                                                                                                                                                  | `int`           | `74565`          |
+| `common.train_path`         | Directory where the model will be saved                                                                                                                                                                                                             | `str`           | `.`              |
+| `common.model_filename`     | Filename of the model.                                                                                                                                                                                                                              | `str`           | `model`          |
+| `common.experiment_dirname` | Directory name of the experiment.                                                                                                                                                                                                                   | `str`           | `experiment`     |
+| `common.monitor`            | Metric to monitor for early stopping and checkpointing.                                                                                                                                                                                             | `Monitor`       | `Monitor.va_cer` |
+| `common.checkpoint`         | Checkpoint to load. Must be a filepath, a filename, a glob pattern or `None` (in this case, the best checkpoint will be loaded). Note that the checkpoint will be searched in `common.experiment_dirname`, unless you provide an absolute filepath. | `Optional[str]` | `None`           |
 
 ### Data arguments
 
@@ -94,9 +94,9 @@ Pytorch Lighning `Trainer` flags can also be set using the `--trainer` argument.
 The model can be trained using command-line arguments or a YAML configuration file. Note that CLI arguments override the values from the configuration file.
 
 
-### Example with Command Line Arguments (CLI)
+### Training from scratch with Command Line Arguments (CLI)
 
-Run the following command to create a model:
+Run the following command to train a model:
 ```sh
 pylaia-htr-train-ctc /path/to/syms.txt \
    `cat img_dirs_args.txt`\
@@ -106,9 +106,9 @@ pylaia-htr-train-ctc /path/to/syms.txt \
    --data.batch_size 32
 ```
 
-### Example with a YAML configuration file
+### Training from scratch with a YAML configuration file
 
-Run the following command to create a model:
+Run the following command to train a model:
 ```sh
 pylaia-htr-train-ctc --config config_train_model.yaml
 ```
@@ -135,3 +135,14 @@ trainer:
   gpus: 1
   max_epochs: 600
 ```
+
+
+### Resume training from a checkpoint
+
+Run the following command to resume training from a checkpoint for 200 epochs.
+```sh
+pylaia-htr-train-ctc --config config_train_model.yaml --train.resume 200
+```
+
+!!! note
+    If `common.checkpoint` is not set, PyLaia will select the best checkpoint from `common.experiment_dirname`
