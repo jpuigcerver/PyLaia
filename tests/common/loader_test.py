@@ -195,11 +195,11 @@ def test_model_loader_find_best(tmpdir):
     trainer.fit(DummyEngine(), datamodule=DummyMNIST())
     assert (
         ModelLoader.find_best(tmpdir, monitor, mode="max")
-        == tmpdir / "epoch=2-v0.ckpt"
+        == tmpdir / "epoch=2-v1.ckpt"
         == mc.best_model_path
     )
     assert (
-        ModelLoader.find_best(tmpdir, monitor, mode="min") == tmpdir / "epoch=0-v0.ckpt"
+        ModelLoader.find_best(tmpdir, monitor, mode="min") == tmpdir / "epoch=0-v1.ckpt"
     )
 
 

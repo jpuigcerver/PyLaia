@@ -158,21 +158,6 @@ class ProgressBar(pl.callbacks.ProgressBar):
             # log training bar
             log.log(self.level, tqdm.format_meter(**format_dict))
 
-            if (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch:
-                return
-            # add metrics to training bar.
-            # note: this is here instead of in `on_validation_epoch_end`
-            # because `val_loop` gets called before `on_train_epoch_end` so the VA
-            # bar would get printed before the TR bar. see:
-            # https://pytorch-lightning.readthedocs.io/en/stable/lightning-module.html#hook-lifecycle-pseudocode
-            self.set_postfix(self.val_progress_bar, "va_")
-            # override validation time
-            format_dict = self.fix_format_dict(
-                self.val_progress_bar, "VA", self.va_timer
-            )
-            # log validation bar
-            log.log(self.level, tqdm.format_meter(**format_dict))
-
     def on_validation_batch_end(self, *args, **kwargs):
         # skip parent
         super(pl.callbacks.ProgressBar, self).on_validation_batch_end(*args, **kwargs)
@@ -181,7 +166,16 @@ class ProgressBar(pl.callbacks.ProgressBar):
 
     def on_validation_epoch_end(self, trainer, *args, **kwargs):
         super().on_validation_epoch_end(trainer, *args, **kwargs)
+
         if self.is_enabled:
+            self.set_postfix(self.val_progress_bar, "va_")
+            # override validation time
+            format_dict = self.fix_format_dict(
+                self.val_progress_bar, "VA", self.va_timer
+            )
+            # log validation bar
+            log.log(self.level, tqdm.format_meter(**format_dict))
+
             if trainer.running_sanity_check:
                 self.val_progress_bar.refresh()
                 log.log(

@@ -4,7 +4,7 @@ scipy==1.11.3
 matplotlib==3.8.0
 # cpu version: nnutils-pytorch
 nnutils-pytorch-cuda
-pytorch-lightning==1.1.7
+pytorch-lightning==1.2.0
 torch>=1.13,<1.14
 torchvision>=0.14,<0.15
 torchaudio>=0.13,<0.14

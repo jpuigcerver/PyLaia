@@ -1,4 +1,4 @@
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins import DDPPlugin
 
 import laia.common.logging as log
 

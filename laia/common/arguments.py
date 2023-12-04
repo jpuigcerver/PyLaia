@@ -267,8 +267,9 @@ def __get_trainer_fields() -> List[Tuple[str, Type, Any]]:
         "auto_scale_batch_size",
         "auto_lr_find",
     )
-    parameters = [p for p in parameters if p.name not in blocklist]
-    return [(p.name, p.annotation, p.default) for p in parameters]
+    return [
+        (p.name, p.annotation, p.default) for p in parameters if p.name not in blocklist
+    ]
 
 
 @dataclass
@@ -276,6 +277,9 @@ class TrainerArgs(make_dataclass("", __get_trainer_fields())):
     __doc__ = pl.Trainer.__init__.__doc__
 
     def __post_init__(self):
+        if self.progress_bar_refresh_rate is None:
+            self.progress_bar_refresh_rate = 1
+
         if self.precision != 32:
             raise ValueError(
                 "AMP requires torch>=1.7.0. Additionally, only "
