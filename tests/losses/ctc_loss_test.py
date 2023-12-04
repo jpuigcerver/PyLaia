@@ -13,14 +13,14 @@ def test_transform_batch():
 
     batch = torch.empty((3, 4, 5))
     x, xs = transform_batch(batch)
-    torch.testing.assert_allclose(x, batch)
+    torch.testing.assert_close(x, batch)
     assert xs == [3, 3, 3, 3]
 
     x = torch.tensor([[4, 5, 6], [1, 2, 0], [3, 0, 0]])
     xs = [3, 2, 1]
     batch = torch.nn.utils.rnn.pack_padded_sequence(x, xs)
     x_out, xs_out = transform_batch(batch)
-    torch.testing.assert_allclose(x_out, x)
+    torch.testing.assert_close(x_out, x)
     assert xs_out.tolist() == xs
 
 
@@ -110,7 +110,7 @@ def test_forward(caplog, dtype, device, average_frames, reduction):
         expected = torch.sum(expected)
     elif reduction == "mean":
         expected = torch.mean(expected)
-    torch.testing.assert_allclose(expected.cpu(), loss.cpu())
+    torch.testing.assert_close(expected.cpu(), loss.cpu())
     assert (
         caplog.messages.count(
             "The following samples in the batch were ignored for the loss computation: ['ID2']"

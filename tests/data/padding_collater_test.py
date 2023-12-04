@@ -77,11 +77,12 @@ class TestPaddingCollater(unittest.TestCase):
     def check_collated(self, batch, max_sizes, collated):
         self.assertEqual(collated.size(), max_sizes)
         for i, x in enumerate(batch):
-            torch.testing.assert_allclose(
+            torch.testing.assert_close(
                 collated[i, : x.size(0), : x.size(1), : x.size(2)], x
             )
-            torch.testing.assert_allclose(
-                torch.sum(collated[i, x.size(0) :, x.size(1) :, x.size(2) :]), 0
+            torch.testing.assert_close(
+                torch.sum(collated[i, x.size(0) :, x.size(1) :, x.size(2) :]),
+                torch.tensor(0.0),
             )
 
     def test_collate_tensors(self):
@@ -104,7 +105,7 @@ class TestPaddingCollater(unittest.TestCase):
         collate_fn = PaddingCollater(sizes)
         batch = [torch.rand(1, 20, 40), torch.rand(1, 20, 40), torch.rand(1, 20, 40)]
         x = collate_fn(batch)
-        torch.testing.assert_allclose(x, torch.stack(batch))
+        torch.testing.assert_close(x, torch.stack(batch))
 
     def test_collate_with_list(self):
         sizes = [(None, None, None), (1, None, None)]
@@ -128,9 +129,7 @@ class TestPaddingCollater(unittest.TestCase):
             np.random.rand(1, 20, 40),
         ]
         x = collate_fn(batch)
-        torch.testing.assert_allclose(
-            x, torch.stack([torch.from_numpy(x) for x in batch])
-        )
+        torch.testing.assert_close(x, torch.stack([torch.from_numpy(x) for x in batch]))
 
     def test_collate_with_dict(self):
         sizes = {"img": (3, None, None)}

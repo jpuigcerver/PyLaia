@@ -62,9 +62,9 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
         m = AdaptiveAvgPool2d(output_size=(h, w))
         x = torch.randn(2, 3, h, w, requires_grad=True)
         y = m(x)
-        torch.testing.assert_allclose(y, x)
+        torch.testing.assert_close(y, x)
         (dx,) = torch.autograd.grad(y.sum(), inputs=(x,))
-        torch.testing.assert_allclose(torch.ones(2, 3, h, w), dx)
+        torch.testing.assert_close(torch.ones(2, 3, h, w), dx)
 
     def test_forward_tensor(self):
         # N x C x H x W
@@ -90,10 +90,10 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
             dtype=self.x.dtype,
         )
         self.assertEqual(expected_y.size(), y.size())
-        torch.testing.assert_allclose(y, expected_y)
+        torch.testing.assert_close(y, expected_y)
         # Check against PyTorch's adaptive pooling
         y2 = torch.nn.functional.adaptive_avg_pool2d(self.x, output_size=(1, 2))
-        torch.testing.assert_allclose(y, y2)
+        torch.testing.assert_close(y, y2)
 
     def test_forward_padded_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
@@ -118,7 +118,7 @@ class AdaptiveAvgPool2dTest(unittest.TestCase):
             ],
             dtype=self.x.dtype,
         )
-        torch.testing.assert_allclose(y, expected_y)
+        torch.testing.assert_close(y, expected_y)
 
     def test_backward_tensor(self):
         m = AdaptiveAvgPool2d(output_size=(1, 2))
@@ -186,9 +186,9 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
         m = AdaptiveMaxPool2d(output_size=(h, w))
         x = torch.randn(2, 3, h, w, requires_grad=True)
         y = m(x)
-        torch.testing.assert_allclose(y, x)
+        torch.testing.assert_close(y, x)
         (dx,) = torch.autograd.grad(y.sum(), inputs=x)
-        torch.testing.assert_allclose(dx, torch.ones(2, 3, h, w))
+        torch.testing.assert_close(dx, torch.ones(2, 3, h, w))
 
     def test_forward_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
@@ -213,10 +213,10 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
             dtype=self.x.dtype,
         )
         self.assertEqual(expected_y.size(), y.size())
-        torch.testing.assert_allclose(y, expected_y)
+        torch.testing.assert_close(y, expected_y)
         # Check against PyTorch's adaptive pooling
         y2 = torch.nn.functional.adaptive_max_pool2d(self.x, output_size=(1, 2))
-        torch.testing.assert_allclose(y, y2)
+        torch.testing.assert_close(y, y2)
 
     def test_forward_padded_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))
@@ -241,7 +241,7 @@ class AdaptiveMaxPool2dTest(unittest.TestCase):
             ],
             dtype=self.x.dtype,
         )
-        torch.testing.assert_allclose(y, expected_y)
+        torch.testing.assert_close(y, expected_y)
 
     def test_backward_tensor(self):
         m = AdaptiveMaxPool2d(output_size=(1, 2))

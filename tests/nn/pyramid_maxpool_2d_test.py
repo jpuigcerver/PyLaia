@@ -32,7 +32,5 @@ def test_padded_tensor(use_nnutils):
     xs = torch.tensor([[3, 4]])
     layer = PyramidMaxPool2d(levels=[1, 2], use_nnutils=use_nnutils)
     y = layer(PaddedTensor(x, xs))
-    torch.testing.assert_allclose(
-        y, torch.tensor([[20, 10, 12, 18, 20]], dtype=x.dtype)
-    )
+    torch.testing.assert_close(y, torch.tensor([[20, 10, 12, 18, 20]], dtype=x.dtype))
     torch.autograd.gradcheck(lambda x: layer(PaddedTensor(x, xs)), x)

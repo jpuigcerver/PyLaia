@@ -37,13 +37,13 @@ class CTCGreedyDecoderTest(unittest.TestCase):
         loss_prob = loss.neg().exp().item()
         path_prob = paths.exp().sum().item()
 
-        torch.testing.assert_allclose(loss_prob, path_prob)
+        torch.testing.assert_close(loss_prob, path_prob)
         # Check 1best prob against loss with input_length = 1
         loss = torch.nn.functional.ctc_loss(
             x, torch.tensor(e), torch.tensor([1]), torch.tensor([1]), reduction="none"
         )
         loss_prob = loss.neg().exp().item()
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             loss_prob, [p.mean() for p in r["prob-segmentation"]][0].item()
         )
 
@@ -73,7 +73,7 @@ class CTCGreedyDecoderTest(unittest.TestCase):
             [x[ts, bs, max_idx].exp().item() for ts, max_idx in enumerate(e[bs])]
             for bs in range(3)
         ]
-        torch.testing.assert_allclose(confidence, r["prob-htr-char"])
+        torch.testing.assert_close(confidence, r["prob-htr-char"])
 
     def test_prob_softmax_temperature(self):
         temperature = 2.5
@@ -102,7 +102,7 @@ class CTCGreedyDecoderTest(unittest.TestCase):
             [x[ts, bs, max_idx].exp().item() for ts, max_idx in enumerate(e[bs])]
             for bs in range(3)
         ]
-        torch.testing.assert_allclose(confidence, r["prob-htr-char"])
+        torch.testing.assert_close(confidence, r["prob-htr-char"])
 
     def test_batch(self):
         x = torch.tensor([[[0.3, 0.6], [0.5, 0.9]], [[0.6, 0.3], [0.6, 0.9]]]).log()
@@ -120,7 +120,7 @@ class CTCGreedyDecoderTest(unittest.TestCase):
         )
         e = loss.neg().exp()
         r = torch.tensor([p.mean() for p in r["prob-segmentation"]])
-        torch.testing.assert_allclose(r, e)
+        torch.testing.assert_close(r, e)
 
     def test_segmentation_empty(self):
         s = CTCGreedyDecoder.compute_segmentation([])

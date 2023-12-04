@@ -30,7 +30,7 @@ def test_tensor(use_nnutils):
             i, j = i22[n, c].item() // 4, i22[n, c].item() % 4
             expected_dx[n, c, i, j + 4] += 1.0
 
-    torch.testing.assert_allclose(dx, expected_dx)
+    torch.testing.assert_close(dx, expected_dx)
 
 
 @pytest.mark.parametrize("use_nnutils", [True, False])
@@ -59,5 +59,5 @@ def test_padded_tensor(use_nnutils):
     expected_dx[0, 0, 2, 1] = 1
 
     # Check output and gradient w.r.t input
-    torch.testing.assert_allclose(y, torch.tensor([[20.0, 18.0, 20.0]]))
-    torch.testing.assert_allclose(dx, expected_dx)
+    torch.testing.assert_close(y, torch.tensor([[20.0, 18.0, 20.0]]))
+    torch.testing.assert_close(dx, expected_dx)

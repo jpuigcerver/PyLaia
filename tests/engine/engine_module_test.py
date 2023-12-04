@@ -69,7 +69,7 @@ def test_compute_loss():
     expected = torch.tensor(0.1)
     module = EngineModule(model, lambda *_: expected)
     actual = module.compute_loss(None, None, None)
-    torch.testing.assert_allclose(actual, expected)
+    torch.testing.assert_close(actual, expected)
 
 
 def test_can_train(tmpdir):
