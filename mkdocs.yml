@@ -78,7 +78,7 @@ copyright:  Copyright &copy; Teklia
 
 extra:
   social:
-    - icon: fontawesome/brands/github
+    - icon: fontawesome/brands/gitlab
       name: Git repository for this project
       link: https://gitlab.teklia.com/atr/pylaia
 
