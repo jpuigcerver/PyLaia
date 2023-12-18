@@ -86,16 +86,12 @@ class ProgressBar(pl.callbacks.ProgressBar):
             file=sys.stderr,
         )
 
-    def on_epoch_start(self, trainer, *args, **kwargs):
-        # skip parent
-        super(pl.callbacks.ProgressBar, self).on_epoch_start(trainer, *args, **kwargs)
+    def on_train_epoch_start(self, trainer, pl_module, *args, **kwargs):
+        super().on_train_epoch_start(trainer, pl_module, *args, **kwargs)
+        self.tr_timer.reset()
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(self.total_train_batches))
         self.main_progress_bar.set_description_str(f"TR - E{trainer.current_epoch}")
-
-    def on_train_epoch_start(self, *args, **kwargs):
-        super().on_train_epoch_start(*args, **kwargs)
-        self.tr_timer.reset()
 
     def on_validation_epoch_start(self, trainer, *args, **kwargs):
         super().on_validation_start(trainer, *args, **kwargs)

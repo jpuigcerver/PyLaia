@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from torch.utils.data import DataLoader, DistributedSampler
 
 import laia.common.logging as log
@@ -98,7 +99,7 @@ class DataModule(pl.LightningDataModule):
     def get_unpadded_distributed_sampler(
         self, ds: torch.utils.data.Dataset
     ) -> Optional[DistributedSampler]:
-        if not self.trainer.use_ddp:
+        if not self.trainer._distrib_type == DistributedType.DP:
             return
         return UnpaddedDistributedSampler(
             ds,
@@ -115,7 +116,7 @@ class DataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             shuffle=self.shuffle_tr,
             worker_init_fn=DataModule.worker_init_fn,
-            pin_memory=self.trainer.on_gpu,
+            pin_memory=self.trainer._device_type == DeviceType.GPU,
             collate_fn=PaddingCollater(
                 {"img": (self.img_channels, None, None)}, sort_key=by_descending_width
             ),
@@ -129,7 +130,7 @@ class DataModule(pl.LightningDataModule):
             shuffle=False,
             sampler=self.get_unpadded_distributed_sampler(self.va_ds),
             num_workers=self.num_workers,
-            pin_memory=self.trainer.on_gpu,
+            pin_memory=self.trainer._device_type == DeviceType.GPU,
             collate_fn=PaddingCollater(
                 {"img": (self.img_channels, None, None)}, sort_key=by_descending_width
             ),
@@ -142,7 +143,7 @@ class DataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             sampler=self.get_unpadded_distributed_sampler(self.te_ds),
             num_workers=self.num_workers,
-            pin_memory=self.trainer.on_gpu,
+            pin_memory=self.trainer._device_type == DeviceType.GPU,
             collate_fn=PaddingCollater(
                 {"img": (self.img_channels, None, None)}, sort_key=by_descending_width
             ),

@@ -13,12 +13,10 @@ class __TestCallback(pl.Callback):
         super().__init__()
         self.pbar = pbar
 
-    def on_epoch_start(self, trainer, *_, **__):
+    def on_train_epoch_start(self, trainer, *_, **__):
+        assert self.pbar.tr_timer.end is None
         assert self.pbar.main_progress_bar.total == trainer.num_training_batches
         assert self.pbar.main_progress_bar.desc.startswith("TR - E")
-
-    def on_train_epoch_start(self, *_, **__):
-        assert self.pbar.tr_timer.end is None
 
     def on_validation_epoch_start(self, trainer, *_, **__):
         if trainer.running_sanity_check:

@@ -126,7 +126,7 @@ class DummyMNISTLines(DummyMNIST):
             gt_file.close()
             indices_file.close()
 
-    def setup(self, _):
+    def setup(self, stage):
         self.tr_ds = TextImageFromTextTableDataset(
             self.root / "tr.gt",
             self.root / "tr",
