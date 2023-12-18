@@ -75,7 +75,7 @@ deploy-pypi:
 
 release-notes:
   stage: release
-  image: registry.gitlab.com/teklia/devops:latest
+  image: registry.gitlab.teklia.com/infra/devops:latest
 
   only:
     - tags
@@ -85,7 +85,7 @@ release-notes:
 
 bump-python-deps:
   stage: release
-  image: registry.gitlab.com/teklia/devops:latest
+  image: registry.gitlab.teklia.com/infra/devops:latest
 
   only:
     - schedules
