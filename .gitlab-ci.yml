@@ -83,6 +83,21 @@ release-notes:
   script:
     - devops release-notes
 
+docker-build:
+  stage: build
+  image: docker:24.0.6
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2375/
+
+  except:
+    - schedules
+
+  script:
+    - ci/build.sh
+
 bump-python-deps:
   stage: release
   image: registry.gitlab.teklia.com/infra/devops:latest
