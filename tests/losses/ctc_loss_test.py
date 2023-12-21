@@ -13,7 +13,7 @@ def test_transform_batch():
 
     batch = torch.empty((3, 4, 5))
     x, xs = transform_batch(batch)
-    torch.testing.assert_close(x, batch)
+    torch.testing.assert_close(x, batch, equal_nan=True)
     assert xs == [3, 3, 3, 3]
 
     x = torch.tensor([[4, 5, 6], [1, 2, 0], [3, 0, 0]])
