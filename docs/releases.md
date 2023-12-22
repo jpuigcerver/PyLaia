@@ -1,5 +1,49 @@
 # Releases
 
+## 1.1.0
+
+Released on **22 December 2023** &bull; View on [Gitlab](https://gitlab.teklia.com/atr/pylaia/-/releases/1.1.0)
+
+### Breaking changes
+
+- Official support for Python3.8 has been dropped. This doesn't mean that the current code doesn't run on python3.8, we simply do not test that compatibility anymore. This decision was made since active support of python 3.8 has stopped for a while now and many libraries in the ML world have stopped supporting it as well.
+
+### Feature
+
+- A Docker image with the needed code to use this library is now built on every tag.
+- The coverage of our tests suite is displayed again as a GitLab badge on the repository as well as in the README.md file.
+
+### Documentation
+
+- Many sections were added to the documentation:
+
+    - for the [pylaia-htr-create-model](https://atr.pages.teklia.com/pylaia/usage/initialization/) command,
+    - for [dataset formatting](https://atr.pages.teklia.com/pylaia/usage/datasets/),
+    - for the [pylaia-htr-train-ctc](https://atr.pages.teklia.com/pylaia/usage/training/) command and [fine-tuning](https://atr.pages.teklia.com/pylaia/usage/training/#resume-training-from-a-checkpoint),
+    - for the [pylaia-htr-decode-ctc](https://atr.pages.teklia.com/pylaia/usage/prediction/) command,
+    - for the [pylaia-htr-netout](https://atr.pages.teklia.com/pylaia/usage/netout/) command,
+    - to [train](https://atr.pages.teklia.com/pylaia/usage/language_models/) [KenLM](https://kheafield.com/code/kenlm/) language models,
+    - the full Python code reference.
+
+- A contribution guide and a code of conduct were added for new contributors.
+
+### Dependencies
+
+- Bumped [pytorch-lightning](https://pypi.org/project/pytorch-lightning/) to version `1.3.0`
+- Some dependencies were pinned to a version to avoid breakage:
+
+    - [natsort](https://pypi.org/project/natsort/) was pinned to version `8.4.0`,
+    - [textdistance](https://pypi.org/project/textdistance/) was pinned to version `4.6.0`,
+    - [scipy](https://pypi.org/project/scipy/) was pinned to version `1.11.3`,
+    - [matplotlib](https://pypi.org/project/matplotlib/) was pinned to version `3.8.2`,
+    - [numpy](https://pypi.org/project/numpy/) direct dependency was removed since it's installed through `scipy` and `matplotlib`.
+
+- PyLaia dropped support for python 3.8 so the [dataclasses](https://pypi.org/project/dataclasses/) dependency was dropped.
+
+### Misc
+
+- The `torch.testing.assert_allclose` has been replaced by `torch.testing.assert_close` since it became deprecated in [PyTorch 1.12.0](https://github.com/pytorch/pytorch/issues/61844).
+
 
 ## 1.0.7
 
