@@ -55,16 +55,39 @@ respect the [PyLaia Code of Conduct](https://gitlab.teklia.com/atr/pylaia/-/blob
 
 Work in this toolkit was financially supported by the [Pattern Recognition and Human Language Technology (PRHLT) Research Center](https://www.prhlt.upv.es/).
 
-## BibTeX
+## Citation
 
+* Article describing the latest contributions to PyLaia
+```
+@inproceedings{pylaia2024,
+    author = "Tarride, Solène and Schneider, Yoann and Generali, Marie and Boillet, Melodie and Abadie, Bastien and Kermorvant, Christopher",
+    title = "Improving Automatic Text Recognition with Language Models in the PyLaia Open-Source Library",
+    booktitle = "Submitted at ICDAR",
+    year = "2024"
+}
+```
+
+* Original article
+```
+@inproceedings{laia2017,
+  author={Puigcerver, Joan},
+  booktitle={2017 14th IAPR International Conference on Document Analysis and Recognition (ICDAR)},
+  title={Are Multidimensional Recurrent Layers Really Necessary for Handwritten Text Recognition?},
+  year={2017},
+  volume={01},
+  number={},
+  pages={67-72},
+  doi={10.1109/ICDAR.2017.20}}
+```
+
+* GitLab repository
 ```
 @misc{puigcerver2018pylaia,
   author = {Joan Puigcerver and Carlos Mocholí},
   title = {PyLaia},
   year = {2018},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/jpuigcerver/PyLaia}},
+  publisher = {GitLab},
+  journal = {GitLab repository},
+  howpublished = {\url{https://gitlab.teklia.com/atr/pylaia/}},
   commit = {commit SHA}
 }
-```
