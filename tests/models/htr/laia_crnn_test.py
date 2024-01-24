@@ -59,7 +59,7 @@ class LaiaCRNNTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(
             ValueError,
-            f"Images of size \d+ pixels would produce invalid output sizes.\nPlease review your model architecture.",
+            "Images of size \\d+ pixels would produce invalid output sizes.\nPlease review your model architecture.",
         ):
             m.get_min_valid_image_size(128)
 

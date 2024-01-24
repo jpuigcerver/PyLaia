@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 import torch
 from torch.nn.functional import dropout

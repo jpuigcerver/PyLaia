@@ -1,4 +1,3 @@
-from math import sqrt
 from pathlib import Path
 
 import laia.common.logging as log

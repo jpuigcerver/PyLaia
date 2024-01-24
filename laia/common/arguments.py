@@ -14,7 +14,6 @@ from jsonargparse.typing import (
     PositiveInt,
     restricted_number_type,
 )
-from packaging import version
 
 GeNeg1Int = restricted_number_type(None, int, (">=", -1))
 

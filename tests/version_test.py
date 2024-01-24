@@ -1,6 +1,6 @@
 import pkg_resources
 
-from laia import *  # pylint: disable=wildcard-import
+from laia import *
 
 
 def test_wildcard_import():

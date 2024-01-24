@@ -5,14 +5,12 @@ from unittest import mock
 import pytest
 import torch
 from conftest import call_script
-from packaging import version
 from pytorch_lightning import seed_everything
 
 from laia.common.arguments import CommonArgs, DataArgs, DecodeArgs
 from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines, DummyModel
 from laia.scripts.htr import decode_ctc as script
-from laia.utils import SymbolsTable
 
 
 # TODO: fix test with nprocs=2

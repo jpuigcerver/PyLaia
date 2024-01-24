@@ -18,9 +18,7 @@ def visualize(args: argparse.Namespace):
     fig, ax = plt.subplots()
     colors = plt.get_cmap(args.cmap).colors
     # img_id and data will be defined, otherwise an exception is raised
-    fig.canvas.manager.set_window_title(
-        img_id
-    )  # pylint: disable=undefined-loop-variable
+    fig.canvas.manager.set_window_title(img_id)  # pylint: disable=undefined-loop-variable
 
     data = literal_eval(data)  # pylint: disable=undefined-loop-variable
     for i, (val, x1, y1, x2, y2) in enumerate(data):

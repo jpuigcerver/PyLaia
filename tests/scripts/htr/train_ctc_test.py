@@ -1,7 +1,6 @@
 import pytest
 import torch
 from conftest import call_script
-from packaging import version
 from pytorch_lightning import seed_everything
 
 from laia.common.arguments import (
@@ -16,7 +15,6 @@ from laia.common.saver import ModelSaver
 from laia.dummies import DummyMNISTLines
 from laia.models.htr.laia_crnn import LaiaCRNN
 from laia.scripts.htr import train_ctc as script
-from laia.utils import SymbolsTable
 
 
 def prepare_data(dir, image_sequencer="avgpool-8"):
@@ -102,7 +100,7 @@ def test_train_half_precision(tmpdir):
         data_module.root / "tr.gt",
         data_module.root / "va.gt",
         f"--common.train_path={tmpdir}",
-        f"--data.batch_size=3",
+        "--data.batch_size=3",
         "--trainer.fast_dev_run=true",
         "--trainer.precision=16",
         "--trainer.gpus=1",

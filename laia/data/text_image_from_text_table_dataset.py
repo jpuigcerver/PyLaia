@@ -60,7 +60,7 @@ def find_image_filepath_from_id(
 
 
 def _load_text_table_from_file(
-    table_file: Union[TextIO, str, List[str], Path]
+    table_file: Union[TextIO, str, List[str], Path],
 ) -> Generator[Tuple[int, str, str], None, None]:
     if isinstance(table_file, (str, Path)):
         table_file = open(table_file)

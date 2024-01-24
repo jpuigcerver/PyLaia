@@ -20,3 +20,34 @@ precision = 2
 
 [tool.pytest.ini_options]
 pythonpath = "."
+
+[tool.ruff]
+select = [
+   # pycodestyle
+   "E",
+   "W",
+   # Pyflakes
+   "F",
+   # Isort
+   "I",
+   # Invalid pyproject.toml
+   "RUF200",
+]
+
+
+# Avoid automatically removing unused imports in __init__.py files
+ignore-init-module-imports = true
+
+ignore = [
+   # ambiguous-variable-name
+   "E741",
+   # line too long
+   "E501",
+]
+
+[tool.ruff.per-file-ignores]
+# unused imports in __init__.py files should either be stored in __all__ or re-exported with an alias
+"*/__init__.py" = ["F401", "F403"]
+
+# Wildcards imports are allowed here
+"tests/version_test.py" = ["F405", "F403"]
