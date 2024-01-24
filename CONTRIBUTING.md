@@ -117,7 +117,7 @@ Enhancement suggestions are tracked as [GitLab issues](https://gitlab.teklia.com
 - Install **pre-commit**, through `pip install pre-commit`
 - Setup **pre-commit** hooks, through `pre-commit install`
 - Format the code using **pre-commit**, through `pre-commit run -a`
-- Run the test suite (including a coverage report), through `pytest --cov=laia tests`
+- Run the test suite (including a coverage report), through `tox`
 
 ### Improving The Documentation
 - Create a virtual environment, you can use [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/) or [conda](https://docs.conda.io/en/latest/).

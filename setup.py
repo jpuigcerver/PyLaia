@@ -40,7 +40,7 @@ setuptools.setup(
     install_requires=get_requirements("requirements.txt"),
     extras_require={
         "dev": ["pre-commit", "isort", "black"],
-        "test": ["pytest", "pytest-cov", "pandas", "regex"],
+        "test": ["tox"],
         "docs": get_requirements("doc-requirements.txt"),
     },
     python_requires=">= 3.9, < 3.11",

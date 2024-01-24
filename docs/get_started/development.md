@@ -17,11 +17,11 @@ pre-commit run -a
 
 ### Unit tests
 
-Tests are executed using [pytest](https://pytest.org).
+Tests are executed using [tox](https://tox.wiki/en/latest/).
 
 ```shell
-pip install pytest
-pytest
+pip install .[test]
+tox
 ```
 
 ## Documentation
