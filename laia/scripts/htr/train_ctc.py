@@ -157,7 +157,7 @@ def run(
 
 
 def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
-    parser = jsonargparse.ArgumentParser(parse_as_dict=True)
+    parser = jsonargparse.ArgumentParser()
     parser.add_argument(
         "--config", action=jsonargparse.ActionConfigFile, help="Configuration file"
     )
@@ -193,7 +193,7 @@ def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
     parser.add_class_arguments(SchedulerArgs, "scheduler")
     parser.add_class_arguments(TrainerArgs, "trainer")
 
-    args = parser.parse_args(argv, with_meta=False)
+    args = parser.parse_args(argv, with_meta=False).as_dict()
 
     args["common"] = CommonArgs(**args["common"])
     args["train"] = TrainArgs(**args["train"])

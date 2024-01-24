@@ -58,7 +58,6 @@ def run(
 
 def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
     parser = jsonargparse.ArgumentParser(
-        parse_as_dict=True,
         description=(
             "Create a model for HTR composed of a set of convolutional blocks, followed"
             " by a set of bidirectional RNN layers, and a final linear layer. Each"
@@ -110,7 +109,7 @@ def get_args(argv: Optional[List[str]] = None) -> Dict[str, Any]:
     parser.add_function_arguments(log.config, "logging")
     parser.add_class_arguments(CreateCRNNArgs, "crnn")
 
-    args = parser.parse_args(argv, with_meta=False)
+    args = parser.parse_args(argv, with_meta=False).as_dict()
 
     args["common"] = CommonArgs(**args["common"])
     args["crnn"] = CreateCRNNArgs(**args["crnn"])
