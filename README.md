@@ -4,6 +4,8 @@
 
 **PyLaia is a device agnostic, PyTorch based, deep learning toolkit for handwritten document analysis.**
 
+**Development has moved under [Teklia's maintainship](https://gitlab.teklia.com/atr/pylaia). Please head over there if you want to use PyLaia.**
+
 **It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).**
 
 [![pipeline status](https://gitlab.teklia.com/atr/pylaia/badges/master/pipeline.svg)](https://gitlab.teklia.com/atr/pylaia/-/commits/master)
