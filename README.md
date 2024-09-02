@@ -6,6 +6,8 @@
 
 **It is also a successor to [Laia](https://github.com/jpuigcerver/Laia).**
 
+**Development/Maintenance is now done on [Teklia's fork](https://gitlab.teklia.com/atr/pylaia). Please head over there if you want to use the latest version of PyLaia.**
+
 [![Build](https://img.shields.io/github/workflow/status/jpuigcerver/PyLaia/Laia%20CI?&label=Build&logo=GitHub&labelColor=1b1f23)](https://github.com/jpuigcerver/PyLaia/actions?query=workflow%3A%22Laia+CI%22)
 [![Coverage](https://img.shields.io/codecov/c/github/jpuigcerver/PyLaia?&label=Coverage&logo=Codecov&logoColor=ffffff&labelColor=f01f7a)](https://codecov.io/gh/jpuigcerver/PyLaia)
 [![Code quality](https://img.shields.io/codefactor/grade/github/jpuigcerver/PyLaia?&label=CodeFactor&logo=CodeFactor&labelColor=2782f7)](https://www.codefactor.io/repository/github/jpuigcerver/PyLaia)
