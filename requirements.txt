@@ -1,6 +1,6 @@
 textdistance
 natsort
-numpy
+numpy<2
 scipy
 matplotlib
 # cpu version: nnutils-pytorch
