@@ -89,7 +89,8 @@ def run(
         if im_stats.is_fixed_height
         else None,
         color_mode=data.color_mode,
-        shuffle_tr=not bool(trainer.limit_train_batches),
+        #shuffle_tr=not bool(trainer.limit_train_batches),
+        shuffle_tr=True if trainer.limit_train_batches==1 else False,
         augment_tr=train.augment_training,
         stage="fit",
         num_workers=num_workers,
