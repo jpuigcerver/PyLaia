@@ -4,7 +4,7 @@ numpy<2
 scipy
 matplotlib
 # cpu version: nnutils-pytorch
-nnutils-pytorch-cuda
+nnutils-pytorch-cuda==1.13.1
 pytorch-lightning==1.1.7
 torch>=1.13,<1.14
 torchvision>=0.14,<0.15
