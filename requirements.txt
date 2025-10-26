@@ -2,7 +2,7 @@ textdistance
 natsort
 numpy<2
 scipy
-matplotlib
+matplotlib==3.9.2
 # cpu version: nnutils-pytorch
 nnutils-pytorch-cuda==1.13.1
 pytorch-lightning==1.1.7
